@@ -1,0 +1,46 @@
+{
+  "name": "yayaw-table",
+  "version": "3.8.0",
+  "files": {
+    "registry": "registry.json",
+    "items": {
+      "yayaw-table": "yayaw-table.json",
+      "yayaw-table-calendar": "yayaw-table-calendar.json",
+      "yayaw-table-chart": "yayaw-table-chart.json",
+      "yayaw-table-dashboard": "yayaw-table-dashboard.json",
+      "yayaw-table-map": "yayaw-table-map.json",
+      "yayaw-table-connector-notion": "yayaw-table-connector-notion.json",
+      "yayaw-table-connector-google-sheets": "yayaw-table-connector-google-sheets.json",
+      "font-yayaw-sans": "font-yayaw-sans.json",
+      "yayaw-table-base": "yayaw-table-base.json",
+      "yayaw-table-vue": "yayaw-table-vue.json",
+      "yayaw-table-vue-calendar": "yayaw-table-vue-calendar.json",
+      "yayaw-table-vue-chart": "yayaw-table-vue-chart.json",
+      "yayaw-table-vue-dashboard": "yayaw-table-vue-dashboard.json",
+      "yayaw-table-vue-map": "yayaw-table-vue-map.json",
+      "yayaw-table-vue-connector-notion": "yayaw-table-vue-connector-notion.json",
+      "yayaw-table-vue-connector-google-sheets": "yayaw-table-vue-connector-google-sheets.json"
+    }
+  },
+  "latest": {
+    "registry": "../registry.json",
+    "items": {
+      "yayaw-table": "../yayaw-table.json",
+      "yayaw-table-calendar": "../yayaw-table-calendar.json",
+      "yayaw-table-chart": "../yayaw-table-chart.json",
+      "yayaw-table-dashboard": "../yayaw-table-dashboard.json",
+      "yayaw-table-map": "../yayaw-table-map.json",
+      "yayaw-table-connector-notion": "../yayaw-table-connector-notion.json",
+      "yayaw-table-connector-google-sheets": "../yayaw-table-connector-google-sheets.json",
+      "font-yayaw-sans": "../font-yayaw-sans.json",
+      "yayaw-table-base": "../yayaw-table-base.json",
+      "yayaw-table-vue": "../yayaw-table-vue.json",
+      "yayaw-table-vue-calendar": "../yayaw-table-vue-calendar.json",
+      "yayaw-table-vue-chart": "../yayaw-table-vue-chart.json",
+      "yayaw-table-vue-dashboard": "../yayaw-table-vue-dashboard.json",
+      "yayaw-table-vue-map": "../yayaw-table-vue-map.json",
+      "yayaw-table-vue-connector-notion": "../yayaw-table-vue-connector-notion.json",
+      "yayaw-table-vue-connector-google-sheets": "../yayaw-table-vue-connector-google-sheets.json"
+    }
+  }
+}

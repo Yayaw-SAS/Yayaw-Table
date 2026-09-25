@@ -1,5 +1,52 @@
 # Changelog
 
+## 3.8.0
+
+### Minor Changes
+
+- 514c324: Dashboards become screens: JSON version 2, its validator and the tools hosts need on their servers, in React and Vue.
+
+  - **Grammar** (`dashboard-schema.ts`, shared and server-safe): `{ version: 2, id, name, description?, sections, widgets, filters }`. Sections are grids of cards (`{ type: "grid", layout }`, the version 1 grid) or full-width flows (`{ type: "flow", widgetIds }`); widgets are `view`, `kpi`, `note`, `table` (flows only) or `block` (a host block with JSON `props`); a widget's inline `view` (a saved view's config) can replace its `viewId`; names, titles and filter labels are a text or `{ en, fr }`, like form texts.
+  - **Validation**: `validateDashboard(input, { limits?, blocks? })` reads versions 0, 1 and 2, writes version 2, never throws, and returns `{ dashboard, issues, ok, migratedFrom }`; each issue has a code, a severity (errors lost something, warnings are repairs) and a JSON path. It drops unknown widget types (a new widget or section type bumps the version), refuses newer versions, removes unknown keys, caps sizes (`DASHBOARD_LIMITS`: 12 sections, 50 widgets, 12 filters, 256 KB), slugifies invalid ids and remaps their references, moves orphan and misplaced widgets, prefers inline views to saved ones, and deep-copies block props before the host's `validateProps`. `normalizeDashboard` stays the lenient reading.
+  - **Tools**: `checkDashboardReferences` (sources, views, columns, display modes and blocks against what the user may see), `dashboardJsonSchema` (a JSON Schema for AI tool inputs, with the host's sources and blocks), `canonicalDashboardJson` and `dashboardFingerprint` (SHA-256, synchronous, in browsers and on servers), and builders (`createDashboard`, `addDashboardSection`, `addDashboardWidget`, `removeDashboardWidget`, `moveWidgetToSection`, `moveDashboardWidget`, `resizeDashboardWidget`, `applyDashboardSectionLayout`).
+  - **Sources** (`dashboard-sources.ts`): source summaries, the lazy `DashboardSources` contract and `createDashboardSourceLoader` (cached, shared concurrent loads, unavailable sources kept, failed ones retried, `tables` first).
+  - **View settings** (`utils/view-config.ts` in the table): `sanitizeViewConfig` strictly sanitizes saved-view settings (unknown keys removed at every level, sizes capped, values type-checked before each mode's normalizer, hostile JSON harmless).
+  - **Rendering**: `YayawDashboard` renders sections in order: a grid section is its own gridstack grid; a flow section stacks widgets at full width and their natural height (record views keep their pagination, charts take a 16:10 body). Inline views, localized titles and section titles render in both editions; `table` and `block` widgets show "Not available yet" (`dashboard.notAvailableYet`) until the next release. "Done" saves version 2.
+  - Grid layout helpers moved to `dashboard-layout.ts`; `dashboard-model.ts` still exports them.
+
+  **Migration.** `Dashboard` is now version 2. Type version 1 literals as `DashboardV1` (or `unknown` when read from storage); `dashboard.layout` is now a grid section's `layout`. `applyGridLayout(section, items)` takes a section: use `applyDashboardSectionLayout(dashboard, sectionId, items)` for a document. Hosts storing dashboards receive version 2 on save and must upgrade every reader first: version 3.7 refuses version 2 documents. See `docs/DASHBOARD-SCREENS.md`.
+
+- 999ed28: Dashboards render admin screens, in React and Vue: sources loaded on demand, host blocks and full-page tables.
+
+  - **`sources`**: a lazy catalogue (`list`, `load`) read through `createDashboardSourceLoader`; `tables` stays and wins. Only the sources the screen's widgets read load. Widgets show "Loading…", an error with Retry, a muted notice for an unavailable source (the host's message, else its reason: forbidden, not configured, not found) or "Unavailable block" for a block key the host lacks; these widgets stay in the document and in edit mode, and are saved as they are. `unavailableWidgets: "hide"` leaves them out of the view, grids closing their gaps, for display only.
+  - **`blocks`**: the host's registry, `Record<key, DashboardBlock>`. `DashboardBlock` extends the pure `DashboardBlockSchema` (`label`, `description`, `group`, `placement`, `defaultSize`, `defaultProps`, `validateProps`, `propsSchema`) with `component` and an optional `settings` component. Blocks receive `{ widgetId, props, size?, editing, locale, revision, filters, refresh(tableId?), openView? }`; a failing block stays in its widget; a block rendering nothing collapses in a flow and stays an empty card in a grid.
+  - **Full-page `table` widgets** render the source's `DataTable` / `YayawDataTable` with its toolbar, saved views, selection and URL sync, without a card (an edit bar in edit mode). `DashboardTableSource` gains `tableProps` and `renderTable(props)` (host code, never stored). The widget's inline view is a system default view `screen:<dashboardId>:<widgetId>` (`isDashboardViewId`), after the reader's favorite; the screen's first table keeps the list page's URL keys, the others use their widget id; screen filters reach it as `requiredFilters`.
+  - **Refresh**: "Refresh all" reloads every widget (React invalidates full-page tables' queries; Vue's `YayawDataTable` now exposes `refresh()`); changes made in a full-page table (`withMutationSignal`) reload the other widgets of its source and the blocks.
+  - **New props**: `dashboard` (a document to show; `actions` is then optional), `showTitle`, `syncUrl`, and `openView(tableId, viewId, context?: { view })`.
+  - **Filters**: the values readers pick are view state, kept in the URL (`<dashboardId>.<filterId>`), never written to the document, whose `value` is the default; edit mode sets the defaults. Date ranges offer relative periods (last 7, 30 and 90 days, this month, last month, this year), stored as `{ preset }` and sent as days resolved in the reader's time zone.
+  - **`meta.notice`**: a `list` or `aggregate` answer carrying `meta.notice` (`{ code?, message? }`) shows a muted notice instead of empty data.
+  - Titles: `dashboardWidgetTitle` names full-page tables after their source and blocks after their label. Headings: the screen `h2`, sections `h3`, widgets `h3` or `h4`.
+  - Demo `?example=screen` ("Content admin") in both editions.
+
+  **Migration.** `DashboardBlockDefinition` (unreleased) is now `DashboardBlockSchema` (alias kept) and a block's `name` is its `label`. Filter values picked in view mode no longer change the document nor call `onChange`: they stay in the URL. The `dashboard.notAvailableYet` label is gone. See `docs/DASHBOARD-SCREENS.md`.
+
+- 206e578: Date filters send calendar days (`YYYY-MM-DD`) instead of instants, in React and Vue.
+
+  - **Values.** Every date operator compares whole days, so date rule values are days: one day, or `[first, last]` for `between` (ordered, both days included), for date and timestamp columns alike. React's date filter (calendar, compact chip, and the Today, Yesterday, Last 7 days, Last 30 days and This month shortcuts) now writes days, like Vue's native date inputs. It used to write the instant of the viewer's local midnight (`2026-09-24T22:00:00.000Z` for 25 September in Paris), which a server without the viewer's time zone read as the wrong day, and timestamp ranges lost their last day. `list`, `aggregate`, exports, URLs and saved views now carry days in both editions.
+  - **Older links, saved views and presets** that hold instants keep filtering the same days: both editions read them as the viewer's days when they read a URL, apply a view or a preset, or commit a rule, and an older saved view is not marked modified.
+  - **Local filtering** (Vue's `data`, client fallbacks, React's `clientFilterFunctions.date` and `useAdvancedFilters`) compares the record's day in the viewer's time zone with the rule's days. React's client date filter no longer drops the last day of a range or throws on day strings.
+  - **Shared helpers** in `utils/date-filter-days.ts` (both registries, pure and safe on a server): `calendarDay`, `isCalendarDay`, `dateFilterDays`, `normalizeDateFilterRule`, `normalizeDateFilterRules` (options `timeZone` and `isDateColumn`), `todayCalendarDay`, `addCalendarDays` and `calendarDayToLocalDate`.
+
+  **Migration.** Servers now receive `YYYY-MM-DD` values in date rules. Compare `date` fields with the day; on timestamp fields, cover `[start of the day, start of the next day)` in the zone you choose. Views saved by older versions keep their instants until they are saved again: code that reads them without a browser (MCP reads, scheduled connector pushes) should pass their rules through `normalizeDateFilterRules(rules, { timeZone })` with the zone of the person who saved them. React types: `FilterValues<"date">` is now `CalendarDay | [CalendarDay, CalendarDay]` (`CalendarDay` is a `YYYY-MM-DD` string); `DateFilter` and `CompactDateFilter` call `onValueChange` with days and still read older values; `DateRangeShortcuts` calls `onSelect` with days; `getDefaultFilterValue` returns today's day. Hosts that build date rules with `Date` objects should pass days instead (older `Date` values are still read as the viewer's days).
+
+### Patch Changes
+
+- 5c47ed1: React/Vue parity fixes for grouping and Gantt titles:
+
+  - Table grouping by a date column now always groups by calendar month, headed with the month's name, in both editions — also when the column has an `accessorKey` or `accessorFn` (React grouped those by exact value, Vue always did).
+  - Kanban lanes, Gallery sections and List sections head records without a value "No value" ("Aucune valeur" in French) in both editions; Vue Kanban and Gallery showed "Unassigned", and a Vue Kanban card moved to that lane now writes `""` like React instead of the string "Unassigned".
+  - Without `gantt.titleColumn`, the Vue Gantt titles tasks with the first visible data column, like React, instead of the first column definition.
+
 ## 3.7.0
 
 ### Minor Changes
