@@ -661,6 +661,9 @@ provide(tableContextKey, {
   onBulkExport: props.onBulkExport,
   onExport: props.onExport,
 } as TableContextValue);
+
+/** `refresh()`: loads the rows (and aggregates) again, e.g. a dashboard's "Refresh all". */
+defineExpose({ refresh });
 </script>
 
 <template>

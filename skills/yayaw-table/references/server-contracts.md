@@ -36,7 +36,10 @@ server) are the reference for parameter names and filter semantics.
 Answer `{ data, meta }`: `data` rows with stable ids (or pass `getRowId`),
 `meta.totalCount` and/or `meta.pageCount`, `meta.scope: "applied"` when the
 scope was applied, and for the file tree `childCounts`, `sizes`, `ancestors`
-and `truncated`. Exports, select-all and scoped views page through `list` with
+and `truncated`. `meta.notice` (`{ code?, message? }`, e.g. `{ code:
+"notConfigured", message }`) tells dashboards the source has nothing to show
+for a reason: their widgets show it instead of empty data (`aggregate` may
+answer it too). Exports, select-all and scoped views page through `list` with
 the same query until `pageCount` or `totalCount` is reached; without either,
 a short page ends the collection, and an empty page before the end, a failed
 page or more than 1,000 pages is an error rather than a partial result.
@@ -342,6 +345,14 @@ the user may see, and `dashboardJsonSchema()` describes documents for MCP
 tool inputs. Inline views go through `sanitizeViewConfig()`. AI tools save
 drafts; people publish. See
 [Dashboard screens](https://github.com/Yayaw-SAS/Yayaw-Table/blob/main/docs/DASHBOARD-SCREENS.md).
+
+Screens load their sources lazily through `sources` (`list` for editors,
+`load(id)` for readers): answer `{ unavailable: true, reason: "forbidden" |
+"notConfigured" | "notFound", message? }` for a source this user cannot use;
+its widgets show a notice and stay in the document. Host blocks are
+`blocks` entries; full-page table widgets take the host's `tableProps` and
+`renderTable`. Filter values readers pick stay in the URL, never in the
+document.
 
 Authorize every call; `canEdit` only shows the editing controls. Widgets call
 each table's own `list` and `aggregate` with `requiredFilters`. Number

@@ -179,10 +179,29 @@ export interface DashboardFlowSection extends DashboardSectionBase {
 
 export type DashboardSection = DashboardGridSection | DashboardFlowSection;
 
-/** Calendar days `YYYY-MM-DD`, both optional. */
+/**
+ * Relative periods a date range filter can hold instead of fixed days,
+ * resolved when the widgets query, in the viewer's time zone: the last 7, 30
+ * or 90 days up to today, this calendar month, the previous one, this year.
+ */
+export const DASHBOARD_DATE_PRESETS = [
+  "last7Days",
+  "last30Days",
+  "last90Days",
+  "thisMonth",
+  "lastMonth",
+  "thisYear",
+] as const;
+export type DashboardDatePreset = (typeof DASHBOARD_DATE_PRESETS)[number];
+
+/**
+ * A date range filter's value: calendar days `YYYY-MM-DD` (both optional), or
+ * a relative `preset` (then the days are left out).
+ */
 export interface DashboardDateRange {
   start?: string;
   end?: string;
+  preset?: DashboardDatePreset;
 }
 
 /** A column a filter applies to: every widget of `tableId`, or only `widgetIds`. */
@@ -199,8 +218,9 @@ export interface DashboardFilterOption {
 
 /**
  * A dashboard filter, joined (AND) to each targeted widget's own filters and
- * sent to the source's `list`/`aggregate`. `value` is a date range or the
- * chosen options; empty values filter nothing.
+ * sent to the source's `list`/`aggregate`. `value` is a date range (days or a
+ * relative preset) or the chosen options: the default readers start from
+ * (the values they pick stay in the URL); empty values filter nothing.
  */
 export interface DashboardFilter {
   id: string;
@@ -394,9 +414,16 @@ const MAX_FILTER_OPTIONS = 200;
 /** Columns one filter applies to. */
 const MAX_FILTER_TARGETS = 50;
 
-/** A date range filter's value: calendar days only. */
+/**
+ * A date range filter's value: a known relative `preset` alone, else calendar
+ * days only.
+ */
 export function dashboardDateRange(value: unknown): DashboardDateRange {
   const range = isRecord(value) ? value : {};
+  const preset = oneOf(DASHBOARD_DATE_PRESETS, range.preset);
+  if (preset) {
+    return { preset };
+  }
   const start = text(range.start);
   const end = text(range.end);
   return {
@@ -431,7 +458,7 @@ export function normalizeDashboardFilterValue<
       : dashboardSelectValues(filter.value);
   const empty = Array.isArray(value)
     ? value.length === 0
-    : !(value.start || value.end);
+    : !(value.start || value.end || value.preset);
   return (empty ? rest : { ...rest, value }) as T;
 }
 
@@ -559,12 +586,24 @@ export type DashboardBlockPropsCheck =
   // biome-ignore lint/suspicious/noConfusingVoidType: a host's check may return nothing when the props are valid.
   | void;
 
-/** A block the host renders: its name, placement and props contract. */
-export interface DashboardBlockDefinition {
-  name?: DashboardText;
+/**
+ * What a host says of one of its blocks, without its code: name, where it
+ * goes, its default size and props, and the props contract. Pure data (and a
+ * check), so servers and AI tools read it; the renderers' `DashboardBlock`
+ * adds the component.
+ */
+export interface DashboardBlockSchema {
+  /** Name in pickers, and the widget's title when it has none. */
+  label?: DashboardText;
   description?: DashboardText;
+  /** Heading the block is listed under in pickers, e.g. "Media". */
+  group?: DashboardText;
   /** A grid card, a full-width flow item, or either (`any`, the default). */
   placement?: DashboardBlockPlacement;
+  /** Grid size of a new widget of this block (columns and rows). */
+  defaultSize?: { w: number; h: number };
+  /** Props a new widget starts with; renderers apply them under the widget's own. */
+  defaultProps?: DashboardJsonObject;
   /** JSON Schema of `props`, merged into `dashboardJsonSchema` for AI tools. */
   propsSchema?: Record<string, unknown>;
   /**
@@ -574,10 +613,11 @@ export interface DashboardBlockDefinition {
   validateProps?: (props: DashboardJsonObject) => DashboardBlockPropsCheck;
 }
 
+/** @deprecated Renamed `DashboardBlockSchema`. */
+export type DashboardBlockDefinition = DashboardBlockSchema;
+
 /** The host's blocks, by key. */
-export type DashboardBlocks = Readonly<
-  Record<string, DashboardBlockDefinition>
->;
+export type DashboardBlocks = Readonly<Record<string, DashboardBlockSchema>>;
 
 export interface DashboardValidationOptions {
   limits?: Partial<DashboardLimits>;
@@ -2477,6 +2517,21 @@ function viewSchema(rules: number): Schema {
   };
 }
 
+/** `The "media.storage" block (grid sections): Storage. Space used by media.` */
+function blockDescription(key: string, block: DashboardBlockSchema): string {
+  const where =
+    block.placement && block.placement !== "any"
+      ? ` (${block.placement} sections)`
+      : "";
+  const about = [
+    dashboardText(block.label, "en"),
+    dashboardText(block.description, "en"),
+  ]
+    .filter(Boolean)
+    .join(". ");
+  return `The "${key}" block${where}${about ? `: ${about}` : ""}.`;
+}
+
 function widgetSchemas(
   options: DashboardJsonSchemaOptions,
   limits: DashboardLimits
@@ -2531,7 +2586,7 @@ function widgetSchemas(
   const blockVariants: Schema[] = blocks.length
     ? blocks.map(([key, block]) => ({
         type: "object",
-        description: `The "${key}" block${block.placement && block.placement !== "any" ? ` (${block.placement} sections)` : ""}.`,
+        description: blockDescription(key, block),
         required: ["id", "type", "block"],
         additionalProperties: false,
         properties: {
@@ -2727,6 +2782,8 @@ function filterSchema(
         },
       },
       value: {
+        description:
+          "The default value: days or a relative preset for a date range (readers pick their own, kept in the URL), options for a select.",
         anyOf: [
           {
             type: "object",
@@ -2734,6 +2791,18 @@ function filterSchema(
             properties: {
               start: { type: "string", format: "date" },
               end: { type: "string", format: "date" },
+            },
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            required: ["preset"],
+            properties: {
+              preset: {
+                enum: [...DASHBOARD_DATE_PRESETS],
+                description:
+                  "Resolved when the widgets query, in the reader's time zone: the last 7, 30 or 90 days, this month, last month, this year.",
+              },
             },
           },
           { type: "array", items: { type: "string" } },
@@ -2954,6 +3023,18 @@ export function nextWidgetId(widgets: readonly { id: string }[]): string {
   }
   return `widget-${index}`;
 }
+
+/** Widget ids in display order: sections in order, each grid in reading order. */
+export const dashboardWidgetOrder = (
+  dashboard: Pick<Dashboard, "sections">
+): string[] =>
+  dashboard.sections.flatMap((section) =>
+    section.type === "grid"
+      ? [...section.layout]
+          .sort((a, b) => a.y - b.y || a.x - b.x)
+          .map((item) => item.widgetId)
+      : section.widgetIds
+  );
 
 /** The section holding a widget. */
 export const dashboardWidgetSection = (

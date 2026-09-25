@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import {
   Component,
+  type ComponentProps,
   type ReactNode,
   useCallback,
   useEffect,
@@ -43,6 +44,7 @@ import { observeDashboardFit } from "./dashboard-fit";
 import {
   type DashboardDirection,
   type DashboardLabelKey,
+  type DashboardNotice,
   type DashboardOverflow,
   type DashboardResize,
   type DashboardView,
@@ -56,7 +58,11 @@ import {
   widgetOverflow,
   widgetViewConfig,
   withDashboardFilters,
+  withNoticeCapture,
 } from "./dashboard-model";
+
+/** The props of the `DataTable` a full-page `table` widget renders. */
+export type DashboardDataTableProps = ComponentProps<typeof DataTable>;
 
 /** A table the dashboard can show: its config, actions and saved views. */
 export interface DashboardTableSource {
@@ -65,6 +71,19 @@ export interface DashboardTableSource {
   views?: TableView[];
   /** Name in pickers and titles; the config's title by default. */
   name?: string;
+  /**
+   * Host code for full-page `table` widgets, never stored in the document:
+   * row, toolbar and bulk actions, `getFormConfig`, `details`, file tree
+   * hooks… given to its `DataTable`. The dashboard keeps its own table id,
+   * config, actions (filtered, refreshing the screen after changes) and
+   * starting views.
+   */
+  tableProps?: Partial<DashboardDataTableProps>;
+  /**
+   * Wraps or replaces the table of full-page `table` widgets: receives the
+   * props the dashboard would give `DataTable`; pass them on.
+   */
+  renderTable?: (props: DashboardDataTableProps) => ReactNode;
 }
 
 export type DashboardLabel = (
@@ -184,6 +203,13 @@ export interface DashboardWidgetFrameProps {
   resizable: boolean;
   /** 4 under a section title, else 3 (under the dashboard's name). */
   headingLevel?: 3 | 4;
+  /**
+   * `card` (default): a card with its title. `page`: no card, for full-page
+   * tables; an edit bar in edit mode, and a heading only with `showHeading`.
+   */
+  frame?: "card" | "page";
+  /** Page frames: show the title as a heading (the widget has a title of its own). */
+  showHeading?: boolean;
   label: DashboardLabel;
   canMove: (direction: DashboardDirection) => boolean;
   canResize: (change: DashboardResize) => boolean;
@@ -194,8 +220,85 @@ export interface DashboardWidgetFrameProps {
   children: ReactNode;
 }
 
+/**
+ * A full-page table's frame: no card. In edit mode, a bar with its title and
+ * menu; a heading when the widget has a title of its own.
+ */
+function PageFrame({
+  canMove,
+  canResize,
+  children,
+  editing,
+  headingLevel = 3,
+  label,
+  onMove,
+  onRemove,
+  onResize,
+  showHeading = false,
+  title,
+  widget,
+}: DashboardWidgetFrameProps) {
+  const titleId = useId();
+  const Heading = headingLevel === 4 ? "h4" : "h3";
+  return (
+    <section
+      aria-label={showHeading ? undefined : title}
+      aria-labelledby={showHeading ? titleId : undefined}
+      className="flex min-w-0 flex-col gap-2"
+      data-dashboard-widget={widget.id}
+      data-widget-frame="page"
+      data-widget-type={widget.type}
+    >
+      {editing && (
+        <header
+          className="flex min-h-10 items-center gap-2 rounded-lg border border-dashed px-3 py-1 text-sm"
+          data-widget-edit-bar=""
+        >
+          <span className="min-w-0 truncate font-medium" data-widget-title="">
+            {title}
+          </span>
+          <span className="shrink-0 text-muted-foreground text-xs">
+            {label(widget.type === "table" ? "typeTable" : "typeBlock")}
+          </span>
+          <span className="ms-auto">
+            <WidgetMenu
+              canMove={canMove}
+              canResize={canResize}
+              label={label}
+              onMove={onMove}
+              onRemove={onRemove}
+              onResize={onResize}
+              resizable={false}
+              title={title}
+            />
+          </span>
+        </header>
+      )}
+      {showHeading && (
+        <Heading
+          className="font-semibold text-base"
+          data-widget-heading=""
+          id={titleId}
+        >
+          {title}
+        </Heading>
+      )}
+      <div className="flex min-w-0 flex-col" data-widget-body="">
+        {children}
+      </div>
+    </section>
+  );
+}
+
 /** A widget's card: title, "Open full view", the edit menu and its content. */
-export function DashboardWidgetFrame({
+export function DashboardWidgetFrame(props: DashboardWidgetFrameProps) {
+  if (props.frame === "page") {
+    return <PageFrame {...props} />;
+  }
+  return <CardFrame {...props} />;
+}
+
+function CardFrame({
   canMove,
   canResize,
   children,
@@ -337,6 +440,31 @@ export function WidgetMessage({
 }
 
 /**
+ * A muted notice in place of a widget's content: an unavailable source
+ * (`unavailable`, with its reason), a block the host lacks (`unknownBlock`),
+ * or a source's `meta.notice` (`notice`, with its code).
+ */
+export function WidgetNotice({
+  children,
+  kind,
+  reason,
+}: {
+  children: ReactNode;
+  kind: "unavailable" | "unknownBlock" | "notice";
+  reason?: string;
+}) {
+  return (
+    <div
+      className="flex h-full min-h-16 flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground text-sm"
+      data-widget-reason={reason}
+      data-widget-state={kind}
+    >
+      <p className="m-0">{children}</p>
+    </div>
+  );
+}
+
+/**
  * The table as a widget embeds it: no URL, toolbar, views or row selection;
  * charts fill the widget. Only records that scroll (`overflow: "scroll"`)
  * keep their pagination; fit records show "+N more" instead.
@@ -457,13 +585,16 @@ export interface EmbeddedTableWidgetProps {
    * view's pagination instead of fitting a height.
    */
   natural?: boolean;
+  /** What a source's `meta.notice` says (`dashboardNoticeText`). */
+  noticeText: (notice: DashboardNotice) => string;
 }
 
 /**
  * A table instance of its own (no URL, private state) showing the widget's
  * view (inline settings or a saved view); the dashboard filters join its
  * `list`/`aggregate` requests. A fit widget (the default in grids) shows the
- * records that fit and "+N more".
+ * records that fit and "+N more". A `meta.notice` in an answer shows instead
+ * of the records.
  */
 export function EmbeddedTableWidget({
   dashboardId,
@@ -471,6 +602,7 @@ export function EmbeddedTableWidget({
   label,
   locale,
   natural = false,
+  noticeText,
   onViewAll,
   renderers,
   revision,
@@ -505,10 +637,17 @@ export function EmbeddedTableWidget({
   // Re-renders when `list` answers; the total is read for the current instance.
   const [, setListed] = useState(0);
   const total = listTotals.get(instanceId);
+  const [notice, setNotice] = useState<{
+    instanceId: string;
+    notice?: DashboardNotice;
+  }>();
   const actions = useMemo(() => {
-    const filtered = withDashboardFilters(
-      source.actions,
-      JSON.parse(rulesKey) as Record<string, unknown>[]
+    const filtered = withNoticeCapture(
+      withDashboardFilters(
+        source.actions,
+        JSON.parse(rulesKey) as Record<string, unknown>[]
+      ),
+      (found) => setNotice({ instanceId, notice: found })
     );
     const { list } = filtered;
     return {
@@ -573,8 +712,10 @@ export function EmbeddedTableWidget({
       translations={translations}
     />
   );
+  const shownNotice =
+    notice?.instanceId === instanceId ? notice.notice : undefined;
   const more =
-    fits && total !== undefined && fit.shown !== undefined
+    fits && total !== undefined && fit.shown !== undefined && !shownNotice
       ? dashboardMoreCount(total, fit.shown)
       : 0;
   return (
@@ -588,13 +729,21 @@ export function EmbeddedTableWidget({
           {label("widgetError", { error: failure })}
         </WidgetMessage>
       )}
-      {fits ? (
-        <div data-dashboard-fit="" ref={fit.container}>
-          {table}
-        </div>
-      ) : (
-        table
-      )}
+      {shownNotice ? (
+        <WidgetNotice kind="notice" reason={shownNotice.code}>
+          {noticeText(shownNotice)}
+        </WidgetNotice>
+      ) : null}
+      {/* Kept mounted behind a notice, so "Refresh all" asks again. */}
+      <div className={shownNotice ? "hidden" : "contents"}>
+        {fits ? (
+          <div data-dashboard-fit="" ref={fit.container}>
+            {table}
+          </div>
+        ) : (
+          table
+        )}
+      </div>
       {more > 0 ? (
         <WidgetMore count={more} label={label} onViewAll={onViewAll} />
       ) : null}

@@ -34,7 +34,7 @@ const renderers = { calendar: calendarRenderer, chart: chartRenderer };
  * `?lang=fr`: the page's French table labels, which the dashboard passes to
  * every widget (only the pagination here, the rest stays in English).
  */
-const frenchTableTranslations: DataTableTranslations = {
+export const frenchTableTranslations: DataTableTranslations = {
   ...defaultTranslations,
   pagination: {
     ...defaultTranslations.pagination,

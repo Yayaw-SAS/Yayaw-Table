@@ -192,9 +192,11 @@ the whole source loaded. Supply `actions.planning` (`load`, `preview`,
 
 `YayawDashboard` shows sections of widgets: four-column grids (gridstack,
 loaded with the first desktop grid; phones stack widgets) and full-width
-flows. A widget is a view of any table (a saved view, or inline settings) in
-its display mode, a number over a view, or a note; full-page tables and host
-blocks show "Not available yet" until the renderer supports them.
+flows. A widget is a view of any source (a saved view, or inline settings) in
+its display mode, a number over a view, a note, a full-page table (the
+source's list page, flows only) or a host block. Admin screens are the same
+component: a document the host gives (`dashboard`), sources loaded on demand
+(`sources`), the host's `blocks`.
 
 ```tsx
 import { YayawDashboard } from "@/components/ui/yayaw-table-dashboard/yayaw-dashboard";
@@ -205,14 +207,41 @@ import { YayawDashboard } from "@/components/ui/yayaw-table-dashboard/yayaw-dash
 import YayawDashboard from "@/components/ui/yayaw-table-vue/dashboard/YayawDashboard.vue";
 ```
 
-- `tables`: `Record<tableId, { config, actions, views?, name? }>`, the tables
-  widgets may show; `displayModeRenderers` for widgets using optional modes;
-  `dashboardId` (else the first one `list` returns); `canEdit` (false by
-  default); `openView(tableId, viewId)`; `renderMarkdown(text)` (sanitize any
-  HTML); `locale` (every widget follows it); `translations` as
-  `dashboard.<key>`; `tableTranslations`, the page's table labels passed to
-  every widget (React needs them for a French page; Vue has French built in);
-  `onChange` (Vue `change`).
+- `tables`: `Record<tableId, { config, actions, views?, name?, tableProps?,
+  renderTable? }>`, sources given up front; `sources`: the lazy catalogue
+  (`list`, and `load(id)` answering a source or `{ unavailable: true, reason,
+  message? }`), of which only the sources the screen's widgets read load
+  (`tables` win); `blocks`: `Record<key, { label?, placement?, defaultSize?,
+  defaultProps?, propsSchema?, validateProps?, component, settings? }>`;
+  `dashboard`: a document to show instead of `actions.dashboards.load`
+  (`actions` is then optional; editing needs `save`); `dashboardId` (else the
+  first one `list` returns); `canEdit` (false by default); `showTitle` (true);
+  `unavailableWidgets` (`"show"`, or `"hide"`); `syncUrl` (true);
+  `openView(tableId, viewId, context?)` (`context.view` for inline views);
+  `displayModeRenderers` for widgets using optional modes;
+  `renderMarkdown(text)` (sanitize any HTML); `locale` (every widget follows
+  it); `translations` as `dashboard.<key>`; `tableTranslations`, the page's
+  table labels passed to every widget (React needs them for a French page;
+  Vue has French built in); `onChange` (Vue `change`).
+- Unavailable sources (forbidden, not configured, not found) show a muted
+  notice, blocks the host lacks "Unavailable block"; both stay in the document
+  and in edit mode. `unavailableWidgets: "hide"` leaves them out of the view,
+  grids closing the gaps (display only).
+- Full-page `table` widgets render the source's `DataTable` /
+  `YayawDataTable` with toolbar, saved views, selection and URL sync, no card;
+  host code comes from `tableProps`, `renderTable(props)` wraps it. Their
+  inline view is a system default view `screen:<dashboardId>:<widgetId>`
+  (`isDashboardViewId()`), after the reader's favorite. The screen's first
+  table keeps the table's URL keys, others use `instanceId = widget.id`.
+- Blocks receive `{ widgetId, props, size?, editing, locale, revision,
+  filters, refresh(tableId?), openView? }`; a throwing block stays in its
+  widget; a block rendering nothing collapses in a flow.
+- Filter values readers pick stay in the URL (`<dashboardId>.<filterId>`),
+  never in the document (its `value` is the default); date ranges offer the
+  last 7, 30 and 90 days, this month, last month and this year, stored as
+  `{ preset }` and sent as days.
+- "Refresh all" reloads every widget; changes made in a full-page table
+  (`withMutationSignal()`) reload the other widgets of its source.
 - Phones stack widgets: numbers and notes at their content's height, charts
   at a 16:10 body, record widgets at their rows' height.
 - Storage: `actions.dashboards` (`list`, `load`, `save`, `remove`), see
@@ -234,9 +263,9 @@ import YayawDashboard from "@/components/ui/yayaw-table-vue/dashboard/YayawDashb
   `list` and `aggregate` receive the rules merged into the view's filters and,
   alone, as `requiredFilters`: the server must AND them with everything else,
   including a view that matches any rule with OR.
-- Each widget is its own table instance (`instanceId`, `initialView`, URL
-  sync off, no toolbar, no row selection), so a dashboard never writes to the
-  page URL.
+- Each view or number widget is its own table instance (`instanceId`,
+  `initialView`, URL sync off, no toolbar, no row selection): only full-page
+  tables and the readers' filter values write to the page URL.
 - Nothing scrolls inside a widget by default. A view widget's
   `settings.overflow` is `"fit"` (default: tables, lists, galleries, boards
   and feeds drop their pagination, show the records that fit and "+N more ·

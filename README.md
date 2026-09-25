@@ -59,7 +59,14 @@ version 2 screens (sections of grid cards and full-width flows, inline
 views, texts per language); hosts validate them on their servers and describe
 them to AI tools with the pure `dashboard-schema.ts` (`validateDashboard`,
 `checkDashboardReferences`, `dashboardJsonSchema`), see
-[docs/DASHBOARD-SCREENS.md](docs/DASHBOARD-SCREENS.md). Nothing scrolls inside
+[docs/DASHBOARD-SCREENS.md](docs/DASHBOARD-SCREENS.md). The same component
+renders admin screens: a document the host gives (`dashboard`), sources
+loaded on demand from a catalogue (`sources`; forbidden or unconfigured ones
+show a notice and are never removed), the host's `blocks`, full-page `table`
+widgets (the list page with its toolbar, saved views and URL; `tableProps`
+and `renderTable` for host code), filter values kept in the URL with relative
+periods (last 30 days, this month…), "Refresh all" and `meta.notice` from the
+host (`?example=screen` in both demos). Nothing scrolls inside
 a widget by default: lists, tables, boards, galleries and feeds show the
 records that fit and "+N more · View all" (`settings.overflow: "scroll"`
 scrolls instead), charts fill their widget, and numbers can compare with the

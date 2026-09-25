@@ -9,6 +9,7 @@ import { DefaultSortExample } from "../default-sort-react";
 import { FeedExample } from "../feed-react";
 import { FormExample } from "../form-react";
 import { RecordPresentationExample } from "../record-presentation-react";
+import { ScreenExample } from "../screen-react";
 import { ServerKanbanExample } from "../server-kanban-react";
 import {
   ValueFormatsDashboardExample,
@@ -36,6 +37,9 @@ const renderExample = () => {
   }
   if (example === "dashboard") {
     return <DashboardExample />;
+  }
+  if (example === "screen") {
+    return <ScreenExample />;
   }
   if (example === "default-sort") {
     return <DefaultSortExample />;

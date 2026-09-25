@@ -250,7 +250,9 @@ multi-instance pages: [configuration](references/configuration.md).
   in the `<tableId>-<mode>` URL key. `table.chart`, `feed`, `filetree`, `map`
   and `form` accept `false` to turn the mode off.
 - Dashboards are not a mode: `YayawDashboard` (items `yayaw-table-dashboard`,
-  `yayaw-table-vue-dashboard`) arranges saved views of several tables.
+  `yayaw-table-vue-dashboard`) arranges views of several sources, numbers,
+  notes, full-page tables and host blocks; admin screens use it with a lazy
+  `sources` catalogue.
 
 Per-mode settings, contracts and fallbacks, dashboards and custom renderers:
 [display modes](references/display-modes.md).

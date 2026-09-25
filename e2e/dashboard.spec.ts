@@ -424,7 +424,15 @@ test("dashboard filters reach every targeted table and set the KPI period", asyn
   await expect(figure(page, "projects-count")).toHaveText(
     String(PROJECTS.filter((row) => row.category === "Software").length)
   );
-  expect(new URL(page.url()).search).toBe("?example=dashboard");
+  // The values readers pick stay in the URL (one key per filter); widgets
+  // write nothing there.
+  expect(new URL(page.url()).search).toBe(
+    "?example=dashboard&projects-overview.category=Software"
+  );
+  await page.reload();
+  await expect(figure(page, "projects-count")).toHaveText(
+    String(PROJECTS.filter((row) => row.category === "Software").length)
+  );
 });
 
 test("widgets move and resize from their menu, and the layout is saved", async ({
@@ -823,7 +831,7 @@ test("a version 1 dashboard is saved back as version 2", async ({ page }) => {
   );
 });
 
-test("version 2 sections: a titled grid, a flow, inline views and placeholders", async ({
+test("version 2 sections: a titled grid, a flow, inline views, a full-page table and a block", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -857,12 +865,18 @@ test("version 2 sections: a titled grid, a flow, inline views and placeholders",
   await expect(
     biggest.getByRole("button", { name: NEXT_PAGE }).first()
   ).toBeVisible();
-  // Full-page tables and blocks render in a later version: a placeholder.
-  for (const id of ["pages", "summary"]) {
-    await expect(
-      widget(page, id).locator("[data-widget-placeholder]")
-    ).toContainText("Not available yet");
-  }
+  // A full-page table: the source's list page, without a card.
+  await expect(widget(page, "pages")).toHaveAttribute(
+    "data-widget-frame",
+    "page"
+  );
+  await expect(
+    widget(page, "pages").locator('[data-page-table="tasks"] [data-row-id]')
+  ).toHaveCount(dashboardTaskRows().length);
+  // The demo host has no blocks: the block is unavailable, and kept.
+  await expect(
+    widget(page, "summary").locator('[data-widget-state="unknownBlock"]')
+  ).toHaveText("Unavailable block");
   await expect(widget(page, "notes")).toContainText(
     "Figures follow today's date."
   );
@@ -893,8 +907,8 @@ test("version 2 texts follow the page's language", async ({ page }) => {
     widget(page, "biggest").locator("[data-widget-title]")
   ).toHaveText("Plus gros projets");
   await expect(
-    widget(page, "pages").locator("[data-widget-placeholder]")
-  ).toContainText("Pas encore disponible");
+    widget(page, "summary").locator('[data-widget-state="unknownBlock"]')
+  ).toHaveText("Bloc indisponible");
 });
 
 test("flow widgets move up and down in edit mode, and sections are saved", async ({

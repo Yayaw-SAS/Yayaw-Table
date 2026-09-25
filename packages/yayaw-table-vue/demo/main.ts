@@ -6,6 +6,7 @@ import DefaultSortExample from "./DefaultSortExample.vue";
 import FeedExample from "./FeedExample.vue";
 import FormExample from "./FormExample.vue";
 import RecordDetailsExample from "./RecordDetailsExample.vue";
+import ScreenExample from "./ScreenExample.vue";
 import ValueFormatsDashboardExample from "./ValueFormatsDashboardExample.vue";
 import ValueFormatsExample from "./ValueFormatsExample.vue";
 import ViewsExample from "./ViewsExample.vue";
@@ -25,6 +26,7 @@ const examples = {
   formats: ValueFormatsExample,
   "formats-dashboard": ValueFormatsDashboardExample,
   "record-details": RecordDetailsExample,
+  screen: ScreenExample,
   views: ViewsExample,
 };
 // The views example without `aggregate`: charts fall back to the rows the list returns.

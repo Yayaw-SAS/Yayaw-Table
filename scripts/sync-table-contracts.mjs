@@ -212,10 +212,10 @@ for (const [source, target] of [
   );
 }
 
-// The dashboard's grammar (schema, sources, layout), model, record fitting,
-// gridstack controller and grid styles are shared by both optional dashboard
-// items; only the paths of the table's shared helpers (table contracts, chart
-// model, view settings) differ.
+// The dashboard's grammar (schema, sources, layout), model, URL filter state,
+// record fitting, gridstack controller and grid styles are shared by both
+// optional dashboard items; only the paths of the table's shared helpers
+// (table contracts, chart model, view settings) differ.
 const dashboardSource = new URL(
   "../src/components/ui/yayaw-table-dashboard/",
   import.meta.url
@@ -230,6 +230,7 @@ for (const name of [
   "dashboard-sources.ts",
   "dashboard-layout.ts",
   "dashboard-model.ts",
+  "dashboard-url.ts",
   "dashboard-fit.ts",
   "dashboard-grid-engine.ts",
   "dashboard-grid.css",

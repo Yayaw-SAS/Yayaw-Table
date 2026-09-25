@@ -13,6 +13,7 @@ export type DashboardSchemaApi = Pick<
   | "canonicalDashboardJson"
   | "checkDashboardReferences"
   | "createDashboard"
+  | "DASHBOARD_DATE_PRESETS"
   | "DASHBOARD_FILTER_TYPES"
   | "DASHBOARD_ISSUE_SEVERITY"
   | "DASHBOARD_KPI_METRICS"
@@ -946,6 +947,10 @@ function jsonSchemaSuite(test: Test, api: DashboardSchemaApi) {
       sorted(api.DASHBOARD_OVERFLOWS)
     );
     assert.deepEqual(
+      sorted(enums.get("preset") ?? []),
+      sorted(api.DASHBOARD_DATE_PRESETS)
+    );
+    assert.deepEqual(
       sorted(enums.get("displayMode") ?? []),
       sorted(api.displayModes)
     );
@@ -973,7 +978,12 @@ function jsonSchemaSuite(test: Test, api: DashboardSchemaApi) {
       sourceIds: ["pages", "media"],
       blocks: {
         "media.storage": {
+          label: { en: "Storage", fr: "Stockage" },
+          description: "Space the media take.",
+          group: "Media",
           placement: "flow",
+          defaultSize: { w: 1, h: 2 },
+          defaultProps: { unit: "GB" },
           propsSchema: {
             type: "object",
             properties: { unit: { enum: ["GB", "MB"] } },
@@ -982,6 +992,13 @@ function jsonSchemaSuite(test: Test, api: DashboardSchemaApi) {
         "home.summary": {},
       },
     });
+    const descriptions = JSON.stringify(schema);
+    assert.equal(
+      descriptions.includes(
+        'The \\"media.storage\\" block (flow sections): Storage. Space the media take.'
+      ),
+      true
+    );
     const enums = schemaEnums(schema);
     assert.deepEqual([...(enums.get("tableId") ?? [])].sort(), [
       "media",

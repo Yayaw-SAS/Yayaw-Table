@@ -1,0 +1,673 @@
+import { expect, type Page, test } from "@playwright/test";
+import { demoDay } from "../examples/dashboard";
+import {
+  ANALYTICS_NOTICE,
+  contentAdminScreen,
+  mediaColumns,
+  screenMediaRows,
+  screenPageRows,
+} from "../examples/screen";
+import { formatNumberValue } from "../src/components/ui/yayaw-table/utils/value-format";
+
+const SCREEN = "/?example=screen";
+/** The demo host's saved dashboards, in the tab's session storage. */
+const STORAGE_KEY = "yayaw-demo-dashboards-v2";
+const SCREEN_VIEW = "screen:content-admin:pages-table";
+const NEXT_PAGE = /next/i;
+/** React confirms a bulk deletion with "Confirm", Vue with "Delete". */
+const CONFIRM_DELETE = /^(Delete|Confirm)$/;
+const FAVORITE = /Use this view on arrival/;
+const PAGES = screenPageRows();
+const MEDIA = screenMediaRows();
+const count = (status: string, pages = PAGES) =>
+  pages.filter((page) => page.status === status).length;
+const SIZE_FORMAT = mediaColumns.find(
+  (column) => column.id === "size"
+)?.numberFormat;
+/** The storage number: what the media outside the trash take, in the size column's format. */
+const storage = () =>
+  formatNumberValue(
+    MEDIA.filter((item) => !item.trashed).reduce(
+      (sum, item) => sum + item.size,
+      0
+    ),
+    SIZE_FORMAT,
+    "en"
+  );
+
+interface LoggedRequest {
+  tableId: string;
+  action: "list" | "aggregate";
+  params: {
+    page?: number;
+    requiredFilters?: {
+      columnId: string;
+      operator: string;
+      values: string[];
+    }[];
+  };
+}
+
+const widget = (page: Page, id: string) =>
+  page.locator(`[data-dashboard-widget="${id}"]`);
+const item = (page: Page, id: string) =>
+  page.locator(`[data-dashboard-item="${id}"]`);
+const figure = (page: Page, id: string) =>
+  widget(page, id).locator("[data-kpi-value]");
+const pageTable = (page: Page) => page.locator('[data-page-table="pages"]');
+const requests = (page: Page) =>
+  page.evaluate(
+    () =>
+      (globalThis as { yayawDashboardRequests?: LoggedRequest[] })
+        .yayawDashboardRequests ?? []
+  );
+const clearRequests = (page: Page) =>
+  page.evaluate(() => {
+    (
+      globalThis as { yayawDashboardRequests?: unknown[] }
+    ).yayawDashboardRequests = [];
+  });
+const sourceLoads = (page: Page) =>
+  page.evaluate(
+    () =>
+      (globalThis as { yayawScreenSourceLoads?: string[] })
+        .yayawScreenSourceLoads ?? []
+  );
+const saveDashboards = (page: Page, dashboards: readonly unknown[]) =>
+  page.addInitScript(
+    ([key, saved]) => {
+      if (!sessionStorage.getItem("screen-test-seeded")) {
+        sessionStorage.setItem("screen-test-seeded", "1");
+        sessionStorage.setItem(
+          key,
+          JSON.stringify(
+            Object.fromEntries(
+              (saved as { id: string }[]).map((entry) => [entry.id, entry])
+            )
+          )
+        );
+      }
+    },
+    [STORAGE_KEY, dashboards] as const
+  );
+const savedDashboards = (page: Page) =>
+  page.evaluate(
+    (key) =>
+      JSON.parse(sessionStorage.getItem(key) ?? "{}") as Record<
+        string,
+        Record<string, unknown>
+      >,
+    STORAGE_KEY
+  );
+const toolbar = (page: Page) => page.locator("[data-dashboard] > header");
+const searchParam = (page: Page, key: string) =>
+  new URL(page.url()).searchParams.get(key);
+/** The pages as the page table sorts them: the newest first (ties in the host's order). */
+const NEWEST_FIRST = [...PAGES].sort((a, b) =>
+  b.updatedAt.localeCompare(a.updatedAt)
+);
+/** A list page link's sort: by title. */
+const BY_TITLE = JSON.stringify([{ id: "title", desc: false }]);
+const ALPHABETICAL = PAGES.map((entry) => entry.title).sort((a, b) =>
+  a.localeCompare(b)
+);
+const ready = async (page: Page) => {
+  await expect(figure(page, "published")).toHaveText(
+    String(count("published"))
+  );
+  await expect(pageTable(page).locator("[data-row-id]").first()).toBeVisible();
+};
+
+test("sections render and the numbers follow the demo's data", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 1100 });
+  await page.goto(SCREEN);
+  await expect(
+    page.getByRole("heading", { name: "Content admin", level: 2 })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Overview", level: 3 })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Pages", level: 3 })
+  ).toBeVisible();
+  await expect(
+    page.locator('[data-dashboard-section="overview"]')
+  ).toHaveAttribute("data-section-type", "grid");
+  await expect(
+    page.locator('[data-dashboard-section="pages"]')
+  ).toHaveAttribute("data-section-type", "flow");
+  // Numbers over inline views, under the section title (h4).
+  await ready(page);
+  await expect(figure(page, "drafts")).toHaveText(String(count("draft")));
+  await expect(figure(page, "storage")).toHaveText(storage());
+  await expect(
+    widget(page, "published").getByRole("heading", { level: 4 })
+  ).toHaveText("Published pages");
+  // A gallery of recent uploads, trimmed to its card with "+N more".
+  const uploads = widget(page, "uploads");
+  await expect(uploads.locator("[data-row-id]").first()).toBeVisible();
+  await expect(uploads.locator("[data-widget-more]")).toContainText("more");
+  // The full-page table: no card, the list page's toolbar and rows.
+  const table = widget(page, "pages-table");
+  await expect(table).toHaveAttribute("data-widget-frame", "page");
+  await expect(table).toHaveAttribute("aria-label", "Pages");
+  await expect(pageTable(page).locator("[data-row-id]")).toHaveCount(10);
+  // The host wraps it (`renderTable`).
+  await expect(page.locator("[data-host-table]")).toHaveCount(1);
+});
+
+test("only the sources the screen shows are loaded", async ({ page }) => {
+  await page.goto(SCREEN);
+  await ready(page);
+  await expect(widget(page, "audit")).toContainText("have access");
+  // Ten sources in the catalogue; the screen reads three, each loaded once.
+  expect(await sourceLoads(page)).toEqual(["pages", "media", "audit"]);
+  // Editing loads nothing more: the widget picker lists the loaded ones.
+  await toolbar(page).getByRole("button", { name: "Edit" }).click();
+  await expect(
+    toolbar(page).getByRole("button", { name: "Done" })
+  ).toBeVisible();
+  expect(await sourceLoads(page)).toEqual(["pages", "media", "audit"]);
+});
+
+test("unavailable widgets show a notice; ?hide leaves them out and closes the gap", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 1100 });
+  await page.goto(SCREEN);
+  await ready(page);
+  const audit = widget(page, "audit");
+  await expect(
+    audit.locator('[data-widget-state="unavailable"]')
+  ).toHaveAttribute("data-widget-reason", "forbidden");
+  await expect(audit).toContainText("You don’t have access to this data.");
+  // No "Open full view" on a widget that cannot show.
+  await expect(
+    audit.getByRole("button", { name: "Open full view" })
+  ).toHaveCount(0);
+  await expect(item(page, "attention")).toHaveAttribute(
+    "data-layout",
+    "3,1,1,2"
+  );
+
+  await page.goto(`${SCREEN}&hide`);
+  await ready(page);
+  await expect(widget(page, "audit")).toHaveCount(0);
+  // The widget under it rises into its place, for display only.
+  await expect(item(page, "attention")).toHaveAttribute(
+    "data-layout",
+    "3,0,1,2"
+  );
+  // Editing shows it again, removable; saving keeps it where it was.
+  await toolbar(page).getByRole("button", { name: "Edit" }).click();
+  await expect(widget(page, "audit")).toBeVisible();
+  await expect(
+    widget(page, "audit").getByRole("button", {
+      name: "Widget options for Audit events",
+    })
+  ).toBeVisible();
+  await toolbar(page).getByRole("button", { name: "Done" }).click();
+  await expect(page.getByText("Dashboard saved")).toBeVisible();
+  const saved = (await savedDashboards(page))["content-admin"];
+  const overview = (
+    saved?.sections as { id: string; layout?: { widgetId: string }[] }[]
+  ).find((section) => section.id === "overview");
+  expect(overview?.layout).toEqual(contentAdminScreen.sections[0]?.layout);
+  expect(
+    (saved?.widgets as { id: string }[]).map((entry) => entry.id)
+  ).toContain("audit");
+});
+
+test("the page table keeps its URL state and saved views; the screen's view is its default", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 1100 });
+  await page.goto(SCREEN);
+  await ready(page);
+  // The screen's first table uses the list page's own keys; its inline
+  // view is the default the reader arrives on.
+  await expect.poll(() => searchParam(page, "view")).toBe(SCREEN_VIEW);
+  const rows = pageTable(page).locator("[data-row-id]");
+  await expect(rows.first()).toContainText(NEWEST_FIRST[0]?.title ?? "");
+  await pageTable(page)
+    .getByRole("button", { name: NEXT_PAGE })
+    .first()
+    .click();
+  await expect.poll(() => searchParam(page, "pages-page")).toBe("1");
+  await expect(rows.first()).toContainText(NEWEST_FIRST[10]?.title ?? "");
+  // A list page link keeps working: its state wins over the screen's view,
+  // and a reload keeps it.
+  await page.goto(`${SCREEN}&pages-sort=${encodeURIComponent(BY_TITLE)}`);
+  await expect(rows.first()).toContainText(ALPHABETICAL[0] ?? "");
+  await page.reload();
+  await expect(rows.first()).toContainText(ALPHABETICAL[0] ?? "");
+  expect(searchParam(page, "pages-sort")).toBe(BY_TITLE);
+  // A saved view of the source, kept in the URL.
+  await page.goto(`${SCREEN}&view=drafts`);
+  await expect(figure(page, "drafts")).toHaveText(String(count("draft")));
+  await expect(pageTable(page).locator("[data-row-id]")).toHaveCount(
+    count("draft")
+  );
+  await page.reload();
+  await expect(pageTable(page).locator("[data-row-id]")).toHaveCount(
+    count("draft")
+  );
+  expect(searchParam(page, "view")).toBe("drafts");
+  // The reader's favorite view comes before the screen's.
+  await pageTable(page).getByRole("button", { name: "View actions" }).click();
+  await page.getByRole("button", { name: FAVORITE }).click();
+  await page.goto(SCREEN);
+  await expect.poll(() => searchParam(page, "view")).toBe("drafts");
+  await expect(pageTable(page).locator("[data-row-id]")).toHaveCount(
+    count("draft")
+  );
+});
+
+test("screen filters reach the table and the numbers as requiredFilters, and stay in the URL", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 1100 });
+  await page.goto(SCREEN);
+  await ready(page);
+  await clearRequests(page);
+  // The author filter: every pages request carries it.
+  await page
+    .locator('[data-dashboard-filter="author"] [data-filter-trigger]')
+    .click();
+  await page
+    .locator('[data-dashboard-filter-popup="author"]')
+    .getByRole("checkbox", { name: "Ada Martin", exact: true })
+    .check();
+  await page.keyboard.press("Escape");
+  const ada = PAGES.filter((entry) => entry.author === "Ada Martin");
+  await expect(figure(page, "published")).toHaveText(
+    String(count("published", ada))
+  );
+  await expect(figure(page, "drafts")).toHaveText(String(count("draft", ada)));
+  await expect(pageTable(page).locator("[data-row-id]")).toHaveCount(
+    ada.length
+  );
+  const logged = await requests(page);
+  const byAuthor = (entry: LoggedRequest) =>
+    entry.tableId === "pages" &&
+    entry.params.requiredFilters?.some(
+      (rule) =>
+        rule.columnId === "author" &&
+        JSON.stringify(rule.values) === JSON.stringify(["Ada Martin"])
+    );
+  expect(
+    logged.some((entry) => entry.action === "list" && byAuthor(entry))
+  ).toBe(true);
+  expect(
+    logged.some((entry) => entry.action === "aggregate" && byAuthor(entry))
+  ).toBe(true);
+  // Media widgets are not the author filter's target.
+  expect(
+    logged.some(
+      (entry) =>
+        entry.tableId === "media" &&
+        entry.params.requiredFilters?.some((rule) => rule.columnId === "author")
+    )
+  ).toBe(false);
+  expect(searchParam(page, "content-admin.author")).toBe("Ada Martin");
+
+  // A relative period: the last 7 days, resolved in the reader's day.
+  await clearRequests(page);
+  await page
+    .locator('[data-dashboard-filter="period"] [data-filter-trigger]')
+    .click();
+  await page.locator('[data-filter-preset="last7Days"]').click();
+  await page.keyboard.press("Escape");
+  await expect(
+    page.locator('[data-dashboard-filter="period"] [data-filter-value]')
+  ).toHaveText("Last 7 days");
+  const week = ada.filter(
+    (entry) => entry.updatedAt >= demoDay(-6) && entry.updatedAt <= demoDay(0)
+  );
+  await expect(figure(page, "published")).toHaveText(
+    String(count("published", week))
+  );
+  await expect
+    .poll(async () =>
+      (await requests(page)).some(
+        (entry) =>
+          entry.tableId === "pages" &&
+          entry.action === "list" &&
+          entry.params.requiredFilters?.some(
+            (rule) =>
+              rule.columnId === "updatedAt" &&
+              rule.operator === "between" &&
+              JSON.stringify(rule.values) ===
+                JSON.stringify([demoDay(-6), demoDay(0)])
+          )
+      )
+    )
+    .toBe(true);
+  expect(searchParam(page, "content-admin.period")).toBe("last7Days");
+  // A reload keeps the reader's values; the document never had them.
+  await page.reload();
+  await expect(figure(page, "published")).toHaveText(
+    String(count("published", week))
+  );
+  await expect(
+    page.locator('[data-dashboard-filter="period"] [data-filter-value]')
+  ).toHaveText("Last 7 days");
+  expect((await savedDashboards(page))["content-admin"]).toBeUndefined();
+  // Clearing goes back to the default (no key).
+  await page
+    .locator('[data-dashboard-filter="period"]')
+    .getByRole("button", { name: "Clear" })
+    .click();
+  await expect.poll(() => searchParam(page, "content-admin.period")).toBe(null);
+});
+
+test("host blocks render; an unknown block is unavailable; an empty block collapses in a flow", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 1100 });
+  await page.goto(SCREEN);
+  await ready(page);
+  await expect(
+    widget(page, "shortcuts").locator("[data-shortcuts] a")
+  ).toHaveText(["New page", "Upload media", "Site settings"]);
+  await expect(
+    widget(page, "shortcuts").getByRole("heading", { level: 4 })
+  ).toHaveText("Shortcuts");
+  const attention = widget(page, "attention").locator("[data-attention-item]");
+  await expect(attention).toHaveText([
+    `${count("review")} pages waiting for review`,
+    `${MEDIA.filter((entry) => entry.kind === "image" && !entry.trashed && !entry.alt).length} images without alt text`,
+  ]);
+  // Blocks open views through the host's `openView`, with an inline view.
+  await attention.first().click();
+  await expect(page.locator("[data-dashboard-opened]")).toHaveText(
+    "pages › default (inline)"
+  );
+
+  await saveDashboards(page, [
+    {
+      version: 2,
+      id: "content-admin",
+      name: "Blocks",
+      sections: [
+        {
+          id: "cards",
+          type: "grid",
+          layout: [
+            { widgetId: "empty-card", x: 0, y: 0, w: 1, h: 2 },
+            { widgetId: "legacy", x: 1, y: 0, w: 1, h: 2 },
+          ],
+        },
+        { id: "page", type: "flow", widgetIds: ["empty-flow", "notes"] },
+      ],
+      widgets: [
+        {
+          id: "empty-card",
+          type: "block",
+          block: "shortcuts",
+          props: { links: [] },
+          settings: {},
+        },
+        {
+          id: "legacy",
+          type: "block",
+          block: "legacy.box",
+          props: { size: 3 },
+          settings: {},
+        },
+        {
+          id: "empty-flow",
+          type: "block",
+          block: "shortcuts",
+          props: { links: [] },
+          settings: {},
+        },
+        { id: "notes", type: "note", settings: { text: "Below the blocks." } },
+      ],
+      filters: [],
+    },
+  ]);
+  await page.reload();
+  await expect(widget(page, "notes")).toContainText("Below the blocks.");
+  // In a grid, a block that renders nothing stays an empty card.
+  await expect(widget(page, "empty-card")).toBeVisible();
+  await expect(
+    widget(page, "empty-card").locator("[data-block-content]")
+  ).toBeEmpty();
+  // In a flow it collapses, until the screen is edited.
+  await expect(item(page, "empty-flow")).toBeHidden();
+  await expect(widget(page, "legacy")).toContainText("Unavailable block");
+  await expect(
+    widget(page, "legacy").locator('[data-widget-state="unknownBlock"]')
+  ).toHaveCount(1);
+  await toolbar(page).getByRole("button", { name: "Edit" }).click();
+  await expect(item(page, "empty-flow")).toBeVisible();
+});
+
+test("a change in the page table reloads the numbers; Refresh all asks again", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 1100 });
+  await page.goto(SCREEN);
+  await ready(page);
+  // The newest pages first: select two published ones and delete them.
+  const published = NEWEST_FIRST.filter(
+    (entry) => entry.status === "published"
+  ).slice(0, 2);
+  for (const entry of published) {
+    await pageTable(page)
+      .locator(`[data-row-id="${entry.id}"]`)
+      .getByRole("checkbox")
+      .click();
+  }
+  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  await page
+    .getByRole("alertdialog")
+    .or(page.getByRole("dialog"))
+    .getByRole("button", { name: CONFIRM_DELETE })
+    .click();
+  await expect(figure(page, "published")).toHaveText(
+    String(count("published") - 2)
+  );
+  await expect(figure(page, "drafts")).toHaveText(String(count("draft")));
+
+  // "Refresh all": the page table and the numbers ask the host again.
+  await clearRequests(page);
+  await toolbar(page).getByRole("button", { name: "Refresh all" }).click();
+  await expect
+    .poll(async () =>
+      (await requests(page)).some(
+        (entry) => entry.tableId === "pages" && entry.action === "list"
+      )
+    )
+    .toBe(true);
+  await expect
+    .poll(async () =>
+      (await requests(page)).some(
+        (entry) => entry.tableId === "pages" && entry.action === "aggregate"
+      )
+    )
+    .toBe(true);
+  await expect(figure(page, "published")).toHaveText(
+    String(count("published") - 2)
+  );
+});
+
+test("a hostile document loads repaired, and an unknown block survives a save", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.setViewportSize({ width: 1280, height: 1100 });
+  await saveDashboards(page, [
+    JSON.parse(
+      JSON.stringify({
+        version: 2,
+        id: "content-admin",
+        name: { en: "x".repeat(500), fr: "Hostile" },
+        evil: true,
+        sections: [
+          {
+            id: "cards",
+            type: "grid",
+            layout: [
+              { widgetId: "bad id!", x: 9, y: -3, w: 99, h: 99 },
+              { widgetId: "pages-table", x: 0, y: 0, w: 2, h: 2 },
+              { widgetId: "ghost", x: 0, y: 0, w: 1, h: 1 },
+            ],
+          },
+          { id: "odd", type: "carousel", widgetIds: ["legacy"] },
+        ],
+        widgets: [
+          {
+            id: "bad id!",
+            type: "kpi",
+            tableId: "pages",
+            settings: { metric: "sum", onClick: "alert(1)" },
+          },
+          { id: "pages-table", type: "table", tableId: "pages", settings: {} },
+          {
+            id: "legacy",
+            type: "block",
+            block: "legacy.box",
+            props: { unit: "GB", nested: { list: [1, 2, 3] } },
+            settings: {},
+          },
+          { id: "frame", type: "iframe", src: "https://example.com" },
+          {
+            id: "notes",
+            type: "note",
+            settings: { text: '<img src="x" onerror="window.hacked=1">' },
+          },
+        ],
+        filters: [{ id: "f", type: "sql", label: "Nope", targets: [] }],
+      })
+    ),
+  ]);
+  await page.goto(SCREEN);
+  // Repaired: the table moved to a flow, the id made valid, the rest dropped.
+  await expect(page.locator("[data-host-table]")).toHaveCount(1);
+  await expect(widget(page, "pages-table")).toHaveAttribute(
+    "data-widget-frame",
+    "page"
+  );
+  await expect(widget(page, "bad-id")).toBeVisible();
+  await expect(widget(page, "frame")).toHaveCount(0);
+  await expect(widget(page, "notes")).toContainText('<img src="x"');
+  await expect(widget(page, "legacy")).toContainText("Unavailable block");
+  expect(await page.evaluate(() => "hacked" in globalThis)).toBe(false);
+  // Saving keeps the block the host lacks, with its props.
+  await toolbar(page).getByRole("button", { name: "Edit" }).click();
+  await toolbar(page).getByRole("button", { name: "Done" }).click();
+  await expect(page.getByText("Dashboard saved")).toBeVisible();
+  const saved = (await savedDashboards(page))["content-admin"];
+  expect(
+    (saved?.widgets as { id: string }[]).find((entry) => entry.id === "legacy")
+  ).toEqual({
+    id: "legacy",
+    type: "block",
+    block: "legacy.box",
+    props: { unit: "GB", nested: { list: [1, 2, 3] } },
+    settings: {},
+  });
+  expect(errors).toEqual([]);
+});
+
+test("phones stack the screen; French shows its labels", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto(`${SCREEN}&lang=fr`);
+  await expect(
+    page.getByRole("heading", { name: "Administration du contenu", level: 2 })
+  ).toBeVisible();
+  await expect(figure(page, "published")).toHaveText(
+    String(count("published"))
+  );
+  await expect(page.locator('[data-dashboard-layout="stack"]')).toHaveCount(1);
+  const order = await page
+    .locator('[data-dashboard-section="overview"] [data-dashboard-item]')
+    .evaluateAll((items) =>
+      items.map((entry) => entry.getAttribute("data-dashboard-item"))
+    );
+  expect(order).toEqual([
+    "published",
+    "drafts",
+    "storage",
+    "audit",
+    "uploads",
+    "shortcuts",
+    "attention",
+  ]);
+  // One column: every card as wide as the screen's content.
+  const widths = await page
+    .locator('[data-dashboard-section="overview"] [data-dashboard-widget]')
+    .evaluateAll((cards) =>
+      cards.map((card) => Math.round(card.getBoundingClientRect().width))
+    );
+  expect(new Set(widths).size).toBe(1);
+  await expect(
+    toolbar(page).getByRole("button", { name: "Tout actualiser" })
+  ).toBeVisible();
+  await expect(widget(page, "audit")).toContainText(
+    "Vous n’avez pas accès à ces données."
+  );
+  await expect(
+    widget(page, "attention").locator("[data-attention-item]").first()
+  ).toContainText("en attente de relecture");
+  await page
+    .locator('[data-dashboard-filter="period"] [data-filter-trigger]')
+    .click();
+  await expect(page.locator('[data-filter-preset="last30Days"]')).toHaveText(
+    "30 derniers jours"
+  );
+});
+
+test("a source's meta.notice shows instead of its data", async ({ page }) => {
+  await saveDashboards(page, [
+    {
+      version: 2,
+      id: "content-admin",
+      name: "Analytics",
+      sections: [
+        {
+          id: "cards",
+          type: "grid",
+          layout: [
+            { widgetId: "views", x: 0, y: 0, w: 1, h: 1 },
+            { widgetId: "top", x: 1, y: 0, w: 2, h: 2 },
+          ],
+        },
+      ],
+      widgets: [
+        {
+          id: "views",
+          type: "kpi",
+          tableId: "analytics",
+          title: "Page views",
+          settings: { metric: "count" },
+        },
+        {
+          id: "top",
+          type: "view",
+          tableId: "analytics",
+          title: "Top pages",
+          view: { displayMode: "table" },
+          settings: {},
+        },
+      ],
+      filters: [],
+    },
+  ]);
+  await page.goto(SCREEN);
+  for (const id of ["views", "top"]) {
+    const notice = widget(page, id).locator('[data-widget-state="notice"]');
+    await expect(notice).toHaveText(ANALYTICS_NOTICE.message);
+    await expect(notice).toHaveAttribute(
+      "data-widget-reason",
+      ANALYTICS_NOTICE.code
+    );
+  }
+  await expect(figure(page, "views")).toHaveCount(0);
+  expect(await sourceLoads(page)).toEqual(["analytics"]);
+});
