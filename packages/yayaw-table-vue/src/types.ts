@@ -254,6 +254,13 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord>
   filterBarColumns?: string[];
   /** Show the filter bar by default; a component prop can override this. */
   showFilterBar?: boolean;
+  /**
+   * The facet panel beside the records: for these columns (select, lists,
+   * yes/no, the file tree's parent column), each value with its number of
+   * records; a click filters (`isAnyOf`, `contains` for lists). A toolbar
+   * button shows and hides it; phones open it as a sheet.
+   */
+  facets?: import("./facets-model").TableFacetsConfig | false;
   showClearFilters?: boolean;
   /** Backwards-compatible alias for `showClearFilters`. */
   showResetFilters?: boolean;

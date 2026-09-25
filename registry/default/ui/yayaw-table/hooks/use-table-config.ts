@@ -110,6 +110,8 @@ export interface TableCatalogueTableConfig extends GenericModeTableConfigs {
   filterBarColumns?: string[];
   /** Show the filter bar by default; a component prop can override this. */
   showFilterBar?: boolean;
+  /** The facet panel beside the records (`false` turns it off). */
+  facets?: import("../utils/facets-model").TableFacetsConfig | false;
   showClearFilters?: boolean;
   /** Backwards-compatible alias for `showClearFilters`. */
   showResetFilters?: boolean;
@@ -396,6 +398,7 @@ function resolveTableBehaviorConfig(
     enableColumnFilters: mergedConfig.enableColumnFilters ?? true,
     filterBarColumns: mergedConfig.filterBarColumns,
     showFilterBar: mergedConfig.showFilterBar === true,
+    facets: mergedConfig.facets,
     enableAdvancedFilters: mergedConfig.enableAdvancedFilters ?? false,
     enableColumnPinning: mergedConfig.enableColumnPinning ?? true,
     enableSorting: mergedConfig.enableSorting ?? true,

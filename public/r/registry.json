@@ -368,6 +368,11 @@
           "target": "components/ui/yayaw-table/components/display-mode-renderer-view.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/facets/facet-panel.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/facets/facet-panel.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/filters/advanced-faceted-filter.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/filters/advanced-faceted-filter.tsx"
@@ -401,6 +406,11 @@
           "path": "registry/default/ui/yayaw-table/components/filters/filter-value-input.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/filters/filter-value-input.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/filters/folder-filter.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/filters/folder-filter.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/filters/i18n-utils.ts",
@@ -466,6 +476,16 @@
           "path": "registry/default/ui/yayaw-table/components/filters/text-filter.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/filters/text-filter.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/folders/folder-picker.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/folders/folder-picker.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/folders/new-folder.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/folders/new-folder.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/footer/calculation-menu.tsx",
@@ -766,31 +786,6 @@
           "path": "registry/default/ui/yayaw-table/components/table-empty-state.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/table-empty-state.tsx"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/components/tags/bulk-tags-dialog.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/tags/bulk-tags-dialog.tsx"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/components/tags/manage-tags-dialog.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/tags/manage-tags-dialog.tsx"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/components/tags/tag-chip.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/tags/tag-chip.tsx"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/components/tags/tag-field.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/tags/tag-field.tsx"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/components/tags/tag-picker.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/tags/tag-picker.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/toolbar/column-mapping.tsx",
@@ -1153,6 +1148,16 @@
           "target": "components/ui/yayaw-table/hooks/use-filter-presets.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/hooks/use-folder-directory.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/hooks/use-folder-directory.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/hooks/use-folder-filter-config.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/hooks/use-folder-filter-config.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/hooks/use-gallery-media-actions.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/hooks/use-gallery-media-actions.ts"
@@ -1196,6 +1201,11 @@
           "path": "registry/default/ui/yayaw-table/hooks/use-table-config.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/hooks/use-table-config.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/hooks/use-table-facets.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/hooks/use-table-facets.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/hooks/use-table-instance.ts",
@@ -1341,11 +1351,6 @@
           "path": "registry/default/ui/yayaw-table/providers/table-state-sync-provider.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/providers/table-state-sync-provider.tsx"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/providers/tag-catalog-provider.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/providers/tag-catalog-provider.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/providers/translation-cache.ts",
@@ -1538,6 +1543,11 @@
           "target": "components/ui/yayaw-table/utils/export-model.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/facets-model.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/facets-model.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/feed-controller.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/feed-controller.ts"
@@ -1586,6 +1596,11 @@
           "path": "registry/default/ui/yayaw-table/utils/filtered-rows.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/filtered-rows.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/folder-directory.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/folder-directory.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/form-builder.ts",
@@ -1763,11 +1778,6 @@
           "target": "components/ui/yayaw-table/utils/table-view-storage.ts"
         },
         {
-          "path": "registry/default/ui/yayaw-table/utils/tag-catalog.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/utils/tag-catalog.ts"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/utils/tag-colors.css",
           "type": "registry:style",
           "target": "components/ui/yayaw-table/utils/tag-colors.css"
@@ -1920,6 +1930,16 @@
           "path": "registry/default/ui/yayaw-table-dashboard/dashboard-editor.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table-dashboard/dashboard-editor.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-dashboard/dashboard-facet-block.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-dashboard/dashboard-facet-block.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-dashboard/dashboard-facets.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-dashboard/dashboard-facets.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table-dashboard/dashboard-filters.tsx",

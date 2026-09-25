@@ -156,6 +156,17 @@ const TABLE_CHECKS = {
     "dashboard/dashboard-model.ts",
     "DashboardStorage"
   ),
+  // What a dashboard block component receives.
+  props: membersOf(
+    "../yayaw-table-dashboard/dashboard-block.tsx",
+    "dashboard/dashboard-types.ts",
+    "DashboardBlockProps"
+  ),
+  "table.facets": membersOf(
+    "utils/facets-model.ts",
+    "facets-model.ts",
+    "TableFacetsConfig"
+  ),
   destination: membersOf(
     "utils/data-destinations.ts",
     "data-destinations.ts",

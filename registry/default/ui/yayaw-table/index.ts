@@ -131,6 +131,20 @@ export type {
   UpdateTableViewInput,
 } from "./types/view-types";
 export type { TableActivityRecord } from "./utils/activity-shortcuts";
+// Facets: the panel listing values with their records, clicks as filter rules.
+export {
+  type FacetColumn,
+  type FacetColumnSettings,
+  type FacetCounts,
+  type FacetEntry,
+  type FacetKind,
+  facetAggregateParams,
+  facetCountParams,
+  loadFacetCounts,
+  resolveFacets,
+  type TableFacetsConfig,
+  toggleFacetValue,
+} from "./utils/facets-model";
 export {
   type FeedBodyRenderer,
   type FeedDateDisplay,
@@ -146,8 +160,17 @@ export type {
   FileTreeMoveInput,
   FileTreeMoveResult,
   FileTreeTableConfig,
+  FileTreeTableOptions,
   FileTreeViewSettings,
 } from "./utils/filetree-model";
+// Folders outside the File tree: New folder, the folder filter and facets.
+export {
+  type FolderDirectory,
+  type FolderEntry,
+  folderChoiceOf,
+  loadFolderDirectory,
+  toggleFolderChoice,
+} from "./utils/folder-directory";
 export {
   type Condition,
   type ConditionField,

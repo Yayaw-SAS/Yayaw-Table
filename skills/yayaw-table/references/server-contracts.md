@@ -140,6 +140,12 @@ Receives the query (`search`, `filters`, `advancedFilters`,
   counts in each of its groups. Values follow `metrics` (a bars-and-line
   chart sends two: the bars', then the line's).
 
+Facets (`table.facets`) and the dashboards' facet list block send the chart
+form for each facet: `groupBy: [{ columnId }]`, `metrics: [{ fn: "count" }]`,
+over the view's query without that facet's own rule. Answer one group per
+stored value: `null` for empty values, each value of a multi-select, and for
+a file tree's parent column the folder ids (`null` for the root).
+
 Without `aggregate`, when it throws, or when a chart gets no `groups` (or
 fewer values than metrics), the
 table loads the matching rows through `list` (every page for footer
@@ -205,6 +211,12 @@ List scopes: `children` (a folder's direct children, 200 per page, answer
 descendant for "Expand all"; set `meta.truncated` when you cap) and
 `tree-matches` (search results plus `meta.ancestors`). Folder deletion policy
 (recursive, refuse, move children up) is the host's.
+
+The table's other views load every folder once, for "New folder" and the
+folder filter: `list` with `scope: { kind: "subtree", parentId: null }` and,
+with a kind column, the rule `isAnyOf ["folder"]` on it (2,000 rows at most).
+The folder filter sends `isAnyOf` with folder ids on the parent column (their
+direct content), or `isEmpty` for the root.
 
 ## Tag catalogs
 

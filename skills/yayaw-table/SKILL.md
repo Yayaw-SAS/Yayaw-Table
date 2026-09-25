@@ -1,6 +1,6 @@
 ---
 name: yayaw-table
-description: "Use when installing, configuring, extending or debugging YaYaw Table, the config-driven data table that the shadcn registry copies into React or Vue 3 apps (components/ui/yayaw-table, components/ui/yayaw-table-vue): registry items and pinned installs, TableConfig, columns and value formats, display modes (table, list, kanban, gallery, file tree, calendar, chart, feed, map, form, Gantt) and dashboards, saved views and URL state, the server contracts behind table actions (list, aggregate, create, update, delete, import, export, geocode, tree, form links, destinations and connectors), catalogue forms and public form links, Notion and Google Sheets sync, and React/Vue parity."
+description: "Use when installing, configuring, extending or debugging YaYaw Table, the config-driven data table that the shadcn registry copies into React or Vue 3 apps (components/ui/yayaw-table, components/ui/yayaw-table-vue): registry items and pinned installs, TableConfig, columns and value formats, facets, display modes (table, list, kanban, gallery, file tree, calendar, chart, feed, map, form, Gantt) and dashboards, saved views and URL state, the server contracts behind table actions (list, aggregate, create, update, delete, import, export, geocode, tree, form links, destinations and connectors), catalogue forms and public form links, Notion and Google Sheets sync, and React/Vue parity."
 ---
 
 # YaYaw Table
@@ -212,6 +212,10 @@ default. Point `getTableConfig(tableType)` at a catalogue of configs;
 - `table`: feature flags (`allowCreate`, `allowEdit`, `enableViews`,
   `syncUrl`, `density`, `displayModes`, `defaultDisplayMode`…) and one object
   per display mode (`table.kanban`, `table.chart`…).
+- `table.facets`: a panel beside the records (a sheet on phones) listing the
+  values of select, tag, multi-select, boolean and folder columns with their
+  numbers of records; a click writes an ordinary filter rule. Counts come
+  from `actions.aggregate`: [configuration](references/configuration.md#facets).
 - **A format applies everywhere.** Set `numberFormat`, `dateDisplayPreset` /
   `dateFormat`, `timeZone` and `hour12` on the column once: cells, totals,
   group headings, cards, record details, the Form view, feed, calendar,
@@ -267,7 +271,7 @@ runs where you implement it (fetch, server action, RPC), so authorize there.
 | Action | Used by | Without it |
 | --- | --- | --- |
 | `actions.list` | Rows of every mode: page, sort, search, filters, AND/OR, scopes | React shows no rows; Vue filters its `data` locally |
-| `actions.aggregate` | Footer calculations, chart groups | Loads the matching rows through `list` and computes in the browser |
+| `actions.aggregate` | Footer calculations, chart groups, facet counts | Loads the matching rows through `list` and computes in the browser |
 | `actions.create` | Create form, Form view, calendar day click, imports, new folders | No Create button, no Form mode |
 | `actions.update` | Edit form, inline edit, Kanban, calendar and derived Gantt moves, renames, imports | Read-only records |
 | `actions.delete` | Row and record deletion, file tree deletion | No Delete |

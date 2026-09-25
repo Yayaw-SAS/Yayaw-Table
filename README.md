@@ -66,7 +66,10 @@ show a notice and are never removed), the host's `blocks`, full-page `table`
 widgets (the list page with its toolbar, saved views and URL; `tableProps`
 and `renderTable` for host code), filter values kept in the URL with relative
 periods (last 30 days, this month…), "Refresh all" and `meta.notice` from the
-host (`?example=screen` in both demos). Admins edit screens in place
+host (`?example=screen` in both demos). Blocks can set the screen's filters
+(`setFilter(filterId, value)`, checked against the filter's type and
+options), and `createFacetBlock` makes a "Facet list" block whose clicks
+filter the screen. Admins edit screens in place
 (`canEdit` with `actions.dashboards.save`; the editor loads in a chunk of its
 own): sections, a widget dialog (what, source, settings) over the catalogue
 and the host's blocks, and "Edit view…", whose editor is the live table
@@ -82,7 +85,11 @@ named `parentId`) show as folders and files in a tree table; add `"filetree"`
 to `displayModes`. It loads folders with `list({ scope: { kind: "children" } })`
 and moves with `actions.tree.move` when the host provides them, and falls back
 to the rows `list` returns and `update` otherwise; see
-[docs/FILETREE.md](docs/FILETREE.md).
+[docs/FILETREE.md](docs/FILETREE.md). Such tables also offer "New folder"
+in their other views (a name and a searchable parent folder) and filter the
+parent column with a folder picker (a folder, or the root);
+`table.filetree.newFolderAction: false` and `folderFilter: false` turn them
+off.
 Maps (markers from a `location` column,
 clusters, popups, the list of records in view; mapcn on MapLibre GL in React,
 MapLibre GL in Vue) are `https://table.yayaw.app/r/yayaw-table-map.json` and
@@ -240,6 +247,31 @@ server, `normalizeDateFilterRules(rules, { timeZone })` from
 `utils/date-filter-days.ts` does the same with the zone of the person who saved
 the view. See the
 [server contracts](skills/yayaw-table/references/server-contracts.md#date-rules).
+
+### Facets beside the records
+
+`table.facets` shows a panel of facets beside the records in every display
+mode but the Form view: each column listed (select, tag, status,
+multi-select, tags, boolean, or a file tree's folder column) shows its values
+with their number of records, and a click filters the table.
+
+```ts
+table: {
+  facets: {
+    columns: ["category", { id: "tags", limit: 12 }],
+    position: "left", // or "right"
+    defaultOpen: true, // phones open the panel as a sheet from the toolbar
+  },
+}
+```
+
+A selection is an ordinary filter rule (`isAnyOf`, `contains` for lists,
+`isEmpty` for "No value"), kept in the URL and in saved views and listed in
+the filter menus. Counts come from `actions.aggregate` (grouped by the column and
+counted, as charts ask) for the current search and filters without the
+facet's own rule; without it, from the rows `list` returns (2,000 at most,
+with a notice beyond). The toolbar button shows and hides the panel;
+`?example=products` shows it in both demos.
 
 ### Empty states and filter recovery
 

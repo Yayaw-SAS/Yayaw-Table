@@ -24,6 +24,8 @@ planning session.
 - Grids, lists, boards and galleries show the current page of `list`.
   Calendar, chart, map, file tree and derived Gantt load every row of their
   window through scopes or the capped loader (2,000 rows by default).
+- `table.facets` puts a facet panel beside every mode but `form`: see
+  [configuration](configuration.md#facets).
 - `TableDisplayMode` grows with releases: exhaustive `Record<TableDisplayMode,
   …>` maps in host code need an entry per new mode.
 
@@ -82,7 +84,12 @@ Settings: `parentColumn`, `kindColumn` (`"folder"`/`"file"`), `nameColumn`,
 `canCreateFolder`, `canRename`. Server first: answer the `children`,
 `subtree` and `tree-matches` scopes and implement `actions.tree`; without
 them the tree is built in the browser from at most 2,000 rows, orphans and
-cycles going to "Unfiled". Specification:
+cycles going to "Unfiled". The table's other views (not `form` or `gantt`)
+offer "New folder" in the toolbar (a name and a searchable parent folder,
+through `tree.createFolder` or `create`) and filter the parent column with a
+folder picker (`isAnyOf` folder ids, `isEmpty` for the root); a facet on the
+parent column lists the folders. `table.filetree.newFolderAction: false` and
+`folderFilter: false` turn them off. Specification:
 [file tree](https://github.com/Yayaw-SAS/Yayaw-Table/blob/main/docs/FILETREE.md).
 
 ## `calendar` (optional item)
@@ -233,9 +240,27 @@ import YayawDashboard from "@/components/ui/yayaw-table-vue/dashboard/YayawDashb
   inline view is a system default view `screen:<dashboardId>:<widgetId>`
   (`isDashboardViewId()`), after the reader's favorite. The screen's first
   table keeps the table's URL keys, others use `instanceId = widget.id`.
-- Blocks receive `{ widgetId, props, size?, editing, locale, revision,
-  filters, refresh(tableId?), openView? }`; a throwing block stays in its
-  widget; a block rendering nothing collapses in a flow.
+- Blocks receive these props; a throwing block stays in its widget; a block
+  rendering nothing collapses in a flow:
+
+<!-- skill-check: props -->
+| Prop | Is |
+| --- | --- |
+| `props.widgetId`, `props.props`, `props.size` | The widget's id, its props over the block's `defaultProps`, its grid size (none in a flow) |
+| `props.editing`, `props.locale`, `props.revision` | Edit mode, the screen's language, a number that changes when widgets should load again |
+| `props.filters` | The screen's filter values by filter id (date ranges resolved to days) |
+| `props.refresh` | `(tableId?)`: reloads a source's widgets, or all of them |
+| `props.setFilter` | `(filterId, value)`: sets a filter as the filter bar does (URL for readers, the default in edit mode); answers `{ ok: true, value }`, or `{ ok: false, code: "unknownFilter" \| "invalidValue", message }` and changes nothing |
+| `props.filterRules` | `(tableId, { exclude? })`: the rules the screen's filters give a source, for the block's own requests (`withDashboardFilters(actions, rules)`) |
+| `props.openView` | The host's `openView`, when given |
+
+- `createFacetBlock({ filterId, tableId, column, actions?, label?, layout? })`
+  (React `yayaw-table-dashboard/dashboard-facet-block.tsx`, Vue
+  `dashboard/dashboard-facet-block.ts`) is a ready "Facet list" block: a
+  column's values with their numbers of records under the screen's other
+  filters (`aggregate`, else `list`), whose clicks set a `select` filter
+  through `setFilter` ("All" clears it). Props: `{ filterId?, layout?:
+  "chips" | "list", showCounts? }`.
 - Filter values readers pick stay in the URL (`<dashboardId>.<filterId>`),
   never in the document (its `value` is the default); date ranges offer the
   last 7, 30 and 90 days, this month, last month and this year, stored as

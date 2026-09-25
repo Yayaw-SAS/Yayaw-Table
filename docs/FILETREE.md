@@ -216,7 +216,9 @@ true), `sort` (`{ id, desc }`; header clicks set it, default name),
 `defaultExpandedDepth` (0–2, default 1: top-level folders open on first load),
 `rootLabel` (default the table name), `expanded` / `expandedAll`.
 `table.filetree` sets defaults and holds the host hooks; `false` disables the
-mode. The mode is only offered when a parent column is configured or
+mode. Two table-level flags (not saved per view) govern the folders in the
+other views (section 11): `newFolderAction` and `folderFilter`, both true by
+default. The mode is only offered when a parent column is configured or
 detectable, and when `"filetree"` is in `displayModes`. The settings panel
 (View → Card settings) offers the columns, a columns preset (size and
 modified, size, modified, name only), the details pane, folders first and the
@@ -238,7 +240,9 @@ first-load depth.
 
 EN/FR via `filetree.<key>` (e.g. "New folder", "Move to…", "Moved {count}
 items to {path}", "Unfiled", "Show more ({count})", "Empty folder",
-"You can't move a folder into itself", "Expand all", "Collapse all").
+"You can't move a folder into itself", "Expand all", "Collapse all", and for
+the other views "Root", "Parent folder", "In", "No folders", "The folder
+could not be created.").
 
 ## 9. Parity and tests
 
@@ -255,7 +259,9 @@ items to {path}", "Unfiled", "Show more ({count})", "Empty folder",
   collapse all, details pane, drag a file into a folder and undo, invalid drop
   into a descendant, cut/paste and "Move to…", create folder, rename with F2
   (and a clash), keyboard navigation, search with ancestors, deep link to a
-  folder, the client fallback with Unfiled, phone drill-down, view settings.
+  folder, the client fallback with Unfiled, phone drill-down, view settings;
+  `e2e/facets.spec.ts` creates a folder from the gallery under a chosen
+  parent and filters the gallery by a folder and by the root.
 - Demo: an "Assets" table (folders Brand, Campaigns/2026, Photos…, files with
   image/video/PDF URLs reused from the gallery media demo) with File tree,
   Gallery and Table modes (`?example=assets`), an in-memory `list` supporting
@@ -271,6 +277,36 @@ items to {path}", "Unfiled", "Show more ({count})", "Empty folder",
 - Companion EN/FR docs page "File tree view" in Yayaw docs.
 - Yayaw integration later: the media library's folders map onto
   `parentColumn`, with `tree.move` and `createFolder` as server actions.
+
+## 11. Folders in the other views
+
+A table whose rows form a file tree offers its folders in its other views
+(table, list, gallery, Kanban, calendar, map…), so people do not have to
+switch to the File tree:
+
+- **New folder** in the toolbar (not in the File tree, which has its own, nor
+  in the Form view or Gantt), when folders can be created
+  (`actions.tree.createFolder`, else `create` with `allowCreate`). A dialog
+  asks for the name and the parent folder: a searchable picker of every
+  folder with its location, the root first. It starts in the folder the view
+  is filtered on (one folder), else the root. The name follows the File
+  tree's rules (trimmed; blank is "New folder"), `canCreateFolder(parent)`
+  is asked, and the host's error (a name clash) shows in the dialog. The
+  table reloads after it.
+- **The folder filter**: the parent column filters with the same picker in
+  the filter menus, the root or folders, written as `isAnyOf` with the folder
+  ids (the folders' direct content) or `isEmpty` for the root, and read "In"
+  and the folder's name. A facet on the parent column
+  (`table.facets`) lists the same folders with their numbers of records.
+- `table.filetree.newFolderAction: false` and `folderFilter: false` turn
+  them off.
+
+Folders load once, when a picker or a facet first needs them, and again after
+the table's data changes: `list` with `scope: { kind: "subtree", parentId:
+null }` and, with a kind column, a rule keeping folders (`isAnyOf`
+`["folder"]`), up to 2,000; a host that does not apply the scope gets the
+capped all-rows loader, and folders are picked from the rows. Shared rules:
+`utils/folder-directory.ts` (synced to Vue).
 
 ## Deviations from the draft
 

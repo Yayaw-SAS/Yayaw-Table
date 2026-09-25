@@ -20,7 +20,19 @@ export type {
   DisplayModeRenderers,
   DisplayModeSettingsContext,
 } from "./display-mode-renderer";
-
+export {
+  type FacetColumn,
+  type FacetColumnSettings,
+  type FacetCounts,
+  type FacetEntry,
+  type FacetKind,
+  facetAggregateParams,
+  facetCountParams,
+  loadFacetCounts,
+  resolveFacets,
+  type TableFacetsConfig,
+  toggleFacetValue,
+} from "./facets-model";
 export { feedRenderer } from "./feed/feed-renderer";
 export {
   type FeedBodyRenderer,
@@ -31,7 +43,6 @@ export {
   formatFeedRelativeDate,
   normalizeFeedViewConfig,
 } from "./feed-view";
-
 export { fileTreeRenderer } from "./filetree/filetree-renderer";
 export type {
   FileTreeActions,
@@ -39,8 +50,16 @@ export type {
   FileTreeMoveInput,
   FileTreeMoveResult,
   FileTreeTableConfig,
+  FileTreeTableOptions,
   FileTreeViewSettings,
 } from "./filetree-model";
+export {
+  type FolderDirectory,
+  type FolderEntry,
+  folderChoiceOf,
+  loadFolderDirectory,
+  toggleFolderChoice,
+} from "./folder-directory";
 export { formRenderer } from "./form/form-renderer";
 export { default as YayawTableForm } from "./form/YayawTableForm.vue";
 export {

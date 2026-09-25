@@ -145,6 +145,8 @@ const config = defineTableConfig<Product>({
     sort: [{ id: "name", desc: false }],
   },
   table: {
+    // The facet panel beside the records: categories and tags with their counts.
+    facets: { columns: ["category", "tags"] },
     filterBarColumns: ["category", "status", "tags"],
     enableAdvancedFilters: true,
     showClearFilters: true,

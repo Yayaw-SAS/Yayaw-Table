@@ -428,6 +428,81 @@ Both view managers expose the favorite star for the built-in default view as wel
 React uses `sonner` and Vue uses `vue-sonner` for transient operation feedback: saved views, CRUD, exports, toolbar and bulk actions, and asynchronous action failures. Hosts mount one Sonner/Shadcn `Toaster`; the table never mounts a duplicate outlet or inserts a notification block that shifts content. Vue keeps internal status records for partial-operation retry handling. Loading, inline-save progress, field validation and actionable form/list errors remain contextual. The Vue distribution externalizes `vue-sonner` so its notifications reach the host's singleton; registry installation adds that dependency. Matching view/row/action regression coverage verifies the shared notification outcome.
 
 
+## Facet panel
+
+`table.facets` puts a panel of facets beside the records, the same in both
+editions: each configured column lists its values with their number of
+records, and a click filters the table. `TableFacetsConfig` is `{ columns,
+position?: "left" | "right", defaultOpen?, limit?, showCounts?, showZero?,
+width? }`; a column is an id or `{ id, label?, limit?, sort?: "options" |
+"count" | "label", showEmpty? }`. Facets take select and tag columns (status
+columns included), multi-select and tags columns, booleans (Yes, No) and a
+file tree's parent column (folders, "Root" for the top level). Columns with
+`enableFiltering: false` or of other types are left out.
+
+The shared `facets-model.ts` (synced to Vue, server-safe) owns every rule:
+
+- `resolveFacets` (the facets a configuration offers: `facetKind`, defaults,
+  the folder column from `folderTreeOf`), `facetsShownIn` (every display mode
+  but the Form view);
+- the selection is filter state: `toggleFacetValue` writes the rule the filter
+  menus write (`isAnyOf` for selects, booleans and folders, `contains` for
+  lists, `isEmpty` for "No value" or "Root", which replaces the values and is
+  replaced by a value), keeps the rule's id, and joins with AND;
+  `facetSelection`, `clearFacets`, `selectedFacetCount`, and `canToggleFacet`
+  (no clicks while the view matches any rule with OR: the panel says so);
+- counts: `facetCountParams` (the view's query without the facet's own rule,
+  so a facet keeps offering its other values), `facetAggregateParams`
+  (`groupBy: [{ columnId }]`, `metrics: [{ fn: "count" }]`, as charts ask),
+  `facetCountsFromAggregate`, and `loadFacetCounts`: `actions.aggregate`
+  per facet, else the rows `list` returns for that query (2,000 at most,
+  `truncated` beyond, facets sharing a query sharing one load), else the
+  table's local rows (Vue's `data`, filtered with `applyTableQuery`);
+  `aggregateFacetRows` answers facet requests in memory;
+- entries: `facetEntries` (the options' order, else by count; folders in the
+  tree's order after "Root", with their location; "No value" last; values no
+  record has hidden unless `showZero` or selected), `visibleFacetEntries`
+  (the limit, "Show N more", the search offered past the limit),
+  `facetKeyTarget` (arrows, Home, End), and the EN/FR labels (`facets.<key>`
+  overrides).
+
+Each edition renders the same DOM: React `components/facets/facet-panel.tsx`
+(`TableFacetsLayout`, `FacetPanelContent`, `FacetsToggle`) with
+`hooks/use-table-facets.ts` (counts in TanStack Query under
+`["tableData", tableId, "facets", …]`, so mutations refresh them) and a jotai
+atom for the open state; Vue `components/facets/FacetPanel.vue` and
+`FacetsToggle.vue` with `composables/use-facets.ts` (counts again after
+`refresh()`). The panel is an `aside[data-facet-panel]` titled "Filters"
+beside the records on wide screens, open unless `defaultOpen: false`; the
+toolbar's button (`[data-facets-toggle]`, `aria-pressed`, a badge with the
+number of facets in use) hides and shows it. Phones and compact toolbars
+open it as a sheet (`[data-facet-sheet]`: vaul in React, the toolbar's sheet
+in Vue). Each facet is a region with its heading, a "Clear" button, pressed
+value buttons (`[data-facet-value]`, `aria-pressed`, counts in
+`[data-facet-count]`), "Show N more" and a search; "Clear all" empties every
+facet. A selection is a rule in the view's advanced filters: in the URL
+(`<tableId>-advancedFilters`), saved with views, and listed in the filter
+menus like any rule (a chip in React, a rule form in Vue, as before). Tables with facets show the advanced filter menu even
+without `enableAdvancedFilters`. Counts keep the previous numbers while new
+ones load; a failure shows Retry.
+
+Differences imposed by the frameworks: none observable.
+
+Verification: `tests/facets-suite.ts` runs in both editions
+(`tests/facets.test.ts`, `packages/yayaw-table-vue/src/facets.test.ts`):
+configuration, kinds, the rules written for each kind, toggling, "No value",
+clearing, OR joins, count requests without the facet's own rule, aggregate
+answers, the `list` fallback with its cap, shared loads, local rows, entries
+and their order, folders with "Root" and Unfiled, limits and search,
+keyboard targets and labels. `tests/facet-panel.test.tsx` and
+`packages/yayaw-table-vue/src/components/facets.test.ts` mount a table:
+counts from `aggregate`, a click writing `isAnyOf` (`contains` for a list),
+the other facets' counts under the rule and the facet's own without it,
+"Clear all" and the toolbar button. `e2e/facets.spec.ts` on both demos
+(`?example=products`): counts matching the data, a click filtering, the rule
+in the URL, arrows and Space, a list facet, "Clear", "No value", a reload, the
+rule in the filter menus, "Clear all", the toolbar button and the phone sheet.
+
 ## Responsive view menus
 
 Both editions use a single desktop toolbar row: view, search, custom actions,
@@ -1284,6 +1359,52 @@ F2 rename with a clash, keyboard navigation and type-ahead, search with
 ancestors, a deep link, Unfiled in the fallback, phone drill-down and the view
 settings. `E2E_REACT_PORT` / `E2E_VUE_PORT` override the demo ports so
 checkouts can run the suite side by side.
+
+### New folder and the folder filter in every view
+
+When a table's rows form a file tree (a parent column, see above), its other
+views offer what the File tree does, the same in both editions:
+
+- "New folder" in the toolbar of the table, list, gallery, Kanban and other
+  views (not the File tree, which has its own, nor the Form view or Gantt),
+  when folders can be created (`actions.tree.createFolder`, else `create`
+  with `allowCreate`). Its dialog asks for the name and the parent folder in a
+  searchable picker (the root first, then every folder with its location);
+  it starts in the folder the view is filtered on, else the root, and names
+  follow the File tree's rules (a blank name is "New folder";
+  `canCreateFolder(parent)` is asked). The table reloads after it.
+- The parent column filters with a folder picker in the filter menus: the
+  root or folders (with their location, searched), written `isAnyOf` with the
+  folder ids, or `isEmpty` for the root; React's chips read "In" and the
+  folder's name, Vue's rule shows the picker under "In". Facets on the
+  parent column list the same folders.
+- `table.filetree.newFolderAction: false` and `folderFilter: false` turn them
+  off.
+
+The shared `folder-directory.ts` (synced to Vue, server-safe) owns the rules:
+`folderTreeOf`, `folderTableOptions`, `loadFolderDirectory` (every folder
+through `list` with the `subtree` scope from the root and a kind rule, else
+the capped all-rows loader), `buildFolderDirectory` (the tree's order, paths,
+Unfiled), `searchFolders`, `folderLocationText`, `folderFacetLabel`,
+`toggleFolderChoice`, `folderChoiceText`, `newFolderShownIn`,
+`newFolderName`, `canCreateFolderUnder`, `createFolderRecord` and
+`defaultNewFolderParent`; the File tree's controller now uses the same
+creation helpers. React: `components/folders/folder-picker.tsx`,
+`new-folder.tsx` (shadcn `Dialog`), `components/filters/folder-filter.tsx`,
+`hooks/use-folder-directory.ts` and `use-folder-filter-config.ts`. Vue:
+`components/folders/FolderPicker.vue`, `NewFolderButton.vue` (reka-ui
+`Dialog`), the picker in `FilterRule.vue` and
+`composables/use-folder-directory.ts`. New EN/FR labels (`filetree.<key>`):
+"Root", "Parent folder", "In", "No folders", "The folder could not be
+created."
+
+Verification: the facets suite covers the directory, the picker's choices,
+names and creation in both editions; the component tests create a folder
+under a chosen parent from the gallery. `e2e/facets.spec.ts` on both demos
+(`?example=assets&assets-display=gallery`): "New folder" creates a folder
+under the chosen parent (its count in the folder facet), and the folder
+filter shows only that folder's files, or the root's items.
+
 ## Location columns
 
 `location` is a column type in both editions (`TABLE_DATA_TYPES.location`:
@@ -2959,6 +3080,49 @@ JSON props refused (invalid JSON, `validateProps`), accepted and edited; a
 block's `settings` form; "Done" refusing a screen with errors and naming the
 widget, then saving once fixed; unavailable sources listed disabled with
 their reasons. `e2e/dashboard.spec.ts` adds widgets through the new dialog.
+
+### Dashboard screens: blocks set screen filters
+
+Blocks can drive a screen's filters, the same in both editions. Block props
+gain `setFilter(filterId, value)`, which changes a filter's value exactly as
+the filter bar does (the reader's value in the URL; in edit mode the
+document's default) and answers `DashboardSetFilterResult`: `{ ok: true,
+value }`, or `{ ok: false, code, message }` for a filter the screen does not
+have (`unknownFilter`) or a value it cannot take (`invalidValue`: another
+type, an option the filter does not have, days out of order), in which case
+nothing changes. `undefined`, `null`, an empty list or an empty range clears
+it. They also gain `filterRules(tableId, { exclude? })`,
+the rules the screen's filters give a source (the ones in `exclude` left
+out), to join to a block's own requests. The rules are pure, in
+`dashboard-model.ts`: `checkDashboardFilterValue` (select values among the
+filter's options when it lists them, else the source column's; date ranges
+as days, `start` before `end`, or a known `preset`) and
+`dashboardSourceFilterRules`.
+
+The library ships a "Facet list" block over the same model as the facet
+panel: `createFacetBlock({ filterId, tableId, column, actions?, label?,
+description?, group?, placement?, defaultSize?, layout? })` (React
+`dashboard-facet-block.tsx`, Vue `dashboard/dashboard-facet-block.ts` with
+`DashboardFacetBlock.vue`) lists a column's values with their numbers of
+records under the screen's other filters (`dashboard-facets.ts`, shared:
+`facetBlockSchema`, `facetBlockColumn`, `loadFacetBlockCounts`,
+`toggleFacetBlockValue`, `facetBlockEntries`), and a click sets the select
+filter through `setFilter`; "All" clears it. Its props are `{ filterId?,
+layout?: "chips" | "list", showCounts? }`. New EN/FR labels: "Facet list",
+"All", and the refusals' messages.
+
+Demo: `?example=screen` adds a `section` column to the pages, a "Section"
+filter and a "Sections" block (`pages.sections`) above the Pages table.
+
+Verification: the facets suite checks `checkDashboardFilterValue`,
+`dashboardSourceFilterRules`, the block's schema, props and counts in both
+editions; `tests/facet-panel.test.tsx` and
+`packages/yayaw-table-vue/src/components/facets.test.ts` set a valid value,
+an invalid one and an unknown filter from a block. `e2e/screen.spec.ts` on
+both demos: the Sections block's counts match the pages, a click sets
+`content-admin.section` in the URL and the filter bar, the Pages table and
+the numbers follow (`requiredFilters`), the block's counts leave its own
+filter out and follow the author filter, and "All" clears it.
 
 ## Tags columns
 

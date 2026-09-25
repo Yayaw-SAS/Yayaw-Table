@@ -263,6 +263,10 @@ export const assetTableOptions = {
     | "gallery"
     | "table"
   )[],
+  // The facet panel (closed at first, the toolbar opens it): folders (the
+  // parent column) and kinds, counted from the rows `list` returns (this
+  // host has no `aggregate`).
+  facets: { columns: ["parentId", "kind"], defaultOpen: false },
   gallery: {
     titleColumn: "name",
     cardColumnIds: ["size", "updatedAt"],
