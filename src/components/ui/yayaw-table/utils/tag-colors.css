@@ -16,3 +16,40 @@
   background: hsl(var(--yayaw-tag-hue) 45% 22%);
   color: hsl(var(--yayaw-tag-hue) 80% 85%);
 }
+/* A tag's own color (catalog tags, options with `color`). */
+.yayaw-tag.yayaw-tag-tinted {
+  background: color-mix(in srgb, var(--yayaw-tag-color) 16%, transparent);
+  color: color-mix(in srgb, var(--yayaw-tag-color) 65%, black);
+}
+.dark .yayaw-tag.yayaw-tag-tinted,
+[data-theme="dark"] .yayaw-tag.yayaw-tag-tinted {
+  background: color-mix(in srgb, var(--yayaw-tag-color) 30%, transparent);
+  color: color-mix(in srgb, var(--yayaw-tag-color) 45%, white);
+}
+/* A tag whose catalog is still loading. */
+.yayaw-tag-pending {
+  display: inline-block;
+  width: 3rem;
+  height: 1.25rem;
+  border-radius: 0.35rem;
+  background: var(--yayaw-muted, var(--muted, #f4f4f5));
+  animation: yayaw-tag-pulse 1.2s ease-in-out infinite;
+}
+.yayaw-tag-swatch {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 9999px;
+  background: var(--yayaw-tag-color, currentColor);
+}
+@keyframes yayaw-tag-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .yayaw-tag-pending {
+    animation: none;
+  }
+}

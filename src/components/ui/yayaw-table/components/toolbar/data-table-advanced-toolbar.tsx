@@ -58,9 +58,11 @@ import {
   useDataTableAdvancedFilters,
   useTableAccessors,
 } from "../../hooks/use-data-table-advanced-filters";
+import { useFolderFilterConfig } from "../../hooks/use-folder-filter-config";
 import { useTableConfig } from "../../hooks/use-table-config";
 import { useTableInstance } from "../../hooks/use-table-instance";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
+import { useCurrentViewConfig } from "../../hooks/use-view-config";
 import { useToolbarLayout } from "../../hooks/use-toolbar-layout";
 import {
   useTableActions as useProviderTableActions,
@@ -85,8 +87,11 @@ import {
   toPageSize,
 } from "../../utils/filtered-rows";
 import { TableTooltip } from "../../utils/table-tooltip";
+import { tableViewDefaults } from "../../utils/table-view-state";
 import { sharePageUrl } from "../../utils/view-menu";
+import { FacetsToggle } from "../facets/facet-panel";
 import { TableFilterBar } from "../filters/table-filter-bar";
+import { NewFolderButton } from "../folders/new-folder";
 import {
   catalogueFormAtom,
   openCreateForm,
@@ -378,6 +383,11 @@ function createColumnOptions(
             })
           : `Filter by ${colDef.header || colDef.id}...`,
         options: (colDef as { options?: unknown }).options,
+        // Tags columns show their options' colors in filter menus.
+        tags: Boolean((colDef as { tags?: unknown }).tags),
+        coloredTags:
+          (colDef as { coloredTags?: boolean }).coloredTags ??
+          (table?.coloredTags as boolean | undefined),
         dateDisplayPreset: resolvedDateDisplayPreset,
         dateFormat: resolvedDateFormat,
         // Filter chips show values in the column's format.
@@ -558,11 +568,17 @@ function ToolbarEnd({
   applicationActions,
   createButton,
   dataMenu,
+  facetsToggle,
   isMobile,
+  newFolderButton,
   renderToolbarAction,
   search,
   settingsMenu,
 }: {
+  /** Shows and hides the facet panel (a sheet on phones). */
+  facetsToggle?: ReactNode;
+  /** "New folder" outside the File tree. */
+  newFolderButton?: ReactNode;
   applicationActions: {
     beforeCreate: ToolbarAction[];
     betweenCreateAndExport: ToolbarAction[];
@@ -605,8 +621,10 @@ function ToolbarEnd({
             ...applicationActions.betweenCreateAndExport,
             ...applicationActions.afterExport,
           ].map(renderToolbarAction)}
+      {facetsToggle}
       {settingsMenu}
       {dataMenu}
+      {newFolderButton}
       {createButton}
     </div>
   );
@@ -1027,6 +1045,13 @@ export function DataTableAdvancedToolbar<TData>({
       columnOptions,
       columnTypeMapping
     );
+  // The file tree's parent column filters with a folder picker.
+  const filterColumnsConfig = useFolderFilterConfig({
+    advancedFilters: advancedFiltersParam,
+    columnsConfig: advancedColumnsConfig,
+    tableId,
+    tableType,
+  });
 
   // Get final columns and visibility
   const finalColumns = useFinalColumns(state, columnOptions);
@@ -1281,9 +1306,15 @@ export function DataTableAdvancedToolbar<TData>({
     sortParam,
     tableActions?.list,
   ]);
+  // Toolbar actions read the live view when they run.
+  const viewConfig = useCurrentViewConfig(tableId, tableConfig);
+  const viewConfigRef = useRef(viewConfig);
+  viewConfigRef.current = viewConfig;
+  const getViewConfig = useCallback(() => viewConfigRef.current, []);
   const toolbarActionContext = useMemo<ToolbarActionContext>(
     () => ({
       actionsAsIcons,
+      getViewConfig,
       hasListAction,
       isCreateEnabled,
       isExportEnabled,
@@ -1301,6 +1332,7 @@ export function DataTableAdvancedToolbar<TData>({
     }),
     [
       actionsAsIcons,
+      getViewConfig,
       hasListAction,
       isCreateEnabled,
       isExportEnabled,
@@ -1811,7 +1843,7 @@ export function DataTableAdvancedToolbar<TData>({
           ? {
               filters: advancedFiltersResult.advancedFilters,
               actions: advancedFiltersResult.advancedActions,
-              columnsConfig: advancedColumnsConfig,
+              columnsConfig: filterColumnsConfig,
               onConvertToAdvanced:
                 advancedFiltersResult.convertLegacyToAdvanced as (
                   columnId: string,
@@ -1907,26 +1939,7 @@ export function DataTableAdvancedToolbar<TData>({
       useAdvancedFilters={enableAdvancedFilters}
     />
   );
-  const defaultViewConfig = {
-    // An inactive Kanban lane default must not group the initial table view.
-    grouping: [],
-    density: tableConfig.table.density,
-    displayMode: tableConfig.table.defaultDisplayMode ?? ("table" as const),
-    footerCalculationsVisible: true,
-    pageSize: tableConfig.table.defaultPageSize,
-    sorting: tableConfig.columns.sort,
-    columnOrder: tableConfig.columns.order,
-    columnVisibility: Object.fromEntries(
-      tableConfig.columns.definitions.map((column) => [
-        column.id,
-        tableConfig.columns.visible?.includes(column.id) ?? true,
-      ])
-    ),
-    kanban: tableConfig.table.kanban,
-    gallery: tableConfig.table.gallery,
-    list: tableConfig.table.list,
-    gantt: tableConfig.table.gantt,
-  };
+  const defaultViewConfig = tableViewDefaults(tableConfig).config;
   return (
     <TooltipProvider>
       <div
@@ -1955,7 +1968,22 @@ export function DataTableAdvancedToolbar<TData>({
         <ToolbarEnd
           applicationActions={toolbarActionsByPlacement}
           createButton={createButton}
+          facetsToggle={
+            <FacetsToggle
+              compact={isMobile}
+              tableId={tableId}
+              tableType={tableType}
+            />
+          }
           isMobile={isMobile}
+          newFolderButton={
+            <NewFolderButton
+              actionsAsIcons={actionsAsIcons}
+              compact={isMobile}
+              tableId={tableId}
+              tableType={tableType}
+            />
+          }
           renderToolbarAction={renderToolbarAction}
           search={{
             enabled: isColumnFiltersEnabled,

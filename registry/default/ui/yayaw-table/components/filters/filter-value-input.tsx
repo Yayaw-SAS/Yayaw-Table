@@ -14,6 +14,7 @@ import type {
 import { isCalendarDay, todayCalendarDay } from "../../utils/date-filter-days";
 import { locationFilterHasValue } from "../../utils/location-model";
 import { CompactDateFilter, DateFilter } from "./date-filter";
+import { FolderFilterInput } from "./folder-filter";
 import { LocationFilter } from "./location-filter";
 import {
   CompactMultiSelectFilter,
@@ -96,6 +97,20 @@ export function FilterValueInput<TType extends ColumnDataType>({
     },
     [onOperatorChange]
   );
+
+  // The file tree's parent column picks folders, the root included.
+  if (config.folder) {
+    return (
+      <FolderFilterInput
+        disabled={disabled}
+        folder={config.folder}
+        onOperatorChange={(next) => handleOperatorChange(next)}
+        onValueChange={(next) => handleValueChange(next)}
+        operator={String(operator)}
+        value={value}
+      />
+    );
+  }
 
   // Route to the appropriate filter component based on type
   switch (type) {

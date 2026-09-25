@@ -15,7 +15,7 @@ concurrency:
 jobs:
   test-and-typecheck:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - name: Checkout
         uses: actions/checkout@v6

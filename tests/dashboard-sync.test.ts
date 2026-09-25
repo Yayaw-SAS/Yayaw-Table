@@ -16,9 +16,11 @@ const SYNCED: [
   ...[
     "dashboard-schema.ts",
     "dashboard-sources.ts",
+    "dashboard-editor-model.ts",
     "dashboard-layout.ts",
     "dashboard-model.ts",
     "dashboard-url.ts",
+    "dashboard-facets.ts",
     "dashboard-fit.ts",
     "dashboard-grid-engine.ts",
     "dashboard-grid.css",

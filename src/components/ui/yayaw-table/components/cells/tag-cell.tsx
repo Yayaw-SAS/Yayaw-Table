@@ -52,6 +52,8 @@ function toTagValues(value: unknown): string[] {
 export interface TagCellProps {
   coloredTags?: boolean;
   colorValue?: string;
+  /** The tag's own color (a palette name or a CSS color), e.g. a catalog tag's. */
+  color?: string;
   /**
    * Optional CSS class name
    */
@@ -80,6 +82,7 @@ export function TagCell({
   value,
   coloredTags = true,
   colorValue,
+  color,
 }: TagCellProps) {
   const tagValues = toTagValues(value);
 
@@ -93,7 +96,8 @@ export function TagCell({
         const appearance = tagAppearance(
           colorValue ?? tagValue,
           coloredTags,
-          tagColorMap
+          tagColorMap,
+          color
         );
         return (
           <Badge

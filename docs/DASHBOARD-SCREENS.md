@@ -7,17 +7,18 @@ they place, and filters joined to the widgets' queries. Hosts store the JSON
 modules that import no React, Vue or CSS. AI tools (MCP) prepare drafts with
 the same grammar; people publish them.
 
-Both editions ship the grammar and its tools, and a renderer for screens:
+Both editions ship the grammar and its tools, a renderer for screens and an
+editor for the people who manage them:
 
-| Ships now | Comes next |
+| Reading screens | Editing screens |
 | --- | --- |
-| The version 2 grammar, migration from versions 0 and 1 | The screen editor: sections, the widget wizard (what, source, settings) |
-| `validateDashboard`, `checkDashboardReferences`, `dashboardJsonSchema` | Source and block pickers over `sources.list()` and `blocks` |
-| `sanitizeViewConfig`, `dashboardFingerprint`, builders | The view editor (the real table as the editor, `onViewConfigChange`) |
-| The `sources` catalogue, loaded on demand; unavailable sources kept | "Make the current view the screen's default" |
-| Host `blocks`, full-page `table` widgets with their toolbar, saved views and URL | |
-| Readers' filter values in the URL, relative date periods, `meta.notice` | |
-| "Refresh all", reloads after changes, the `?example=screen` demo | |
+| The version 2 grammar, migration from versions 0 and 1 | Sections: add (a grid of cards, full width), rename, move, remove |
+| `validateDashboard`, `checkDashboardReferences`, `dashboardJsonSchema` | The widget dialog (what, source, settings), to add and to edit |
+| `sanitizeViewConfig`, `dashboardFingerprint`, builders | The source catalogue over `sources.list()`: searched, grouped, unavailable sources shown disabled |
+| The `sources` catalogue, loaded on demand; unavailable sources kept | The view editor: the live table, read through `onViewConfigChange` |
+| Host `blocks` (they can set the screen's filters; a "Facet list" block ships), full-page `table` widgets with their toolbar, saved views and URL | Block props: the host's `settings` form, or JSON checked by `validateProps` |
+| Readers' filter values in the URL, relative date periods, `meta.notice` | "Use a copy of this view", "Make the current view the screen default" |
+| "Refresh all", reloads after changes, the `?example=screen` demo | "Done" validates before saving; the editor loads in a chunk of its own |
 
 ## The document
 
@@ -351,8 +352,8 @@ The builders return new documents and never mutate their input:
 | --- | --- |
 | `createDashboard(id, name)` | An empty document with one grid section, `main` |
 | `addDashboardSection(dashboard, { type, id?, title? }, index?)` | Adds an empty section (a free `section-N` id when the one given is taken or invalid) |
-| `addDashboardWidget(dashboard, widget, { sectionId?, size?, index? })` | Adds a widget: in a grid at the first free spot, in a flow at `index`; a `table` goes to a flow (created when needed) |
-| `moveWidgetToSection(dashboard, widgetId, sectionId, { index?, size? })` | Moves a widget to another section (or place in its flow); a grid card keeps its size |
+| `addDashboardWidget(dashboard, widget, { sectionId?, size?, index?, blocks? })` | Adds a widget: in a grid at the first free spot, in a flow at `index`; a `table` goes to a flow (created when needed), a block where its `placement` allows (with `blocks`) |
+| `moveWidgetToSection(dashboard, widgetId, sectionId, { index?, size?, blocks? })` | Moves a widget to another section (or place in its flow); a grid card keeps its size |
 | `removeDashboardWidget(dashboard, widgetId)` | Removes a widget, its place and its mentions in filter targets |
 | `moveDashboardWidget`, `resizeDashboardWidget` | Keyboard moves and resizes: like a drag in a grid, up and down in a flow |
 | `applyDashboardSectionLayout(dashboard, sectionId, items)` | Positions a section's gridstack reported |
@@ -384,7 +385,7 @@ same way in both editions:
 | `sources` | none | The host's lazy catalogue (`list`, `load`); see [Sources on screen](#sources-on-screen) |
 | `tables` | none | Sources given up front, by id; they win over `sources` (the only way before `sources`) |
 | `blocks` | none | The host's blocks: `Record<key, DashboardBlock>`; see [Host blocks](#host-blocks) |
-| `canEdit` | `false` | Edit mode: layout, widgets, filters and their default values; "Done" saves version 2 |
+| `canEdit` | `false` | Edit mode, [the screen editor](#the-screen-editor): sections, widgets, their views, filters and their default values; "Done" validates and saves version 2 |
 | `showTitle` | `true` | The name as the screen's `h2` |
 | `unavailableWidgets` | `"show"` | `"hide"` leaves unavailable widgets and unknown blocks out of the view |
 | `syncUrl` | `true` | Readers' filter values in the URL; full-page tables keep their own URL sync. `false` keeps both out of the URL |
@@ -400,7 +401,7 @@ Headings follow the page: the screen's name is an `h2`, a section title an
 its saved view's name, the source's name (inline views, full-page tables) or
 the block's `label` (its key when the host has none). In edit mode, grid
 cards move and resize, flow widgets move up and down from their menu, and
-"Add widget" adds to the first grid section.
+[the screen editor](#the-screen-editor) does the rest.
 
 ### Sources on screen
 
@@ -510,6 +511,8 @@ The component receives `DashboardBlockProps`:
 | `revision` | Changes with "Refresh all" and after changes to the screen's data: load again |
 | `filters` | The screen's filter values by filter id: `{ start, end, preset? }` for date ranges (presets resolved), options for selects |
 | `refresh(tableId?)` | Reloads the widgets of a source, or all of them |
+| `setFilter(filterId, value)` | Sets a filter's value as the filter bar does; answers `{ ok: true, value }` or `{ ok: false, code, message }` (see below) |
+| `filterRules(tableId, { exclude? })` | The rules the screen's filters give a source, without the filters in `exclude`, for the block's own `list`/`aggregate` requests (`withDashboardFilters(actions, rules)` adds them as widgets do) |
 | `openView?` | The host's `openView` |
 
 A block that throws shows its error in its widget only (an error boundary in
@@ -517,6 +520,59 @@ React, `onErrorCaptured` in Vue). A block may render nothing: in a flow
 section its widget collapses (it shows while editing), in a grid it stays an
 empty card. A key the host does not have shows "Unavailable block", and the
 widget and its props are kept on save.
+
+### Blocks that set filters
+
+A block can drive the screen: `setFilter(filterId, value)` changes a filter
+exactly as the filter bar does. For a reader the value goes to the URL
+(`<dashboardId>.<filterId>`) and every widget follows; in edit mode it
+changes the document's default. The value is checked first
+(`checkDashboardFilterValue`, pure, in `dashboard-model.ts`):
+
+| Filter | Takes | Refused with |
+| --- | --- | --- |
+| `select` | A text or number, or a list of them, among the filter's `options` when it lists them, else among the options of the column it targets | `invalidValue` (another type, or a value that is not an option) |
+| `dateRange` | `{ start?, end? }` days (`YYYY-MM-DD`, `start` before `end`), or a known `{ preset }` alone | `invalidValue` |
+| any | `undefined`, `null`, `[]` or `{}`: clears the filter, as the filter bar's Clear does | |
+| a filter the screen does not have | nothing | `unknownFilter` |
+
+A refused value changes nothing, and the answer carries a `message` in the
+screen's language. `filterRules(tableId, { exclude })` gives the rules the
+other filters put on a source, so a block that counts records can leave its
+own filter out, as a facet does.
+
+The library ships a block built on it, the **facet list**: a column's values
+with their numbers of records under the screen's other filters, whose clicks
+set a `select` filter ("All" clears it). Register it with `createFacetBlock`:
+
+```tsx
+// React
+import { createFacetBlock } from "@/components/ui/yayaw-table-dashboard/dashboard-facet-block";
+
+const blocks: DashboardBlockRegistry = {
+  "pages.sections": createFacetBlock({
+    filterId: "section", // a select filter of the screen
+    tableId: "pages", // the source it counts
+    column: { id: "section", header: "Section", type: "select", options },
+    actions: pageActions, // the source's list/aggregate
+    label: { en: "Sections", fr: "Rubriques" },
+    layout: "chips", // or "list"
+  }),
+};
+```
+
+```ts
+// Vue
+import { createFacetBlock } from "@/components/ui/yayaw-table-vue/dashboard/dashboard-facet-block";
+```
+
+Counts come from the source's `aggregate` (grouped by the column and
+counted), else from the rows its `list` returns (2,000 at most), with the
+screen's other filters as `requiredFilters`. The widget's props are
+`{ filterId?, layout?: "chips" | "list", showCounts? }` (JSON, checked by the
+block's `validateProps`). The shared rules are in `dashboard-facets.ts`
+(`facetBlockSchema`, `facetBlockColumn`, `loadFacetBlockCounts`,
+`toggleFacetBlockValue`, `facetBlockEntries`), over the table's facet model.
 
 ### Filters: readers' values and relative periods
 
@@ -584,7 +640,166 @@ the host's `renderTable`. The period and author filters reach the numbers,
 the table and the attention block. The sources loaded are logged in
 `window.yayawScreenSourceLoads`, requests in `window.yayawDashboardRequests`.
 `?readonly` removes edit rights, `?hide` hides unavailable widgets, `?lang=fr`
-shows it in French.
+shows it in French. The `shortcuts` block's props are edited as JSON (its
+`validateProps` wants a list of `{ label, href }`); the `attention` block has
+a `settings` form choosing the items it lists. Above the Pages table, the
+"Sections" facet list (`pages.sections`, made with `createFacetBlock`) sets
+the screen's "Section" filter: the table and the numbers follow.
+
+## The screen editor
+
+With `canEdit` and somewhere to save (`actions.dashboards.save`), "Edit"
+turns the screen into its editor, the same in React and Vue. The host decides
+who may edit (Yayaw: `can(screen, manage)`) and stores what "Done" saves; AI
+tools draft documents with the same grammar, people publish them.
+
+The editor is a chunk of its own: `YayawDashboard` imports it when edit mode
+starts (React `lazy(() => import("./dashboard-editor"))`, Vue
+`defineAsyncComponent(() => import("./DashboardEditorLayer.vue"))`), so
+readers never download the widget dialog, the source catalogue, the view
+editor or the filter dialog. Its rules are pure functions in
+`dashboard-editor-model.ts` (shared, synced to Vue, server-safe), listed
+[below](#the-editors-pure-rules).
+
+### Sections
+
+"Add section" (the toolbar) adds a "Grid of cards" or a "Full width" section
+at the end, up to `DASHBOARD_LIMITS.sections` (12). In edit mode each section
+has a bar: its title, the current language's text (an empty title removes
+it), and a menu with Move up, Move down, "Add widget here" and Remove.
+Removing a section that holds widgets asks first ("Remove Later? Its 2
+widgets are removed with it."); an empty one goes at once. Empty sections show
+in edit mode only.
+
+A widget moves to another section from its menu: "Move to section" lists the
+sections that take it (a full-page table goes to flows only, a block where
+its `placement` allows). In a grid it takes the first free spot (a card keeps
+its size, a widget from a flow takes its type's), in a flow the last place.
+There is no drag between sections; within a section, grid cards drag, move and
+resize and flow widgets move up and down, as before.
+
+### The widget dialog
+
+"Add widget" (the toolbar, for the first section that takes the widget),
+"Add widget here" (a section's menu or an empty section) and "Edit…" (a
+widget's menu) open one dialog in three steps:
+
+1. **What**: a Number, a View, a Table page (flows only), a Note, then the
+   host's blocks the section takes, under their `group` ("Blocks" without
+   one), with their `description`.
+2. **Source** (numbers, views and table pages): the host's catalogue, asked
+   once with `sources.list()` when the step first shows (the `tables` given
+   up front come first). It is searched by name, id, description, group and
+   keywords (accents and case aside), listed under the summaries' `group`,
+   and the sources this user cannot use are listed disabled with their
+   reason (the host's `unavailableMessage`, else the reason's text). Picking
+   a source loads it (`sources.load`, once); if it turns out unavailable or
+   fails, the dialog says why and stays on the step.
+3. **Settings**: for sources, "Start from" the default view, one of the
+   source's saved views or a custom view ("Edit view…" opens the view editor
+   on it); a view's overflow; a number's metric, metric column, label, date
+   column, comparison and trend line; the title; a note's text; a block's
+   props.
+
+Editing opens on the settings step and "Apply" keeps the widget's id and
+place (`updateDashboardWidget`; a widget its section can no longer hold moves
+to the first section that can). Adding places the widget with its type's
+size (a block's `defaultSize`).
+
+**Block props.** A block with a `settings` component shows it: it receives
+`{ widgetId, props, locale, onChange }`, `props` over the block's
+`defaultProps` as the block reads them. Otherwise the props are JSON in a
+text area, starting from the block's `defaultProps`. Either way "Add" or
+"Apply" checks them first (`checkDashboardBlockProps`: a JSON object, copied
+safely, then the block's `validateProps`): invalid JSON and errors are
+refused and listed with their paths, warnings are shown.
+
+### The view editor
+
+"Edit view…" (a view, number or full-page table widget's menu, or a custom
+view in the widget dialog) opens a near full-screen dialog (full screen on
+phones) whose editor is the source's live table: its toolbar, search,
+filters, sort, columns, display modes and every mode's settings panel,
+without URL sync, saved views, row selection or record changes. The table
+gets none of the source's writing actions (`create`, `update`, `delete`,
+`duplicate`, the bulk actions, `import`, `reorder`, `destinations`,
+`formLinks`, the file tree's `move` and `createFolder`) nor its file drops.
+It starts from the widget's inline view, else its saved view's settings,
+else the source's default.
+
+The table reports its view on start and after each change
+([`onViewConfigChange`](#table-view-reports)). "Apply" stores the last report,
+sanitized, in `widget.view` (a saved `viewId` is dropped; a view widget
+without a title of its own keeps the saved view's name). The page size is
+left out unless the admin changed it or the view had one, so a widget that
+fits its records keeps sizing them to its card. Closing with changes (the
+close button or Escape) asks first: keep editing, discard, or apply and close.
+
+### Views: copies and the screen default
+
+- **"Use a copy of this view"** (widgets naming a saved view): the saved
+  view's settings become the widget's inline view (`copyDashboardWidgetView`),
+  so later changes to the saved view no longer reach the screen.
+- **"Make the current view the screen default"** (full-page tables): the view
+  the page table shows now (its sort, filters, columns, mode) becomes the
+  widget's inline view, the screen's system default view
+  `screen:<dashboardId>:<widgetId>`.
+
+### Saving
+
+"Done" runs `validateDashboard(document, { blocks })`. With errors nothing is
+saved: the screen stays in edit mode and lists them above the sections
+(`[data-dashboard-issues]`, a `role="alert"`), each named after its widget,
+section or filter (`dashboardIssueTarget`). Otherwise the repaired version 2
+document is saved with `updatedAt`.
+
+### Table view reports
+
+The table reports its view in both editions, for any host (the view editor
+and the page table use it):
+
+- React: `<DataTable onViewConfigChange={(config) => …} />`.
+- Vue: `<YayawDataTable @view-config-change="(config) => …" />`, and the
+  component's exposed `getViewConfig()`.
+- Both: `getViewConfig()` in `ToolbarActionContext`, for toolbar actions.
+
+The config is `canonicalViewConfig(view)` (`utils/view-config.ts`, Vue
+`view-config.ts`): what `sanitizeViewConfig` accepts, without the table's own
+columns (`select`, `actions`), empty maps left out and keys in one order, so
+equal views give equal JSON and both editions report the same settings. It
+is reported when the table starts and after each change of sort, filters,
+search, columns, display mode, mode settings or page size, never twice for an
+equal view.
+
+### The editor's pure rules
+
+`dashboard-editor-model.ts` (React `yayaw-table-dashboard/`, Vue
+`dashboard/`), with `tests/dashboard-editor-suite.ts` run in both editions:
+
+| Function | Does |
+| --- | --- |
+| `canAddDashboardSection`, `canMoveDashboardSection`, `moveDashboardSection` | Sections: the limit, moves one place up or down |
+| `removeDashboardSection` | Removes a section, its widgets and their mentions in filter targets |
+| `renameDashboardSection`, `dashboardSectionTitleInput`, `dashboardSectionName` | Titles in the current language; "Section 2" for an untitled one |
+| `dashboardSectionWidgetIds` | A section's widgets in order |
+| `dashboardWidgetMoveTargets`, `moveDashboardWidgetToSection` | The sections that take a widget; moving it there |
+| `updateDashboardWidget` | A widget changed in the dialog, its id and place kept |
+| `dashboardWidgetChoices`, `dashboardKindReadsSource` | What the dialog offers a section; which kinds need a source |
+| `dashboardSourceChoices`, `dashboardSourceMatches` | The catalogue searched and grouped, unavailable sources with their reason |
+| `dashboardViewEditStart`, `recordDashboardViewReport`, `dashboardViewEdited`, `dashboardViewToApply` | A view editor session: where it starts, the table's reports, whether it changed, what "Apply" stores |
+| `dashboardViewEditorConfig`, `dashboardViewEditorActions` | The source as the view editor's table gets it: no URL, saved views, selection or writes |
+| `setDashboardWidgetView`, `copyDashboardWidgetView` | A widget's inline view; a copy of its saved view |
+| `dashboardBlockPropsText`, `parseDashboardBlockProps` | Block props as JSON text, parsed and checked |
+| `dashboardIssueTarget`, `dashboardSaveErrors` | What a validation issue is about; the errors that stop a save |
+
+`dashboard-schema.ts` adds `checkDashboardBlockProps(block, props, options)`
+(one block's props checked as `validateDashboard` does) and exports
+`dashboardAcceptedSections(widget, blocks?)`; `addDashboardWidget` and
+`moveWidgetToSection` take `blocks` so a block lands where its `placement`
+allows. `dashboard-model.ts` turns dialog drafts into widgets and back
+(`dashboardWidgetFromDraft(draft, edit?)`, `dashboardWidgetDraft(widget,
+locale)`, `dashboardTextInput`, `editDashboardText`) and has the editor's
+EN/FR labels.
 
 ## TypeScript migration
 
@@ -611,3 +826,11 @@ shows it in French.
   its `dashboard.notAvailableYet` label are gone).
 - Filter values picked in view mode no longer change the document (nor call
   `onChange`): they stay in the URL. Edit mode changes the defaults.
+- The screen editor replaces React's `AddWidgetDialog` (`dashboard-dialogs.tsx`)
+  and Vue's `DashboardAddWidget.vue` with the widget dialog
+  (`DashboardWidgetDialog`, in the editor's chunk).
+- `DashboardWidgetFrame` (React) and `DashboardWidget.vue` take the editor's
+  `menuActions` and `moveTargets`, and call `onMoveToSection` (Vue
+  `moveToSection`).
+- `ToolbarActionContext` has `getViewConfig()`: hosts that build the context
+  themselves (tests) add it.

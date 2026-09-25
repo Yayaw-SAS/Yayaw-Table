@@ -8,6 +8,7 @@ import {
   assetVisibleColumns,
   createAssetActions,
 } from "../../../examples/assets";
+import type { TagRequest } from "../../../examples/tags";
 
 /**
  * Folders and media files browsed as a File tree next to a Gallery. Without
@@ -15,11 +16,16 @@ import {
  */
 const props = withDefaults(defineProps<{ scopes?: boolean }>(), { scopes: true });
 // Requests the demo host received, read by the end-to-end tests.
-const host = globalThis as { __assetRequests?: AssetRequest[] };
+const host = globalThis as {
+  __assetRequests?: AssetRequest[];
+  __assetTagRequests?: TagRequest[];
+};
 host.__assetRequests ??= [];
+host.__assetTagRequests ??= [];
 const actions = createAssetActions({
   scopes: props.scopes,
   log: (request) => host.__assetRequests?.push(request),
+  logTags: (request) => host.__assetTagRequests?.push(request),
 }) as unknown as TableActions;
 const config = defineTableConfig({
   id: "assets",

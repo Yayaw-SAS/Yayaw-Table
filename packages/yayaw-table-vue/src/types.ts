@@ -16,6 +16,7 @@ import type {
   TableGalleryPreviewSize,
 } from "./media-contract";
 import type { RecordPresentationConfig } from "./record-presentation";
+import type { ViewConfig } from "./view-config";
 
 export type TableRecord = Record<string, unknown>;
 export type PrimitiveValue = boolean | number | string;
@@ -134,6 +135,12 @@ export interface ColumnDefinition<TData extends TableRecord = TableRecord> {
   inlineEdit?: boolean | InlineEditColumnConfig;
   tagColorMap?: Record<string, string>;
   coloredTags?: boolean;
+  /**
+   * A tags column: with `actions.tags`, its options come from the host's
+   * catalog, pickers create tags on the fly and "Manage tags" edits them.
+   * `multiSelect` columns hold a list of tag ids, `select` columns one.
+   */
+  tags?: import("./tag-catalog").TagColumnInput;
   options?: SelectOption[];
   numberFormat?: ColumnNumberFormat;
   size?: number;
@@ -217,6 +224,11 @@ export interface TableGalleryRenderContext {
 export interface TableBehaviorConfig<TData extends TableRecord = TableRecord>
   extends GenericModeTableConfigs {
   coloredTags?: boolean;
+  /**
+   * Offer "Manage tags" (rename, recolor, merge, delete) on tags columns when
+   * `actions.tags` can; default true. Creating tags in pickers stays available.
+   */
+  canManageTags?: boolean;
   allowCreate: boolean;
   allowEdit: boolean;
   allowDuplicate: boolean;
@@ -242,6 +254,13 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord>
   filterBarColumns?: string[];
   /** Show the filter bar by default; a component prop can override this. */
   showFilterBar?: boolean;
+  /**
+   * The facet panel beside the records: for these columns (select, lists,
+   * yes/no, the file tree's parent column), each value with its number of
+   * records; a click filters (`isAnyOf`, `contains` for lists). A toolbar
+   * button shows and hides it; phones open it as a sheet.
+   */
+  facets?: import("./facets-model").TableFacetsConfig | false;
   showClearFilters?: boolean;
   /** Backwards-compatible alias for `showClearFilters`. */
   showResetFilters?: boolean;
@@ -712,6 +731,32 @@ export interface TableViewActionResult<T = TableView> {
   success?: boolean;
 }
 
+/**
+ * What `list` answers, besides a bare array of views: the views and, when the
+ * host keeps the user's order (`setOrder`), that order.
+ */
+export interface TableViewListResult
+  extends TableViewActionResult<TableView[]> {
+  /**
+   * The current user's order of their views: the `viewIds` `setOrder` last
+   * received. The table applies it (system and default views first, views it
+   * does not name last). Without it, a host with `setOrder` lists the views in
+   * that order.
+   */
+  order?: string[];
+}
+
+/** Input of `setOrder`: the user's new order. */
+export interface SetTableViewOrderInput {
+  tableId: string;
+  tableType?: string;
+  /**
+   * Every view the user orders, first to last: the listed views except
+   * system views (`isSystem`) and the default view (`isDefault`).
+   */
+  viewIds: string[];
+}
+
 export interface TableViewActions {
   /** Read the current user's favorite independently of shared view records. */
   getFavorite?: (context: {
@@ -726,7 +771,15 @@ export interface TableViewActions {
   list?: (context: {
     tableId: string;
     tableType?: string;
-  }) => MaybePromise<TableViewActionResult<TableView[]> | TableView[]>;
+  }) => MaybePromise<TableViewListResult | TableView[]>;
+  /**
+   * Persist the current user's order of their views (per user, organization,
+   * table type and table id); `list` answers with it next time. Without it,
+   * the order stays in this browser's localStorage.
+   */
+  setOrder?: (
+    input: SetTableViewOrderInput
+  ) => MaybePromise<TableViewActionResult<{ viewIds: string[] }>>;
   create?: (input: CreateTableViewInput) => MaybePromise<TableViewActionResult>;
   update?: (
     id: string,
@@ -901,6 +954,12 @@ export interface TableActions<TData extends TableRecord = TableRecord> {
    * call your provider (with its key) on your server.
    */
   geocode?: import("./location-model").GeocodeAction;
+  /**
+   * The host's tag catalogs, for columns with `tags`: their options, created
+   * on the fly in pickers, renamed, recolored, merged and deleted in "Manage
+   * tags". See `tag-catalog.ts`.
+   */
+  tags?: import("./tag-catalog").TableTagActions;
   views?: TableViewActions;
   [key: string]: unknown;
 }
@@ -928,6 +987,11 @@ export interface BulkAction<TData extends TableRecord = TableRecord> {
 export interface ToolbarActionContext<TData extends TableRecord = TableRecord>
   extends BulkActionContext<TData> {
   actionsAsIcons: boolean;
+  /**
+   * The view the table shows now, as a saved view's `config` (the shape
+   * `sanitizeViewConfig` accepts; what `view-config-change` reports).
+   */
+  getViewConfig: () => ViewConfig;
   data: TData[];
   hasListAction: boolean;
   isCreateEnabled: boolean;

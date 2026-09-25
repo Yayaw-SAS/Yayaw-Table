@@ -32,7 +32,7 @@ Every parity-affecting PR must update this document and keep the Vue example at 
 
 ## Actions and views
 
-Both managers support one personal favorite per table, separate from shared view records. The star is available for saved system/shared views even with saving disabled. Arrival priority is explicit URL state, `initialActiveViewId`, an accessible favorite, then `isDefault`. A link with only `?view=<id>` applies that view's settings, and a view named by the link or by `initialActiveViewId` is applied once the saved views load, without waiting for `getFavorite`. Both editions read the incoming URL once on mount, so the table's own first URL writes (React's `<tableId>-order`) never cancel it (`tests/table-view-favorite.test.tsx`, `saved-views.test.ts`, `e2e/views.spec.ts`). Optional `getFavorite`/`setFavorite` actions synchronize preferences; otherwise persistence is browser-local. Organization scoping and permissions remain the host's responsibility; see [saved views](SAVED-VIEWS.md).
+Both managers support one personal favorite per table, separate from shared view records. The star is available for saved system/shared views even with saving disabled. Arrival priority is explicit URL state, `initialActiveViewId`, an accessible favorite, then `isDefault`. A link with only `?view=<id>` applies that view's settings, and a view named by the link or by `initialActiveViewId` is applied once the saved views load, without waiting for `getFavorite`. Both editions read the incoming URL once on mount, so the table's own first URL writes (React's `<tableId>-order`) never cancel it (`tests/table-view-favorite.test.tsx`, `saved-views.test.ts`, `e2e/views.spec.ts`). Optional `getFavorite`/`setFavorite` actions synchronize preferences; otherwise persistence is browser-local. The same holds for each user's order of views: optional `setOrder`, with `list`'s `order`, else browser-local (see [View order](#view-order)). Organization scoping and permissions remain the host's responsibility; see [saved views](SAVED-VIEWS.md).
 
 List actions receive both naming conventions:
 
@@ -59,6 +59,30 @@ React ignores repeated writes of equivalent table state in both URL and memory m
 The Create button is the final toolbar action and keeps the primary style, in text and icon modes. Built-in secondary actions remain outlined. Existing custom placement values remain accepted: `before-create` and `between-create-export` put custom actions before Export; `after-export` puts them after Export. Create follows all of these groups.
 
 Vue Kanban and Gallery controls use Reka UI Select, DropdownMenu, and Checkbox primitives with the same Shadcn-style tokens as the existing menus. This includes card page-size selection and Lucide icons for lane movement. Keyboard navigation, multi-choice property menus, focus restoration, disabled card selection, translated labels, and saved card options have regression coverage. The public configuration and saved-view formats are unchanged.
+
+## View reports
+
+React `DataTable` takes `onViewConfigChange(config)`; Vue `YayawDataTable`
+emits `view-config-change` and exposes `getViewConfig()`. Both report the
+table's view when it starts and after each change (sort, filters, search,
+columns, grouping, density, display mode, a mode's settings, page size),
+once per distinct view; `ToolbarActionContext.getViewConfig()` gives the
+same to toolbar actions in both editions. The config is
+`canonicalViewConfig()` from the shared `view-config.ts`: sanitized like
+`sanitizeViewConfig`, without the `select` and `actions` columns the table
+adds itself, empty maps left out, keys in one order, so equal views give
+equal JSON. React reads it from the URL-state snapshot resolved with the
+table's defaults, as the view manager does (`useCurrentViewConfig`;
+`tableViewDefaults` and `resolveTableViewConfig` in `table-view-state.ts`,
+now shared by the toolbar and the view manager); Vue from its state snapshot.
+The screen editor's view editor and full-page tables read it.
+
+Verification: `tests/fixtures/view-config-change.json` drives
+`tests/table-instances.test.tsx` and
+`packages/yayaw-table-vue/src/components/table-instances.test.ts`: the same
+table reports the same configs in both editions when it starts, after a sort
+and after a search. `tests/view-config-suite.ts` covers
+`canonicalViewConfig`.
 
 ## Shift-click row selection
 
@@ -403,6 +427,81 @@ Both view managers expose the favorite star for the built-in default view as wel
 
 React uses `sonner` and Vue uses `vue-sonner` for transient operation feedback: saved views, CRUD, exports, toolbar and bulk actions, and asynchronous action failures. Hosts mount one Sonner/Shadcn `Toaster`; the table never mounts a duplicate outlet or inserts a notification block that shifts content. Vue keeps internal status records for partial-operation retry handling. Loading, inline-save progress, field validation and actionable form/list errors remain contextual. The Vue distribution externalizes `vue-sonner` so its notifications reach the host's singleton; registry installation adds that dependency. Matching view/row/action regression coverage verifies the shared notification outcome.
 
+
+## Facet panel
+
+`table.facets` puts a panel of facets beside the records, the same in both
+editions: each configured column lists its values with their number of
+records, and a click filters the table. `TableFacetsConfig` is `{ columns,
+position?: "left" | "right", defaultOpen?, limit?, showCounts?, showZero?,
+width? }`; a column is an id or `{ id, label?, limit?, sort?: "options" |
+"count" | "label", showEmpty? }`. Facets take select and tag columns (status
+columns included), multi-select and tags columns, booleans (Yes, No) and a
+file tree's parent column (folders, "Root" for the top level). Columns with
+`enableFiltering: false` or of other types are left out.
+
+The shared `facets-model.ts` (synced to Vue, server-safe) owns every rule:
+
+- `resolveFacets` (the facets a configuration offers: `facetKind`, defaults,
+  the folder column from `folderTreeOf`), `facetsShownIn` (every display mode
+  but the Form view);
+- the selection is filter state: `toggleFacetValue` writes the rule the filter
+  menus write (`isAnyOf` for selects, booleans and folders, `contains` for
+  lists, `isEmpty` for "No value" or "Root", which replaces the values and is
+  replaced by a value), keeps the rule's id, and joins with AND;
+  `facetSelection`, `clearFacets`, `selectedFacetCount`, and `canToggleFacet`
+  (no clicks while the view matches any rule with OR: the panel says so);
+- counts: `facetCountParams` (the view's query without the facet's own rule,
+  so a facet keeps offering its other values), `facetAggregateParams`
+  (`groupBy: [{ columnId }]`, `metrics: [{ fn: "count" }]`, as charts ask),
+  `facetCountsFromAggregate`, and `loadFacetCounts`: `actions.aggregate`
+  per facet, else the rows `list` returns for that query (2,000 at most,
+  `truncated` beyond, facets sharing a query sharing one load), else the
+  table's local rows (Vue's `data`, filtered with `applyTableQuery`);
+  `aggregateFacetRows` answers facet requests in memory;
+- entries: `facetEntries` (the options' order, else by count; folders in the
+  tree's order after "Root", with their location; "No value" last; values no
+  record has hidden unless `showZero` or selected), `visibleFacetEntries`
+  (the limit, "Show N more", the search offered past the limit),
+  `facetKeyTarget` (arrows, Home, End), and the EN/FR labels (`facets.<key>`
+  overrides).
+
+Each edition renders the same DOM: React `components/facets/facet-panel.tsx`
+(`TableFacetsLayout`, `FacetPanelContent`, `FacetsToggle`) with
+`hooks/use-table-facets.ts` (counts in TanStack Query under
+`["tableData", tableId, "facets", …]`, so mutations refresh them) and a jotai
+atom for the open state; Vue `components/facets/FacetPanel.vue` and
+`FacetsToggle.vue` with `composables/use-facets.ts` (counts again after
+`refresh()`). The panel is an `aside[data-facet-panel]` titled "Filters"
+beside the records on wide screens, open unless `defaultOpen: false`; the
+toolbar's button (`[data-facets-toggle]`, `aria-pressed`, a badge with the
+number of facets in use) hides and shows it. Phones and compact toolbars
+open it as a sheet (`[data-facet-sheet]`: vaul in React, the toolbar's sheet
+in Vue). Each facet is a region with its heading, a "Clear" button, pressed
+value buttons (`[data-facet-value]`, `aria-pressed`, counts in
+`[data-facet-count]`), "Show N more" and a search; "Clear all" empties every
+facet. A selection is a rule in the view's advanced filters: in the URL
+(`<tableId>-advancedFilters`), saved with views, and listed in the filter
+menus like any rule (a chip in React, a rule form in Vue, as before). Tables with facets show the advanced filter menu even
+without `enableAdvancedFilters`. Counts keep the previous numbers while new
+ones load; a failure shows Retry.
+
+Differences imposed by the frameworks: none observable.
+
+Verification: `tests/facets-suite.ts` runs in both editions
+(`tests/facets.test.ts`, `packages/yayaw-table-vue/src/facets.test.ts`):
+configuration, kinds, the rules written for each kind, toggling, "No value",
+clearing, OR joins, count requests without the facet's own rule, aggregate
+answers, the `list` fallback with its cap, shared loads, local rows, entries
+and their order, folders with "Root" and Unfiled, limits and search,
+keyboard targets and labels. `tests/facet-panel.test.tsx` and
+`packages/yayaw-table-vue/src/components/facets.test.ts` mount a table:
+counts from `aggregate`, a click writing `isAnyOf` (`contains` for a list),
+the other facets' counts under the rule and the facet's own without it,
+"Clear all" and the toolbar button. `e2e/facets.spec.ts` on both demos
+(`?example=products`): counts matching the data, a click filtering, the rule
+in the URL, arrows and Space, a list facet, "Clear", "No value", a reload, the
+rule in the filter menus, "Clear all", the toolbar button and the phone sheet.
 
 ## Responsive view menus
 
@@ -1260,6 +1359,52 @@ F2 rename with a clash, keyboard navigation and type-ahead, search with
 ancestors, a deep link, Unfiled in the fallback, phone drill-down and the view
 settings. `E2E_REACT_PORT` / `E2E_VUE_PORT` override the demo ports so
 checkouts can run the suite side by side.
+
+### New folder and the folder filter in every view
+
+When a table's rows form a file tree (a parent column, see above), its other
+views offer what the File tree does, the same in both editions:
+
+- "New folder" in the toolbar of the table, list, gallery, Kanban and other
+  views (not the File tree, which has its own, nor the Form view or Gantt),
+  when folders can be created (`actions.tree.createFolder`, else `create`
+  with `allowCreate`). Its dialog asks for the name and the parent folder in a
+  searchable picker (the root first, then every folder with its location);
+  it starts in the folder the view is filtered on, else the root, and names
+  follow the File tree's rules (a blank name is "New folder";
+  `canCreateFolder(parent)` is asked). The table reloads after it.
+- The parent column filters with a folder picker in the filter menus: the
+  root or folders (with their location, searched), written `isAnyOf` with the
+  folder ids, or `isEmpty` for the root; React's chips read "In" and the
+  folder's name, Vue's rule shows the picker under "In". Facets on the
+  parent column list the same folders.
+- `table.filetree.newFolderAction: false` and `folderFilter: false` turn them
+  off.
+
+The shared `folder-directory.ts` (synced to Vue, server-safe) owns the rules:
+`folderTreeOf`, `folderTableOptions`, `loadFolderDirectory` (every folder
+through `list` with the `subtree` scope from the root and a kind rule, else
+the capped all-rows loader), `buildFolderDirectory` (the tree's order, paths,
+Unfiled), `searchFolders`, `folderLocationText`, `folderFacetLabel`,
+`toggleFolderChoice`, `folderChoiceText`, `newFolderShownIn`,
+`newFolderName`, `canCreateFolderUnder`, `createFolderRecord` and
+`defaultNewFolderParent`; the File tree's controller now uses the same
+creation helpers. React: `components/folders/folder-picker.tsx`,
+`new-folder.tsx` (shadcn `Dialog`), `components/filters/folder-filter.tsx`,
+`hooks/use-folder-directory.ts` and `use-folder-filter-config.ts`. Vue:
+`components/folders/FolderPicker.vue`, `NewFolderButton.vue` (reka-ui
+`Dialog`), the picker in `FilterRule.vue` and
+`composables/use-folder-directory.ts`. New EN/FR labels (`filetree.<key>`):
+"Root", "Parent folder", "In", "No folders", "The folder could not be
+created."
+
+Verification: the facets suite covers the directory, the picker's choices,
+names and creation in both editions; the component tests create a folder
+under a chosen parent from the gallery. `e2e/facets.spec.ts` on both demos
+(`?example=assets&assets-display=gallery`): "New folder" creates a folder
+under the chosen parent (its count in the folder facet), and the folder
+filter shows only that folder's files, or the root's items.
+
 ## Location columns
 
 `location` is a column type in both editions (`TABLE_DATA_TYPES.location`:
@@ -1385,14 +1530,64 @@ touch drawers keep the wrapping buttons. The create button reads the
 
 Both editions show saved views as tabs on wide toolbars once a table has at
 least one (`table.viewTabs`, default on, `{ maxVisible }` default 4). The
-shared `view-tabs.ts` decides which views are tabs and which go under "More",
-keeping the active view visible. The default view is always the first tab;
+shared `view-tabs.ts` decides which views are tabs and which go under "…",
+keeping the active view visible. "…" is an icon button (Lucide `Ellipsis`)
+named "More views" ("Plus de vues"; `views.more` in React, `moreViews` in
+Vue) with the same tooltip: no text and no chevron, since the chevron next to
+it opens the view menu. Its menu shows the views' full names (at least 11rem
+wide in React, 180px in Vue). The default view is always the first tab;
 each tab shows its layout icon and the modified dot. "+" opens the save
 dialog, which offers the layout of the new view (the current one by default);
 creating a view in another layout switches to it. With tabs, the view menu
-trigger is an icon button labelled "Views and settings". Compact toolbars and
-touch layouts keep the named trigger. `tests/view-tabs-suite.ts` runs in both
-editions and `e2e/view-tabs.spec.ts` covers both demos.
+trigger is an icon button labelled "View actions". Compact toolbars and
+touch layouts keep the named trigger, whose menu lists every view: they have
+no "…". `tests/view-tabs-suite.ts` runs in both editions and
+`e2e/view-tabs.spec.ts` covers both demos, "…" and its label included.
+
+## View order
+
+Each user orders their saved views, with the same rules in both editions: the
+shared `view-order.ts`, synced into Vue by `contracts:sync` and server-safe.
+
+- The view menu moves the current saved view one step: "Move left" and "Move
+  right" (Lucide arrows) next to tabs, "Move up" and "Move down" where the
+  menu lists the views (compact toolbars and phones, `viewTabs: false`). The
+  actions follow the favorite. They are `aria-disabled` at the ends and during
+  a write rather than `disabled`, so the focus stays on the pressed action
+  and Enter moves again. A polite live region (`<output aria-live="polite">`)
+  announces "View “{name}” moved to position {position} of {count}", counting
+  the built-in default view first. Moves need no save permission, like the
+  favorite.
+- System views (`isSystem`) and the default view (`isDefault`, a dashboard
+  screen's default) stay first in their list order and have no move actions.
+  The order names the others; views it does not name (new ones) come last in
+  their list order, and unknown ids are ignored. Fewer than two such views
+  offer no moves.
+- The order applies to the tabs, the "…" list and the menu's list of views
+  (and its name filter). The arrival view does not depend on it.
+- Contract: optional `actions.views.setOrder({ tableId, tableType, viewIds })`
+  → `{ success, data?: { viewIds }, error? }` with every ordered view, first
+  to last. With it, `list` answers `order` (the ids `setOrder` last received),
+  or lists the views in that order. A refused write keeps the previous order
+  and shows its error in the view manager's alert. Vue, as for other view
+  actions, also accepts an answer without `success`.
+- Without `setOrder`, the order stays in localStorage under
+  `yayaw-table-view-order:<JSON [tableType, tableId]>` (the favorite's
+  scope). `createLocalTableViewActions()` has no `setOrder`: the managers keep
+  this fallback (`readLocalTableViewOrder`, `storeLocalTableViewOrder`). Both
+  share it between the managers of one table on a page (React through its
+  query cache, Vue through a shared map). React reads it after mounting, so
+  server-rendered tabs hydrate in the list order; Vue reads it on mount.
+- On phones the Vue view menu's rows are now 44px touch targets, as in React.
+
+Coverage: `tests/view-order-suite.ts` (placement, unknown views, moves at the
+ends, list answers, the local fallback) runs in both editions;
+`tests/table-view-order.test.tsx` and Vue
+`components/toolbar/view-order.test.ts` cover moves, focus, announcements,
+the shared local order, `setOrder`, refusals, the "…" button and the vertical
+labels;
+`e2e/view-tabs.spec.ts` moves a view right by mouse and keyboard, reloads the
+demo (localStorage) and moves one up on a phone in both demos.
 
 ## Toolbar hierarchy
 
@@ -2365,11 +2560,13 @@ without touching the URL.
 ## Dashboard
 
 Dashboards ship as optional registry items: `yayaw-table-dashboard` (React:
-`YayawDashboard`, shadcn `button`, `calendar`, `dialog`, `dropdown-menu`,
-`input`, `native-select`, `popover`, `textarea`) and `yayaw-table-vue-dashboard` (Vue:
-`YayawDashboard.vue`, reka-ui like the table). Both list `gridstack` and load
-it, with its stylesheet, in a chunk fetched by the first desktop grid
-(`import("./dashboard-grid-engine")`), never by the table or on phones.
+`YayawDashboard`, shadcn `alert-dialog`, `button`, `calendar`, `command`,
+`dialog`, `dropdown-menu`, `input`, `native-select`, `popover`, `textarea`)
+and `yayaw-table-vue-dashboard` (Vue: `YayawDashboard.vue`, reka-ui like the
+table). Both list `gridstack` and load it, with its stylesheet, in a chunk
+fetched by the first desktop grid (`import("./dashboard-grid-engine")`), never
+by the table or on phones. The screen editor is another chunk, fetched when
+edit mode starts (see [the screen editor](#dashboard-screens-the-screen-editor)).
 
 Grid engine: gridstack.js in both editions rather than react-grid-layout and
 grid-layout-plus, so dragging, resizing, collisions and top gravity are the
@@ -2471,7 +2668,7 @@ own the contract and every rule:
   name, then its value ("Due date" "Any date", "Category" "All"); its legend
   and "Applies to …" stay for screen readers (`aria-describedby`). Edit mode
   shows them as before, with the remove buttons and "Add filter".
-- Widget picker: views choose "Records that do not fit" (fit or scroll);
+- The widget dialog's settings: views choose "Records that do not fit" (fit or scroll);
   numbers choose a date column, "Compare with the previous period" with its
   period (7, 30, 90 or 365 days) and "Better when it" goes up or down, and
   "Trend line" (6 months). The draft is shared (`emptyWidgetDraft`,
@@ -2500,7 +2697,7 @@ own the contract and every rule:
   record widgets keep their rows' height, which sets how many records fit.
 
 Behaviour, identical in both editions: the header shows the name (an input in
-edit mode), "Refresh all", "Add widget" (edit), "Edit"/"Done" when `canEdit`;
+edit mode), "Refresh all", "Add widget" and "Add section" (edit), "Edit"/"Done" when `canEdit`;
 "Done" saves through `actions.dashboards.save` and toasts. Each widget card
 has its title, "Open full view" (`openView(tableId, viewId | null)`, table
 and number widgets) and, in edit mode, a drag handle and the menu (Move
@@ -2639,7 +2836,9 @@ Rendering, identical in both editions (`YayawDashboard`,
   [Dashboard screens: sources, blocks and full-page tables](#dashboard-screens-sources-blocks-and-full-page-tables)).
 - Edit mode: grid cards drag, move and resize as before; flow widgets have no
   drag handle and their menu moves them up and down (no resizing). "Add
-  widget" adds to the first grid section. "Done" saves version 2.
+  widget" adds to the first section that takes the widget (see
+  [the screen editor](#dashboard-screens-the-screen-editor)). "Done" saves
+  version 2.
 
 Verification: `tests/dashboard-schema-suite.ts` (migration round trips,
 refusing version 3, unknown widget types, unknown keys at every level,
@@ -2788,3 +2987,213 @@ untouched), blocks, an unknown block, an empty block collapsed in a flow, a
 bulk deletion reloading the numbers, "Refresh all" asking `list` and
 `aggregate` again, a hostile document repaired and an unknown block kept on
 save, phones and French, and `meta.notice`.
+
+### Dashboard screens: the screen editor
+
+The editor is the same in both editions and loads in a chunk of its own when
+edit mode starts: React `dashboard-editor.tsx` (`React.lazy`) with
+`dashboard-widget-dialog.tsx`, `dashboard-source-picker.tsx` (shadcn
+`command`, cmdk), `dashboard-view-editor.tsx` and the filter dialog from
+`dashboard-dialogs.tsx`; Vue `DashboardEditorLayer.vue`
+(`defineAsyncComponent`) with `DashboardWidgetDialog.vue`,
+`DashboardSourcePicker.vue` (reka-ui Listbox), `DashboardViewEditor.vue`,
+`DashboardKpiFields.vue`, `DashboardBlockProps.vue` and
+`DashboardAddFilter.vue`. The section bars (`dashboard-section-bar.tsx`,
+`DashboardSectionBar.vue`, `DashboardEmptySection.vue`), the "Add section"
+menu and the widget menu's new entries stay with the screen. The shared
+`dashboard-editor-model.ts` (synced to Vue, server-safe) owns the rules;
+`dashboard-model.ts` the dialog drafts (`dashboardWidgetFromDraft`,
+`dashboardWidgetDraft`, `dashboardTextInput`, `editDashboardText`) and the
+editor's EN/FR labels; `dashboard-schema.ts` adds `checkDashboardBlockProps`,
+exports `dashboardAcceptedSections` and takes `blocks` in widget placements.
+React's `AddWidgetDialog` and Vue's `DashboardAddWidget.vue` are gone.
+
+Behaviour, identical in both editions (see
+[Dashboard screens](DASHBOARD-SCREENS.md#the-screen-editor)):
+
+- Sections: "Add section" (Grid of cards, Full width, up to 12); in edit mode
+  a bar with the title input ("Section title", the current language's text)
+  and a menu (Move up, Move down, "Add widget here", Remove, confirmed by an
+  alert dialog `[data-dashboard-dialog="remove-section"]` when the section
+  holds widgets); empty sections show in edit mode only
+  (`[data-section-empty]`, "Add widget here").
+- Widget menus in edit mode: "Edit…", "Edit view…" (view, number and
+  full-page table widgets whose source is ready), "Use a copy of this view"
+  (a saved view the screen knows), "Make the current view the screen
+  default" (full-page tables), "Move to section" (a submenu of the sections
+  that take the widget), then the moves, resizes and Remove as before. Long
+  menus scroll inside the window.
+- The widget dialog (`[data-widget-step]`: `what`, `source`, `settings`,
+  "Step 1 of 3"): kinds (`[data-widget-kind]`: Number, View, Table page in
+  flows, Note) then the blocks the section takes under their group; the
+  catalogue (`loader.list()`, searched and grouped, unavailable sources
+  `aria-disabled` with their reason, the first available one highlighted,
+  Enter picks it; picking loads it once and a failure shows its reason); the
+  settings (Start from the default, a saved or a custom view with "Edit
+  view…", a view's overflow, a number's fields, the title, a note's text, a
+  block's `settings` component with props over its `defaultProps` or JSON
+  checked by `checkDashboardBlockProps`). Editing opens on the settings step
+  and keeps the widget's id and place (`updateDashboardWidget`).
+- The view editor (`[data-view-editor]`): a near full-screen dialog (full
+  screen on phones) with the source's live table (`dashboardViewEditorConfig`,
+  `dashboardViewEditorActions`: no URL sync, saved views, selection or
+  writes; the host's `translations`, `getRowId` and `displayModeRenderers`
+  from `tableProps`), "Unsaved changes" (`[data-view-editor-status]`),
+  "Apply" (`[data-view-editor-apply]`, `dashboardViewToApply`) and a close
+  button; closing with changes, or Escape, asks
+  (`[data-view-editor-confirm]`: Keep editing, Discard, Apply and close);
+  clicks outside are ignored.
+- Full-page tables record their reports (`onViewConfigChange` /
+  `view-config-change`, after a host's own handler in `tableProps`) for "Make
+  the current view the screen default".
+- "Done" runs `validateDashboard` with the host's blocks; errors keep edit
+  mode and show in `[data-dashboard-issues]` (`role="alert"`, each item's
+  `data-issue-code`, named by `dashboardIssueTarget`), else the repaired
+  document is saved.
+
+Demo: the `attention` block of `?example=screen` has an `items` prop
+(`validateProps`, `propsSchema`) and a `settings` form (checkboxes); the
+`shortcuts` block's props are JSON.
+
+Verification: `tests/dashboard-editor-suite.ts` runs in both editions
+(`tests/dashboard-editor.test.ts`,
+`packages/yayaw-table-vue/src/dashboard-editor.test.ts`): section limits,
+moves, removal with its widgets and filter targets, titles per language,
+move targets and moves between sections, the dialog's kinds per section and
+block placement, the catalogue's search, groups and reasons, view editor
+sessions (start, changes, what "Apply" stores, the page size rule, hostile
+reports), the read-only table config and actions, inline copies of saved
+views, block props as JSON, drafts to widgets and back,
+`updateDashboardWidget` and issue targets. `tests/dashboard-editor-chunk.test.ts`
+walks both editions' static imports: readers never load the editor's modules
+and the editor's chunk holds them. `tests/server-safe-modules.test.ts` walks
+both `dashboard-editor-model.ts`; `tests/dashboard-sync.test.ts` checks the
+Vue copy. `e2e/screen.spec.ts` on both demos: the editor's chunk requested
+only once editing; a number picked from the catalogue whose view is edited in
+the live table (a search), saved and shown after a reload; the view editor
+asking before closing with changes; a saved view becoming a copy; the page
+table's current view (sorted by title) becoming the screen default; sections
+added, renamed, moved and removed, and widgets moved between them; a block's
+JSON props refused (invalid JSON, `validateProps`), accepted and edited; a
+block's `settings` form; "Done" refusing a screen with errors and naming the
+widget, then saving once fixed; unavailable sources listed disabled with
+their reasons. `e2e/dashboard.spec.ts` adds widgets through the new dialog.
+
+### Dashboard screens: blocks set screen filters
+
+Blocks can drive a screen's filters, the same in both editions. Block props
+gain `setFilter(filterId, value)`, which changes a filter's value exactly as
+the filter bar does (the reader's value in the URL; in edit mode the
+document's default) and answers `DashboardSetFilterResult`: `{ ok: true,
+value }`, or `{ ok: false, code, message }` for a filter the screen does not
+have (`unknownFilter`) or a value it cannot take (`invalidValue`: another
+type, an option the filter does not have, days out of order), in which case
+nothing changes. `undefined`, `null`, an empty list or an empty range clears
+it. They also gain `filterRules(tableId, { exclude? })`,
+the rules the screen's filters give a source (the ones in `exclude` left
+out), to join to a block's own requests. The rules are pure, in
+`dashboard-model.ts`: `checkDashboardFilterValue` (select values among the
+filter's options when it lists them, else the source column's; date ranges
+as days, `start` before `end`, or a known `preset`) and
+`dashboardSourceFilterRules`.
+
+The library ships a "Facet list" block over the same model as the facet
+panel: `createFacetBlock({ filterId, tableId, column, actions?, label?,
+description?, group?, placement?, defaultSize?, layout? })` (React
+`dashboard-facet-block.tsx`, Vue `dashboard/dashboard-facet-block.ts` with
+`DashboardFacetBlock.vue`) lists a column's values with their numbers of
+records under the screen's other filters (`dashboard-facets.ts`, shared:
+`facetBlockSchema`, `facetBlockColumn`, `loadFacetBlockCounts`,
+`toggleFacetBlockValue`, `facetBlockEntries`), and a click sets the select
+filter through `setFilter`; "All" clears it. Its props are `{ filterId?,
+layout?: "chips" | "list", showCounts? }`. New EN/FR labels: "Facet list",
+"All", and the refusals' messages.
+
+Demo: `?example=screen` adds a `section` column to the pages, a "Section"
+filter and a "Sections" block (`pages.sections`) above the Pages table.
+
+Verification: the facets suite checks `checkDashboardFilterValue`,
+`dashboardSourceFilterRules`, the block's schema, props and counts in both
+editions; `tests/facet-panel.test.tsx` and
+`packages/yayaw-table-vue/src/components/facets.test.ts` set a valid value,
+an invalid one and an unknown filter from a block. `e2e/screen.spec.ts` on
+both demos: the Sections block's counts match the pages, a click sets
+`content-admin.section` in the URL and the filter bar, the Pages table and
+the numbers follow (`requiredFilters`), the block's counts leave its own
+filter out and follow the author filter, and "All" clears it.
+
+## Tags columns
+
+Both editions read `tags` on a column (`true` or `{ create, manage, bulk }`)
+and `actions.tags` (`list`, `create`, `update`, `merge`, `remove`, each called
+with the catalog's `{ tableId, tableType, columnId }`), and share
+`tag-catalog.ts` (server-safe, synced to Vue) for everything that is not
+rendering: column resolution, the cached catalog query
+(`["yayaw-table", tableId, "tags", tableType, columnId]`, five minutes), the
+catalog as options, search and create-on-the-fly names, what Enter does in a
+picker (`tagPickerEnter`), bulk plans (`planTagBulkUpdate`, values or
+`{ add, remove }` patch, `applyTagPatch` for hosts), merge and delete effects
+on records and catalogs, usage counts from `aggregate` groups and the EN/FR
+labels (overridden by `tags.<key>` translations).
+
+- Catalog options: React's `TableProvider` loads the catalogs with
+  `useQueries` and hands a `getTableConfig` whose tags columns carry the
+  catalog's options, so every `useTableConfig` reader (cells, cards, filters,
+  forms, details, charts, maps, kanban lanes) sees them; Vue's `YayawDataTable`
+  turns `config.columns.definitions` into a shallow reactive array and swaps
+  each tags column for a copy with the catalog's options as it loads or
+  changes. Before the catalog loads, cells show pulsing placeholders for ids
+  it would name; static `options` stay until then, and without
+  `actions.tags` for good.
+- Colors: `tagAppearance(value, coloredTags, map, color)` takes a tag's own
+  color (a `TAG_COLOR_NAMES` palette name or a CSS color, as a tinted chip)
+  over `tagColorMap` and the automatic hue, in cells, cards (Vue through
+  `CellRenderer`), the Feed and pickers; filter menus show a swatch.
+- Tag picker: React `components/tags/tag-picker.tsx` (Base UI combobox),
+  Vue `components/tags/TagPicker.vue` (Reka combobox), same keyboard: arrows
+  move, Enter picks the highlighted tag after typing or moving (else a typed
+  name is picked or created, else the cell saves or the list closes),
+  Backspace removes the last chip, Escape cancels a cell. Used by inline
+  editing of tags columns, record form fields bound to a tags column (by
+  `inlineEdit.formField`, `accessorKey` or id) and the bulk dialogs.
+- Bulk "Add tags" / "Remove tags" (after bulk edit in the bulk bar, for tags
+  columns holding lists, with `allowBulkEdit`, `canEditRow` and `bulkUpdate`
+  or `update`): "Remove" offers the selection's tags with how many rows use
+  each; applying patches the loaded rows at once (React: the `tableData`
+  cache; Vue: the rows), then puts back the rows that fail (`failedIds` or a
+  failed call), which stay selected, and reloads.
+- "Manage tags" (column menu: React's header menu, Vue's column options):
+  rename (Enter or leaving the field; empty and duplicate names refused),
+  recolor (Default and the palette), merge into another tag and delete, both
+  confirmed in the dialog (deletion with the records counted by one
+  `aggregate` call). Changes are optimistic and restored on failure; merges
+  and deletions rewrite the loaded rows. `table.canManageTags` and
+  `tags.manage` gate it.
+- Vue editable cells no longer open the record on a click: like React's
+  editable cells (buttons), a double-click or Enter edits them.
+- Facets: both facet panels read the column options the catalog fills (React
+  through the provider's `getTableConfig`, Vue through the reactive column
+  definitions), so a tags facet lists tag names, each counted once per record
+  (by `aggregate` or from the rows), and a click writes a `contains` rule. The
+  Assets demo lists Tags in its facet panel; its `aggregate` groups by tags
+  only, so folders and kinds still count the rows `list` returns.
+
+Verification: `tests/tag-catalog-suite.ts` runs in both editions
+(`tests/tag-catalog.test.ts` with React Query's client,
+`packages/yayaw-table-vue/src/tag-catalog.test.ts` with Vue Query's): column
+resolution, list answers, catalog options, one load per table and column and
+reload after invalidation, search and create names, create on the fly and
+selection, patches, values and patch plans, the selection's tags, merge,
+delete and update effects, usage counts, labels, colors, the picker's Enter
+and a tags column's facet (names, counts from rows and from `aggregate`, the
+`contains` rule); `tests/tag-catalog.test.ts` also checks the Vue copies are
+identical.
+Component tests: `tests/tags.test.tsx` and
+`packages/yayaw-table-vue/src/components/tags/tags.test.ts` (catalog names
+and colors loaded once, create on the fly in a cell, bulk add in patch mode,
+bulk remove in values mode with a partial failure, Manage tags, the record
+form's field; Vue also static options without `actions.tags`).
+`e2e/tags.spec.ts` on both demos (`?example=assets&assets-display=table`):
+a tag created on the fly in a cell, a tag added to three rows in bulk then
+filtered by, a rename and a merge in "Manage tags", and the Tags facet (the
+catalog's names and counts, a click filtering).

@@ -65,6 +65,20 @@ export {
   formatFeedRelativeDate,
   normalizeFeedViewConfig,
 } from "./utils/feed-view";
+// Facets: the panel listing values with their records, clicks as filter rules.
+export {
+  type FacetColumn,
+  type FacetColumnSettings,
+  type FacetCounts,
+  type FacetEntry,
+  type FacetKind,
+  facetAggregateParams,
+  facetCountParams,
+  loadFacetCounts,
+  resolveFacets,
+  type TableFacetsConfig,
+  toggleFacetValue,
+} from "./utils/facets-model";
 // File tree view: folders and files linked by a parent column.
 export { fileTreeRenderer } from "./filetree/filetree-renderer";
 export type {
@@ -73,8 +87,17 @@ export type {
   FileTreeMoveInput,
   FileTreeMoveResult,
   FileTreeTableConfig,
+  FileTreeTableOptions,
   FileTreeViewSettings,
 } from "./utils/filetree-model";
+// Folders outside the File tree: New folder, the folder filter and facets.
+export {
+  type FolderDirectory,
+  type FolderEntry,
+  folderChoiceOf,
+  loadFolderDirectory,
+  toggleFolderChoice,
+} from "./utils/folder-directory";
 // Form view; public routes can import `form/yayaw-table-form` on its own.
 export { formRenderer } from "./form/form-renderer";
 export {
@@ -190,11 +213,13 @@ export * from "./types/translations";
 // Core types used in docs
 export type {
   CreateTableViewInput,
+  SetTableViewOrderInput,
   TableView,
   TableViewActionContext,
   TableViewActionResult,
   TableViewActions,
   TableViewConfig,
+  TableViewListResult,
   UpdateTableViewInput,
 } from "./types/view-types";
 export type { TableActivityRecord } from "./utils/activity-shortcuts";
@@ -207,7 +232,12 @@ export type {
   RecordPresentation,
   RecordPresentationConfig,
 } from "./utils/record-presentation";
-export { createLocalTableViewActions } from "./utils/table-view-storage";
+export {
+  createLocalTableViewActions,
+  type LocalTableViewActions,
+} from "./utils/table-view-storage";
+// The user's order of saved views: hosts may sort their `list` answer alike.
+export { orderViews } from "./utils/view-order";
 // Location columns and the Map mode: shared helpers a host can use on its server.
 export {
   boundsContain,
@@ -226,6 +256,38 @@ export type {
   MapViewSettings,
 } from "./utils/map-model";
 export type { BoundsScope, ListScope } from "./utils/scoped-rows";
+// Tag catalogs (`actions.tags`): shared helpers a host can use on its server.
+export {
+  applyTagPatch,
+  isTagPatch,
+  mergeTagValue,
+  normalizeTagList,
+  removeTagValue,
+  type ResolvedTagColumn,
+  resolveTagColumn,
+  type TableTag,
+  type TableTagActions,
+  type TableTagAnswer,
+  type TableTagCreateInput,
+  type TableTagMergeInput,
+  type TableTagRemoveInput,
+  type TableTagScope,
+  type TableTagUpdateInput,
+  type TagBulkMode,
+  type TagColumnConfig,
+  type TagColumnInput,
+  type TagPatch,
+  tagColumnsOf,
+  tagLabels,
+  tagOptions,
+  tagUsageCounts,
+  tagUsageRequest,
+} from "./utils/tag-catalog";
+export {
+  TAG_COLOR_NAMES,
+  type TagColorName,
+  tagColorValue,
+} from "./utils/tag-colors";
 
 
 export type { ActionItem, ActionItem as RowActionItem } from "./components/columns/actions-column";

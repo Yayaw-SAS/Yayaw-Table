@@ -350,6 +350,13 @@ export interface ColumnDefinition {
   coloredTags?: boolean;
 
   /**
+   * A tags column: with `actions.tags`, its options come from the host's
+   * catalog, pickers create tags on the fly and "Manage tags" edits them.
+   * `multiSelect` columns hold a list of tag ids, `select` columns one.
+   */
+  tags?: import("../utils/tag-catalog").TagColumnInput;
+
+  /**
    * Preferred column width in pixels.
    */
   size?: number;
@@ -420,6 +427,11 @@ export interface TableBehaviorConfig
   extends GenericModeTableConfigs {
   /** Use neutral badges when false; columns can override this setting. */
   coloredTags?: boolean;
+  /**
+   * Offer "Manage tags" (rename, recolor, merge, delete) on tags columns when
+   * `actions.tags` can; default true. Creating tags in pickers stays available.
+   */
+  canManageTags?: boolean;
   planning?: import("../planning/types").TablePlanningConfig;
   gantt?: import("../planning/types").TableGanttConfig;
   /**
@@ -512,6 +524,13 @@ export interface TableBehaviorConfig
   filterBarColumns?: string[];
   /** Show the filter bar by default; a component prop can override this. */
   showFilterBar?: boolean;
+  /**
+   * The facet panel beside the records: for these columns (select, lists,
+   * yes/no, the file tree's parent column), each value with its number of
+   * records; a click filters (`isAnyOf`, `contains` for lists). A toolbar
+   * button shows and hides it; phones open it as a sheet.
+   */
+  facets?: import("../utils/facets-model").TableFacetsConfig | false;
   showClearFilters?: boolean;
   /** Backwards-compatible alias for `showClearFilters`. */
   showResetFilters?: boolean;

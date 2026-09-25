@@ -47,9 +47,13 @@ import {
   TableStateSyncProvider,
 } from "../providers/table-state-sync-provider";
 import { seedTableViewState } from "../hooks/use-table-url-state";
+import { useViewConfigReport } from "../hooks/use-view-config";
+import type { ViewConfig } from "../utils/view-config";
 import { withFeedRenderer } from "../feed/feed-renderer";
 import { withFileTreeRenderer } from "../filetree/filetree-renderer";
 import { withFormRenderer } from "../form/form-renderer";
+import { resolveFacets } from "../utils/facets-model";
+import { folderTreeOf } from "../utils/folder-directory";
 import { isFileTreeAvailable } from "../utils/filetree-model";
 import { isFormModeEnabled } from "../utils/form-view";
 import { resolveTranslationsToUiStrings } from "../providers/translation-cache";
@@ -78,6 +82,7 @@ import { DataTableSkeleton } from "./data-table-skeleton";
 import { TableRecordDetails } from "./details/table-record-details";
 // Direct import keeps the toolbar available without a client-only dynamic wrapper.
 import { translateWithFallback } from "./filters/i18n-utils";
+import { TableFacetsLayout } from "./facets/facet-panel";
 import { TableFilterBar } from "./filters/table-filter-bar";
 import { LocationProvider } from "./location/location-context";
 // Lazy load heavy components using React.lazy inside './forms/lazy-forms'
@@ -231,8 +236,17 @@ function resolveToolbarRuntime({
       toolbarActionsPlacement ??
       config.toolbarActionsPlacement ??
       "between-create-export",
+    // Facet clicks are advanced rules: tables with facets show their menu.
     shouldEnableAdvancedFilters:
-      enableAdvancedFilters ?? config.table.enableAdvancedFilters ?? false,
+      (enableAdvancedFilters ?? config.table.enableAdvancedFilters ?? false) ||
+      Boolean(
+        resolveFacets(config.table.facets, config.columns.definitions, {
+          folderColumn: folderTreeOf(
+            config.table.filetree,
+            config.columns.definitions
+          )?.parentColumn,
+        })
+      ),
   } as const;
 }
 
@@ -575,6 +589,20 @@ function isFilterBarVisible(
   return prop ?? configured ?? false;
 }
 
+/** Reports the view the table shows to `onViewConfigChange`. */
+function ViewConfigReporter({
+  config,
+  onChange,
+  tableId,
+}: {
+  config: TableCatalogueConfig;
+  onChange: (config: ViewConfig) => void;
+  tableId: string;
+}) {
+  useViewConfigReport(tableId, config, onChange);
+  return null;
+}
+
 function DataTableContent({
   className,
   loadingOverlay,
@@ -616,9 +644,17 @@ function DataTableContent({
   details,
   onOpenDetails,
   onRevertActivity,
+  onViewConfigChange,
   rowActions,
   displayModeRenderers,
 }: {
+  /**
+   * The view the table shows, as a saved view's `config` (the shape
+   * `sanitizeViewConfig` accepts): once the table starts, then after each
+   * change of its sort, filters, search, columns, display mode or mode
+   * settings. Vue: the `view-config-change` event.
+   */
+  onViewConfigChange?: (config: ViewConfig) => void;
   rowActions?: ActionItem<Record<string, unknown>>[];
   /**
    * Views rendered by optional registry items, e.g.
@@ -889,6 +925,13 @@ function DataTableContent({
       defaultSorting={config.columns.sort}
       enabled={config.table.syncUrl !== false}
     >
+      {onViewConfigChange ? (
+        <ViewConfigReporter
+          config={config}
+          onChange={onViewConfigChange}
+          tableId={tableId}
+        />
+      ) : null}
       {/* Location editors (cells, record forms, the Form view) suggest places with `actions.geocode`. */}
       <LocationProvider
         geocode={geocode}
@@ -1025,7 +1068,12 @@ function DataTableContent({
               </div>
             )}
 
-            {/* Table content */}
+            {/* Table content, beside the facet panel when the table has one */}
+            <TableFacetsLayout
+              tableId={tableId}
+              tableType={tableType}
+              toolbar={shouldShowToolbar}
+            >
             {isLoading ? (
               <DataTableSkeleton />
             ) : (
@@ -1089,6 +1137,7 @@ function DataTableContent({
                 tableType={tableType}
               />
             )}
+            </TableFacetsLayout>
           </div>
         </DataTableUIProvider>
       </Suspense>

@@ -2,6 +2,7 @@ import type { QueryClient } from "@tanstack/vue-query";
 import { type ComputedRef, type InjectionKey, inject, type Ref } from "vue";
 import type { TableDataResult } from "./composables/use-table-data";
 import type { TableStateRefs } from "./composables/use-table-state";
+import type { TagCatalogRuntime } from "./composables/use-tag-catalogs";
 import type { DisplayModeRenderers } from "./display-mode-renderer";
 import type {
   BulkAction,
@@ -66,6 +67,12 @@ export interface TableContextValue<TData extends TableRecord = TableRecord> {
   toolbarActions: ComputedRef<ToolbarActionsInput<TData>>;
   form: Ref<OpenFormState>;
   toolbarCompact: Ref<boolean>;
+  /** The facet panel shows on wide screens; undefined keeps `table.facets.defaultOpen`. */
+  facetsOpen: Ref<boolean | undefined>;
+  /** Changes when the table reloads after a change (facet counts, folders reload). */
+  dataRevision: Ref<number>;
+  /** The table's folders, for "New folder", the folder filter and folder facets. */
+  folders: import("./composables/use-folder-directory").FolderDirectoryStore;
   footerCalculationsVisible: Ref<boolean>;
   optionsRequest: Ref<TableOptionsRequest | undefined>;
   getRowId: (row: TData, index?: number) => string;
@@ -86,6 +93,8 @@ export interface TableContextValue<TData extends TableRecord = TableRecord> {
   loadAllMatchingRows: () => Promise<TData[]>;
   status: Ref<{ type: "error" | "success"; message: string } | undefined>;
   queryClient: QueryClient;
+  /** The host's tag catalogs, for tables with tags columns and `actions.tags`. */
+  tags?: TagCatalogRuntime;
   locale: string;
   onBulkDelete?: (rows: TData[]) => MaybePromise<BulkActionHandlerResult>;
   onBulkEdit?: (

@@ -141,6 +141,11 @@ const TABLE_CHECKS = {
     "form-view.ts",
     "FormLinkActions"
   ),
+  "actions.tags": membersOf(
+    "utils/tag-catalog.ts",
+    "tag-catalog.ts",
+    "TableTagActions"
+  ),
   "actions.planning": membersOf(
     "planning/types.ts",
     "planning/types.ts",
@@ -150,6 +155,17 @@ const TABLE_CHECKS = {
     "../yayaw-table-dashboard/dashboard-model.ts",
     "dashboard/dashboard-model.ts",
     "DashboardStorage"
+  ),
+  // What a dashboard block component receives.
+  props: membersOf(
+    "../yayaw-table-dashboard/dashboard-block.tsx",
+    "dashboard/dashboard-types.ts",
+    "DashboardBlockProps"
+  ),
+  "table.facets": membersOf(
+    "utils/facets-model.ts",
+    "facets-model.ts",
+    "TableFacetsConfig"
   ),
   destination: membersOf(
     "utils/data-destinations.ts",

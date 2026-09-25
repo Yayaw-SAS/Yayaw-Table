@@ -173,8 +173,8 @@ test("the Projects over time view counts projects by due month", async ({
   page,
 }) => {
   await page.goto("/?example=views");
-  // Past three saved views, tabs move under "More".
-  await page.getByRole("button", { name: "More", exact: true }).click();
+  // Past three saved views, tabs move under "…" (More views).
+  await page.getByRole("button", { name: "More views", exact: true }).click();
   await page.getByRole("menuitem", { name: "Projects over time" }).click();
   await expect(chart(page)).toHaveAttribute("data-chart-type", "line");
   await expect(page.locator("[data-chart-title]")).toHaveText("Count by Due");

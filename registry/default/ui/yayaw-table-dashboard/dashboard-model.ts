@@ -18,7 +18,10 @@ import {
   chartValueFormatter,
   loadChartData,
 } from "../yayaw-table/utils/chart-model";
-import { normalizeDateFilterRules } from "../yayaw-table/utils/date-filter-days";
+import {
+  isCalendarDay,
+  normalizeDateFilterRules,
+} from "../yayaw-table/utils/date-filter-days";
 import { formLocaleMatch } from "../yayaw-table/utils/form-text";
 import { normalizeFilterEnvelope } from "../yayaw-table/utils/table-contracts";
 import {
@@ -43,6 +46,7 @@ import {
   type DashboardFilterTarget,
   type DashboardFilterType,
   type DashboardInlineView,
+  type DashboardJsonObject,
   type DashboardKpiBetter,
   type DashboardKpiMetric,
   type DashboardKpiSettings,
@@ -236,15 +240,18 @@ export function dashboardWidgetSize(
   return defaultWidgetSize("view", mode);
 }
 
-/** Widget types the widget picker adds. */
-export type DashboardDraftType = "view" | "kpi" | "note";
+/** Widget types the widget dialog adds and edits. */
+export type DashboardDraftType = DashboardWidget["type"];
 
-/** What the widget picker collects before a widget is added. */
+/** What the widget dialog collects before a widget is added or changed. */
 export interface DashboardWidgetDraft {
   type: DashboardDraftType;
   tableId: string;
-  /** Saved view; empty for the table's default view. */
+  /** Saved view; empty for the table's default view (or with `view`). */
   viewId: string;
+  /** Inline settings (a custom view), instead of `viewId`. */
+  view?: DashboardInlineView;
+  /** The title in the language edited (a number's label when it has no title). */
   title: string;
   /** Note text. */
   text: string;
@@ -259,6 +266,20 @@ export interface DashboardWidgetDraft {
   /** Whether a rise (`up`) or a fall (`down`) shows as good. */
   compareBetter: DashboardKpiBetter;
   sparkline: boolean;
+  /** Block widgets: the host block's key. */
+  block?: string;
+  /** Block widgets: their props (JSON). */
+  props?: DashboardJsonObject;
+}
+
+/**
+ * The widget a draft changes: its title keeps its other languages, and the
+ * settings the dialog does not show (a trend's buckets, say) are kept.
+ */
+export interface DashboardDraftEdit {
+  widget: DashboardWidget;
+  /** The language the dialog edits texts in. */
+  locale: string;
 }
 
 /** A blank picker: a view of the first table, fitting its records. */
@@ -278,17 +299,28 @@ export const emptyWidgetDraft = (tableId = ""): DashboardWidgetDraft => ({
   sparkline: false,
 });
 
-/** A trend line added from the picker: the last 6 months. */
+const DEFAULT_SPARKLINE = {
+  bucket: "month",
+  buckets: DASHBOARD_KPI_DEFAULTS.sparklineBuckets,
+};
+
+/** A number's settings; a trend added from the dialog covers the last 6 months. */
 function kpiDraftSettings(
-  draft: DashboardWidgetDraft
+  draft: DashboardWidgetDraft,
+  edit?: DashboardDraftEdit
 ): Record<string, unknown> {
-  const title = draft.title.trim();
+  const previous = edit?.widget.settings ?? {};
+  // A number with a title of its own keeps its label; others use it as their title.
+  const label =
+    edit?.widget.title === undefined
+      ? draft.title.trim()
+      : text(previous.label);
   const reads = draft.metric !== "count" && Boolean(draft.metricColumn);
   const dateColumn = draft.dateColumn.trim();
   return {
     metric: draft.metric,
     ...(reads ? { metricColumn: draft.metricColumn } : {}),
-    ...(title ? { label: title } : {}),
+    ...(label ? { label } : {}),
     ...(dateColumn && (draft.compare || draft.sparkline) ? { dateColumn } : {}),
     ...(dateColumn && draft.compare
       ? {
@@ -301,40 +333,128 @@ function kpiDraftSettings(
       : {}),
     ...(dateColumn && draft.sparkline
       ? {
-          sparkline: {
-            bucket: "month",
-            buckets: DASHBOARD_KPI_DEFAULTS.sparklineBuckets,
-          },
+          sparkline: isRecord(previous.sparkline)
+            ? previous.sparkline
+            : { ...DEFAULT_SPARKLINE },
         }
       : {}),
   };
 }
 
-/** The widget a picker draft describes (without its id). */
-export function dashboardWidgetFromDraft(
+/** The saved view or inline settings a draft names. */
+const draftSource = (
   draft: DashboardWidgetDraft
-): Omit<DashboardWidget, "id"> {
-  const title = draft.title.trim();
-  if (draft.type === "note") {
-    return {
-      type: "note",
-      ...(title ? { title } : {}),
-      settings: { text: draft.text },
-    };
+): Pick<DashboardWidget, "tableId" | "viewId" | "view"> => {
+  if (draft.view) {
+    return { tableId: draft.tableId, view: draft.view };
   }
-  const base = {
-    type: draft.type,
+  return {
     tableId: draft.tableId,
     ...(draft.viewId ? { viewId: draft.viewId } : {}),
   };
-  if (draft.type === "view") {
-    return {
-      ...base,
-      ...(title ? { title } : {}),
-      settings: draft.overflow === "scroll" ? { overflow: "scroll" } : {},
-    };
+};
+
+/** Settings of the edited widget, without the keys a draft sets. */
+const keptSettings = (
+  edit: DashboardDraftEdit | undefined,
+  keys: readonly string[]
+): Record<string, unknown> =>
+  Object.fromEntries(
+    Object.entries(edit?.widget.settings ?? {}).filter(
+      ([key]) => !keys.includes(key)
+    )
+  );
+
+/**
+ * The widget a draft describes (without its id). With `edit`, the widget it
+ * changes: its title keeps its other languages and the settings the dialog
+ * does not show are kept.
+ */
+export function dashboardWidgetFromDraft(
+  draft: DashboardWidgetDraft,
+  edit?: DashboardDraftEdit
+): Omit<DashboardWidget, "id"> {
+  const typed = draft.title.trim();
+  const title = edit
+    ? editDashboardText(edit.widget.title, edit.locale, typed)
+    : typed || undefined;
+  const titled = title ? { title } : {};
+  switch (draft.type) {
+    case "note":
+      return {
+        type: "note",
+        ...titled,
+        settings: { ...keptSettings(edit, ["text"]), text: draft.text },
+      };
+    case "block":
+      return {
+        type: "block",
+        block: draft.block ?? "",
+        ...(draft.props && Object.keys(draft.props).length
+          ? { props: draft.props }
+          : {}),
+        ...titled,
+        settings: keptSettings(edit, []),
+      };
+    case "table":
+      return {
+        type: "table",
+        ...draftSource(draft),
+        ...titled,
+        settings: keptSettings(edit, []),
+      };
+    case "view":
+      return {
+        type: "view",
+        ...draftSource(draft),
+        ...titled,
+        settings: {
+          ...keptSettings(edit, ["overflow"]),
+          ...(draft.overflow === "scroll" ? { overflow: "scroll" } : {}),
+        },
+      };
+    default:
+      return {
+        type: "kpi",
+        ...draftSource(draft),
+        // A new number's title is its label; one with a title keeps it.
+        ...(edit?.widget.title === undefined ? {} : titled),
+        settings: kpiDraftSettings(draft, edit),
+      };
   }
-  return { ...base, settings: kpiDraftSettings(draft) };
+}
+
+/** The draft of a widget, to change it in the widget dialog. */
+export function dashboardWidgetDraft(
+  widget: DashboardWidget,
+  locale: string
+): DashboardWidgetDraft {
+  const draft: DashboardWidgetDraft = {
+    ...emptyWidgetDraft(widget.tableId ?? ""),
+    type: widget.type,
+    viewId: widget.view ? "" : (widget.viewId ?? ""),
+    ...(widget.view ? { view: widget.view } : {}),
+    title: dashboardTextInput(widget.title, locale),
+  };
+  if (widget.type === "note") {
+    draft.text = String(widget.settings.text ?? "");
+  } else if (widget.type === "view") {
+    draft.overflow = widgetOverflow(widget);
+  } else if (widget.type === "block") {
+    draft.block = widget.block ?? "";
+    draft.props = widget.props ?? {};
+  } else if (widget.type === "kpi") {
+    const kpi = dashboardKpiSettings(widget);
+    draft.title ||= kpi.label ?? "";
+    draft.metric = kpi.metric;
+    draft.metricColumn = kpi.metricColumn ?? "";
+    draft.dateColumn = kpi.dateColumn ?? "";
+    draft.compare = Boolean(kpi.compare);
+    draft.compareDays = kpi.compare?.days ?? DASHBOARD_KPI_DEFAULTS.compareDays;
+    draft.compareBetter = kpi.compare?.better ?? "up";
+    draft.sparkline = Boolean(kpi.sparkline);
+  }
+  return draft;
 }
 
 /** Date columns a number can compare periods and draw a trend on. */
@@ -1825,6 +1945,139 @@ export function dashboardFilterValues(
   );
 }
 
+// Blocks setting filters -------------------------------------------------------------
+
+/** Why a block's `setFilter` refused a value. */
+export type DashboardSetFilterCode = "invalidValue" | "unknownFilter";
+
+/**
+ * What a block's `setFilter` answers: the value the filter now holds (none
+ * when cleared), or why the value was refused (the filter keeps its value).
+ */
+export type DashboardSetFilterResult =
+  | { ok: true; value?: DashboardFilterValue }
+  | { ok: false; code: DashboardSetFilterCode; message: string };
+
+const DATE_RANGE_KEYS = new Set(["start", "end", "preset"]);
+
+function dateRangeProblem(value: unknown): boolean {
+  if (!isRecord(value)) {
+    return true;
+  }
+  if (Object.keys(value).some((key) => !DATE_RANGE_KEYS.has(key))) {
+    return true;
+  }
+  const { end, preset, start } = value;
+  if (preset !== undefined) {
+    const known = (DASHBOARD_DATE_PRESETS as readonly unknown[]).includes(
+      preset
+    );
+    return !known || start !== undefined || end !== undefined;
+  }
+  const days = [start, end].filter((day) => day !== undefined);
+  return (
+    days.some((day) => !isCalendarDay(day)) ||
+    (typeof start === "string" && typeof end === "string" && end < start)
+  );
+}
+
+const isSelectItem = (item: unknown): boolean =>
+  (typeof item === "string" && item !== "") ||
+  (typeof item === "number" && Number.isFinite(item));
+
+/**
+ * Checks a value a block sets on a screen filter, as the filter bar would
+ * set it: the filter exists; a select takes texts (one, or a list) among its
+ * options when it has some (`filter.options`, else `options.options`, the
+ * first target column's, which the renderer passes); a date range takes
+ * `{ start?, end? }` days (`YYYY-MM-DD`, the start first) or a known
+ * `preset` alone. `undefined` and `null` clear the filter, as does an empty
+ * list or range. Never throws.
+ */
+export function checkDashboardFilterValue(
+  dashboard: Pick<Dashboard, "filters">,
+  filterId: string,
+  value: unknown,
+  options: {
+    options?: readonly DashboardFilterOption[];
+    locale?: string;
+    translate?: DashboardTranslate;
+  } = {}
+): DashboardSetFilterResult {
+  const locale = options.locale ?? "en";
+  const filter = dashboard.filters.find((item) => item.id === filterId);
+  if (!filter) {
+    return {
+      ok: false,
+      code: "unknownFilter",
+      message: dashboardLabel("unknownFilter", locale, options.translate, {
+        filter: filterId,
+      }),
+    };
+  }
+  if (value === undefined || value === null) {
+    return { ok: true };
+  }
+  const name = dashboardText(filter.label, locale) || filter.id;
+  const refuse = (key: DashboardLabelKey, params = {}) =>
+    ({
+      ok: false,
+      code: "invalidValue",
+      message: dashboardLabel(key, locale, options.translate, {
+        filter: name,
+        ...params,
+      }),
+    }) as const;
+  if (filter.type === "dateRange") {
+    if (dateRangeProblem(value)) {
+      return refuse("invalidDateRange");
+    }
+    const range = dashboardDateRange(value);
+    return range.start || range.end || range.preset
+      ? { ok: true, value: range }
+      : { ok: true };
+  }
+  const items = Array.isArray(value) ? value : [value];
+  if (!items.every(isSelectItem)) {
+    return refuse("invalidSelect");
+  }
+  const values = dashboardSelectValues(items);
+  const known = filter.options?.length ? filter.options : options.options;
+  const unknown = known?.length
+    ? values.find((item) => !known.some((option) => option.value === item))
+    : undefined;
+  if (unknown !== undefined) {
+    return refuse("unknownOption", { value: unknown });
+  }
+  return values.length ? { ok: true, value: values } : { ok: true };
+}
+
+/**
+ * The rules the screen's filters give a source's requests, for blocks that
+ * query it (a facet list): every filter targeting the source (whatever
+ * `widgetIds` it names), but those in `exclude`; relative periods resolve
+ * around `today`.
+ */
+export function dashboardSourceFilterRules(
+  dashboard: Pick<Dashboard, "filters">,
+  tableId: string,
+  options: { exclude?: readonly string[]; today?: string } = {}
+): UnknownRecord[] {
+  const today = options.today ?? dashboardDayValue(new Date());
+  const rules: UnknownRecord[] = [];
+  for (const filter of dashboard.filters) {
+    if (options.exclude?.includes(filter.id)) {
+      continue;
+    }
+    const target = filter.targets.find((item) => item.tableId === tableId);
+    const rule = target && dashboardFilterRule(filter, target.columnId, today);
+    if (rule) {
+      rules.push(rule);
+    }
+  }
+  return rules;
+}
+
 // Saved views -------------------------------------------------------------------
 
 /** Saved views from a table source: its static views, then those `views.list` returns. */
@@ -1968,6 +2221,82 @@ const ENGLISH_LABELS = {
   presetThisMonth: "This month",
   presetLastMonth: "Last month",
   presetThisYear: "This year",
+  addSection: "Add section",
+  sectionGrid: "Grid of cards",
+  sectionFlow: "Full width",
+  sectionTitle: "Section title",
+  sectionNumber: "Section {number}",
+  sectionMenu: "Section options for {title}",
+  addWidgetHere: "Add widget here",
+  emptySection: "No widgets here yet.",
+  removeSectionTitle: "Remove {title}?",
+  removeSectionOne: "Its widget is removed with it.",
+  removeSectionMany: "Its {count} widgets are removed with it.",
+  sectionRemoved: "{title} removed",
+  editWidget: "Edit…",
+  editView: "Edit view…",
+  useViewCopy: "Use a copy of this view",
+  moveToSection: "Move to section",
+  makeScreenDefault: "Make the current view the screen default",
+  viewCopied: "{title} now uses a copy of its view",
+  screenDefaultSet: "The current view is now the screen default",
+  movedToSection: "{title} moved to {section}",
+  editWidgetTitle: "Edit the widget",
+  stepWhat: "What",
+  stepSource: "Source",
+  stepSettings: "Settings",
+  stepOf: "Step {step} of {count}",
+  chooseKind: "What should the widget show?",
+  chooseSource: "Choose a source",
+  kindKpi: "Number",
+  kindKpiHint: "One figure over the records of a view",
+  kindView: "View",
+  kindViewHint: "Records in any display mode",
+  kindTable: "Table page",
+  kindTableHint: "A source’s full list page, at full width",
+  kindNote: "Note",
+  kindNoteHint: "Text",
+  blocks: "Blocks",
+  searchSources: "Search sources",
+  noSources: "No source matches.",
+  loadingSources: "Loading the sources…",
+  sourcesError: "The sources could not be listed: {error}",
+  sourceLoading: "Loading {source}…",
+  back: "Back",
+  apply: "Apply",
+  startFrom: "Start from",
+  savedViews: "Saved views",
+  customView: "Custom view",
+  customViewHint:
+    "Its records, sort, columns and display are set in the view editor.",
+  blockProps: "Properties (JSON)",
+  invalidJson: "This is not valid JSON.",
+  propsRefused: "The block refuses these properties:",
+  viewEditorTitle: "Edit view",
+  viewEditorDescription:
+    "The table is the view: change its filters, sort, columns and display, then apply.",
+  unsavedChanges: "Unsaved changes",
+  close: "Close",
+  discardTitle: "Discard your changes?",
+  discardDescription: "The view keeps its previous settings.",
+  keepEditing: "Keep editing",
+  discard: "Discard",
+  applyAndClose: "Apply and close",
+  saveIssues: "The screen was not saved. Fix these problems first:",
+  dismiss: "Dismiss",
+  unknownFilter: "The screen has no filter “{filter}”.",
+  invalidDateRange:
+    "The filter “{filter}” takes days (YYYY-MM-DD, the start first) or a period.",
+  invalidSelect: "The filter “{filter}” takes one text or a list of texts.",
+  unknownOption: "“{value}” is not an option of the filter “{filter}”.",
+  facetBlock: "Facet list",
+  facetBlockDescription:
+    "A column’s values with their number of records; a click sets a screen filter.",
+  facetAll: "All",
+  facetClear: "Clear",
+  facetLoading: "Counting…",
+  facetEmpty: "No values",
+  facetError: "The values could not load.",
 };
 
 export type DashboardLabelKey = keyof typeof ENGLISH_LABELS;
@@ -2081,6 +2410,85 @@ const FRENCH_LABELS: Record<DashboardLabelKey, string> = {
   presetThisMonth: "Ce mois-ci",
   presetLastMonth: "Le mois dernier",
   presetThisYear: "Cette année",
+  addSection: "Ajouter une section",
+  sectionGrid: "Grille de cartes",
+  sectionFlow: "Pleine largeur",
+  sectionTitle: "Titre de la section",
+  sectionNumber: "Section {number}",
+  sectionMenu: "Options de la section {title}",
+  addWidgetHere: "Ajouter un widget ici",
+  emptySection: "Aucun widget ici pour l’instant.",
+  removeSectionTitle: "Retirer {title} ?",
+  removeSectionOne: "Son widget est retiré avec elle.",
+  removeSectionMany: "Ses {count} widgets sont retirés avec elle.",
+  sectionRemoved: "{title} retirée",
+  editWidget: "Modifier…",
+  editView: "Modifier la vue…",
+  useViewCopy: "Utiliser une copie de cette vue",
+  moveToSection: "Déplacer vers la section",
+  makeScreenDefault: "Faire de la vue actuelle la vue par défaut de l’écran",
+  viewCopied: "{title} utilise maintenant une copie de sa vue",
+  screenDefaultSet:
+    "La vue actuelle est maintenant la vue par défaut de l’écran",
+  movedToSection: "{title} déplacé vers {section}",
+  editWidgetTitle: "Modifier le widget",
+  stepWhat: "Quoi",
+  stepSource: "Source",
+  stepSettings: "Réglages",
+  stepOf: "Étape {step} sur {count}",
+  chooseKind: "Que doit afficher le widget ?",
+  chooseSource: "Choisir une source",
+  kindKpi: "Nombre",
+  kindKpiHint: "Un chiffre calculé sur les enregistrements d’une vue",
+  kindView: "Vue",
+  kindViewHint: "Des enregistrements, dans n’importe quel affichage",
+  kindTable: "Page de table",
+  kindTableHint: "La page de liste complète d’une source, en pleine largeur",
+  kindNote: "Note",
+  kindNoteHint: "Du texte",
+  blocks: "Blocs",
+  searchSources: "Rechercher une source",
+  noSources: "Aucune source ne correspond.",
+  loadingSources: "Chargement des sources…",
+  sourcesError: "Les sources n’ont pas pu être listées : {error}",
+  sourceLoading: "Chargement de {source}…",
+  back: "Retour",
+  apply: "Appliquer",
+  startFrom: "Partir de",
+  savedViews: "Vues enregistrées",
+  customView: "Vue personnalisée",
+  customViewHint:
+    "Ses enregistrements, son tri, ses colonnes et son affichage se règlent dans l’éditeur de vue.",
+  blockProps: "Propriétés (JSON)",
+  invalidJson: "Ce n’est pas du JSON valide.",
+  propsRefused: "Le bloc refuse ces propriétés :",
+  viewEditorTitle: "Modifier la vue",
+  viewEditorDescription:
+    "Le tableau est la vue : modifiez ses filtres, son tri, ses colonnes et son affichage, puis appliquez.",
+  unsavedChanges: "Modifications non appliquées",
+  close: "Fermer",
+  discardTitle: "Abandonner vos modifications ?",
+  discardDescription: "La vue garde ses réglages précédents.",
+  keepEditing: "Continuer à modifier",
+  discard: "Abandonner",
+  applyAndClose: "Appliquer et fermer",
+  saveIssues:
+    "L’écran n’a pas été enregistré. Corrigez d’abord ces problèmes :",
+  dismiss: "Masquer",
+  unknownFilter: "L’écran n’a pas de filtre « {filter} ».",
+  invalidDateRange:
+    "Le filtre « {filter} » prend des jours (AAAA-MM-JJ, le début d’abord) ou une période.",
+  invalidSelect:
+    "Le filtre « {filter} » prend un texte ou une liste de textes.",
+  unknownOption: "« {value} » n’est pas une option du filtre « {filter} ».",
+  facetBlock: "Liste de facettes",
+  facetBlockDescription:
+    "Les valeurs d’une colonne avec leur nombre d’enregistrements ; un clic règle un filtre de l’écran.",
+  facetAll: "Toutes",
+  facetClear: "Effacer",
+  facetLoading: "Calcul…",
+  facetEmpty: "Aucune valeur",
+  facetError: "Les valeurs n’ont pas pu être chargées.",
 };
 
 /** Host override for a label (`dashboard.<key>`), or the built-in one. */
@@ -2252,6 +2660,41 @@ export function setDashboardText(
   }
   const shown = formLocaleMatch(Object.keys(text), locale) ?? locale;
   return { ...text, [shown]: value };
+}
+
+/**
+ * What a text input shows for `locale`: a plain text, or exactly that
+ * language's version of a localized one (`""` until it is written; no
+ * fallback to another language).
+ */
+export function dashboardTextInput(
+  text: DashboardText | undefined,
+  locale: string
+): string {
+  if (text === undefined || typeof text === "string") {
+    return text ?? "";
+  }
+  const key = formLocaleMatch(Object.keys(text), locale);
+  return key ? (text[key] ?? "") : "";
+}
+
+/**
+ * A text with the version `locale` reads set to `value`: a plain text stays
+ * plain, a localized one keeps its other languages. An empty value removes
+ * that version, and the text when nothing is left.
+ */
+export function editDashboardText(
+  text: DashboardText | undefined,
+  locale: string,
+  value: string
+): DashboardText | undefined {
+  if (text === undefined || typeof text === "string") {
+    return value === "" ? undefined : value;
+  }
+  const key = formLocaleMatch(Object.keys(text), locale) ?? locale;
+  const others = Object.entries(text).filter(([name]) => name !== key);
+  const entries = value === "" ? others : [...others, [key, value]];
+  return entries.length ? Object.fromEntries(entries) : undefined;
 }
 
 /** A filter's name in `locale`, else its id. */

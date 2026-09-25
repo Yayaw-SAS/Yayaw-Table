@@ -1,6 +1,7 @@
 "use client";
 
 import type { ColumnDefinition } from "../../config/helpers";
+import { useTagCatalog } from "../../providers/tag-catalog-provider";
 import type { DateDisplayPreset } from "../../types/date-types";
 import {
   dataTypeOptionLabel,
@@ -97,28 +98,66 @@ export function DataTypeCell({
       );
     case "select":
     case "multiSelect":
-    case "tag": {
-      const values = Array.isArray(value) ? value : [value];
+    case "tag":
       return (
-        <span className="inline-flex flex-wrap items-center gap-1">
-          {values.map((item) => {
-            const label = dataTypeOptionLabel(item, column.options);
-            return (
-              <TagCell
-                coloredTags={column.coloredTags ?? coloredTags}
-                colorValue={String(item)}
-                key={`${typeof item}:${String(item)}`}
-                tagColorMap={column.tagColorMap}
-                value={label}
-              />
-            );
-          })}
-        </span>
+        <OptionTags
+          coloredTags={column.coloredTags ?? coloredTags}
+          column={column}
+          value={value}
+        />
       );
-    }
     default:
       return (
         <StringCell showQuotes={column.showQuotes === true} value={value} />
       );
   }
+}
+
+const optionOf = (value: unknown, options: unknown) =>
+  Array.isArray(options)
+    ? (options as { value?: unknown; color?: unknown }[]).find((option) =>
+        Object.is(option?.value, value)
+      )
+    : undefined;
+
+/** Option values as tags: their labels and their own colors. */
+function OptionTags({
+  column,
+  coloredTags,
+  value,
+}: {
+  column: ColumnDefinition;
+  coloredTags?: boolean;
+  value: unknown;
+}) {
+  const catalog = useTagCatalog();
+  // A tags column shows placeholders until its catalog names its ids.
+  const loading =
+    Boolean(column.tags) && catalog?.status(column.id) === "loading";
+  const values = Array.isArray(value) ? value : [value];
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1">
+      {values.map((item) => {
+        const key = `${typeof item}:${String(item)}`;
+        const option = optionOf(item, column.options);
+        if (loading && !option && item !== null && item !== "") {
+          return (
+            <span className="yayaw-tag-pending" key={key}>
+              <span className="sr-only">{catalog?.labels.loading}</span>
+            </span>
+          );
+        }
+        return (
+          <TagCell
+            color={typeof option?.color === "string" ? option.color : undefined}
+            coloredTags={coloredTags}
+            colorValue={String(item)}
+            key={key}
+            tagColorMap={column.tagColorMap}
+            value={dataTypeOptionLabel(item, column.options)}
+          />
+        );
+      })}
+    </span>
+  );
 }

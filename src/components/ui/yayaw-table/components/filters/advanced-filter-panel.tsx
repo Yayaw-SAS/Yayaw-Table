@@ -52,6 +52,10 @@ import {
   createFilter,
   formatFilterValueForDisplay,
 } from "../../utils/advanced-filters";
+import {
+  folderChoiceComplete,
+  folderChoiceText,
+} from "../../utils/folder-directory";
 import { ColumnIcon } from "../../utils/column-icons";
 import {
   FilterValueInput,
@@ -191,9 +195,21 @@ function FilterChip({
   }
   const [stagedOperator, setStagedOperator] = useState(filter.operator);
   const [stagedValues, setStagedValues] = useState(filter.values);
-  const valid = isValidFilterValue(filter.type, stagedOperator, stagedValues);
+  const folder = config.folder;
+  // A folder rule needs the root or a folder.
+  const valid = folder
+    ? folderChoiceComplete({ operator: stagedOperator, values: stagedValues })
+    : isValidFilterValue(filter.type, stagedOperator, stagedValues);
 
   const displayValue = useMemo(() => {
+    if (folder) {
+      return folderChoiceText(
+        { operator: filter.operator, values: filter.values },
+        folder.directory,
+        locale,
+        (key, fallback) => (key === "rootFolder" ? folder.rootLabel : fallback)
+      );
+    }
     return formatFilterValueForDisplay(
       filter.type,
       filter.operator,
@@ -214,6 +230,7 @@ function FilterChip({
     config.dateDisplayPreset,
     config.dateFormat,
     config.numberFormat,
+    folder,
     locale,
   ]);
 
@@ -301,11 +318,14 @@ function FilterChip({
     </div>
   );
 
-  const operatorLabel = getTranslatedOperatorLabel(
-    t,
-    filter.operator,
-    FILTER_OPERATORS_LABELS[filter.type]?.[filter.operator] ?? filter.operator
-  );
+  const operatorLabel = folder
+    ? folder.inLabel
+    : getTranslatedOperatorLabel(
+        t,
+        filter.operator,
+        FILTER_OPERATORS_LABELS[filter.type]?.[filter.operator] ??
+          filter.operator
+      );
   const valueLabel =
     displayValue || translateWithFallback(t, "filters.value", "Set value");
 
@@ -508,8 +528,11 @@ export function AdvancedFilterPanel({
         return;
       }
 
-      const operator = getDefaultFilterOperator(type);
-      const value = getDefaultFilterValue(type, operator);
+      // Folders start with none chosen: the root or folders are picked.
+      const operator = config.folder
+        ? "isAnyOf"
+        : getDefaultFilterOperator(type);
+      const value = config.folder ? [] : getDefaultFilterValue(type, operator);
 
       const draft = createFilter(
         columnId,
@@ -540,8 +563,12 @@ export function AdvancedFilterPanel({
       return;
     }
     const config = columnsConfig[openFilterForColumnId];
-    const operator = getDefaultFilterOperator(config.type);
-    const value = getDefaultFilterValue(config.type, operator);
+    const operator = config.folder
+      ? "isAnyOf"
+      : getDefaultFilterOperator(config.type);
+    const value = config.folder
+      ? []
+      : getDefaultFilterValue(config.type, operator);
     const draft = createFilter(
       openFilterForColumnId,
       config.type,

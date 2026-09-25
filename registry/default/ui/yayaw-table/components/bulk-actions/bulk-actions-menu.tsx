@@ -6,6 +6,8 @@
 
 import { AnimatePresence, domAnimation, LazyMotion, m } from "framer-motion";
 import {
+  BadgeMinus,
+  BadgePlus,
   CheckCheck,
   Copy,
   Download,
@@ -182,6 +184,17 @@ export interface BulkActionsMenuProps<TData> {
    * Additional offset from the viewport bottom when the menu is fixed.
    */
   viewportBottomOffset?: number;
+
+  /** "Add tags" and "Remove tags", for tables with tags columns. */
+  tagActions?: BulkTagActions;
+}
+
+/** The bulk menu's tag actions and their labels. */
+export interface BulkTagActions {
+  addLabel: string;
+  removeLabel: string;
+  onAdd: () => void;
+  onRemove: () => void;
 }
 
 export interface BuiltInBulkActionTab {
@@ -189,6 +202,8 @@ export interface BuiltInBulkActionTab {
   icon: ComponentType<{ className?: string; size?: number }>;
   id: MenuActionId;
   kind: "built-in";
+  /** A label of its own instead of `translationKey`. */
+  label?: string;
   translationKey: string;
   translationParams?: Record<string, number | string>;
   variant: BulkActionVariant;
@@ -217,11 +232,22 @@ interface BulkActionsMenuActionTabsOptions<TData> {
   showBulkDelete: boolean;
   showBulkEdit: boolean;
   showBulkExport: boolean;
+  tagActions?: BulkTagActions;
 }
 
-type MenuActionId = "copy" | "delete" | "edit" | "export" | "selectAll";
+type MenuActionId =
+  | "addTags"
+  | "copy"
+  | "delete"
+  | "edit"
+  | "export"
+  | "removeTags"
+  | "selectAll";
 type ConfirmableMenuActionId = "copy" | "delete";
-type ExecutableBulkActionId = Exclude<MenuActionId, "selectAll">;
+type ExecutableBulkActionId = Exclude<
+  MenuActionId,
+  "addTags" | "removeTags" | "selectAll"
+>;
 export type BulkActionsMenuPositionMode = "anchored" | "fixed";
 
 interface BulkMenuOutsideClickState {
@@ -416,6 +442,7 @@ export function buildBulkActionsMenuActionTabs<TData>({
   showBulkDelete,
   showBulkEdit,
   showBulkExport,
+  tagActions,
 }: BulkActionsMenuActionTabsOptions<TData>): BulkActionsMenuActionTab<TData>[] {
   const selectedCount = selectedRows.length;
   const context = createBulkActionContext(selectedRows);
@@ -455,6 +482,26 @@ export function buildBulkActionsMenuActionTabs<TData>({
             icon: Edit,
             kind: "built-in" as const,
             translationKey: "actions.edit",
+            variant: "default" as const,
+          },
+        ]
+      : []),
+    ...(tagActions
+      ? [
+          {
+            id: "addTags" as const,
+            icon: BadgePlus,
+            kind: "built-in" as const,
+            label: tagActions.addLabel,
+            translationKey: "tags.addTags",
+            variant: "default" as const,
+          },
+          {
+            id: "removeTags" as const,
+            icon: BadgeMinus,
+            kind: "built-in" as const,
+            label: tagActions.removeLabel,
+            translationKey: "tags.removeTags",
             variant: "default" as const,
           },
         ]
@@ -711,6 +758,7 @@ export function BulkActionsMenu<TData>({
   onSelectAll,
   isSelectingAll = false,
   viewportBottomOffset,
+  tagActions,
 }: BulkActionsMenuProps<TData>) {
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const [hoveredAction, setHoveredAction] = useState<string | null>(null);
@@ -744,6 +792,7 @@ export function BulkActionsMenu<TData>({
         showBulkDelete,
         showBulkEdit,
         showBulkExport,
+        tagActions,
       }),
     [
       customBulkActions,
@@ -754,6 +803,7 @@ export function BulkActionsMenu<TData>({
       showBulkEdit,
       showBulkExport,
       showSelectAllAction,
+      tagActions,
     ]
   );
 
@@ -794,6 +844,11 @@ export function BulkActionsMenu<TData>({
     });
   };
 
+  const tagHandlers = {
+    addTags: tagActions?.onAdd,
+    removeTags: tagActions?.onRemove,
+  };
+
   const handleTabClick = (tab: BulkActionsMenuActionTab<TData>) => {
     if (isConfirmingAction) {
       return;
@@ -824,6 +879,12 @@ export function BulkActionsMenu<TData>({
       }
 
       Promise.resolve(onSelectAll()).catch(() => undefined);
+      return;
+    }
+
+    const tagHandler = tagHandlers[tab.id as "addTags" | "removeTags"];
+    if (tagHandler) {
+      tagHandler();
       return;
     }
 
@@ -927,9 +988,10 @@ export function BulkActionsMenu<TData>({
       return "";
     }
 
-    return tab.kind === "custom"
-      ? tab.label
-      : t(tab.translationKey, tab.translationParams);
+    if (tab.kind === "custom") {
+      return tab.label;
+    }
+    return tab.label ?? t(tab.translationKey, tab.translationParams);
   };
 
   const resolveConfirmText = (

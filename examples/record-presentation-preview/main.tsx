@@ -8,6 +8,7 @@ import { DashboardExample } from "../dashboard-react";
 import { DefaultSortExample } from "../default-sort-react";
 import { FeedExample } from "../feed-react";
 import { FormExample } from "../form-react";
+import { ProductsExample } from "../products-react";
 import { RecordPresentationExample } from "../record-presentation-react";
 import { ScreenExample } from "../screen-react";
 import { ServerKanbanExample } from "../server-kanban-react";
@@ -28,6 +29,9 @@ const renderExample = () => {
   }
   if (example === "assets") {
     return <AssetsExample />;
+  }
+  if (example === "products") {
+    return <ProductsExample />;
   }
   if (example === "assets-fallback") {
     return <AssetsExample scopes={false} />;

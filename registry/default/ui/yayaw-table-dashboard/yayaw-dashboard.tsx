@@ -1,15 +1,61 @@
 "use client";
 
-import { Check, Pencil, Plus, RefreshCw } from "lucide-react";
-import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
+import {
+  Check,
+  Copy,
+  LayoutGrid,
+  Pencil,
+  Pin,
+  Plus,
+  RefreshCw,
+  Rows3,
+  Settings2,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
+import {
+  lazy,
+  type ReactNode,
+  Suspense,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import type { DisplayModeRenderers } from "@/components/ui/yayaw-table/types/display-mode-renderer";
 import type { DataTableTranslations } from "@/components/ui/yayaw-table/types/translations";
+import type { ViewConfig } from "@/components/ui/yayaw-table/utils/view-config";
 import { cn } from "@/lib/utils";
 import { BlockContent, type DashboardBlockRegistry } from "./dashboard-block";
-import { AddFilterDialog, AddWidgetDialog } from "./dashboard-dialogs";
+import {
+  canAddDashboardSection,
+  canMoveDashboardSection,
+  copyDashboardWidgetView,
+  type DashboardEditorRequest,
+  type DashboardViewEdit,
+  dashboardIssueTarget,
+  dashboardSaveErrors,
+  dashboardSectionName,
+  dashboardSectionTitleInput,
+  dashboardSectionWidgetIds,
+  dashboardViewToApply,
+  dashboardWidgetMoveTargets,
+  moveDashboardSection,
+  moveDashboardWidgetToSection,
+  recordDashboardViewReport,
+  removeDashboardSection,
+  renameDashboardSection,
+  setDashboardWidgetView,
+} from "./dashboard-editor-model";
 import { DashboardFilterBar } from "./dashboard-filters";
 import {
   type DashboardLoadState,
@@ -28,21 +74,25 @@ import type {
   DashboardResize,
 } from "./dashboard-layout";
 import {
-  addDashboardFilter,
+  checkDashboardFilterValue,
   type DashboardFilterValue,
   type DashboardLabelKey,
   type DashboardNotice,
   type DashboardOpenViewContext,
+  type DashboardSetFilterResult,
   type DashboardStorage,
   type DashboardTableInfo,
   type DashboardTranslate,
   type DashboardView,
   dashboardDayValue,
+  dashboardFilterLabel,
+  dashboardFilterOptions,
   dashboardFilterRules,
   dashboardFilterValues,
   dashboardLabel,
   dashboardNoticeText,
   dashboardOpenViewContext,
+  dashboardSourceFilterRules,
   dashboardTableInstanceId,
   dashboardTranslate,
   dashboardUnavailableText,
@@ -58,22 +108,29 @@ import {
 } from "./dashboard-model";
 import { DashboardPageTable } from "./dashboard-page-table";
 import {
-  addDashboardWidget,
+  addDashboardSection,
   applyDashboardSectionLayout,
   canMoveDashboardWidget,
   canResizeDashboardWidget,
   type Dashboard,
+  type DashboardIssue,
   type DashboardSection,
+  type DashboardSectionType,
   type DashboardWidget,
   dashboardText,
   moveDashboardWidget,
   removeDashboardWidget,
   resizeDashboardWidget,
+  validateDashboard,
 } from "./dashboard-schema";
 import {
   type DashboardItemPlacement,
   DashboardSectionView,
 } from "./dashboard-section";
+import {
+  DashboardEmptySection,
+  DashboardSectionBar,
+} from "./dashboard-section-bar";
 import {
   type DashboardSourceLoader,
   type DashboardSources,
@@ -86,6 +143,7 @@ import {
   type DashboardLabel,
   type DashboardTableSource,
   DashboardWidgetFrame,
+  type DashboardWidgetMenuAction,
   EmbeddedTableWidget,
   NoteWidget,
   WidgetErrorBoundary,
@@ -103,6 +161,13 @@ export type {
   DashboardDataTableProps,
   DashboardTableSource,
 } from "./dashboard-widget";
+
+/** The editor's dialogs load with edit mode, never for readers. */
+const DashboardEditorLayer = lazy(() =>
+  import("./dashboard-editor").then((module) => ({
+    default: module.DashboardEditorLayer,
+  }))
+);
 
 export interface YayawDashboardProps {
   /**
@@ -169,6 +234,13 @@ export interface YayawDashboardProps {
 
 const NO_WIDGETS = new Set<string>();
 
+/** What the editor needs from a widget's menu. */
+interface ScreenEditor {
+  open: (request: DashboardEditorRequest) => void;
+  /** The view each full-page table reported, by widget. */
+  pageViews: Map<string, DashboardViewEdit>;
+}
+
 /** What every widget of the screen reads. */
 interface Screen {
   /** The document (edit mode changes it). */
@@ -182,6 +254,13 @@ interface Screen {
   views: Record<string, DashboardView[] | undefined>;
   blocks?: DashboardBlockRegistry;
   filterValues: Record<string, DashboardFilterValue | undefined>;
+  /** A block sets a screen filter, as the filter bar does. */
+  setFilter: (filterId: string, value: unknown) => DashboardSetFilterResult;
+  /** The rules the screen's filters give a source's requests, for blocks. */
+  filterRules: (
+    tableId: string,
+    options?: { exclude?: readonly string[] }
+  ) => Record<string, unknown>[];
   revisions: ReturnType<typeof useDashboardRevisions>;
   label: DashboardLabel;
   locale: string;
@@ -192,6 +271,7 @@ interface Screen {
   getRowId?: (row: Record<string, unknown>) => string;
   tableTranslations?: DataTableTranslations;
   openView?: YayawDashboardProps["openView"];
+  editor: ScreenEditor;
 }
 
 const blockOf = (
@@ -256,12 +336,14 @@ function BlockWidget({ flow, screen, size, widget }: WidgetContentProps) {
     <BlockContent
       block={block}
       editing={screen.editing}
+      filterRules={screen.filterRules}
       filters={screen.filterValues}
       locale={screen.locale}
       openView={screen.openView}
       props={{ ...block.defaultProps, ...widget.props }}
       refresh={screen.revisions.refresh}
       revision={screen.revisions.blockRevision}
+      setFilter={screen.setFilter}
       size={flow ? undefined : size}
       widgetId={widget.id}
     />
@@ -305,6 +387,7 @@ function WidgetContent(props: WidgetContentProps) {
   const source = state.source;
   const rules = dashboardFilterRules(screen.shown, widget, screen.today);
   if (widget.type === "table") {
+    const { pageViews } = screen.editor;
     return (
       <DashboardPageTable
         dashboardId={screen.dashboard.id}
@@ -313,6 +396,15 @@ function WidgetContent(props: WidgetContentProps) {
         locale={screen.locale}
         noticeText={screen.noticeText}
         onMutated={() => screen.revisions.mutated(tableId)}
+        onViewConfigChange={(config: ViewConfig) =>
+          pageViews.set(
+            widget.id,
+            recordDashboardViewReport(
+              pageViews.get(widget.id) ?? { initial: widget.view ?? {} },
+              config
+            )
+          )
+        }
         renderers={screen.renderers}
         revision={screen.revisions.pageRevision(tableId)}
         rules={rules}
@@ -372,11 +464,54 @@ function WidgetContent(props: WidgetContentProps) {
   );
 }
 
+/** "Add section": a grid of cards or a full-width flow, at the end. */
+function AddSectionMenu({
+  disabled,
+  label,
+  onAdd,
+}: {
+  disabled: boolean;
+  label: DashboardLabel;
+  onAdd: (type: DashboardSectionType) => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        disabled={disabled}
+        render={
+          <Button
+            data-add-section=""
+            disabled={disabled}
+            size="sm"
+            type="button"
+            variant="outline"
+          />
+        }
+      >
+        <Plus aria-hidden="true" />
+        {label("addSection")}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-44">
+        <DropdownMenuItem onClick={() => onAdd("grid")}>
+          <LayoutGrid aria-hidden="true" />
+          {label("sectionGrid")}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onAdd("flow")}>
+          <Rows3 aria-hidden="true" />
+          {label("sectionFlow")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function DashboardHeader({
+  canAddSection,
   editable,
   editing,
   label,
   name,
+  onAddSection,
   onAddWidget,
   onDone,
   onEdit,
@@ -385,11 +520,13 @@ function DashboardHeader({
   saving,
   showTitle,
 }: {
+  canAddSection: boolean;
   editable: boolean;
   /** The dashboard's name in its language. */
   name: string;
   editing: boolean;
   label: DashboardLabel;
+  onAddSection: (type: DashboardSectionType) => void;
   onAddWidget: () => void;
   onDone: () => void;
   onEdit: () => void;
@@ -434,6 +571,13 @@ function DashboardHeader({
             {label("addWidget")}
           </Button>
         )}
+        {editing && (
+          <AddSectionMenu
+            disabled={!canAddSection}
+            label={label}
+            onAdd={onAddSection}
+          />
+        )}
         {editable && editing && (
           <Button disabled={saving} onClick={onDone} size="sm" type="button">
             <Check aria-hidden="true" />
@@ -448,6 +592,83 @@ function DashboardHeader({
         )}
       </div>
     </header>
+  );
+}
+
+/** Why "Done" did not save: `validateDashboard`'s errors, each named by what it is about. */
+function SaveIssues({
+  dashboard,
+  issues,
+  label,
+  locale,
+  onDismiss,
+  titleOf,
+  translate,
+}: {
+  dashboard: Dashboard;
+  issues: readonly DashboardIssue[];
+  label: DashboardLabel;
+  locale: string;
+  onDismiss: () => void;
+  titleOf: (widget: DashboardWidget) => string;
+  translate: DashboardTranslate;
+}) {
+  const subject = (issue: DashboardIssue): string => {
+    const target = dashboardIssueTarget(dashboard, issue);
+    const widget = dashboard.widgets.find(
+      (item) => item.id === target.widgetId
+    );
+    if (widget) {
+      return titleOf(widget);
+    }
+    if (target.sectionId) {
+      return dashboardSectionName(
+        dashboard,
+        target.sectionId,
+        locale,
+        translate
+      );
+    }
+    const filter = dashboard.filters.find(
+      (item) => item.id === target.filterId
+    );
+    return filter ? dashboardFilterLabel(filter, locale) : (issue.path ?? "");
+  };
+  return (
+    <div
+      className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm"
+      data-dashboard-issues=""
+      role="alert"
+    >
+      <div className="min-w-0 flex-1">
+        <p className="m-0 font-medium text-destructive">
+          {label("saveIssues")}
+        </p>
+        <ul className="m-0 mt-1 list-disc ps-5">
+          {issues.map((issue) => {
+            const name = subject(issue);
+            return (
+              <li
+                data-issue-code={issue.code}
+                key={`${issue.code}:${issue.path ?? ""}:${issue.message}`}
+              >
+                {name ? `${name}: ` : ""}
+                {issue.message}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+      <Button
+        aria-label={label("dismiss")}
+        onClick={onDismiss}
+        size="icon-sm"
+        type="button"
+        variant="ghost"
+      >
+        <X aria-hidden="true" />
+      </Button>
+    </div>
   );
 }
 
@@ -477,6 +698,15 @@ const loadedInfos = (
   return infos;
 };
 
+/** A ready source's name and columns. */
+const tableInfoOf = (
+  loader: DashboardSourceLoader<DashboardTableSource>,
+  id: string
+): DashboardTableInfo | undefined => {
+  const state = loader.state(id);
+  return state?.status === "ready" ? tableInfo(id, state.source) : undefined;
+};
+
 interface WidgetItemProps {
   screen: Screen;
   widget: DashboardWidget;
@@ -486,6 +716,79 @@ interface WidgetItemProps {
   placement: DashboardItemPlacement;
   update: (change: (current: Dashboard) => Dashboard) => void;
   announce: (message: string) => void;
+}
+
+const SOURCED = new Set<DashboardWidget["type"]>(["view", "kpi", "table"]);
+
+/**
+ * The editor's entries of a widget's menu: edit it, edit its view in the live
+ * table, use a copy of its saved view, make a full-page table's current view
+ * the screen's default.
+ */
+function widgetMenuActions({
+  announce,
+  availability,
+  screen,
+  title,
+  update,
+  widget,
+}: Pick<
+  WidgetItemProps,
+  "announce" | "availability" | "screen" | "title" | "update" | "widget"
+>): DashboardWidgetMenuAction[] {
+  const { editor, label } = screen;
+  const widgetId = widget.id;
+  const actions: DashboardWidgetMenuAction[] = [
+    {
+      id: "edit",
+      label: label("editWidget"),
+      icon: Settings2,
+      onSelect: () => editor.open({ kind: "editWidget", widgetId }),
+    },
+  ];
+  const ready = availability.status === "ready";
+  if (SOURCED.has(widget.type) && ready) {
+    actions.push({
+      id: "edit-view",
+      label: label("editView"),
+      icon: SlidersHorizontal,
+      onSelect: () => editor.open({ kind: "editView", widgetId }),
+    });
+  }
+  const saved =
+    widget.viewId && !widget.view
+      ? screen.views[widget.tableId ?? ""]?.find(
+          (view) => view.id === widget.viewId
+        )
+      : undefined;
+  if (saved) {
+    actions.push({
+      id: "copy-view",
+      label: label("useViewCopy"),
+      icon: Copy,
+      onSelect: () => {
+        update((current) => copyDashboardWidgetView(current, widgetId, saved));
+        announce(label("viewCopied", { title }));
+      },
+    });
+  }
+  if (widget.type === "table" && ready) {
+    actions.push({
+      id: "screen-default",
+      label: label("makeScreenDefault"),
+      icon: Pin,
+      onSelect: () => {
+        const live = editor.pageViews.get(widgetId);
+        const view = live ? dashboardViewToApply(live) : undefined;
+        if (view) {
+          update((current) => setDashboardWidgetView(current, widgetId, view));
+          announce(label("screenDefaultSet"));
+          toast.success(label("screenDefaultSet"));
+        }
+      },
+    });
+  }
+  return actions;
 }
 
 /** A widget in its frame (a card, or none for a full-page table), its errors contained. */
@@ -520,6 +823,14 @@ function WidgetItem({
       ? section.layout.find((item) => item.widgetId === widgetId)
       : undefined;
   const page = widget.type === "table";
+  const editing = screen.editing;
+  const moveTargets = editing
+    ? dashboardWidgetMoveTargets(dashboard, widgetId, {
+        blocks: screen.blocks,
+        locale: screen.locale,
+        translate: screen.translate,
+      })
+    : undefined;
   return (
     <DashboardWidgetFrame
       canMove={(direction) =>
@@ -529,13 +840,42 @@ function WidgetItem({
         canResizeDashboardWidget(dashboard, widgetId, change)
       }
       draggable={!(phone || flow)}
-      editing={screen.editing}
+      editing={editing}
       frame={page ? "page" : "card"}
       headingLevel={titled ? 4 : 3}
       label={label}
+      menuActions={
+        editing
+          ? widgetMenuActions({
+              announce,
+              availability,
+              screen,
+              title,
+              update,
+              widget,
+            })
+          : undefined
+      }
+      moveTargets={moveTargets}
       onMove={(direction: DashboardDirection) => {
         update((current) => moveDashboardWidget(current, widgetId, direction));
         announce(label("moved", { title }));
+      }}
+      onMoveToSection={(sectionId) => {
+        const target = moveTargets?.find((item) => item.id === sectionId);
+        update((current) =>
+          moveDashboardWidgetToSection(current, widgetId, sectionId, {
+            blocks: screen.blocks,
+            size: dashboardWidgetSize(widget, {
+              views: screen.views[tableId ?? ""],
+              table: tableId ? tableInfoOf(screen.loader, tableId) : undefined,
+              block: blockOf(screen.blocks, widget.block),
+            }),
+          })
+        );
+        announce(
+          label("movedToSection", { title, section: target?.name ?? sectionId })
+        );
       }}
       onOpen={open}
       onRemove={() =>
@@ -650,9 +990,10 @@ function DashboardScreen({
   const storage = actions?.dashboards;
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [addingWidget, setAddingWidget] = useState(false);
-  const [addingFilter, setAddingFilter] = useState(false);
+  const [request, setRequest] = useState<DashboardEditorRequest | null>(null);
+  const [issues, setIssues] = useState<DashboardIssue[]>([]);
   const [announcement, setAnnouncement] = useState("");
+  const pageViews = useRef(new Map<string, DashboardViewEdit>());
   const screenIds = useMemo(() => dashboardSourceIds(dashboard), [dashboard]);
   const tableIds = useMemo(() => Object.keys(tables ?? {}), [tables]);
   // Readers load what the screen shows; editors also the tables they may add.
@@ -691,14 +1032,25 @@ function DashboardScreen({
     [setDocument]
   );
 
+  // "Done" saves version 2 once `validateDashboard` finds no error.
   const save = async () => {
     if (!storage) {
       return;
     }
+    const checked = validateDashboard(dashboard, { blocks });
+    if (!(checked.ok && checked.dashboard)) {
+      setIssues(dashboardSaveErrors(checked.issues));
+      return;
+    }
+    setIssues([]);
     setSaving(true);
     try {
-      await storage.save({ ...dashboard, updatedAt: new Date().toISOString() });
+      await storage.save({
+        ...checked.dashboard,
+        updatedAt: new Date().toISOString(),
+      });
       setEditing(false);
+      setRequest(null);
       toast.success(label("saved"));
     } catch (error) {
       toast.error(label("saveError", { error: errorText(error) }));
@@ -715,6 +1067,17 @@ function DashboardScreen({
     }
   };
 
+  // Readers' values go to the URL; edit mode changes the document's defaults.
+  const setFilterValue = (
+    filterId: string,
+    value: DashboardFilterValue | undefined
+  ) => {
+    if (editing) {
+      update((current) => setDashboardFilterValue(current, filterId, value));
+    } else {
+      viewer.set(filterId, value);
+    }
+  };
   // Edit mode shows and changes the document's default filter values.
   const shown = editing
     ? dashboard
@@ -725,10 +1088,13 @@ function DashboardScreen({
     hasBlock: (key: string) => Boolean(blockOf(blocks, key)),
   };
   const hides = !editing && unavailableWidgets === "hide";
-  const sections = dashboardVisibleSections(
-    dashboard.sections,
-    hides ? dashboardUnavailableWidgetIds(dashboard, context) : NO_WIDGETS
-  );
+  // Edit mode shows every section, empty ones included.
+  const sections = editing
+    ? dashboard.sections
+    : dashboardVisibleSections(
+        dashboard.sections,
+        hides ? dashboardUnavailableWidgetIds(dashboard, context) : NO_WIDGETS
+      );
   const screen: Screen = {
     dashboard,
     shown,
@@ -739,6 +1105,23 @@ function DashboardScreen({
     views,
     blocks,
     filterValues: dashboardFilterValues(shown, today),
+    setFilter: (filterId, value) => {
+      const filter = dashboard.filters.find((item) => item.id === filterId);
+      const checked = checkDashboardFilterValue(dashboard, filterId, value, {
+        options: filter ? dashboardFilterOptions(filter, infos) : undefined,
+        locale,
+        translate,
+      });
+      if (checked.ok) {
+        setFilterValue(filterId, checked.value);
+      }
+      return checked;
+    },
+    filterRules: (tableId, options) =>
+      dashboardSourceFilterRules(shown, tableId, {
+        exclude: options?.exclude,
+        today,
+      }),
     revisions,
     label,
     locale,
@@ -749,6 +1132,7 @@ function DashboardScreen({
     getRowId,
     tableTranslations,
     openView,
+    editor: { open: setRequest, pageViews: pageViews.current },
   };
   const widgets = new Map(
     dashboard.widgets.map((widget) => [widget.id, widget])
@@ -757,7 +1141,9 @@ function DashboardScreen({
     dashboardWidgetTitle(widget, {
       locale,
       translate,
-      table: widget.tableId ? infos[widget.tableId] : undefined,
+      table: widget.tableId
+        ? (infos[widget.tableId] ?? tableInfoOf(loader, widget.tableId))
+        : undefined,
       view: views[widget.tableId ?? ""]?.find(
         (view) => view.id === widget.viewId
       ),
@@ -782,6 +1168,42 @@ function DashboardScreen({
       />
     ) : null;
   };
+  const sectionBar = (section: DashboardSection) => {
+    const name = dashboardSectionName(dashboard, section.id, locale, translate);
+    return (
+      <DashboardSectionBar
+        canMove={(direction) =>
+          canMoveDashboardSection(dashboard, section.id, direction)
+        }
+        label={label}
+        name={name}
+        onAddWidget={() =>
+          setRequest({ kind: "addWidget", sectionId: section.id })
+        }
+        onMove={(direction) => {
+          update((current) =>
+            moveDashboardSection(current, section.id, direction)
+          );
+          setAnnouncement(label("moved", { title: name }));
+        }}
+        onRemove={() => {
+          if (dashboardSectionWidgetIds(section).length) {
+            setRequest({ kind: "removeSection", sectionId: section.id });
+            return;
+          }
+          update((current) => removeDashboardSection(current, section.id));
+          setAnnouncement(label("sectionRemoved", { title: name }));
+        }}
+        onRename={(title) =>
+          update((current) =>
+            renameDashboardSection(current, section.id, title, locale)
+          )
+        }
+        section={section}
+        titleInput={dashboardSectionTitleInput(section, locale)}
+      />
+    );
+  };
 
   return (
     <div
@@ -790,14 +1212,19 @@ function DashboardScreen({
       data-editing={editing ? "" : undefined}
     >
       <DashboardHeader
+        canAddSection={canAddDashboardSection(dashboard)}
         editable={canEdit && Boolean(storage?.save)}
         editing={editing}
         label={label}
         name={dashboardText(dashboard.name, locale)}
-        onAddWidget={() => setAddingWidget(true)}
+        onAddSection={(type) =>
+          update((current) => addDashboardSection(current, { type }))
+        }
+        onAddWidget={() => setRequest({ kind: "addWidget" })}
         onDone={save}
         onEdit={() => {
           viewer.clear();
+          setIssues([]);
           setEditing(true);
         }}
         onRefresh={refreshAll}
@@ -810,21 +1237,24 @@ function DashboardScreen({
         saving={saving}
         showTitle={showTitle}
       />
+      {editing && issues.length ? (
+        <SaveIssues
+          dashboard={dashboard}
+          issues={issues}
+          label={label}
+          locale={locale}
+          onDismiss={() => setIssues([])}
+          titleOf={titleOf}
+          translate={translate}
+        />
+      ) : null}
       <DashboardFilterBar
         editing={editing}
         filters={shown.filters}
         label={label}
         locale={locale}
-        onAddFilter={() => setAddingFilter(true)}
-        onChange={(filterId, value) => {
-          if (editing) {
-            update((current) =>
-              setDashboardFilterValue(current, filterId, value)
-            );
-          } else {
-            viewer.set(filterId, value);
-          }
-        }}
+        onAddFilter={() => setRequest({ kind: "addFilter" })}
+        onChange={setFilterValue}
         onRemove={(filterId) =>
           update((current) => removeDashboardFilter(current, filterId))
         }
@@ -832,10 +1262,19 @@ function DashboardScreen({
         translate={translate}
       />
       {/* Widgets query once the reader's filter values are read from the URL. */}
-      {viewer.ready && dashboard.widgets.length
+      {viewer.ready && (editing || dashboard.widgets.length)
         ? sections.map((section) => (
             <DashboardSectionView
+              editBar={sectionBar(section)}
               editing={editing}
+              empty={
+                <DashboardEmptySection
+                  label={label}
+                  onAddWidget={() =>
+                    setRequest({ kind: "addWidget", sectionId: section.id })
+                  }
+                />
+              }
               key={section.id}
               onLayoutChange={(layout: DashboardLayoutItem[]) =>
                 update((current) =>
@@ -858,40 +1297,30 @@ function DashboardScreen({
       <output aria-live="polite" className="sr-only">
         {announcement}
       </output>
-      {editing && (
-        <>
-          <AddWidgetDialog
-            label={label}
-            locale={locale}
-            onAdd={(widget) =>
-              update((current) =>
-                addDashboardWidget(current, widget, {
-                  size: dashboardWidgetSize(widget, {
-                    views: views[widget.tableId ?? ""],
-                    table: infos[widget.tableId ?? ""],
-                  }),
-                })
-              )
-            }
-            onOpenChange={setAddingWidget}
-            open={addingWidget}
-            tables={infos}
-            translate={translate}
-            views={views}
-          />
-          <AddFilterDialog
-            label={label}
-            onAdd={(filter) =>
-              update((current) => addDashboardFilter(current, filter))
-            }
-            onOpenChange={setAddingFilter}
-            open={addingFilter}
-            tables={Object.fromEntries(
+      {editing ? (
+        <Suspense fallback={null}>
+          <DashboardEditorLayer
+            announce={setAnnouncement}
+            blocks={blocks}
+            dashboard={dashboard}
+            filterTables={Object.fromEntries(
               Object.entries(infos).filter(([id]) => screenIds.includes(id))
             )}
+            getRowId={getRowId}
+            label={label}
+            loader={loader}
+            locale={locale}
+            onClose={() => setRequest(null)}
+            renderers={displayModeRenderers}
+            request={request}
+            tableTranslations={tableTranslations}
+            titleOf={titleOf}
+            translate={translate}
+            update={update}
+            views={views}
           />
-        </>
-      )}
+        </Suspense>
+      ) : null}
     </div>
   );
 }
@@ -904,7 +1333,10 @@ function DashboardScreen({
  * toolbar and URL, and the host's blocks. Sources load lazily from the
  * host's catalogue; unavailable ones show a notice and are never removed.
  * Filters join every targeted request; the values readers pick stay in the
- * URL. Older JSON is migrated on load and saved as version 2.
+ * URL. Older JSON is migrated on load and saved as version 2. In edit mode
+ * (loaded on demand), sections are added, renamed, moved and removed,
+ * widgets are added and edited in a three-step dialog (what, source,
+ * settings) and views are edited in the live table.
  */
 export function YayawDashboard(props: YayawDashboardProps) {
   const { dashboard, setDashboard, state } = useDashboardDocument({

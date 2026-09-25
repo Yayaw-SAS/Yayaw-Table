@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronDown, Plus } from "lucide-vue-next";
+import { Ellipsis, Plus } from "lucide-vue-next";
 import {
   DropdownMenuContent,
   DropdownMenuItem,
@@ -11,6 +11,7 @@ import { computed } from "vue";
 import type { TableDisplayMode } from "../../types";
 import { splitViewTabs } from "../../view-tabs";
 import { displayModeIcons } from "./display-mode-icons";
+import TableTooltip from "./TableTooltip.vue";
 
 export interface ViewTabItem {
   /** `null` for the table's default view. */
@@ -25,6 +26,7 @@ const props = defineProps<{
   defaultTab: ViewTabItem;
   dirty: boolean;
   disabled: boolean;
+  /** `more` names the "…" button of the views past `maxVisible`. */
   labels: { tabs: string; more: string; newView: string; modified: string };
   maxVisible: number;
   views: ViewTabItem[];
@@ -60,11 +62,14 @@ const tabs = computed(() => [props.defaultTab, ...split.value.visible]);
         <output v-if="(tab.id || null) === activeId && dirty" class="yayaw-view-dirty" :aria-label="labels.modified" />
       </button>
     </div>
+    <!-- An icon: the chevron next to it opens the view menu. -->
     <DropdownMenuRoot v-if="split.overflow.length" :modal="false">
       <DropdownMenuTrigger as-child>
-        <button type="button" class="yayaw-button yayaw-button-ghost yayaw-view-more" :disabled="disabled">
-          {{ labels.more }}<ChevronDown :size="12" aria-hidden="true" />
-        </button>
+        <TableTooltip :label="labels.more">
+          <button type="button" class="yayaw-button yayaw-button-ghost yayaw-icon-only yayaw-view-more" :aria-label="labels.more" :disabled="disabled">
+            <Ellipsis :size="16" aria-hidden="true" />
+          </button>
+        </TableTooltip>
       </DropdownMenuTrigger>
       <DropdownMenuPortal>
         <DropdownMenuContent class="yayaw-column-menu" align="start" :side-offset="4">

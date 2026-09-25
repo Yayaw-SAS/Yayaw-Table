@@ -135,10 +135,19 @@ export interface FileTreeHooks<TDetails = unknown> {
   canRename?: (row: Row) => boolean;
 }
 
+/** Folders outside the File tree view (the other views' toolbar and filters). */
+export interface FileTreeTableOptions {
+  /** "New folder" in the toolbar of the other views (default true). */
+  newFolderAction?: boolean;
+  /** The parent column filters with a folder picker, the root included (default true). */
+  folderFilter?: boolean;
+}
+
 /** `table.filetree`: defaults for every view plus the host hooks; `false` turns the mode off. */
 export interface FileTreeTableConfig<TDetails = unknown>
   extends FileTreeViewSettings,
-    FileTreeHooks<TDetails> {}
+    FileTreeHooks<TDetails>,
+    FileTreeTableOptions {}
 
 export interface ResolvedFileTreeSettings {
   parentColumn: string;
@@ -469,6 +478,11 @@ const EN_LABELS = {
   resizeDetails: "Resize the details pane",
   noSelection: "Select an item to see its details",
   contents: "Items",
+  rootFolder: "Root",
+  parentFolder: "Parent folder",
+  inFolder: "In",
+  noFolders: "No folders",
+  createFailed: "The folder could not be created.",
 } as const;
 
 const FR_LABELS: Record<FileTreeLabelKey, string> = {
@@ -572,6 +586,11 @@ const FR_LABELS: Record<FileTreeLabelKey, string> = {
   resizeDetails: "Redimensionner le volet de détails",
   noSelection: "Sélectionnez un élément pour voir ses détails",
   contents: "Éléments",
+  rootFolder: "Racine",
+  parentFolder: "Dossier parent",
+  inFolder: "Dans",
+  noFolders: "Aucun dossier",
+  createFailed: "Le dossier n’a pas pu être créé.",
 };
 
 export type FileTreeTranslate = (key: string, fallback: string) => string;

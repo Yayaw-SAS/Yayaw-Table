@@ -87,6 +87,7 @@ import { planningLabelOverrides } from "../../planning/labels";
 import { formLabel } from "../../form-view";
 import { ganttSettingsLabels } from "../../planning/settings";
 import { availableDisplayModes } from "../../view-menu";
+import { canonicalViewConfig } from "../../view-config";
 import { isManualOrder, MANUAL_ORDER_SORT_ID, manualOrderSorting } from "../../manual-order";
 import GallerySettings from "./GallerySettings.vue";
 import ListSettings from "./ListSettings.vue";
@@ -95,6 +96,8 @@ import TableSelect from "../controls/TableSelect.vue";
 import DisplayModeRendererSettings from "./DisplayModeRendererSettings.vue";
 import KanbanSettings from "./KanbanSettings.vue";
 import AdvancedFilters from "../filters/AdvancedFilters.vue";
+import FacetsToggle from "../facets/FacetsToggle.vue";
+import NewFolderButton from "../folders/NewFolderButton.vue";
 import { useToolbarLayout } from "../../composables/use-toolbar-layout";
 import { getViewModeCapabilities, sharePageUrl } from "../../view-menu";
 
@@ -200,6 +203,8 @@ const isCreateEnabled = computed(
 );
 const actionContext = computed<ToolbarActionContext>(() => ({
   actionsAsIcons: actionsAsIcons.value,
+  // Toolbar actions read the live view when they run.
+  getViewConfig: () => canonicalViewConfig(context.state.snapshot.value),
   clearSelection: context.clearSelection,
   count: context.selectedRows.value.length,
   data: context.data.rows.value,
@@ -702,6 +707,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
       :search-label="translate('search', 'Search…')" :export-label="translate('export', 'Export')" :share-label="translate('url_state.share', 'Share')"
       :pending-action="pendingAction" :is-exporting="isExporting" :disabled="toolbarActionDisabled" :variant="toolbarActionVariant"
       @action="runAction" @share="shareLink" />
+    <FacetsToggle :compact="compact" />
     <ToolbarMenu v-model:open="optionsOpen" :compact="compact" align="end"
       :title="optionsTitle"
       :back="optionsView !== 'main'" :back-label="translate('back', 'Back')" :close-label="translate('close', 'Close')" @back="optionsView = 'main'">
@@ -1077,6 +1083,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
               :default-file-name="defaultExportFileName(String(context.translations.value.title ?? context.config.id))"
               :selected-count="context.selectedRows.value.length" @export="exportRows" />
     </ToolbarMenu>
+    <NewFolderButton :compact="compact" :actions-as-icons="actionsAsIcons" />
     <template v-if="compact">
       <button v-if="isCreateEnabled" type="button" class="yayaw-button yayaw-icon-only" :aria-label="translate('add_an_item', 'Add item')" @click="context.openCreate()"><Plus :size="16" /></button>
     </template>

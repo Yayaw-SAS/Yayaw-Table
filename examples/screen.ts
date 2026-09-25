@@ -33,32 +33,32 @@ const options = (values: [string, string][]) =>
 
 // Pages ---------------------------------------------------------------------------
 
-/** Pages: [title, status, author, updated days from today, views]. */
-const PAGES: [string, string, string, number, number][] = [
-  ["Home", "published", "Ada Martin", -1, 1840],
-  ["About us", "published", "Léa Dubois", -3, 420],
-  ["Pricing", "published", "Noah Petit", -2, 960],
-  ["Contact", "published", "Sam Chen", -12, 310],
-  ["Blog", "published", "Ada Martin", -4, 780],
-  ["Careers", "published", "Léa Dubois", -20, 150],
-  ["Spring launch", "published", "Noah Petit", -6, 640],
-  ["Customer stories", "published", "Sam Chen", -9, 270],
-  ["Help center", "published", "Ada Martin", -15, 510],
-  ["Security", "published", "Noah Petit", -40, 90],
-  ["Partners", "published", "Léa Dubois", -33, 120],
-  ["Changelog", "published", "Sam Chen", -1, 330],
-  ["Summer campaign", "draft", "Noah Petit", 0, 0],
-  ["Webinar series", "draft", "Ada Martin", -2, 0],
-  ["Integrations", "draft", "Sam Chen", -5, 0],
-  ["Team page", "draft", "Léa Dubois", -8, 0],
-  ["Events", "draft", "Noah Petit", -25, 0],
-  ["Press kit", "review", "Léa Dubois", -1, 0],
-  ["Accessibility", "review", "Ada Martin", -3, 0],
-  ["Case study: Atlas", "review", "Sam Chen", -7, 0],
-  ["Terms of service", "review", "Noah Petit", -11, 0],
-  ["Old pricing", "archived", "Ada Martin", -80, 45],
-  ["Winter sale", "archived", "Sam Chen", -120, 12],
-  ["Beta program", "archived", "Léa Dubois", -65, 8],
+/** Pages: [title, status, author, updated days from today, views, section]. */
+const PAGES: [string, string, string, number, number, string][] = [
+  ["Home", "published", "Ada Martin", -1, 1840, "marketing"],
+  ["About us", "published", "Léa Dubois", -3, 420, "company"],
+  ["Pricing", "published", "Noah Petit", -2, 960, "product"],
+  ["Contact", "published", "Sam Chen", -12, 310, "support"],
+  ["Blog", "published", "Ada Martin", -4, 780, "marketing"],
+  ["Careers", "published", "Léa Dubois", -20, 150, "company"],
+  ["Spring launch", "published", "Noah Petit", -6, 640, "marketing"],
+  ["Customer stories", "published", "Sam Chen", -9, 270, "marketing"],
+  ["Help center", "published", "Ada Martin", -15, 510, "support"],
+  ["Security", "published", "Noah Petit", -40, 90, "product"],
+  ["Partners", "published", "Léa Dubois", -33, 120, "company"],
+  ["Changelog", "published", "Sam Chen", -1, 330, "product"],
+  ["Summer campaign", "draft", "Noah Petit", 0, 0, "marketing"],
+  ["Webinar series", "draft", "Ada Martin", -2, 0, "marketing"],
+  ["Integrations", "draft", "Sam Chen", -5, 0, "product"],
+  ["Team page", "draft", "Léa Dubois", -8, 0, "company"],
+  ["Events", "draft", "Noah Petit", -25, 0, "marketing"],
+  ["Press kit", "review", "Léa Dubois", -1, 0, "company"],
+  ["Accessibility", "review", "Ada Martin", -3, 0, "support"],
+  ["Case study: Atlas", "review", "Sam Chen", -7, 0, "marketing"],
+  ["Terms of service", "review", "Noah Petit", -11, 0, "support"],
+  ["Old pricing", "archived", "Ada Martin", -80, 45, "product"],
+  ["Winter sale", "archived", "Sam Chen", -120, 12, "marketing"],
+  ["Beta program", "archived", "Léa Dubois", -65, 8, "product"],
 ];
 
 export interface ScreenPage {
@@ -68,18 +68,34 @@ export interface ScreenPage {
   author: string;
   updatedAt: string;
   views: number;
+  section: string;
 }
 
 /** The pages, updated relative to `today`. */
 export const screenPageRows = (today: Date = new Date()): ScreenPage[] =>
-  PAGES.map(([title, status, author, updated, views], index) => ({
+  PAGES.map(([title, status, author, updated, views, section], index) => ({
     id: `page-${index + 1}`,
     title,
     status,
     author,
     updatedAt: demoDay(updated, today),
     views,
+    section,
   }));
+
+/** The column the "Sections" facet block lists and the `section` filter targets. */
+export const pageSectionColumn = {
+  id: "section",
+  header: "Section",
+  type: "select" as const,
+  displayVariant: "tag" as const,
+  options: options([
+    ["marketing", "Marketing"],
+    ["product", "Product"],
+    ["company", "Company"],
+    ["support", "Support"],
+  ]),
+};
 
 export const pageColumns = [
   { id: "title", header: "Title", type: "text" as const },
@@ -108,6 +124,7 @@ export const pageColumns = [
   },
   { id: "updatedAt", header: "Updated", type: "date" as const },
   { id: "views", header: "Views", type: "number" as const },
+  pageSectionColumn,
 ];
 
 /** The Pages list page: URL state, saved views, selection and bulk delete. */
@@ -345,6 +362,8 @@ export interface ScreenHost<S> {
   /** The rows the sources serve, for the blocks. */
   pages: ScreenPage[];
   media: ScreenMedia[];
+  /** The Pages source's `list` and `aggregate`, for the "Sections" facet block. */
+  pageActions: ReturnType<typeof createDemoActions>;
 }
 
 const idOf = (prefix: string, rows: readonly Row[]) => {
@@ -491,6 +510,7 @@ export function createScreenHost<S>(
   return {
     pages,
     media,
+    pageActions: createDemoActions(pages as unknown as Row[]),
     sources: {
       list: () => Promise.resolve(summaries),
       load: async (id) => {
@@ -512,18 +532,84 @@ export function createScreenHost<S>(
 
 /** A link of the `shortcuts` block. */
 export interface ScreenShortcut {
-  label: Text;
+  /** One text, or one per language. */
+  label: Text | string;
   href: string;
 }
 
-export const screenText = (text: Text, locale: string): string =>
-  locale.toLowerCase().startsWith("fr") ? text.fr : text.en;
+export const screenText = (text: Text | string, locale: string): string => {
+  if (typeof text === "string") {
+    return text;
+  }
+  return locale.toLowerCase().startsWith("fr") ? text.fr : text.en;
+};
+
+/** What the `attention` block can list: pages waiting for review, images without alt text. */
+export const ATTENTION_ITEMS = ["review", "alt"] as const;
+export type ScreenAttentionId = (typeof ATTENTION_ITEMS)[number];
 
 /** Something the `attention` block asks to deal with. */
 export interface ScreenAttentionItem {
-  id: "review" | "alt";
+  id: ScreenAttentionId;
   count: number;
   text: string;
+}
+
+const isAttentionId = (value: unknown): value is ScreenAttentionId =>
+  ATTENTION_ITEMS.includes(value as ScreenAttentionId);
+
+/** The items the `attention` block lists (its `items` prop; all of them without one). */
+export const attentionItems = (props: Row): ScreenAttentionId[] =>
+  Array.isArray(props.items)
+    ? ATTENTION_ITEMS.filter((id) => (props.items as unknown[]).includes(id))
+    : [...ATTENTION_ITEMS];
+
+/** The `attention` block's props with an item listed or not, in the block's order. */
+export const toggleAttentionItem = (
+  props: Row,
+  id: ScreenAttentionId,
+  listed: boolean
+): Row => {
+  const items = new Set(attentionItems(props));
+  if (listed) {
+    items.add(id);
+  } else {
+    items.delete(id);
+  }
+  return { ...props, items: ATTENTION_ITEMS.filter((item) => items.has(item)) };
+};
+
+/** What the `attention` block's settings call its items. */
+export const attentionItemLabel = (
+  id: ScreenAttentionId,
+  locale: string
+): string =>
+  screenText(
+    id === "review"
+      ? { en: "Pages waiting for review", fr: "Pages en attente de relecture" }
+      : { en: "Images without alt text", fr: "Images sans texte alternatif" },
+    locale
+  );
+
+/** What the `attention` block's settings call the list of items. */
+export const attentionSettingsLegend = (locale: string): string =>
+  screenText({ en: "Items listed", fr: "Éléments listés" }, locale);
+
+/** The problems of the `attention` block's props: `items` lists known items. */
+export function attentionProblems(
+  props: Row
+): { message: string; path: string }[] | undefined {
+  const { items } = props;
+  const known =
+    items === undefined || (Array.isArray(items) && items.every(isAttentionId));
+  return known
+    ? undefined
+    : [
+        {
+          message: `items lists some of ${ATTENTION_ITEMS.join(", ")}.`,
+          path: "items",
+        },
+      ];
 }
 
 const inRange = (day: string, range: unknown): boolean => {
@@ -538,7 +624,8 @@ const inRange = (day: string, range: unknown): boolean => {
 export function screenAttention(
   host: Pick<ScreenHost<unknown>, "pages" | "media">,
   filters: Readonly<Record<string, DashboardFilterValue | undefined>>,
-  locale: string
+  locale: string,
+  listed: readonly ScreenAttentionId[] = ATTENTION_ITEMS
 ): ScreenAttentionItem[] {
   const authors = Array.isArray(filters.author) ? filters.author : [];
   const review = host.pages.filter(
@@ -571,7 +658,7 @@ export function screenAttention(
         : `${alt} images without alt text`,
     },
   ];
-  return items.filter((item) => item.count > 0);
+  return items.filter((item) => item.count > 0 && listed.includes(item.id));
 }
 
 /** The views the `attention` block opens: pages waiting for review, images without alt text. */
@@ -625,8 +712,9 @@ const kpi = (
 /**
  * The "Content admin" screen: an overview grid (two numbers over inline
  * views, the storage, an audit number whose source is forbidden, the
- * shortcuts and attention blocks, a gallery of recent uploads), then the Pages
- * list page. Filters: the period (pages and media) and the author.
+ * shortcuts and attention blocks, a gallery of recent uploads), then the
+ * "Sections" facet list and the Pages list page. Filters: the period (pages
+ * and media), the author and the section (which the facet list sets).
  */
 export const contentAdminScreen = {
   version: 2,
@@ -651,7 +739,7 @@ export const contentAdminScreen = {
       id: "pages",
       type: "flow",
       title: { en: "Pages", fr: "Pages" },
-      widgetIds: ["pages-table"],
+      widgetIds: ["page-sections", "pages-table"],
     },
   ],
   widgets: [
@@ -727,6 +815,16 @@ export const contentAdminScreen = {
       settings: {},
     },
     { id: "attention", type: "block", block: "attention", settings: {} },
+    // The "Sections" facet list: a click sets the `section` filter, which
+    // the Pages table (and the numbers) follow.
+    {
+      id: "page-sections",
+      type: "block",
+      block: "pages.sections",
+      title: { en: "Sections", fr: "Rubriques" },
+      props: { layout: "chips" },
+      settings: {},
+    },
     {
       id: "pages-table",
       type: "table",
@@ -754,12 +852,62 @@ export const contentAdminScreen = {
       label: { en: "Author", fr: "Auteur" },
       targets: [{ tableId: "pages", columnId: "author" }],
     },
+    {
+      id: "section",
+      type: "select",
+      label: { en: "Section", fr: "Rubrique" },
+      targets: [{ tableId: "pages", columnId: "section" }],
+    },
   ],
 } satisfies Record<string, unknown>;
+
+/**
+ * The options of the "Sections" facet list block (`pages.sections`), given
+ * to each edition's `createFacetBlock`: the pages' sections with their
+ * numbers under the screen's other filters; a click sets the `section` filter.
+ */
+export const screenSectionBlockOptions = (
+  host: Pick<ScreenHost<unknown>, "pageActions">
+) => ({
+  filterId: "section",
+  tableId: "pages",
+  column: pageSectionColumn,
+  actions: host.pageActions,
+  label: { en: "Sections", fr: "Rubriques" },
+  group: "CMS",
+  placement: "any" as const,
+  defaultSize: { w: 1, h: 2 },
+  layout: "chips" as const,
+});
 
 /** The screen's storage: in memory, mirrored in the tab's session storage. */
 export const createScreenStorage = () =>
   createDemoDashboardStorage([contentAdminScreen as unknown as Dashboard]);
+
+/** The problems of the `shortcuts` block's props: a list of links, each with a label and an href. */
+export function shortcutProblems(
+  props: Row
+): { message: string; path: string }[] | undefined {
+  const { links } = props;
+  if (links === undefined) {
+    return;
+  }
+  if (!Array.isArray(links)) {
+    return [{ message: "links is a list of { label, href }.", path: "links" }];
+  }
+  const problems = links.flatMap((link: unknown, index) => {
+    const entry = (link ?? {}) as Row;
+    return typeof entry.href === "string" && entry.label !== undefined
+      ? []
+      : [
+          {
+            message: "Each link has a label and an href.",
+            path: `links[${index}]`,
+          },
+        ];
+  });
+  return problems.length ? problems : undefined;
+}
 
 /** The block keys the demo host has, with their labels (the host's registry adds components). */
 export const SCREEN_BLOCKS: Record<
@@ -773,6 +921,7 @@ export const SCREEN_BLOCKS: Record<
     placement: "any",
     defaultSize: { w: 1, h: 2 },
     defaultProps: { links: [] },
+    validateProps: shortcutProblems,
     propsSchema: {
       type: "object",
       properties: {
@@ -793,5 +942,16 @@ export const SCREEN_BLOCKS: Record<
     group: "CMS",
     placement: "any",
     defaultSize: { w: 1, h: 2 },
+    defaultProps: { items: [...ATTENTION_ITEMS] },
+    validateProps: attentionProblems,
+    propsSchema: {
+      type: "object",
+      properties: {
+        items: {
+          type: "array",
+          items: { enum: [...ATTENTION_ITEMS] },
+        },
+      },
+    },
   },
 };

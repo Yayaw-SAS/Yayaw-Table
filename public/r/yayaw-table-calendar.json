@@ -30,8 +30,8 @@
   ],
   "meta": {
     "registryUrl": "https://table.yayaw.app/r/yayaw-table-calendar.json",
-    "version": "3.8.0",
-    "versionedRegistryUrl": "https://table.yayaw.app/r/v3.8.0/yayaw-table-calendar.json"
+    "version": "3.9.0",
+    "versionedRegistryUrl": "https://table.yayaw.app/r/v3.9.0/yayaw-table-calendar.json"
   },
   "type": "registry:block"
 }

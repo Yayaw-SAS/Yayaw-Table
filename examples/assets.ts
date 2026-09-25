@@ -1,7 +1,17 @@
 import {
+  aggregateChartRows,
+  type ChartAggregateRequest,
+} from "../src/components/ui/yayaw-table/utils/chart-model";
+import {
   compatibleListParams,
   matchesContractFilter,
 } from "../src/components/ui/yayaw-table/utils/table-contracts";
+import {
+  applyTagPatch,
+  isTagPatch,
+  type TableTag,
+} from "../src/components/ui/yayaw-table/utils/tag-catalog";
+import { createTagStore, type TagRequest } from "./tags";
 
 /**
  * The "Assets" example shared by the React and Vue demos and the end-to-end
@@ -19,7 +29,32 @@ export interface AssetRow {
   updatedAt: string;
   mimeType: string;
   url: string;
+  /** Ids of the host's tag catalog (`actions.tags`). */
+  tags: string[];
 }
+
+/** The demo's tag catalog; records store the ids. */
+export const assetTagCatalog: TableTag[] = [
+  { id: "tag-brand", name: "Brand", color: "blue" },
+  { id: "tag-social", name: "Social", color: "green" },
+  { id: "tag-print", name: "Print", color: "orange" },
+  { id: "tag-video", name: "Video", color: "purple" },
+  { id: "tag-draft", name: "Draft" },
+];
+
+const ASSET_TAGS: Record<string, string[]> = {
+  "logo-primary": ["tag-brand"],
+  "logo-mono": ["tag-brand", "tag-print"],
+  "fonts-zip": ["tag-brand"],
+  guidelines: ["tag-brand", "tag-print"],
+  hero: ["tag-social", "tag-video"],
+  "banner-1": ["tag-social"],
+  "banner-2": ["tag-social"],
+  brief: ["tag-draft"],
+  team: ["tag-social"],
+  readme: ["tag-draft"],
+  "old-draft": ["tag-draft"],
+};
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -180,6 +215,7 @@ export function assetRows(now = Date.now()): AssetRow[] {
     updatedAt: new Date(now - (age ?? 7 * DAY)).toISOString(),
     mimeType: mimeType ?? "",
     url: url ?? "",
+    tags: [...(ASSET_TAGS[id] ?? [])],
   }));
 }
 
@@ -199,9 +235,23 @@ export const assetColumns = [
   { id: "mimeType", header: "Type", type: "text" as const },
   { id: "url", header: "URL", type: "text" as const },
   { id: "parentId", header: "Folder", type: "text" as const },
+  {
+    id: "tags",
+    header: "Tags",
+    type: "multiSelect" as const,
+    // Options come from `actions.tags`; bulk add/remove send `{ add, remove }`.
+    tags: { bulk: "patch" as const },
+    inlineEdit: true,
+  },
 ];
 
-export const assetVisibleColumns = ["name", "kind", "size", "updatedAt"];
+export const assetVisibleColumns = [
+  "name",
+  "kind",
+  "size",
+  "updatedAt",
+  "tags",
+];
 
 export const assetTableOptions = {
   syncUrl: true,
@@ -213,6 +263,11 @@ export const assetTableOptions = {
     | "gallery"
     | "table"
   )[],
+  // The facet panel (closed at first, the toolbar opens it): folders (the
+  // parent column) and kinds, counted from the rows `list` returns, and the
+  // tags with the catalog's names, counted by `aggregate` (this host groups
+  // by tags only).
+  facets: { columns: ["parentId", "kind", "tags"], defaultOpen: false },
   gallery: {
     titleColumn: "name",
     cardColumnIds: ["size", "updatedAt"],
@@ -242,6 +297,12 @@ export interface AssetRequest {
 }
 
 type Params = Record<string, unknown>;
+
+/** An aggregate request grouped by the tags column only. */
+const groupsByTags = (groupBy: unknown): boolean =>
+  Array.isArray(groupBy) &&
+  groupBy.length === 1 &&
+  (groupBy[0] as Params | undefined)?.columnId === "tags";
 
 const collator = new Intl.Collator("en", {
   numeric: true,
@@ -288,7 +349,8 @@ function matchesQuery(row: AssetRow, params: Params): boolean {
     : rules.every(matches);
 }
 
-const copy = (rows: AssetRow[]) => rows.map((row) => ({ ...row }));
+const copy = (rows: AssetRow[]) =>
+  rows.map((row) => ({ ...row, tags: [...row.tags] }));
 
 /**
  * In-memory host of the Assets example. With `scopes: false` the list
@@ -296,7 +358,11 @@ const copy = (rows: AssetRow[]) => rows.map((row) => ({ ...row }));
  * the tree then loads every row and builds itself in the browser.
  */
 export function createAssetActions(
-  options: { scopes?: boolean; log?: (request: AssetRequest) => void } = {}
+  options: {
+    scopes?: boolean;
+    log?: (request: AssetRequest) => void;
+    logTags?: (request: TagRequest) => void;
+  } = {}
 ) {
   const records = assetRows();
   const scopes = options.scopes !== false;
@@ -422,6 +488,44 @@ export function createAssetActions(
     row.updatedAt = new Date().toISOString();
   };
   return {
+    // The tag catalog of the Tags column; merges and deletions rewrite the records.
+    tags: createTagStore({
+      seed: assetTagCatalog,
+      records: () => records as unknown as Record<string, unknown>[],
+      field: "tags",
+      log: options.logTags,
+    }),
+    // Counts per tag for "Manage tags" and the Tags facet (chart groups over
+    // the records matching the query). Other groupings get no groups: the
+    // table counts the rows `list` returns instead (the folder and kind facets).
+    aggregate: (input: Params) =>
+      Promise.resolve(
+        groupsByTags(input.groupBy)
+          ? aggregateChartRows(
+              records.filter((row) =>
+                matchesQuery(row, compatibleListParams(input))
+              ),
+              input as unknown as ChartAggregateRequest
+            )
+          : { results: {} }
+      ),
+    bulkUpdate: (ids: string[], patch: Params) => {
+      for (const id of ids) {
+        const row = byId(id);
+        if (!row) {
+          continue;
+        }
+        // `tags: { bulk: "patch" }` sends `{ add, remove }` for the tags.
+        const tags = isTagPatch(patch.tags)
+          ? applyTagPatch(row.tags, patch.tags)
+          : patch.tags;
+        Object.assign(row, patch, {
+          ...(tags === undefined ? {} : { tags }),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+      return Promise.resolve({ success: true });
+    },
     list: (input: Params) => {
       const params = compatibleListParams(input);
       const scope = input.scope as Params | undefined;
@@ -465,6 +569,7 @@ export function createAssetActions(
         updatedAt: new Date().toISOString(),
         mimeType: String(values.mimeType ?? ""),
         url: String(values.url ?? ""),
+        tags: Array.isArray(values.tags) ? values.tags.map(String) : [],
       };
       records.push(row);
       return Promise.resolve({ success: true, data: { ...row } });
@@ -545,6 +650,7 @@ export function createAssetActions(
           updatedAt: new Date().toISOString(),
           mimeType: "",
           url: "",
+          tags: [],
         };
         records.push(row);
         return Promise.resolve({ ...row });

@@ -2,11 +2,13 @@
 import { computed, onErrorCaptured, ref, toRaw, type VNodeChild } from "vue";
 import type { DisplayModeRenderers } from "../display-mode-renderer";
 import type { DataTableTranslations, TableRecord } from "../types";
+import type { ViewConfig } from "../view-config";
 import {
   type Dashboard,
   type DashboardFilterValue,
   type DashboardNotice,
   type DashboardOpenViewContext,
+  type DashboardSetFilterResult,
   type DashboardTranslate,
   type DashboardView,
   type DashboardWidget,
@@ -71,13 +73,21 @@ const props = defineProps<{
   /** A flow section's widget: its natural height. */
   natural?: boolean;
   refresh: (tableId?: string) => void;
+  /** A block sets a screen filter, as the filter bar does. */
+  setFilter: (filterId: string, value: unknown) => DashboardSetFilterResult;
+  /** The rules the screen's filters give a source's requests, for blocks. */
+  filterRules: (
+    tableId: string,
+    options?: { exclude?: readonly string[] }
+  ) => Record<string, unknown>[];
   openView?: (
     tableId: string,
     viewId: string | null,
     context?: DashboardOpenViewContext
   ) => void;
 }>();
-const emit = defineEmits<{ viewAll: []; mutated: [tableId: string] }>();
+/** `page-view`: the view a full-page table shows (`view-config-change`), for "Make the current view the screen default". */
+const emit = defineEmits<{ viewAll: []; mutated: [tableId: string]; pageView: [config: ViewConfig] }>();
 
 // A widget that fails to render shows its error; the others keep working.
 const error = ref<Error>();
@@ -158,6 +168,8 @@ const blockProps = computed(() => ({
   revision: props.blockRevision,
   filters: props.filterValues,
   refresh: props.refresh,
+  setFilter: props.setFilter,
+  filterRules: props.filterRules,
   openView: props.openView,
 }));
 const screenViewName = computed(
@@ -226,6 +238,7 @@ const instanceId = computed(() =>
     :get-row-id="props.getRowId"
     :notice-text="props.noticeText"
     @mutated="emit('mutated', props.widget.tableId)"
+    @view-config-change="(config: ViewConfig) => emit('pageView', config)"
   />
   <DashboardKpiWidget
     v-else-if="state === 'kpi' && source"

@@ -47,6 +47,8 @@ for (const file of [
   "date-filter-days.ts",
   "filetree-model.ts",
   "filetree-controller.ts",
+  "folder-directory.ts",
+  "facets-model.ts",
   "filetree-dom.ts",
   "filetree.css",
   "connector-flow.ts",
@@ -67,6 +69,7 @@ for (const file of [
   "map-model.ts",
   "schedule-model.ts",
   "view-tabs.ts",
+  "view-order.ts",
   "display-modes.ts",
   "scoped-rows.ts",
   "manual-order.ts",
@@ -84,6 +87,7 @@ for (const file of [
   "media-viewer.css",
   "tag-colors.ts",
   "tag-colors.css",
+  "tag-catalog.ts",
 ]) {
   await copyFile(
     new URL(`../src/components/ui/yayaw-table/utils/${file}`, import.meta.url),
@@ -212,8 +216,8 @@ for (const [source, target] of [
   );
 }
 
-// The dashboard's grammar (schema, sources, layout), model, URL filter state,
-// record fitting, gridstack controller and grid styles are shared by both
+// The dashboard's grammar (schema, sources, layout), model, editor rules, URL filter state,
+// the facet list block, record fitting, gridstack controller and grid styles are shared by both
 // optional dashboard items; only the paths of the table's shared helpers
 // (table contracts, chart model, view settings) differ.
 const dashboardSource = new URL(
@@ -228,9 +232,11 @@ await mkdir(dashboardTarget, { recursive: true });
 for (const name of [
   "dashboard-schema.ts",
   "dashboard-sources.ts",
+  "dashboard-editor-model.ts",
   "dashboard-layout.ts",
   "dashboard-model.ts",
   "dashboard-url.ts",
+  "dashboard-facets.ts",
   "dashboard-fit.ts",
   "dashboard-grid-engine.ts",
   "dashboard-grid.css",

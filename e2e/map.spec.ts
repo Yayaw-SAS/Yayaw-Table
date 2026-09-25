@@ -243,7 +243,7 @@ test("the location editor suggests places from the host's geocoder", async ({
   await editor.getByRole("button", { name: "Done" }).click();
   await expect(row.locator("[data-location-cell]")).toHaveText("Toulouse lab");
   // The Sites map view now has every project (the demo host keeps edits in memory).
-  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("button", { name: "More views", exact: true }).click();
   await page.getByRole("menuitem", { name: "Sites" }).click();
   await expect.poll(() => drawnRecords(page)).toBe(6);
   await expect(page.locator("[data-map-without-location]")).toHaveCount(0);

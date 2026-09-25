@@ -2,6 +2,10 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
   Check,
   ChevronDown,
   CopyPlus,
@@ -43,6 +47,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
 import {
+  defaultTranslations,
   useTableActions as useProviderTableActions,
   useTranslations,
 } from "../../providers/table-provider";
@@ -51,6 +56,7 @@ import {
   useTableInstanceId,
   useTableStateSync,
 } from "../../providers/table-state-sync-provider";
+import { getTranslationOptimized } from "../../providers/translation-cache";
 import type { TableDisplayMode } from "../../types/display-types";
 import type {
   TableView,
@@ -62,9 +68,25 @@ import { TableTooltip } from "../../utils/table-tooltip";
 import { resolveInitialTableView } from "../../utils/table-view-favorite";
 import {
   areTableViewConfigsEqual,
-  normalizeTableViewConfig,
+  resolveTableViewConfig,
 } from "../../utils/table-view-state";
-import { createLocalTableViewActions } from "../../utils/table-view-storage";
+import {
+  createLocalTableViewActions,
+  type LocalTableViewActions,
+  readLocalTableViewOrder,
+  storeLocalTableViewOrder,
+} from "../../utils/table-view-storage";
+import {
+  formatViewMove,
+  listedViewOrder,
+  moveViewInOrder,
+  orderViews,
+  parseViewOrder,
+  type ViewMoveDirection,
+  type ViewMoves,
+  viewMoves,
+  viewPosition,
+} from "../../utils/view-order";
 import { resolveViewTabs, type ViewTabsConfig } from "../../utils/view-tabs";
 import { TableViewTabs } from "./table-view-tabs";
 
@@ -77,8 +99,19 @@ export interface ViewMenuParts {
 }
 
 const EMPTY_VIEW_CONFIG: TableViewConfig = {};
+const NO_VIEWS: TableView[] = [];
 /** Views listed before the menu offers a name filter. */
 const VIEW_FILTER_THRESHOLD = 7;
+
+type Translate = ReturnType<typeof useTranslations>["t"];
+
+/** A view text, in English when the host's translations predate its key. */
+function viewText(t: Translate, key: string): string {
+  const translated = t(key);
+  return translated === key
+    ? getTranslationOptimized(defaultTranslations, key)
+    : translated;
+}
 
 /** The name filter of the views menu, once there are many views. */
 function viewFilterControl(
@@ -252,13 +285,17 @@ function useArrivalView({
   };
 }
 
+/**
+ * The host's view actions over the local ones. `setOrder` has no local action:
+ * without the host's, the manager keeps the order in this browser.
+ */
 function mergeViewActions({
   fallbackActions,
   providedActions,
 }: {
-  fallbackActions: Required<TableViewActions>;
+  fallbackActions: LocalTableViewActions;
   providedActions?: TableViewActions;
-}): Required<TableViewActions> {
+}): LocalTableViewActions & Pick<TableViewActions, "setOrder"> {
   return {
     getFavorite: providedActions?.getFavorite ?? fallbackActions.getFavorite,
     setFavorite: providedActions?.setFavorite ?? fallbackActions.setFavorite,
@@ -266,6 +303,7 @@ function mergeViewActions({
     delete: providedActions?.delete ?? fallbackActions.delete,
     list: providedActions?.list ?? fallbackActions.list,
     update: providedActions?.update ?? fallbackActions.update,
+    setOrder: providedActions?.setOrder,
   };
 }
 
@@ -350,6 +388,48 @@ function ViewAction({
   );
 }
 
+/**
+ * "Move left" and "Move right" for the current view, "Move up" and "Move
+ * down" where the menu lists the views. At an end the action stays focusable
+ * but inactive, so the focus stays on it after a move.
+ */
+function ViewMoveActions({
+  disabled,
+  moves,
+  onMove,
+  t,
+  vertical,
+}: {
+  disabled: boolean;
+  /** No actions when undefined: the view keeps its place. */
+  moves?: ViewMoves;
+  onMove: (direction: ViewMoveDirection) => void | Promise<void>;
+  t: Translate;
+  vertical: boolean;
+}) {
+  if (!moves) {
+    return null;
+  }
+  const PreviousIcon = vertical ? ArrowUp : ArrowLeft;
+  const NextIcon = vertical ? ArrowDown : ArrowRight;
+  return (
+    <>
+      <ViewAction
+        disabled={disabled || !moves.previous}
+        icon={<PreviousIcon aria-hidden="true" className="size-4 shrink-0" />}
+        label={viewText(t, vertical ? "views.moveUp" : "views.moveLeft")}
+        onClick={() => onMove("previous")}
+      />
+      <ViewAction
+        disabled={disabled || !moves.next}
+        icon={<NextIcon aria-hidden="true" className="size-4 shrink-0" />}
+        label={viewText(t, vertical ? "views.moveDown" : "views.moveRight")}
+        onClick={() => onMove("next")}
+      />
+    </>
+  );
+}
+
 interface ViewShareOptionProps {
   canShareView: boolean;
   isSharedView: boolean;
@@ -401,6 +481,7 @@ function ViewMenuActions({
   handleUpdateActiveView,
   openSaveDialog,
   handleToggleFavorite,
+  moveActions,
   resetDisabled,
   resetView,
   handleDeleteActiveView,
@@ -421,6 +502,8 @@ function ViewMenuActions({
   handleUpdateActiveView: () => void | Promise<void>;
   openSaveDialog: () => void | Promise<void>;
   handleToggleFavorite: () => void | Promise<void>;
+  /** Move left and right, after the favorite: both are the user's own. */
+  moveActions: ReactNode;
   resetDisabled: boolean;
   resetView: () => void | Promise<void>;
   handleDeleteActiveView: () => void | Promise<void>;
@@ -459,6 +542,7 @@ function ViewMenuActions({
           pressed={(activeView?.id ?? null) === favoriteViewId}
         />
       ) : null}
+      {moveActions}
       <ViewAction
         compact={compact}
         description={t(
@@ -671,7 +755,7 @@ function ManagerViewTabs({
       disabled={disabled}
       labels={{
         tabs: t("views.tabs"),
-        more: t("views.more"),
+        more: viewText(t, "views.more"),
         newView: t("views.newView"),
         modified: t("views.modified"),
       }}
@@ -842,9 +926,12 @@ export function DataTableViewManager({
     () => ["tableViews", tableId, tableType],
     [tableId, tableType]
   );
+  // The host keeps the user's order with `setOrder` (and `list` answers
+  // with it); otherwise this browser keeps it.
+  const hostKeepsOrder = Boolean(viewActions.setOrder);
 
   const {
-    data: savedViews = [],
+    data: savedViews = NO_VIEWS,
     isLoading,
     isFetching,
   } = useQuery({
@@ -856,17 +943,37 @@ export function DataTableViewManager({
       if ("error" in result && typeof result.error === "string") {
         throw new Error(result.error);
       }
-      return [
+      const views = [
         ...new Map(
           [...initialViews, ...(result.data ?? [])]
             .filter((view) => !deletedViewIds.current.has(view.id))
             .map((view) => [view.id, view])
         ).values(),
       ];
+      const order = listedViewOrder(result, hostKeepsOrder);
+      return order ? orderViews(views, order) : views;
     },
     queryKey: viewQueryKey,
     staleTime: 5000,
   });
+
+  const orderQueryKey = useMemo(
+    () => ["tableViewOrder", tableId, tableType],
+    [tableId, tableType]
+  );
+  // Read after mounting, so server-rendered tabs hydrate in the list order.
+  const localOrderQuery = useQuery({
+    enabled: enabled && !hostKeepsOrder,
+    queryKey: orderQueryKey,
+    queryFn: () => readLocalTableViewOrder({ tableId, tableType }) ?? null,
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+  const orderedViews = useMemo(
+    () =>
+      orderViews(savedViews, hostKeepsOrder ? undefined : localOrderQuery.data),
+    [hostKeepsOrder, localOrderQuery.data, savedViews]
+  );
+  const [moveAnnouncement, setMoveAnnouncement] = useState("");
 
   const favoriteQueryKey = useMemo(
     () => ["tableViewFavorite", tableId, tableType],
@@ -891,22 +998,10 @@ export function DataTableViewManager({
 
   const resolveView = useCallback(
     (input: TableViewConfig) =>
-      normalizeTableViewConfig({
-        displayMode: defaultDisplayMode ?? "table",
-        pageSize: 10,
-        ...defaultViewConfig,
-        // Legacy Kanban lanes are grouping defaults only for the Kanban presentation.
-        grouping:
-          (input.displayMode ?? defaultDisplayMode ?? "table") === "kanban" &&
-          input.kanban?.groupBy
-            ? [input.kanban.groupBy]
-            : [],
-        ...input,
-        density: input.density ?? defaultDensity,
-        footerCalculationsVisible:
-          input.footerCalculationsVisible ??
-          defaultViewConfig.footerCalculationsVisible ??
-          true,
+      resolveTableViewConfig(input, {
+        config: defaultViewConfig,
+        density: defaultDensity,
+        displayMode: defaultDisplayMode,
       }),
     [defaultDensity, defaultDisplayMode, defaultViewConfig]
   );
@@ -1061,6 +1156,66 @@ export function DataTableViewManager({
       queryClient.setQueryData(favoriteQueryKey, result.data ?? { viewId });
     } catch (error) {
       setInlineError(getViewErrorMessage(error, t("views.favoriteError")));
+    } finally {
+      setIsMutating(false);
+    }
+  };
+
+  /** Keeps a new order with the host's `setOrder`, else in this browser. */
+  const persistViewOrder = async (viewIds: string[]): Promise<string[]> => {
+    const context = { tableId, tableType };
+    const failure = viewText(t, "views.orderError");
+    if (!viewActions.setOrder) {
+      if (!storeLocalTableViewOrder(context, viewIds)) {
+        throw new Error(failure);
+      }
+      queryClient.setQueryData(orderQueryKey, viewIds);
+      return viewIds;
+    }
+    // A stale list refetch must not replace the result of this write.
+    await queryClient.cancelQueries({ queryKey: viewQueryKey });
+    const result = await viewActions.setOrder({ ...context, viewIds });
+    if (!result.success || result.error) {
+      throw new Error(result.error || failure);
+    }
+    const order = parseViewOrder(result.data?.viewIds) ?? viewIds;
+    queryClient.setQueryData<TableView[]>(
+      viewQueryKey,
+      (views) => views && orderViews(views, order)
+    );
+    return order;
+  };
+
+  const activeViewMoves = viewMoves(orderedViews, activeView?.id);
+  /** Moves the current view one step, keeps the new order and announces it. */
+  const handleMoveActiveView = async (
+    direction: ViewMoveDirection
+  ): Promise<void> => {
+    const viewIds =
+      activeView && moveViewInOrder(orderedViews, activeView.id, direction);
+    if (!(activeView && viewIds) || isMutating) {
+      return;
+    }
+    setIsMutating(true);
+    setInlineError(undefined);
+    try {
+      const order = await persistViewOrder(viewIds);
+      const place = viewPosition(
+        orderViews(orderedViews, order),
+        activeView.id
+      );
+      if (place) {
+        setMoveAnnouncement(
+          formatViewMove(viewText(t, "views.moved"), {
+            name: activeView.name,
+            ...place,
+          })
+        );
+      }
+    } catch (error) {
+      setInlineError(
+        getViewErrorMessage(error, viewText(t, "views.orderError"))
+      );
     } finally {
       setIsMutating(false);
     }
@@ -1267,7 +1422,7 @@ export function DataTableViewManager({
       isMutating,
       viewParam,
       favoriteViewId,
-      savedViews: filterViews(savedViews, viewFilter),
+      savedViews: filterViews(orderedViews, viewFilter),
       handleSelectDefaultView,
       handleSelectView,
       filter: viewFilterControl(savedViews.length, viewFilter, setViewFilter),
@@ -1288,6 +1443,15 @@ export function DataTableViewManager({
         handleUpdateActiveView={handleUpdateActiveView}
         isActiveViewDirty={isActiveViewDirty}
         isMutating={isMutating}
+        moveActions={
+          <ViewMoveActions
+            disabled={isMutating}
+            moves={activeViewMoves}
+            onMove={handleMoveActiveView}
+            t={t}
+            vertical={!showTabs}
+          />
+        }
         openSaveDialog={openSaveDialog}
         resetDisabled={resetDisabled}
         resetView={resetView}
@@ -1314,7 +1478,7 @@ export function DataTableViewManager({
           onCreate={openSaveDialog}
           onSelectDefault={handleSelectDefaultView}
           onSelectView={handleSelectView}
-          savedViews={savedViews}
+          savedViews={orderedViews}
           settings={tabSettings}
           t={t}
         />
@@ -1327,6 +1491,11 @@ export function DataTableViewManager({
           t,
         })}
       </div>
+
+      {/* Announces a move while the focus stays on the action. */}
+      <output aria-live="polite" className="sr-only">
+        {moveAnnouncement}
+      </output>
 
       {(inlineError || favoriteQuery.error) && (
         <p className="max-w-[20rem] text-destructive text-xs" role="alert">

@@ -14,6 +14,7 @@ import { toast } from "vue-sonner";
 import { type Component, computed, onBeforeUnmount, onMounted, provide, ref, shallowRef, watch } from "vue";
 import { useTableData } from "../composables/use-table-data";
 import { useTableState } from "../composables/use-table-state";
+import { useTagCatalogs } from "../composables/use-tag-catalogs";
 import { defineTableConfig } from "../config";
 import {
   type OpenFormState,
@@ -23,6 +24,7 @@ import {
 import { applyTableQuery } from "../core";
 import { cloneFormValue } from "../form-runtime";
 import { resolveInitialRowsUse } from "../initial-rows";
+import { canonicalViewConfig, type ViewConfig } from "../view-config";
 import { createTranslations } from "../translations";
 import type {
   BulkAction,
@@ -55,6 +57,10 @@ import { withFeedRenderer } from "../feed/feed-renderer";
 import { withFormRenderer } from "../form/form-renderer";
 import { withFileTreeRenderer } from "../filetree/filetree-renderer";
 import { isFileTreeAvailable } from "../filetree-model";
+import { facetsShownIn, resolveFacets } from "../facets-model";
+import { folderTreeOf } from "../folder-directory";
+import { createFolderDirectoryStore } from "../composables/use-folder-directory";
+import FacetPanel from "./facets/FacetPanel.vue";
 import { withoutDisabledModeRenderers } from "../display-modes";
 import { isFormModeEnabled } from "../form-view";
 import ListView from "./list/ListView.vue";
@@ -178,6 +184,13 @@ const props = withDefaults(
 const emit = defineEmits<{
   rowActivate: [row: TableRecord, event: MouseEvent];
   rowSelectionChange: [selection: Record<string, boolean>];
+  /**
+   * `view-config-change`: the view the table shows, as a saved view's `config`
+   * (the shape `sanitizeViewConfig` accepts), once the table starts, then
+   * after each change of its sort, filters, search, columns, display mode or
+   * mode settings. React: `onViewConfigChange`.
+   */
+  viewConfigChange: [config: ViewConfig];
 }>();
 
 const sourceConfig = props.config ?? props.getTableConfig?.(props.tableType);
@@ -229,8 +242,31 @@ const queryClient = props.queryClient ?? new QueryClient();
 const inputData = computed(() =>
   props.data.length ? props.data : props.initialData
 );
+// Tags columns take their options from the host's catalogs (`actions.tags`).
+// It runs first: facets and filters read the columns it fills.
+const tagCatalogs = useTagCatalogs({
+  config,
+  actions,
+  queryClient,
+  tableId: config.id,
+  tableType: props.tableType,
+  locale: props.locale,
+  translate: (key) => {
+    const value = translations.value[key];
+    return typeof value === "string" ? value : undefined;
+  },
+  rows: () => tableData.rows.value,
+  refresh: () => refresh(),
+});
+// Facet clicks are advanced rules: tables with facets show their menu.
 const advancedFiltersEnabled = computed(
-  () => props.enableAdvancedFilters ?? config.table.enableAdvancedFilters ?? false
+  () =>
+    (props.enableAdvancedFilters ?? config.table.enableAdvancedFilters ?? false) ||
+    Boolean(
+      resolveFacets(config.table.facets, config.columns.definitions, {
+        folderColumn: folderTreeOf(config.table.filetree, config.columns.definitions)?.parentColumn,
+      })
+    )
 );
 const searchDebounceMs = computed(
   () => props.searchDebounceMs ?? config.table.searchDebounceMs ?? 300
@@ -384,10 +420,37 @@ watch(
   },
   { immediate: true }
 );
+const dataRevision = ref(0);
 const refresh = async (): Promise<void> => {
+  dataRevision.value += 1;
   await tableData.refresh();
   await queryClient.invalidateQueries({ queryKey: ["yayaw-table", config.id, "aggregate"] });
 };
+const facetsOpen = ref<boolean>();
+// The folders of a file tree: "New folder", the folder filter and folder facets.
+const folders = createFolderDirectoryStore({
+  actions,
+  config,
+  locale: props.locale,
+  revision: dataRevision,
+  rows: () => inputData.value,
+});
+const facetState = computed(() => {
+  const facets = resolveFacets(config.table.facets, config.columns.definitions, {
+    folderColumn: folders.tree?.parentColumn,
+    locale: props.locale,
+  });
+  const shown =
+    Boolean(facets) &&
+    config.table.showToolbar !== false &&
+    config.table.enableColumnFilters !== false &&
+    facetsShownIn(state.displayMode.value);
+  return {
+    facets,
+    // The panel beside the records on wide screens; phones open a sheet.
+    inline: Boolean(facets) && shown && !toolbarCompact.value && (facetsOpen.value ?? facets?.defaultOpen ?? true),
+  };
+});
 const clearSelection = (): void => {
   selection.value = {};
   selectedRowCache.value = {};
@@ -639,6 +702,9 @@ provide(tableContextKey, {
   form,
   footerCalculationsVisible,
   toolbarCompact,
+  facetsOpen,
+  dataRevision,
+  folders,
   optionsRequest,
   getRowId,
   getFormConfig: props.getFormConfig,
@@ -654,6 +720,7 @@ provide(tableContextKey, {
   loadAllMatchingRows,
   status,
   queryClient,
+  tags: tagCatalogs,
   locale: props.locale,
   onBulkDelete: props.onBulkDelete,
   get onBulkEdit() { return props.onBulkEdit; },
@@ -662,8 +729,24 @@ provide(tableContextKey, {
   onExport: props.onExport,
 } as TableContextValue);
 
-/** `refresh()`: loads the rows (and aggregates) again, e.g. a dashboard's "Refresh all". */
-defineExpose({ refresh });
+// The view the table shows, as both editions report it.
+const viewConfig = computed(() => canonicalViewConfig(state.snapshot.value));
+let reportedView = "";
+const reportView = (): void => {
+  const json = JSON.stringify(viewConfig.value);
+  if (json !== reportedView) {
+    reportedView = json;
+    emit("viewConfigChange", viewConfig.value);
+  }
+};
+onMounted(reportView);
+watch(viewConfig, reportView);
+
+/**
+ * `refresh()`: loads the rows (and aggregates) again, e.g. a dashboard's
+ * "Refresh all". `getViewConfig()`: the view the table shows now.
+ */
+defineExpose({ refresh, getViewConfig: () => viewConfig.value });
 </script>
 
 <template>
@@ -686,6 +769,11 @@ defineExpose({ refresh });
     />
 
 
+    <div class="yayaw-records-layout" :data-facets="facetState.inline ? facetState.facets?.position : undefined">
+    <aside v-if="facetState.inline && facetState.facets?.position !== 'right'" :id="`${config.id}-facets`" class="yayaw-facets-panel" data-facet-panel="" :data-position="facetState.facets?.position" :style="{ width: `${facetState.facets?.width}px` }" :aria-labelledby="`${config.id}-facets-title`">
+      <FacetPanel :heading-id="`${config.id}-facets-title`" />
+    </aside>
+    <div class="yayaw-records">
     <div v-if="tableData.error.value" class="yayaw-error" role="alert">
       {{ tableData.error.value.message }}
       <button type="button" class="yayaw-button" @click="refresh">{{ translations.retry }}</button>
@@ -702,6 +790,11 @@ defineExpose({ refresh });
       <CardPagination v-if="!modeRenderers?.[state.displayMode.value] && state.displayMode.value !== 'table' && state.displayMode.value !== 'gantt' && !(state.displayMode.value === 'kanban' && config.table.kanban?.server)" />
       <component :is="loadingOverlay" v-if="tableData.isLoading.value && loadingOverlay" />
       <div v-else-if="tableData.isLoading.value" class="yayaw-loading-overlay">{{ translations.loading }}</div>
+    </div>
+    </div>
+    <aside v-if="facetState.inline && facetState.facets?.position === 'right'" :id="`${config.id}-facets`" class="yayaw-facets-panel" data-facet-panel="" data-position="right" :style="{ width: `${facetState.facets?.width}px` }" :aria-labelledby="`${config.id}-facets-title`">
+      <FacetPanel :heading-id="`${config.id}-facets-title`" />
+    </aside>
     </div>
 
     <div class="yayaw-bulk-anchor" aria-hidden="true" />

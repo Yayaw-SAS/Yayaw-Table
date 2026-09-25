@@ -33,6 +33,14 @@ export const tableDensityAtom = atomFamily((_tableId: string) =>
 export const toolbarCompactAtom = atomFamily((_tableId: string) => atom(false));
 
 /**
+ * Whether the facet panel shows beside the records on wide screens;
+ * undefined keeps `table.facets.defaultOpen`. Local to the table instance.
+ */
+export const facetsOpenAtom = atomFamily((_tableId: string) =>
+  atom<boolean | undefined>(undefined)
+);
+
+/**
  * Atom family to store column definitions for a specific table
  * Keyed by tableId
  */

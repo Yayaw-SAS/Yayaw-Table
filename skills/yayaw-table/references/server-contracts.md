@@ -142,6 +142,12 @@ Receives the query (`search`, `filters`, `advancedFilters`,
   counts in each of its groups. Values follow `metrics` (a bars-and-line
   chart sends two: the bars', then the line's).
 
+Facets (`table.facets`) and the dashboards' facet list block send the chart
+form for each facet: `groupBy: [{ columnId }]`, `metrics: [{ fn: "count" }]`,
+over the view's query without that facet's own rule. Answer one group per
+stored value: `null` for empty values, each value of a multi-select, and for
+a file tree's parent column the folder ids (`null` for the root).
+
 Without `aggregate`, when it throws, or when a chart gets no `groups` (or
 fewer values than metrics), the
 table loads the matching rows through `list` (every page for footer
@@ -166,12 +172,13 @@ calculations, at most 2,000 rows for a chart) and computes in the browser.
 <!-- skill-check: actions.views -->
 | Action | Call and answer |
 | --- | --- |
-| `actions.views.list` | `({ tableId, tableType })` → `{ success: true, data: TableView[] }` (React reads `data`; Vue also accepts a bare array) |
+| `actions.views.list` | `({ tableId, tableType })` → `{ success: true, data: TableView[], order? }` (React reads `data`; Vue also accepts a bare array). `order`: the user's order of their views |
 | `actions.views.create` | `({ tableId, tableType, name, config, isGlobal?, isDefault? })` → `{ success, data: view }` |
 | `actions.views.update` | `(id, { tableId, tableType, name?, config?, isGlobal? })` → `{ success, data: view }` |
 | `actions.views.delete` | `(id, { tableId, tableType })` → `{ success }` |
 | `actions.views.getFavorite` | `({ tableId, tableType })` → `{ success: true, data: { viewId } }` (`null` for none) |
 | `actions.views.setFavorite` | `(viewId \| null, { tableId, tableType })` → `{ success: true, data: { viewId } }` |
+| `actions.views.setOrder` | `({ tableId, tableType, viewIds })` → `{ success: true, data: { viewIds } }`; `viewIds`: every view the user orders, first to last |
 
 Provide all four CRUD handlers (omitted ones fall back to `localStorage`) and
 both favorite handlers or neither. The server lists only system views, the
@@ -181,6 +188,16 @@ true`; checks ownership or an editor role on update and delete; protects
 `isSystem` views; stores favorites per user, organization, table type and
 table id, and clears them when a view is deleted. Resolve `canEdit` and
 `canDelete` per view for the interface.
+
+The order of views is per user too ("Move left" and "Move right" in the view
+menu, applied to the tabs, "…" and the menu). With `setOrder`, store
+`viewIds` as they come per user, organization, table type and table id, and
+answer them as `order` from `list` (or list the views in that order;
+`orderViews()` from `utils/view-order.ts` sorts them alike on a server). The
+table puts system views and the default view (`isDefault`) first, then the
+order, then views it does not name, and ignores unknown ids. Without
+`setOrder` the order stays in `localStorage` under
+`yayaw-table-view-order:<JSON [tableType, tableId]>`.
 
 ## File tree
 
@@ -196,6 +213,64 @@ List scopes: `children` (a folder's direct children, 200 per page, answer
 descendant for "Expand all"; set `meta.truncated` when you cap) and
 `tree-matches` (search results plus `meta.ancestors`). Folder deletion policy
 (recursive, refuse, move children up) is the host's.
+
+The table's other views load every folder once, for "New folder" and the
+folder filter: `list` with `scope: { kind: "subtree", parentId: null }` and,
+with a kind column, the rule `isAnyOf ["folder"]` on it (2,000 rows at most).
+The folder filter sends `isAnyOf` with folder ids on the parent column (their
+direct content), or `isEmpty` for the root.
+
+## Tag catalogs
+
+A column with `tags: true` (or `{ create?, manage?, bulk? }`) is a tags
+column: `multiSelect` holds a list of tag ids, `select` one id. With
+`actions.tags`, its options are the host's catalog: loaded once per table and
+column when the table mounts (cached five minutes, key
+`["yayaw-table", tableId, "tags", tableType, columnId]`), shown as colored
+chips in cells, cards, filters and pickers. Without it, the column keeps its
+static `options`. Every call receives the catalog's scope `{ tableId,
+tableType, columnId }`; ids are strings, records store them.
+
+<!-- skill-check: actions.tags -->
+| Action | Call | Without it |
+| --- | --- | --- |
+| `actions.tags.list` | `(scope)` → `[{ id, name, color? }]` | Static `options` |
+| `actions.tags.create` | `({ ...scope, name, color? })` → the new tag with its id; pickers select it at once | No "Create “name”" in pickers |
+| `actions.tags.update` | `({ ...scope, id, name?, color? })`; `color: null` removes the color | No rename or recolor |
+| `actions.tags.merge` | `({ ...scope, sourceIds, targetId })`: put the target in place of the sources in every record, then delete the sources | No merge |
+| `actions.tags.remove` | `({ ...scope, id })`: delete the tag from every record and from the catalog | No delete |
+
+Each action may answer its value or `{ success, data?, error? }`; a thrown
+error or `success: false` shows `error` and keeps the dialog open. `color` is a
+palette name (`gray`, `brown`, `orange`, `yellow`, `green`, `blue`, `purple`,
+`pink`, `red`) or any CSS color. "Manage tags" (column menu) needs `update`,
+`merge` or `remove`, `table.canManageTags !== false` and the column's
+`tags.manage !== false`; it counts records per tag with one `aggregate` call
+(`groupBy: [{ columnId }]`, `metrics: [{ fn: "count" }]`, no filters) and shows
+no counts without `aggregate`.
+
+Bulk "Add tags" and "Remove tags" (tags columns holding lists, with
+`allowBulkEdit`, `canEditRow` and `bulkUpdate` or `update`) patch the
+selection optimistically. By default (`tags.bulk: "values"`) they call
+`bulkUpdate(ids, { [field]: tagIds })` once per group of rows that end with
+the same tags (rows left unchanged are not sent); with `tags.bulk: "patch"`
+they call `bulkUpdate(allIds, { [field]: { add, remove } })` once, which the
+server applies to its current data with `applyTagPatch()`:
+
+```ts
+import { applyTagPatch, isTagPatch } from "@/components/ui/yayaw-table/utils/tag-catalog";
+
+async function bulkUpdateAssets(ids: string[], patch: Record<string, unknown>) {
+  for (const row of await loadAssets(ids)) {
+    const tags = isTagPatch(patch.tags) ? applyTagPatch(row.tags, patch.tags) : patch.tags;
+    await saveAsset(row.id, { ...patch, tags });
+  }
+  return { success: true };
+}
+```
+
+Without `bulkUpdate`, rows are updated one by one through `update`. Failed
+rows (`failedIds`, a failed call) are restored and stay selected.
 
 ## Gantt planning
 

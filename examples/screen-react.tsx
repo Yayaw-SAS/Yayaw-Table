@@ -8,7 +8,9 @@ import type { TableView } from "../src/components/ui/yayaw-table/types/view-type
 import type {
   DashboardBlockProps,
   DashboardBlockRegistry,
+  DashboardBlockSettingsProps,
 } from "../src/components/ui/yayaw-table-dashboard/dashboard-block";
+import { createFacetBlock } from "../src/components/ui/yayaw-table-dashboard/dashboard-facet-block";
 import type { DashboardInlineView } from "../src/components/ui/yayaw-table-dashboard/dashboard-schema";
 import {
   type DashboardTableSource,
@@ -16,6 +18,10 @@ import {
 } from "../src/components/ui/yayaw-table-dashboard/yayaw-dashboard";
 import { frenchTableTranslations } from "./dashboard-react";
 import {
+  ATTENTION_ITEMS,
+  attentionItemLabel,
+  attentionItems,
+  attentionSettingsLegend,
   attentionViews,
   createScreenHost,
   createScreenStorage,
@@ -24,7 +30,9 @@ import {
   type ScreenShortcut,
   type ScreenSourceSpec,
   screenAttention,
+  screenSectionBlockOptions,
   screenText,
+  toggleAttentionItem,
 } from "./screen";
 
 const ScreenHostContext = createContext<
@@ -59,9 +67,16 @@ function ShortcutsBlock({ locale, props }: DashboardBlockProps) {
  * What needs attention under the screen's filters, read again with each
  * revision (after changes and "Refresh all"); nothing when all is done.
  */
-function AttentionBlock({ filters, locale, openView }: DashboardBlockProps) {
+function AttentionBlock({
+  filters,
+  locale,
+  openView,
+  props,
+}: DashboardBlockProps) {
   const host = useContext(ScreenHostContext);
-  const items = host ? screenAttention(host, filters, locale) : [];
+  const items = host
+    ? screenAttention(host, filters, locale, attentionItems(props))
+    : [];
   if (!items.length) {
     return null;
   }
@@ -88,10 +103,56 @@ function AttentionBlock({ filters, locale, openView }: DashboardBlockProps) {
   );
 }
 
-const blocks: DashboardBlockRegistry = {
+/** The `attention` block's settings in the screen editor: the items it lists. */
+function AttentionSettings({
+  locale,
+  onChange,
+  props,
+}: DashboardBlockSettingsProps) {
+  const listed = attentionItems(props);
+  return (
+    <fieldset
+      className="m-0 grid gap-2 border-0 p-0"
+      data-attention-settings=""
+    >
+      <legend className="mb-1 font-medium text-sm">
+        {attentionSettingsLegend(locale)}
+      </legend>
+      {ATTENTION_ITEMS.map((id) => (
+        <label className="flex items-center gap-2 text-sm" key={id}>
+          <input
+            checked={listed.includes(id)}
+            className="size-4 accent-primary"
+            onChange={(event) =>
+              onChange(
+                toggleAttentionItem(
+                  props,
+                  id,
+                  event.target.checked
+                ) as DashboardBlockSettingsProps["props"]
+              )
+            }
+            type="checkbox"
+          />
+          {attentionItemLabel(id, locale)}
+        </label>
+      ))}
+    </fieldset>
+  );
+}
+
+/** The host's blocks: two of its own and the library's facet list over the pages' sections. */
+const screenBlocks = (
+  host: ScreenHost<DashboardTableSource>
+): DashboardBlockRegistry => ({
   shortcuts: { ...SCREEN_BLOCKS.shortcuts, component: ShortcutsBlock },
-  attention: { ...SCREEN_BLOCKS.attention, component: AttentionBlock },
-};
+  attention: {
+    ...SCREEN_BLOCKS.attention,
+    component: AttentionBlock,
+    settings: AttentionSettings,
+  },
+  "pages.sections": createFacetBlock(screenSectionBlockOptions(host)),
+});
 
 /** Each catalogue source as a React table; the Pages list page is wrapped by the host. */
 const buildSource =
@@ -137,6 +198,7 @@ export function ScreenExample() {
   const french = search.get("lang") === "fr";
   const locale = french ? "fr" : "en";
   const host = useMemo(() => createScreenHost(buildSource(locale)), [locale]);
+  const blocks = useMemo(() => screenBlocks(host), [host]);
   const storage = useMemo(() => createScreenStorage(), []);
   const [opened, setOpened] = useState("");
   return (

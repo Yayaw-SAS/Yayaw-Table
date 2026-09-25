@@ -156,6 +156,16 @@ const clearRequests = (page: Page) =>
       globalThis as { yayawDashboardRequests?: unknown[] }
     ).yayawDashboardRequests = [];
   });
+/** The widget dialog: what the widget shows, then its source (a table), up to its settings. */
+const addWidget = async (page: Page, kind: string, source?: string) => {
+  await toolbar(page).getByRole("button", { name: "Add widget" }).click();
+  const dialog = page.getByRole("dialog", { name: "Add a widget" });
+  await dialog.getByRole("button", { name: kind, exact: true }).click();
+  if (source) {
+    await dialog.getByRole("option", { name: source, exact: true }).click();
+  }
+  await expect(dialog).toHaveAttribute("data-widget-step", "settings");
+};
 const openMenu = async (page: Page, title: string) => {
   await page
     .getByRole("button", { name: `Widget options for ${title}`, exact: true })
@@ -575,12 +585,11 @@ test("widgets are added from the picker at a size that suits them", async ({
   const dialog = page.getByRole("dialog", { name: "Add a widget" });
 
   // The Tasks table's default view: a 2×2 table in the first free spot.
-  await toolbar(page).getByRole("button", { name: "Add widget" }).click();
-  await dialog.getByLabel("Table", { exact: true }).selectOption("tasks");
+  await addWidget(page, "View", "Tasks");
   await expect(
     dialog.getByLabel("Records that do not fit", { exact: true })
   ).toHaveValue("fit");
-  await dialog.getByRole("button", { name: "Add" }).click();
+  await dialog.getByRole("button", { name: "Add", exact: true }).click();
   const tasks = widget(page, "widget-10");
   await expect(tasks.locator("[data-widget-title]")).toHaveText(
     "Tasks › Default view"
@@ -596,9 +605,11 @@ test("widgets are added from the picker at a size that suits them", async ({
   await expect(tasks).not.toContainText("False");
 
   // A board: 2×3, lanes sharing the width, cards that fit and "+N more".
-  await toolbar(page).getByRole("button", { name: "Add widget" }).click();
-  await dialog.getByLabel("View", { exact: true }).selectOption("status-board");
-  await dialog.getByRole("button", { name: "Add" }).click();
+  await addWidget(page, "View", "Projects");
+  await dialog
+    .getByLabel("Start from", { exact: true })
+    .selectOption("status-board");
+  await dialog.getByRole("button", { name: "Add", exact: true }).click();
   const board = widget(page, "widget-11");
   await expect(item(page, "widget-11")).toHaveAttribute(
     "data-layout",
@@ -611,8 +622,7 @@ test("widgets are added from the picker at a size that suits them", async ({
   expect(records.inside).toBe(true);
 
   // A number comparing the last 90 days, with its trend.
-  await toolbar(page).getByRole("button", { name: "Add widget" }).click();
-  await dialog.getByLabel("Widget", { exact: true }).selectOption("kpi");
+  await addWidget(page, "Number", "Projects");
   await dialog.getByLabel("Value", { exact: true }).selectOption("sum");
   await dialog.getByLabel("Of", { exact: true }).selectOption("revenue");
   await dialog.getByLabel("Date", { exact: true }).selectOption("dueDate");
@@ -620,7 +630,7 @@ test("widgets are added from the picker at a size that suits them", async ({
   await dialog.getByLabel("Period", { exact: true }).selectOption("90");
   await dialog.getByLabel("Trend line").check();
   await dialog.getByLabel("Title", { exact: true }).fill("Quarter revenue");
-  await dialog.getByRole("button", { name: "Add" }).click();
+  await dialog.getByRole("button", { name: "Add", exact: true }).click();
   const kpi = widget(page, "widget-12");
   await expect(kpi.locator("[data-widget-title]")).toHaveText(
     "Quarter revenue"
@@ -643,10 +653,9 @@ test("widgets are added from the picker at a size that suits them", async ({
   await expect(kpi.locator("[data-kpi-trend]")).toBeVisible();
 
   // A note has nothing to open.
-  await toolbar(page).getByRole("button", { name: "Add widget" }).click();
-  await dialog.getByLabel("Widget", { exact: true }).selectOption("note");
+  await addWidget(page, "Note");
   await dialog.getByLabel("Text", { exact: true }).fill("Hello");
-  await dialog.getByRole("button", { name: "Add" }).click();
+  await dialog.getByRole("button", { name: "Add", exact: true }).click();
   await expect(widget(page, "widget-13")).toContainText("Hello");
   await expect(
     widget(page, "widget-13").getByRole("button", { name: "Open full view" })
@@ -666,9 +675,9 @@ test("gallery and feed widgets fit too, without scrollbars", async ({
   await toolbar(page).getByRole("button", { name: "Edit" }).click();
   const dialog = page.getByRole("dialog", { name: "Add a widget" });
   for (const view of ["project-cards", "updates"]) {
-    await toolbar(page).getByRole("button", { name: "Add widget" }).click();
-    await dialog.getByLabel("View", { exact: true }).selectOption(view);
-    await dialog.getByRole("button", { name: "Add" }).click();
+    await addWidget(page, "View", "Projects");
+    await dialog.getByLabel("Start from", { exact: true }).selectOption(view);
+    await dialog.getByRole("button", { name: "Add", exact: true }).click();
   }
   // Galleries and feeds are 2×3; their first line always shows.
   await expect(item(page, "widget-10")).toHaveAttribute(

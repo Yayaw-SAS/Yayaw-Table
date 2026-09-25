@@ -38,6 +38,7 @@ or an `instanceId`.
 | `id`, `header`, `type` | Identity, label, type (below). Vue also takes `accessorKey` or `accessorFn`. |
 | `options` | `{ value, label, color? }[]` for select, tag and multi-select columns; values keep their primitive type. |
 | `displayVariant: "tag"`, `coloredTags`, `tagColorMap` | Tags instead of plain text; colors come from the stored value or `color`. |
+| `tags` | `true` or `{ create?, manage?, bulk? }`: a tags column whose options come from `actions.tags` (see [tag catalogs](server-contracts.md#tag-catalogs)); `bulk: "patch"` sends `{ add, remove }` to `bulkUpdate`. In `table.facets`, it lists the catalog's names. |
 | `numberFormat`, `dateDisplayPreset`, `dateFormat`, `timeZone`, `hour12` | Formats, see below. |
 | `inlineEdit` | `true` or `{ enabled, editor, debounceMs, options, readonly }`; editing is opt-in per column or with `table.inlineEdit.enabled`. |
 | `enableSorting`, `enableFiltering`, `enableGrouping`, `enablePinning`, `enableResizing`, `enableCalculation`, `defaultCalculation` | Per-column capabilities and the default footer calculation. |
@@ -133,6 +134,8 @@ Defaults in brackets. Flags only shape the interface; the server decides.
   [true], `enableColumnDragDropByDefault` [false], `enableColumnResizing`
   [false], `enableColumnPinning` [true], `enableCalculations` [false],
   `coloredTags` [true], `presentation` (on the config, not `table`).
+- Tags: `canManageTags` [true]: "Manage tags" on tags columns when
+  `actions.tags` can update, merge or remove.
 - Selection: `enableRowSelection`, `enableMultiRowSelection` [true]; pass
   `getRowId` with stable record ids for server pagination.
 - Views and URL: `enableViews` [true], `allowViewSave` [true],
@@ -141,6 +144,39 @@ Defaults in brackets. Flags only shape the interface; the server decides.
 - Modes: `displayModes` [`["table"]`], `defaultDisplayMode`, and `kanban`,
   `gallery`, `list`, `filetree`, `calendar`, `chart`, `feed`, `map`, `form`,
   `gantt`, `planning` objects: see [display modes](display-modes.md).
+- Facets: `facets` [none], see below.
+
+## Facets
+
+`table.facets` shows a panel of facets beside the records in every display
+mode but `form` (a sheet on phones and compact toolbars, opened from the
+toolbar's button, which also hides the panel on wide screens): each column's
+values with their numbers of records; a click filters the table.
+
+<!-- skill-check: table.facets -->
+| Setting | Meaning |
+| --- | --- |
+| `table.facets.columns` | Column ids in order, or `{ id, label?, limit?, sort?: "options" \| "count" \| "label", showEmpty? }`. Select and tag columns, multi-select and tags columns, booleans (Yes, No) and the file tree's parent column (folders, with "Root"); others and `enableFiltering: false` columns are ignored. |
+| `table.facets.position` | `"left"` (default) or `"right"` of the records. |
+| `table.facets.defaultOpen` | Open at first on wide screens (true). |
+| `table.facets.limit` | Values shown before "Show N more" (8); a search appears past it. |
+| `table.facets.showCounts` | Show the numbers of records (true). |
+| `table.facets.showZero` | List values no record has (false). |
+| `table.facets.width` | Panel width in pixels (256, 180 to 480). |
+
+- A click writes the rule the filter menus write, ANDed with the others:
+  `isAnyOf` for selects, booleans and folders, `contains` for lists, and
+  `isEmpty` alone for "No value" (folders: "Root"). It is view state: in
+  `<tableId>-advancedFilters`, saved with views, listed in the filter menus.
+  Tables with facets get the advanced filter menu. While the view matches
+  any rule (OR), facets cannot change it and say so.
+- Counts ask `actions.aggregate` for the view's query without the facet's
+  own rule (so the facet keeps offering its other values), grouped by the
+  column and counted as charts ask; without it, the rows `list` returns
+  (2,000 at most; a notice says when counts cover fewer records). See
+  [server contracts](server-contracts.md#aggregate).
+- Labels: `facets.<key>` overrides (English and French built in).
+
 
 ## Translations
 
@@ -153,9 +189,9 @@ Defaults in brackets. Flags only shape the interface; the server decides.
 - Vue: `locale` (`"fr…"` selects French) and `translations` merge over the
   built-in English and French strings.
 - Feature screens (chart, map, form, file tree, feed, import, connectors,
-  schedules, dashboards, Gantt) carry English and French labels and read
+  schedules, dashboards, Gantt, tags) carry English and French labels and read
   overrides as `<feature>.<key>` (`chart.loading`, `connector.send`,
-  `views.gantt.today`…). A few keys differ between editions (React
+  `views.gantt.today`, `tags.addTags`…). A few keys differ between editions (React
   `views.calendar.*`, `views.tabs`; Vue `calendar.*`, `viewTabs`): copy key
   names from the edition's translations file.
 
@@ -200,6 +236,12 @@ view is `view` (React also writes `historyIndex`); the file tree adds
   ignored when URL sync is on; use `initialActiveViewId` there.
 - React instances share the app's `QueryClient`, keyed by `tableId`; Vue
   instances create their own client unless you pass `queryClient`.
+- The current view: React `onViewConfigChange(config)`, Vue
+  `@view-config-change` (and the component's exposed `getViewConfig`), and
+  `getViewConfig` in the toolbar actions' context. The config is saved-view
+  settings (`canonicalViewConfig()`: sanitized, without the `select` and
+  `actions` columns, keys in one order), reported on start and after each
+  change, never twice for an equal view (dashboards' view editor reads it).
 
 ## Saved views
 
@@ -216,8 +258,15 @@ view is `view` (React also writes `historyIndex`); the file tree adds
 - `isSystem` views cannot be changed; `canEdit` and `canDelete` are the
   host's per-view permissions for the interface; one personal favorite per
   table opens on arrival.
-- Without `actions.views`, views and the favorite live in `localStorage`
-  (`createLocalTableViewActions()`), per browser and not per account.
+- Each user orders their views: the view menu's "Move left" and "Move right"
+  ("Move up" and "Move down" where it lists the views: phones, `viewTabs:
+  false`) move the current view, announced to screen readers. The order
+  applies to the tabs, the "…" (More views) list and the menu; system views
+  and the `isDefault` view stay first and new views come last. It is kept by
+  `actions.views.setOrder` and `list`'s `order`, else in `localStorage`.
+- Without `actions.views`, views, the favorite and the order live in
+  `localStorage` (`createLocalTableViewActions()`, the order beside it), per
+  browser and not per account.
   Persistence contract: [server contracts](server-contracts.md#saved-views);
   sharing rules: [saved views](https://github.com/Yayaw-SAS/Yayaw-Table/blob/main/docs/SAVED-VIEWS.md).
 
@@ -233,6 +282,8 @@ view is `view` (React also writes `historyIndex`); the file tree adds
 - Bulk actions: `customBulkActions`, `onBulkEdit`, `onBulkDelete`,
   `onBulkCopy`, `onBulkExport` (callbacks win over the built-in behaviour),
   `rowActions` for extra row menu entries, `toolbarActions` for the toolbar.
+  Tables with tags columns holding lists add "Add tags" and "Remove tags"
+  (with `allowBulkEdit` and `bulkUpdate` or `update`).
 - Keyboard: Shift-click ranges, Ctrl/Cmd+A (all matching rows, across pages),
   Ctrl/Cmd+D (duplicate), Ctrl/Cmd+Z (undo through record activity).
 
@@ -250,7 +301,7 @@ framework-native or known:
 | Renderers | `{ View, Settings }` React components | `{ view, settings }` Vue components |
 | Custom content | render props returning React nodes | render functions returning VNodes, plus slots (`#detail-<field-id>`, `form-<id>`, `#extra-fields`) |
 | Icons | React nodes | Vue components |
-| Events | callback props (`onRowActivate`, `onRowSelectionStateChange`) | emits (`row-activate`, `row-selection-change`) |
+| Events | callback props (`onRowActivate`, `onRowSelectionStateChange`, `onViewConfigChange`) | emits (`row-activate`, `row-selection-change`, `view-config-change`) |
 | Bulk callbacks | receive TanStack `Row` objects | receive plain rows |
 | Numbers without `numberFormat` | raw (`1234.5`) | locale-grouped (`1,234.5`) |
 | Bulk Copy without `onBulkCopy` or `actions.bulkCopy` | JSON to the clipboard | hidden |

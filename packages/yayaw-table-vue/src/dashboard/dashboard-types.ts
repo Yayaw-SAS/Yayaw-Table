@@ -4,6 +4,7 @@ import type {
   DashboardFilterValue,
   DashboardLabelKey,
   DashboardOpenViewContext,
+  DashboardSetFilterResult,
 } from "./dashboard-model";
 import type {
   DashboardBlockSchema,
@@ -74,6 +75,24 @@ export interface DashboardBlockProps<
   filters: Readonly<Record<string, DashboardFilterValue | undefined>>;
   /** Reloads the widgets of a source (all of them without a source). */
   refresh: (tableId?: string) => void;
+  /**
+   * Sets a screen filter's value for the reader, exactly as the filter bar
+   * does (the URL keeps it; in edit mode, the filter's default): a select
+   * takes texts among its options, a date range `{ start?, end? }` days or a
+   * `preset`; `undefined` clears it. A value the filter cannot take, or a
+   * filter the screen does not have, is refused with the reason; nothing
+   * changes then.
+   */
+  setFilter: (filterId: string, value: unknown) => DashboardSetFilterResult;
+  /**
+   * The rules the screen's filters give a source's requests (for a block
+   * that queries it), without the filters in `exclude`: join them to its
+   * `list`/`aggregate` requests as `requiredFilters`.
+   */
+  filterRules: (
+    tableId: string,
+    options?: { exclude?: readonly string[] }
+  ) => Record<string, unknown>[];
   /** The host's `openView`, when it gives one. */
   openView?: (
     tableId: string,
@@ -107,3 +126,18 @@ export interface DashboardBlock extends DashboardBlockSchema {
 
 /** The host's blocks, by key (`home.summary`, `media.storage`…). */
 export type DashboardBlockRegistry = Readonly<Record<string, DashboardBlock>>;
+
+/** An entry the screen editor adds at the top of a widget's menu. */
+export interface DashboardWidgetMenuAction {
+  /** Stable id (`data-widget-action`). */
+  id: string;
+  label: string;
+  icon?: Component;
+  onSelect: () => void;
+}
+
+/** A section the widget's menu can move it to ("Move to section"). */
+export interface DashboardWidgetMoveTarget {
+  id: string;
+  name: string;
+}

@@ -1,5 +1,59 @@
 # Changelog
 
+## 3.9.0
+
+### Minor Changes
+
+- fabea4c: Dashboards get their screen editor, the same in React and Vue, and tables report their view.
+
+  - **Tables report their view**: React `DataTable` takes `onViewConfigChange(config)`; Vue `YayawDataTable` emits `view-config-change` and exposes `getViewConfig()`; `ToolbarActionContext.getViewConfig()` in both. The config is `canonicalViewConfig()` (new in `view-config.ts`): saved-view settings sanitized like `sanitizeViewConfig`, without the `select` and `actions` columns, keys in one order. It is reported when the table starts and after each change, once per distinct view.
+  - **Sections**: "Add section" (a grid of cards, full width). In edit mode each section has a bar with its title and a menu (Move up, Move down, "Add widget here", Remove, confirmed when the section holds widgets). Widgets move to another section from their menu ("Move to section").
+  - **The widget dialog** replaces the add-widget dialog, to add and to edit, in three steps: what (a number, a view, a table page, a note, the host's blocks by group and placement), the source (the host's catalogue from `sources.list()`, searched and grouped, unavailable sources disabled with their reason), the settings (the default, a saved or a custom view; the number and overflow fields; the title; a block's `settings` component, or its props as JSON checked by the block's `validateProps`).
+  - **"Edit view…"**: a near full-screen dialog whose editor is the source's live table (toolbar, filters, sort, columns, every mode's settings; no URL sync, saved views, selection or writes). "Apply" stores its last report, sanitized, in `widget.view`, without the page size unless it changed; closing with changes asks first.
+  - **"Use a copy of this view"** turns a saved view into the widget's inline view; **"Make the current view the screen default"** stores a full-page table's current view.
+  - **Saving**: "Done" checks the document with `validateDashboard` and the host's blocks. Errors keep edit mode and are listed by widget, section or filter; nothing is saved.
+  - **Loading**: the editor is a chunk of its own, imported when edit mode starts; readers never download it.
+  - The rules are pure, in the new server-safe `dashboard-editor-model.ts` (synced to Vue). `dashboard-schema.ts` adds `checkDashboardBlockProps` and exports `dashboardAcceptedSections`; `addDashboardWidget` and `moveWidgetToSection` take `blocks`. EN/FR labels for the editor.
+  - The React item now needs shadcn `alert-dialog` and `command`.
+
+  **Migration.** React's `AddWidgetDialog` (`dashboard-dialogs.tsx`) and Vue's `DashboardAddWidget.vue` are replaced by the widget dialog. `ToolbarActionContext` has `getViewConfig()`: code that builds the context itself (tests) adds it. See `docs/DASHBOARD-SCREENS.md`.
+
+- 3ad81b9: A facet panel beside the records, "New folder" and a folder filter in every view, and blocks that set a screen's filters, the same in React and Vue.
+
+  - **Facet panel** (`table.facets`): `{ columns, position?: "left" | "right", defaultOpen?, limit?, showCounts?, showZero?, width? }`, a column being an id or `{ id, label?, limit?, sort?, showEmpty? }`. Select and tag columns, multi-select and tags columns, booleans and a file tree's parent column (folders, with "Root") list their values with their numbers of records, in every display mode but the Form view. A click writes the rule the filter menus write (`isAnyOf`; `contains` for lists; `isEmpty` alone for "No value"), ANDed with the others: it is view state, in the URL and saved views, listed in the filter menus. "Clear" per facet, "Clear all", "Show N more", a search past the limit, arrow keys; a toolbar button hides and shows the panel, which phones open as a sheet. While a view matches any rule (OR), the facets say so and leave it alone. Tables with facets show the advanced filter menu.
+  - **Counts** ask `actions.aggregate` as charts do (`groupBy: [{ columnId }]`, `metrics: [{ fn: "count" }]`), for the view's search and filters without the facet's own rule; without it, the rows `list` returns (2,000 at most, with a notice beyond), or the table's own rows (Vue `data`). The rules are pure, in the new server-safe `utils/facets-model.ts` (synced to Vue); `aggregateFacetRows()` answers facet requests in memory.
+  - **Folders in every view**: a table whose rows form a file tree gets "New folder" in the toolbar of its other views (not the File tree, the Form view or Gantt): a name and a searchable parent folder (the root first, each folder with its location), through `actions.tree.createFolder`, else `create`, with the File tree's naming rules and `canCreateFolder`. Its parent column filters with a folder picker in the filter menus: folders (`isAnyOf` with their ids) or the root (`isEmpty`). `table.filetree.newFolderAction: false` and `folderFilter: false` turn them off. Folders load once with `list({ scope: { kind: "subtree", parentId: null } })` (and a kind rule), else the capped all-rows loader. Shared rules: the new server-safe `utils/folder-directory.ts`.
+  - **Blocks set screen filters**: dashboard block props gain `setFilter(filterId, value)`, which changes a filter exactly as the filter bar does and answers `{ ok: true, value }` or `{ ok: false, code: "unknownFilter" | "invalidValue", message }` (a select value among the filter's options, days in order or a known preset for a date range), and `filterRules(tableId, { exclude? })`, the rules the screen's filters give a source. Pure helpers: `checkDashboardFilterValue`, `dashboardSourceFilterRules`.
+  - **Facet list block**: `createFacetBlock({ filterId, tableId, column, actions?, label?, layout? })` (React `dashboard-facet-block.tsx`, Vue `dashboard/dashboard-facet-block.ts`) lists a column's values with their numbers of records under the screen's other filters; a click sets the select filter, "All" clears it. Shared rules in `dashboard-facets.ts`.
+  - **Demos**: `?example=products` (facets on category and tags), the assets demo (facets on folders and kinds, closed at first; "New folder" and the folder filter in the gallery and the table), and `?example=screen` (a "Sections" facet list driving the Pages table through a "Section" filter).
+  - **Translations**: facets read `facets.<key>` (English and French built in); the folder dialog and picker read `filetree.<key>` (new: `rootFolder`, `parentFolder`, `inFolder`, `noFolders`, `createFailed`); the facet list block's labels are in the dashboard's English and French labels.
+
+  **Migration.** None required. `DashboardBlockProps` has two new members (`setFilter`, `filterRules`): code that renders block components itself (tests) passes them.
+
+- 408e711: Tags columns backed by the host's tag catalog, the same in React and Vue.
+
+  - **Tags columns**: `tags: true` (or `{ create?, manage?, bulk? }`) on a `multiSelect` (a list of tag ids) or `select` (one id) column. With the new optional `actions.tags` (`list`, `create`, `update`, `merge`, `remove`, each called with `{ tableId, tableType, columnId }`), the column's options are the host's catalog, loaded once per table and column and cached: cells, cards, the Feed, filters, grouping and the record view show the tags' names and colors. Without `actions.tags`, static `options` work as before.
+  - **Create on the fly**: the tag picker (inline cells, record form fields bound to a tags column, bulk dialogs) searches names without case or accents and offers "Create “name”", which creates, selects and caches the tag. Colored chips, full keyboard support.
+  - **Bulk "Add tags" and "Remove tags"** in the bulk bar (tags columns holding lists, with `allowBulkEdit` and `bulkUpdate` or `update`): an optimistic patch of the selection; rows that fail are restored and stay selected. `bulkUpdate` receives each group of rows' resulting lists by default, or one `{ [field]: { add, remove } }` patch with `tags: { bulk: "patch" }`, applied on the server with `applyTagPatch()`.
+  - **"Manage tags"** in the column menu: rename, recolor from a palette (`TAG_COLOR_NAMES`; hosts may store any CSS color), merge into another tag, delete with the number of records using the tag (one `aggregate` call grouped by the column). `table.canManageTags: false` or `tags: { manage: false }` hide it.
+  - Tag colors: `tagAppearance()` takes a tag's own color (a palette name or a CSS color) over `tagColorMap` and the automatic hue; filter menus show tag swatches.
+  - Facets: a tags column in `table.facets` lists the catalog's tag names, each counted once per record, and a click filters with `contains`. The Assets demo adds a Tags facet.
+  - The shared, server-safe `tag-catalog.ts` (synced to Vue) holds the contract types and helpers (`resolveTagColumn`, `tagColumnsOf`, `normalizeTagList`, `tagOptions`, `applyTagPatch`, `isTagPatch`, `mergeTagValue`, `removeTagValue`, `tagUsageRequest`, `tagUsageCounts`, `tagLabels`), exported by both editions. EN/FR labels, overridable with `tags.<key>` translations.
+  - Vue editable cells no longer open the record view on a single click, as in React: double-click or Enter edits them.
+  - The React item's `useBulkActions().completeBulkEdit` takes the targets whose rows it deselects (optional).
+  - File tree: when the host ignores the tree's scopes, the tree built in the browser no longer stays on "Loading…" if new page rows arrive during its first load (React and Vue share the fix).
+
+- 5bdb9c6: Each user orders their saved views, and the tabs' overflow is an icon, the same in React and Vue.
+
+  - **Move left, Move right**: the view menu moves the current saved view one step ("Move up" and "Move down" where the menu lists the views: phones, `viewTabs: false`). At an end an action stays focusable but inactive, so the focus stays on it, and each move is announced to screen readers ("View “Sales” moved to position 3 of 6"). The order applies to the tabs, the "…" list and the view menu. System views and the default view (`isDefault`, such as a dashboard screen's default) stay first; views the order does not name (new ones) come last.
+  - **Contract**: optional `actions.views.setOrder({ tableId, tableType, viewIds })` → `{ success, data: { viewIds } }`, with every view the user orders, first to last. `list` answers `order` (the ids `setOrder` last received) or lists the views in that order. Without `setOrder`, the order stays in localStorage under `yayaw-table-view-order:<JSON [tableType, tableId]>`, like the favorite.
+  - The rules are pure, in the new server-safe `utils/view-order.ts` (synced to Vue): `orderViews(views, order)` sorts views the table's way, also on a host's server. New types: `SetTableViewOrderInput`, `TableViewListResult` (`{ data, order? }`) and `LocalTableViewActions`.
+  - **"…" instead of "More ⌄"**: the overflow is an icon-only button (Lucide `Ellipsis`) named "More views" ("Plus de vues"), with the same tooltip, next to the chevron that opens the view menu. Its menu shows full view names.
+  - **Phones**: the Vue view menu's rows are 44px touch targets, as in React.
+  - **Translations**: `views.more` (Vue `moreViews`) is now "More views" / "Plus de vues", the button's name. New keys, English and French in Vue: React `views.moveLeft`, `views.moveRight`, `views.moveUp`, `views.moveDown`, `views.moved` (`{name}`, `{position}`, `{count}`), `views.orderError`; Vue `moveViewLeft`, `moveViewRight`, `moveViewUp`, `moveViewDown`, `viewMoved`, `viewOrderError`. React falls back to English when a host's translations lack them.
+
+  **Migration.** None required. Hosts that translate `views.more` (Vue `moreViews`) translate it as "More views": it now names an icon button. `createLocalTableViewActions()` returns `LocalTableViewActions` (without `setOrder`); code typing it `Required<TableViewActions>` uses the new type.
+
 ## 3.8.0
 
 ### Minor Changes

@@ -43,6 +43,10 @@ import type {
 } from "../types/translations";
 import type { TableViewActions } from "../types/view-types";
 import { resolveTableQueryClient } from "./query-client-requirements";
+import {
+  TagCatalogProvider,
+  useTagCatalogRuntime,
+} from "./tag-catalog-provider";
 import { createTranslationFunction } from "./translation-cache";
 
 // Define proper types for the helper functions
@@ -219,6 +223,12 @@ export interface TableActions {
    * call your provider (with its key) on your server.
    */
   geocode?: import("../utils/location-model").GeocodeAction;
+  /**
+   * The host's tag catalogs, for columns with `tags`: their options, created
+   * on the fly in pickers, renamed, recolored, merged and deleted in "Manage
+   * tags". See `utils/tag-catalog.ts`.
+   */
+  tags?: import("../utils/tag-catalog").TableTagActions;
   views?: TableViewActions;
   [key: string]: unknown;
 }
@@ -446,6 +456,16 @@ export function TableProvider({
       type === planningType ? resolvedActions : getTableActions?.(type),
     [planningType, resolvedActions, getTableActions]
   );
+  // Tags columns take their options from the host's catalogs (`actions.tags`).
+  const tagCatalogs = useTagCatalogRuntime({
+    getTableActions: getResolvedTableActions,
+    getTableConfig,
+    locale,
+    queryClient: resolvedQueryClient.queryClient,
+    tableId: _tableId ?? planningType ?? "",
+    tableType: planningType ?? "",
+    translate: t,
+  });
 
   // Stabilize the context value to prevent unnecessary re-renders
   const value = useMemo(
@@ -455,7 +475,7 @@ export function TableProvider({
       t,
       getFormConfig,
       getTableActions: getResolvedTableActions,
-      getTableConfig,
+      getTableConfig: tagCatalogs.getTableConfig,
       TitleComponent,
       DescriptionComponent,
     }),
@@ -465,7 +485,7 @@ export function TableProvider({
       t,
       getFormConfig,
       getResolvedTableActions,
-      getTableConfig,
+      tagCatalogs.getTableConfig,
       TitleComponent,
       DescriptionComponent,
     ]
@@ -473,9 +493,11 @@ export function TableProvider({
 
   const content = (
     <TableProviderContext.Provider value={value}>
-      <PlanningContext.Provider value={planningSession}>
-        {children}
-      </PlanningContext.Provider>
+      <TagCatalogProvider value={tagCatalogs.api}>
+        <PlanningContext.Provider value={planningSession}>
+          {children}
+        </PlanningContext.Provider>
+      </TagCatalogProvider>
     </TableProviderContext.Provider>
   );
 
@@ -885,8 +907,14 @@ export const defaultTranslations: DataTableTranslations = {
     tabs: "Views",
     viewActions: "View actions",
     filterViews: "Find a view",
-    more: "More",
+    more: "More views",
     newView: "New view",
+    moveLeft: "Move left",
+    moveRight: "Move right",
+    moveUp: "Move up",
+    moveDown: "Move down",
+    moved: "View “{name}” moved to position {position} of {count}",
+    orderError: "Could not save the order of the views",
     default_system_view: "Default System View",
     systemView: "System View",
     custom_view: "Custom View",

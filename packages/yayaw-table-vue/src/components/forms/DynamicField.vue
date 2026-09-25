@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { useTableTranslation } from "../../context";
+import { tableContextKey, useTableTranslation } from "../../context";
 import {
   computed,
   defineComponent,
   h,
+  inject,
   onBeforeUnmount,
   useId,
   type PropType,
@@ -30,6 +31,7 @@ import { useFieldOptions } from "../../composables/use-field-options";
 import CollectionField from "./CollectionField.vue";
 import TablePickerField from "./TablePickerField.vue";
 import LocationEditor from "../location/LocationEditor.vue";
+import TagPicker from "../tags/TagPicker.vue";
 import type {
   FormFieldContext,
   FormFieldDefinition,
@@ -51,6 +53,19 @@ const emit = defineEmits<{
   fieldChange: [name: string, value: unknown];
 }>();
 const fieldId = `yayaw-field-${useId()}`;
+// A field of a tags column picks from the host's catalog.
+const tagCatalog = inject(tableContextKey, undefined)?.tags;
+const tagColumn = computed(() =>
+  props.field.type === "multiSelect" || props.field.type === "select"
+    ? tagCatalog?.columnForField(props.field.name)
+    : undefined
+);
+const createTag = computed(() => {
+  const column = tagColumn.value;
+  return column && tagCatalog?.canCreate(column.columnId)
+    ? (name: string) => tagCatalog.create(column.columnId, name)
+    : undefined;
+});
 const errorMessage = computed(
   () => props.error ?? props.errors?.[props.path ?? props.field.name]
 );
@@ -335,6 +350,27 @@ watch(valueType, (next, previous) => {
       "
       @input="updateInput"
     />
+    <template v-else-if="tagColumn && tagCatalog">
+      <TagPicker
+        :id="fieldId"
+        :model-value="modelValue"
+        mode="field"
+        :tags="tagCatalog.tags(tagColumn.columnId)"
+        :multiple="tagColumn.multiple"
+        :labels="tagCatalog.labels.value"
+        :label="field.label"
+        :colored-tags="tagCatalog.coloredTags(tagColumn.columnId)"
+        :disabled="disabled"
+        :invalid="Boolean(errorMessage)"
+        :described-by="describedBy"
+        :placeholder="field.placeholder"
+        :create="createTag"
+        :load-error="tagCatalog.status(tagColumn.columnId) === 'error'"
+        :retry="() => tagCatalog?.reload(tagColumn!.columnId)"
+        @update:model-value="update"
+      />
+      <output v-if="tagCatalog.status(tagColumn.columnId) === 'loading'" class="yayaw-help">{{ tagCatalog.labels.value.loading }}</output>
+    </template>
     <div
       v-else-if="field.type === 'select-with-add-new'"
       class="yayaw-add-select"

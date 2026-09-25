@@ -166,6 +166,28 @@ export interface ColumnFilterConfig<
   dateFormat?: string;
   /** The number column's format: filter chips show values in it */
   numberFormat?: import("../utils/value-format").NumberFormatConfig;
+  /**
+   * The file tree's parent column filters with a folder picker: the root
+   * (`isEmpty`) or folders (`isAnyOf`), shown with their locations.
+   */
+  folder?: FolderFilterConfig;
+}
+
+/** What the folder picker of a parent column's filter shows. */
+export interface FolderFilterConfig {
+  /** The table whose folders the picker loads. */
+  tableId: string;
+  tableType: string;
+  /** The folders known yet, for filter chips. */
+  directory?: import("../utils/folder-directory").FolderDirectory;
+  /** "Root", the choice for items at the top level. */
+  rootLabel: string;
+  /** Operator label of folder rules in filter chips ("In"). */
+  inLabel: string;
+  label: string;
+  searchLabel: string;
+  loadingLabel: string;
+  emptyLabel: string;
 }
 
 /**

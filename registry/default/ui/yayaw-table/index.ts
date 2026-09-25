@@ -121,14 +121,30 @@ export * from "./types/translations";
 // Core types used in docs
 export type {
   CreateTableViewInput,
+  SetTableViewOrderInput,
   TableView,
   TableViewActionContext,
   TableViewActionResult,
   TableViewActions,
   TableViewConfig,
+  TableViewListResult,
   UpdateTableViewInput,
 } from "./types/view-types";
 export type { TableActivityRecord } from "./utils/activity-shortcuts";
+// Facets: the panel listing values with their records, clicks as filter rules.
+export {
+  type FacetColumn,
+  type FacetColumnSettings,
+  type FacetCounts,
+  type FacetEntry,
+  type FacetKind,
+  facetAggregateParams,
+  facetCountParams,
+  loadFacetCounts,
+  resolveFacets,
+  type TableFacetsConfig,
+  toggleFacetValue,
+} from "./utils/facets-model";
 export {
   type FeedBodyRenderer,
   type FeedDateDisplay,
@@ -144,8 +160,17 @@ export type {
   FileTreeMoveInput,
   FileTreeMoveResult,
   FileTreeTableConfig,
+  FileTreeTableOptions,
   FileTreeViewSettings,
 } from "./utils/filetree-model";
+// Folders outside the File tree: New folder, the folder filter and facets.
+export {
+  type FolderDirectory,
+  type FolderEntry,
+  folderChoiceOf,
+  loadFolderDirectory,
+  toggleFolderChoice,
+} from "./utils/folder-directory";
 export {
   type Condition,
   type ConditionField,
@@ -229,4 +254,41 @@ export type {
   RecordPresentationConfig,
 } from "./utils/record-presentation";
 export type { BoundsScope, ListScope } from "./utils/scoped-rows";
-export { createLocalTableViewActions } from "./utils/table-view-storage";
+export {
+  createLocalTableViewActions,
+  type LocalTableViewActions,
+} from "./utils/table-view-storage";
+// Tag catalogs (`actions.tags`): shared helpers a host can use on its server.
+export {
+  applyTagPatch,
+  isTagPatch,
+  mergeTagValue,
+  normalizeTagList,
+  type ResolvedTagColumn,
+  removeTagValue,
+  resolveTagColumn,
+  type TableTag,
+  type TableTagActions,
+  type TableTagAnswer,
+  type TableTagCreateInput,
+  type TableTagMergeInput,
+  type TableTagRemoveInput,
+  type TableTagScope,
+  type TableTagUpdateInput,
+  type TagBulkMode,
+  type TagColumnConfig,
+  type TagColumnInput,
+  type TagPatch,
+  tagColumnsOf,
+  tagLabels,
+  tagOptions,
+  tagUsageCounts,
+  tagUsageRequest,
+} from "./utils/tag-catalog";
+export {
+  TAG_COLOR_NAMES,
+  type TagColorName,
+  tagColorValue,
+} from "./utils/tag-colors";
+// The user's order of saved views: hosts may sort their `list` answer alike.
+export { orderViews } from "./utils/view-order";

@@ -1405,3 +1405,61 @@ export function sanitizeViewConfig(
     return { config: {}, issues: context.issues };
   }
 }
+
+/** Columns every table adds itself (row selection, row actions): not part of a view. */
+const SYSTEM_COLUMNS: ReadonlySet<string> = new Set(["select", "actions"]);
+
+const withoutSystemColumns = (ids: readonly string[]): string[] =>
+  ids.filter((id) => !SYSTEM_COLUMNS.has(id));
+
+const withoutSystemEntries = <T>(
+  map: Record<string, T>
+): Record<string, T> | undefined => {
+  const kept = Object.entries(map).filter(([id]) => !SYSTEM_COLUMNS.has(id));
+  return kept.length ? Object.fromEntries(kept) : undefined;
+};
+
+/** The column layout of a view without the table's own columns. */
+function dataColumnsOnly(config: ViewConfig): ViewConfig {
+  const { columnOrder, columnPinning, columnSizing, columnVisibility } = config;
+  const order = columnOrder ? withoutSystemColumns(columnOrder) : [];
+  const left = withoutSystemColumns(columnPinning?.left ?? []);
+  const right = withoutSystemColumns(columnPinning?.right ?? []);
+  const visibility = columnVisibility && withoutSystemEntries(columnVisibility);
+  const sizing = columnSizing && withoutSystemEntries(columnSizing);
+  const {
+    columnOrder: _order,
+    columnPinning: _pinning,
+    columnSizing: _sizing,
+    columnVisibility: _visibility,
+    ...rest
+  } = config;
+  return {
+    ...rest,
+    ...(order.length ? { columnOrder: order } : {}),
+    ...(left.length || right.length ? { columnPinning: { left, right } } : {}),
+    ...(sizing ? { columnSizing: sizing } : {}),
+    ...(visibility ? { columnVisibility: visibility } : {}),
+  };
+}
+
+/**
+ * The settings a table reports for the view it shows (React
+ * `onViewConfigChange`, Vue `view-config-change`, `getViewConfig()` in
+ * toolbar actions): `sanitizeViewConfig`'s shape, without the table's own
+ * columns (`select`, `actions`) and the display mode settings that hold
+ * nothing, so both editions report the same object for the same view.
+ */
+export function canonicalViewConfig(input: unknown): ViewConfig {
+  const config: Row = { ...dataColumnsOnly(sanitizeViewConfig(input).config) };
+  const canonical: Row = {};
+  // Keys in one order whatever the input's, so equal views give equal JSON.
+  for (const key of Object.keys(FIELDS)) {
+    const value = config[key];
+    const empty = isRecord(value) && Object.keys(value).length === 0;
+    if (value !== undefined && !empty) {
+      canonical[key] = value;
+    }
+  }
+  return canonical as ViewConfig;
+}

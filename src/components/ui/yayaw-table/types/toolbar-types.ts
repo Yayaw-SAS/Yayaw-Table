@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { Row } from "@/components/ui/yayaw-table/tanstack";
 import type { TableActions } from "../providers/table-provider";
+import type { ViewConfig } from "../utils/view-config";
 
 export type ToolbarActionVariant =
   | "default"
@@ -16,6 +17,11 @@ export type ToolbarActionsPlacement =
 
 export interface ToolbarActionContext {
   actionsAsIcons: boolean;
+  /**
+   * The view the table shows now, as a saved view's `config` (the shape
+   * `sanitizeViewConfig` accepts; what `onViewConfigChange` reports).
+   */
+  getViewConfig: () => ViewConfig;
   hasListAction: boolean;
   isCreateEnabled: boolean;
   isExportEnabled: boolean;

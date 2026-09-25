@@ -17,6 +17,7 @@ import type { TableActions } from "@/components/ui/yayaw-table/providers/table-p
 import type { DisplayModeRenderers } from "@/components/ui/yayaw-table/types/display-mode-renderer";
 import type { DataTableTranslations } from "@/components/ui/yayaw-table/types/translations";
 import type { TableView } from "@/components/ui/yayaw-table/types/view-types";
+import type { ViewConfig } from "@/components/ui/yayaw-table/utils/view-config";
 import {
   type DashboardNotice,
   type DashboardWidget,
@@ -53,6 +54,11 @@ export interface DashboardPageTableProps {
   revision: number;
   /** After each change of the table's records: the screen reloads its other widgets. */
   onMutated: () => void;
+  /**
+   * The view the table shows (`onViewConfigChange`), which "Make the current
+   * view the screen default" stores.
+   */
+  onViewConfigChange?: (config: ViewConfig) => void;
   /** The screen's URL sync: off keeps the table's state out of the URL too. */
   syncUrl: boolean;
   renderers?: DisplayModeRenderers;
@@ -85,6 +91,7 @@ export function DashboardPageTable({
   locale,
   noticeText,
   onMutated,
+  onViewConfigChange,
   renderers,
   revision,
   rules,
@@ -170,6 +177,17 @@ export function DashboardPageTable({
   );
   const getTableActions = useCallback(() => actions, [actions]);
   const getTableConfig = useCallback(() => config, [config]);
+  // The screen and the host both hear the view the table shows.
+  const reported = useRef(onViewConfigChange);
+  reported.current = onViewConfigChange;
+  const hostReport = hostProps.onViewConfigChange;
+  const reportView = useCallback(
+    (view: ViewConfig) => {
+      reported.current?.(view);
+      hostReport?.(view);
+    },
+    [hostReport]
+  );
   const props: DashboardDataTableProps = {
     ...hostProps,
     displayModeRenderers,
@@ -182,6 +200,7 @@ export function DashboardPageTable({
     getTableActions,
     getTableConfig,
     initialViews,
+    onViewConfigChange: reportView,
   };
   const table: ReactNode = source.renderTable ? (
     source.renderTable(props)

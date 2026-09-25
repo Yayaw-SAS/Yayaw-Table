@@ -66,7 +66,15 @@ show a notice and are never removed), the host's `blocks`, full-page `table`
 widgets (the list page with its toolbar, saved views and URL; `tableProps`
 and `renderTable` for host code), filter values kept in the URL with relative
 periods (last 30 days, this month…), "Refresh all" and `meta.notice` from the
-host (`?example=screen` in both demos). Nothing scrolls inside
+host (`?example=screen` in both demos). Blocks can set the screen's filters
+(`setFilter(filterId, value)`, checked against the filter's type and
+options), and `createFacetBlock` makes a "Facet list" block whose clicks
+filter the screen. Admins edit screens in place
+(`canEdit` with `actions.dashboards.save`; the editor loads in a chunk of its
+own): sections, a widget dialog (what, source, settings) over the catalogue
+and the host's blocks, and "Edit view…", whose editor is the live table
+(tables report their view with `onViewConfigChange` in React and
+`view-config-change` in Vue); "Done" validates before saving. Nothing scrolls inside
 a widget by default: lists, tables, boards, galleries and feeds show the
 records that fit and "+N more · View all" (`settings.overflow: "scroll"`
 scrolls instead), charts fill their widget, and numbers can compare with the
@@ -77,7 +85,11 @@ named `parentId`) show as folders and files in a tree table; add `"filetree"`
 to `displayModes`. It loads folders with `list({ scope: { kind: "children" } })`
 and moves with `actions.tree.move` when the host provides them, and falls back
 to the rows `list` returns and `update` otherwise; see
-[docs/FILETREE.md](docs/FILETREE.md).
+[docs/FILETREE.md](docs/FILETREE.md). Such tables also offer "New folder"
+in their other views (a name and a searchable parent folder) and filter the
+parent column with a folder picker (a folder, or the root);
+`table.filetree.newFolderAction: false` and `folderFilter: false` turn them
+off.
 Maps (markers from a `location` column,
 clusters, popups, the list of records in view; mapcn on MapLibre GL in React,
 MapLibre GL in Vue) are `https://table.yayaw.app/r/yayaw-table-map.json` and
@@ -193,7 +205,7 @@ export function ProductsTable() {
 }
 ```
 
-Saved views support a personal favorite that opens on arrival in both React and Vue. See [favorite persistence and organization sharing](docs/SAVED-VIEWS.md) for the server integration contract and current permission boundaries.
+Saved views support a personal favorite that opens on arrival and a personal order in both React and Vue: the view menu moves the current view left or right (up or down on phones), and the tabs, the "…" (More views) list and the menu follow each user's order, kept by `actions.views.setOrder` or in the browser. See [favorites, order and organization sharing](docs/SAVED-VIEWS.md) for the server integration contract and current permission boundaries.
 
 The React edition supports shared TanStack Query state, typed filters, URL state with Nuqs, saved views, table/Kanban/gallery modes, forms, inline editing, and bulk actions. It can use Next.js Server Actions, regular HTTP APIs, or any backend adapter that implements the action contracts.
 
@@ -236,6 +248,31 @@ server, `normalizeDateFilterRules(rules, { timeZone })` from
 the view. See the
 [server contracts](skills/yayaw-table/references/server-contracts.md#date-rules).
 
+### Facets beside the records
+
+`table.facets` shows a panel of facets beside the records in every display
+mode but the Form view: each column listed (select, tag, status,
+multi-select, tags, boolean, or a file tree's folder column) shows its values
+with their number of records, and a click filters the table.
+
+```ts
+table: {
+  facets: {
+    columns: ["category", { id: "tags", limit: 12 }],
+    position: "left", // or "right"
+    defaultOpen: true, // phones open the panel as a sheet from the toolbar
+  },
+}
+```
+
+A selection is an ordinary filter rule (`isAnyOf`, `contains` for lists,
+`isEmpty` for "No value"), kept in the URL and in saved views and listed in
+the filter menus. Counts come from `actions.aggregate` (grouped by the column and
+counted, as charts ask) for the current search and filters without the
+facet's own rule; without it, from the rows `list` returns (2,000 at most,
+with a notice beyond). The toolbar button shows and hides the panel;
+`?example=products` shows it in both demos.
+
 ### Empty states and filter recovery
 
 Table, Kanban, and Gallery use the [Shadcn Empty component](https://ui.shadcn.com/docs/components/empty) in both editions. A filtered empty result offers a **Clear filters** button, even when the toolbar shortcut is disabled or the toolbar is hidden. It clears global search, column filters, and advanced filters and returns to page one. Sorting, grouping, column layout, display mode, page size, and the selected view remain unchanged; the saved view is not overwritten.
@@ -268,6 +305,50 @@ columns. Drag with a pointer or use Left/Right Arrow, Home, and End while a
 handle is focused. Double-click restores the configured width. Add
 `enableResizing: false` to an individual column to keep it fixed. Resized widths
 are included in saved views and shareable URLs in both React and Vue.
+
+### Tags columns
+
+A column with `tags: true` is a tags column: `multiSelect` columns hold a
+list of tag ids, `select` columns one. With `actions.tags` in both editions,
+its options are the host's catalog, loaded once per table and column when the
+table mounts and cached, so cells, cards, filters, grouping and the record
+view show the tags' names and colors:
+
+```ts
+columns: [{ id: "tags", header: "Tags", type: "multiSelect", tags: true, inlineEdit: true }],
+// getTableActions(tableType)
+tags: {
+  list: ({ tableId, tableType, columnId }) => listTags(columnId), // [{ id, name, color? }]
+  create: ({ columnId, name, color }) => createTag(columnId, name, color), // the new tag
+  update: ({ id, name, color }) => updateTag(id, { name, color }), // color: null clears it
+  merge: ({ sourceIds, targetId }) => mergeTags(sourceIds, targetId), // rewrites the records
+  remove: ({ id }) => deleteTag(id), // and removes it from the records
+},
+```
+
+- The tag picker (cells, record forms) searches names without case or
+  accents and offers "Create “name”" (with `create`, unless the column sets
+  `tags: { create: false }`): the tag is created, selected and cached at once.
+- Bulk "Add tags" and "Remove tags" (tags columns holding lists, with
+  `allowBulkEdit` and `bulkUpdate` or `update`) show the change at once and
+  restore the rows that fail, which stay selected. By default `bulkUpdate`
+  receives each group of rows' resulting lists; with `tags: { bulk: "patch" }`
+  it receives `{ [field]: { add, remove } }` once, for the server to apply with
+  `applyTagPatch()`.
+- "Manage tags" in the column menu renames, recolors (a palette of named
+  colors; any CSS color from the host shows too), merges and deletes tags,
+  confirming a deletion with the number of records using the tag (one
+  `aggregate` call grouped by the column). `table.canManageTags: false` or the
+  column's `tags: { manage: false }` hide it.
+- Tag colors: palette names (`TAG_COLOR_NAMES`) or CSS colors; tags without a
+  color keep their automatic hue, and `coloredTags: false` shows neutral tags.
+- Facets: a tags column listed in `table.facets` shows the catalog's tag
+  names, each counted once per record, and a click filters with `contains`.
+
+Without `actions.tags`, a tags column keeps its static `options`. See the
+[server contracts](skills/yayaw-table/references/server-contracts.md#tag-catalogs);
+`?example=assets&assets-display=table` shows a Tags column (and a Tags facet
+from the toolbar) in both demos.
 
 ### Migrate from TanStack Table 8
 
