@@ -48,6 +48,7 @@ import type { TableViewConfig } from "../types/view-types";
 import {
   normalizeColumnSizing,
   normalizeFilterEnvelope,
+  tableQueryKey,
 } from "../utils/table-contracts";
 import {
   createTableViewConfigSnapshot,
@@ -109,6 +110,19 @@ const areStateChannelValuesEqual = (left: unknown, right: unknown): boolean =>
     typeof left === "object" &&
     typeof right === "object" &&
     JSON.stringify(left) === JSON.stringify(right));
+
+/** The table's query: what its search, filter and sort controls write. */
+type QueryChannel = "advancedFilters" | "filters" | "q" | "sort";
+
+const QUERY_WRITE_OPTIONS = {
+  history: "replace",
+  scroll: false,
+  shallow: true,
+} as const;
+
+/** Whether a search, filter or sort write changes the query (see `tableQueryKey`). */
+const changesQuery = (current: unknown, next: unknown): boolean =>
+  tableQueryKey(current) !== tableQueryKey(next);
 
 const useStateChannel = <T>(
   tableId: string,
@@ -807,16 +821,39 @@ export function useTableUrlState({
     | string
     | null;
 
+  // The query the table shows, compared with each write when it lands.
+  const shownQuery: Record<QueryChannel, unknown> = {
+    advancedFilters: advancedFiltersParam,
+    filters: filtersParam,
+    q: globalSearchParam,
+    sort: sortParam,
+  };
+  const shownQueryRef = useRef(shownQuery);
+  shownQueryRef.current = shownQuery;
+
   const debouncedSetParamRef = useRef<
-    | ((key: string, value: TableParamValue, resetVersion?: number) => void)
+    | ((
+        channel: QueryChannel,
+        value: TableParamValue,
+        resetVersion?: number
+      ) => void)
     | null
   >(null);
 
   // Create debounced setter on mount
   useEffect(() => {
+    const setters = {
+      advancedFilters: setAdvancedFiltersParam,
+      filters: setFiltersParam,
+      q: setGlobalSearchParam,
+      sort: setSortParam,
+    } as Record<
+      QueryChannel,
+      (value: TableParamValue, options?: unknown) => unknown
+    >;
     const debouncedSetParam = debounce((...args: unknown[]) => {
-      const [key, value, resetVersion] = args as [
-        string,
+      const [channel, value, resetVersion] = args as [
+        QueryChannel,
         TableParamValue,
         number?,
       ];
@@ -827,48 +864,13 @@ export function useTableUrlState({
       ) {
         return;
       }
-      if (key.includes("filters") && !key.includes("advancedFilters")) {
-        (
-          setFiltersParam as unknown as (
-            v: ColumnFiltersState,
-            o?: unknown
-          ) => void
-        )(value as ColumnFiltersState, {
-          shallow: true,
-          history: "replace",
-          scroll: false,
-        });
-      } else if (key.includes("advancedFilters")) {
-        (
-          setAdvancedFiltersParam as unknown as (
-            v: AdvancedFiltersState,
-            o?: unknown
-          ) => void
-        )(value as AdvancedFiltersState, {
-          shallow: true,
-          history: "replace",
-          scroll: false,
-        });
-      } else if (key.includes("sort")) {
-        (setSortParam as unknown as (v: SortingState, o?: unknown) => void)(
-          value as SortingState,
-          {
-            shallow: true,
-            history: "replace",
-            scroll: false,
-          }
-        );
-      } else if (key.endsWith("-q")) {
-        (setGlobalSearchParam as unknown as (v: string, o?: unknown) => void)(
-          value as unknown as string,
-          {
-            shallow: true,
-            history: "replace",
-            scroll: false,
-          }
-        );
+      const isNewQuery = changesQuery(shownQueryRef.current[channel], value);
+      setters[channel](value, QUERY_WRITE_OPTIONS);
+      // A new query starts on the first page, as in Vue, in the same update.
+      // Reading a link, or going back and forward, writes nothing: its page stays.
+      if (isNewQuery) {
+        setPageParam("0", QUERY_WRITE_OPTIONS);
       }
-      // Add other param setters as needed
     }, 150);
     debouncedSetParamRef.current = debouncedSetParam;
     return () => {
@@ -880,6 +882,7 @@ export function useTableUrlState({
     store,
     setFiltersParam,
     setAdvancedFiltersParam,
+    setPageParam,
     setSortParam,
     setGlobalSearchParam,
   ]);
@@ -887,12 +890,12 @@ export function useTableUrlState({
   const setColumnFiltersFromUI = useCallback(
     (filters: ColumnFiltersState) => {
       debouncedSetParamRef.current?.(
-        `${urlPrefix}-filters`,
+        "filters",
         filters,
         store.get(resetVersionAtom)
       );
     },
-    [resetVersionAtom, store, urlPrefix]
+    [resetVersionAtom, store]
   );
 
   // Advanced filters setter
@@ -901,31 +904,28 @@ export function useTableUrlState({
       // Inactive or empty rules are kept; the list request leaves them out.
       // Date rules are written as the calendar days they name.
       debouncedSetParamRef.current?.(
-        `${urlPrefix}-advancedFilters`,
+        "advancedFilters",
         normalizeDateFilterRules(filters),
         store.get(resetVersionAtom)
       );
     },
-    [resetVersionAtom, store, urlPrefix]
+    [resetVersionAtom, store]
   );
 
-  const setSorting = useCallback(
-    (sorting: SortingState) => {
-      debouncedSetParamRef.current?.(`${urlPrefix}-sort`, sorting);
-    },
-    [urlPrefix]
-  );
+  const setSorting = useCallback((sorting: SortingState) => {
+    debouncedSetParamRef.current?.("sort", sorting);
+  }, []);
 
   // Global search setter
   const setGlobalSearchFromUI = useCallback(
     (value: string) => {
       debouncedSetParamRef.current?.(
-        `${urlPrefix}-q`,
+        "q",
         value || "",
         store.get(resetVersionAtom)
       );
     },
-    [resetVersionAtom, store, urlPrefix]
+    [resetVersionAtom, store]
   );
 
   // Clear every filtering input while preserving the table's presentation.
@@ -947,8 +947,12 @@ export function useTableUrlState({
 
   // Method to reset only advanced filters
   const resetAdvancedFilters = useCallback(() => {
+    const isNewQuery = changesQuery(shownQueryRef.current.advancedFilters, []);
     queueUrlUpdate(setAdvancedFiltersParam, []);
-  }, [queueUrlUpdate, setAdvancedFiltersParam]);
+    if (isNewQuery) {
+      queueUrlUpdate(setPageParam, "0");
+    }
+  }, [queueUrlUpdate, setAdvancedFiltersParam, setPageParam]);
 
   // Methods for other URL parameters
   const setPaginationFromUI = useCallback(

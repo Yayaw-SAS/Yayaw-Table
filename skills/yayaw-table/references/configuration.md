@@ -215,6 +215,12 @@ view is `view` (React also writes `historyIndex`); the file tree adds
   writes (its column order) never cancel it. The
   starting sort is the URL's, then the view's, then `columns.sort`; with none,
   no sort is sent and the order `list` returns is kept.
+- The page: a link keeps the page it names, on arrival and on back and
+  forward. A search, filter or sort changed in the table starts on the first
+  page (repeating the current query keeps the page), as do saved views and
+  resets. A page past the last one moves to the last page once `list`
+  answers, so `meta.pageCount` or `meta.totalCount` must describe the whole
+  result.
 - Nested tables (the `tablePicker` form field) keep their state out of the
   URL unless `syncUrl: true`.
 - Turn URL sync off (`table.syncUrl: false`; Vue also has a `syncUrl` prop)

@@ -127,6 +127,35 @@ it.each([
   expect(state.pagination.value.pageIndex).toBe(0);
 });
 
+it("keeps the page when a write repeats the query, as in React", async () => {
+  const rule = {
+    id: "rule",
+    columnId: "status",
+    type: "text",
+    operator: "contains",
+    values: ["Op"],
+    isActive: true,
+  } as const;
+  const state = openLink({
+    "paged-page": "2",
+    "paged-q": "beta",
+    "paged-sort": JSON.stringify([{ id: "name", desc: true }]),
+    "paged-filters": JSON.stringify([{ id: "status", value: ["Open"] }]),
+    "paged-advancedFilters": JSON.stringify({
+      filters: [rule],
+      joinOperator: "and",
+    }),
+  });
+  await nextTick();
+  // New objects of the same query, a search with spaces, keys in another order.
+  state.search.value = " beta ";
+  state.filters.value = [{ id: "status", value: ["Open"] }];
+  state.advancedFilters.value = { filters: [{ ...rule }], joinOperator: "and" };
+  state.sorting.value = [{ desc: true, id: "name" }];
+  await nextTick();
+  expect(state.pagination.value.pageIndex).toBe(2);
+});
+
 it("restores the page of the URL that back or forward returns to", async () => {
   const state = openLink({ "paged-page": "1" });
   await nextTick();

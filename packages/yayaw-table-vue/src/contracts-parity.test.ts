@@ -5,6 +5,7 @@ import {
   compatibleListParams,
   normalizeColumnSizing,
   resizedColumnSizeFromKey,
+  tableQueryKey,
 } from "./table-contracts";
 import type { AdvancedFiltersState } from "./types";
 
@@ -54,6 +55,14 @@ for (const fixture of fixtures.requests) {
       globalSearch: fixture.search,
       sorting: fixture.sorting,
     });
+  });
+}
+// The same query keeps the page; another one starts on the first page.
+for (const fixture of fixtures.queries) {
+  it(`Vue query comparison: ${fixture.label}`, () => {
+    expect(tableQueryKey(fixture.current) === tableQueryKey(fixture.next)).toBe(
+      fixture.sameQuery
+    );
   });
 }
 
