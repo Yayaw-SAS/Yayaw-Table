@@ -18,13 +18,13 @@ const SPRING_FILES = ["banner-1", "banner-10", "banner-2", "hero"];
 type Row = Record<string, unknown>;
 
 /** Records by value, a list counting in each of its values; no value under "". */
-function countBy(
-  rows: readonly Row[],
-  columnId: string
+function countBy<T extends object>(
+  rows: readonly T[],
+  columnId: keyof T
 ): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const row of rows) {
-    const value = row[columnId];
+    const value: unknown = row[columnId];
     const values = Array.isArray(value) ? value : [value];
     const keys = new Set(
       (values.length ? values : [null]).map((item) =>
@@ -62,8 +62,8 @@ const rowIds = (page: Page) =>
     .evaluateAll((rows) =>
       rows.map((row) => row.getAttribute("data-row-id")).sort()
     );
-const idsOf = (rows: readonly Row[]) =>
-  rows.map((row) => String(row.id)).sort();
+const idsOf = (rows: readonly { id: string }[]) =>
+  rows.map((row) => row.id).sort();
 /** The table's filter rules in the URL (React keeps a list, Vue `{ filters }`). */
 const filterRules = (page: Page, tableId: string) => {
   const raw = new URL(page.url()).searchParams.get(
