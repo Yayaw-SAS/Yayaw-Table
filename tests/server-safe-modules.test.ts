@@ -12,11 +12,15 @@ const ENTRIES = [
   "src/components/ui/yayaw-table-dashboard/dashboard-editor-model.ts",
   "src/components/ui/yayaw-table/utils/view-config.ts",
   "src/components/ui/yayaw-table/utils/view-order.ts",
+  "src/components/ui/yayaw-table/utils/facets-model.ts",
+  "src/components/ui/yayaw-table/utils/folder-directory.ts",
   `${VUE}/dashboard/dashboard-schema.ts`,
   `${VUE}/dashboard/dashboard-sources.ts`,
   `${VUE}/dashboard/dashboard-editor-model.ts`,
   `${VUE}/view-config.ts`,
   `${VUE}/view-order.ts`,
+  `${VUE}/facets-model.ts`,
+  `${VUE}/folder-directory.ts`,
 ];
 const UI_PACKAGE =
   /^(?:react|react-dom|vue|next|reka-ui|jotai|nuqs|sonner|vue-sonner|lucide-react|lucide-vue-next)(?:\/|$)|^@(?:vue|base-ui|tanstack\/(?:react|vue)-[\w-]+)(?:\/|$)/;
@@ -150,15 +154,29 @@ function walk(entry: string) {
   return { files, problems };
 }
 
+/**
+ * Files the walk must pass to show it follows the table's own helpers: view
+ * settings reach every mode's normalizer, facets and folders the chart and
+ * file tree models; the sources and the order of views stand alone.
+ */
+function minimumWalk(entry: string): number {
+  if (entry.includes("sources") || entry.endsWith("view-order.ts")) {
+    return 0;
+  }
+  if (
+    entry.endsWith("facets-model.ts") ||
+    entry.endsWith("folder-directory.ts")
+  ) {
+    return 4;
+  }
+  return 8;
+}
+
 for (const entry of ENTRIES) {
   it(`${entry} runs on a server: no React, Vue, CSS or client module in its imports`, () => {
     const { files, problems } = walk(entry);
     expect(problems).toEqual([]);
-    // The walk follows the table's own helpers (view settings reach every
-    // mode's normalizer); the sources and the order of views stand alone.
-    const standalone =
-      entry.includes("sources") || entry.endsWith("view-order.ts");
-    expect(files.size).toBeGreaterThan(standalone ? 0 : 8);
+    expect(files.size).toBeGreaterThan(minimumWalk(entry));
   });
 }
 

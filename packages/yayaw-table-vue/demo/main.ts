@@ -5,6 +5,7 @@ import DashboardExample from "./DashboardExample.vue";
 import DefaultSortExample from "./DefaultSortExample.vue";
 import FeedExample from "./FeedExample.vue";
 import FormExample from "./FormExample.vue";
+import ProductsExample from "./ProductsExample.vue";
 import RecordDetailsExample from "./RecordDetailsExample.vue";
 import ScreenExample from "./ScreenExample.vue";
 import ValueFormatsDashboardExample from "./ValueFormatsDashboardExample.vue";
@@ -24,6 +25,7 @@ const examples = {
   feed: FeedExample,
   form: FormExample,
   formats: ValueFormatsExample,
+  products: ProductsExample,
   "formats-dashboard": ValueFormatsDashboardExample,
   "record-details": RecordDetailsExample,
   screen: ScreenExample,

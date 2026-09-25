@@ -2,6 +2,7 @@
 import { computed, nextTick, ref } from "vue";
 import { normalizeDateFilterRule } from "../../date-filter-days";
 import { newFilter } from "../../filter-config";
+import { folderTableOptions } from "../../folder-directory";
 import { useTableContext } from "../../context";
 import type { AdvancedFilter } from "../../types";
 import FilterRule from "./FilterRule.vue";
@@ -14,7 +15,13 @@ const rules = computed(() => [...state.value.filters, ...drafts.value]);
 const add = async (columnId?: string): Promise<void> => {
   const column = columnId ? columns.value.find((item) => item.id === columnId) : columns.value[0];
   if (!column) return;
-  const filter = newFilter(column);
+  // The file tree's parent column starts a folder rule: the root or folders are picked.
+  const folders =
+    column.id === context.folders.tree?.parentColumn &&
+    folderTableOptions(context.config.table.filetree).folderFilter;
+  const filter: AdvancedFilter = folders
+    ? { ...newFilter(column), type: "select", operator: "isAnyOf", values: [] }
+    : newFilter(column);
   drafts.value.push(filter);
   await nextTick();
   document.getElementById(`filter-column-${filter.id}`)?.focus();

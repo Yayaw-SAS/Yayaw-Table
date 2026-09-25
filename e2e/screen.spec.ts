@@ -8,6 +8,7 @@ import {
   screenPageRows,
 } from "../examples/screen";
 import { formatNumberValue } from "../src/components/ui/yayaw-table/utils/value-format";
+import { nextWidgetId } from "../src/components/ui/yayaw-table-dashboard/dashboard-schema";
 
 const SCREEN = "/?example=screen";
 /** The demo host's saved dashboards, in the tab's session storage. */
@@ -19,6 +20,8 @@ const CONFIRM_DELETE = /^(Delete|Confirm)$/;
 const FAVORITE = /Use this view on arrival/;
 const PAGES = screenPageRows();
 const MEDIA = screenMediaRows();
+/** The id the editor gives the first widget added to the demo screen. */
+const NEW_WIDGET = nextWidgetId(contentAdminScreen.widgets);
 const count = (status: string, pages = PAGES) =>
   pages.filter((page) => page.status === status).length;
 const SIZE_FORMAT = mediaColumns.find(
@@ -361,6 +364,91 @@ test("screen filters reach the table and the numbers as requiredFilters, and sta
     .getByRole("button", { name: "Clear" })
     .click();
   await expect.poll(() => searchParam(page, "content-admin.period")).toBe(null);
+});
+
+test("the Sections facet list sets the section filter: the Pages table and the numbers follow", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 1100 });
+  await page.goto(SCREEN);
+  await ready(page);
+  const sections = page.locator('[data-facet-block="section"]');
+  const choice = (value: string) =>
+    sections.locator(`button[data-facet-value="${value}"]`);
+  const counts = () =>
+    sections
+      .locator("button[data-facet-value]")
+      .evaluateAll((buttons) =>
+        Object.fromEntries(
+          buttons.map((button) => [
+            button.getAttribute("data-facet-value"),
+            Number(button.querySelector("[data-facet-count]")?.textContent),
+          ])
+        )
+      );
+  const bySection = (pages: typeof PAGES) => {
+    const result: Record<string, number> = {};
+    for (const entry of pages) {
+      result[entry.section] = (result[entry.section] ?? 0) + 1;
+    }
+    return result;
+  };
+  await expect.poll(counts).toEqual(bySection(PAGES));
+  await expect(sections.locator("[data-facet-all]")).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+  // A click sets the screen filter, as the filter bar does.
+  await clearRequests(page);
+  await choice("marketing").click();
+  await expect(choice("marketing")).toHaveAttribute("aria-pressed", "true");
+  await expect
+    .poll(() => searchParam(page, "content-admin.section"))
+    .toBe("marketing");
+  await expect(
+    page.locator('[data-dashboard-filter="section"] [data-filter-value]')
+  ).toHaveText("Marketing");
+  const marketing = PAGES.filter((entry) => entry.section === "marketing");
+  await expect(pageTable(page).locator("[data-row-id]")).toHaveCount(
+    marketing.length
+  );
+  await expect(figure(page, "published")).toHaveText(
+    String(count("published", marketing))
+  );
+  const logged = await requests(page);
+  expect(
+    logged.some(
+      (entry) =>
+        entry.tableId === "pages" &&
+        entry.action === "list" &&
+        entry.params.requiredFilters?.some(
+          (rule) =>
+            rule.columnId === "section" &&
+            rule.operator === "isAnyOf" &&
+            JSON.stringify(rule.values) === JSON.stringify(["marketing"])
+        )
+    )
+  ).toBe(true);
+  // Its numbers leave its own filter out and follow the others.
+  await expect.poll(counts).toEqual(bySection(PAGES));
+  await page
+    .locator('[data-dashboard-filter="author"] [data-filter-trigger]')
+    .click();
+  await page
+    .locator('[data-dashboard-filter-popup="author"]')
+    .getByRole("checkbox", { name: "Ada Martin", exact: true })
+    .check();
+  await page.keyboard.press("Escape");
+  const ada = PAGES.filter((entry) => entry.author === "Ada Martin");
+  await expect.poll(counts).toEqual(bySection(ada));
+  // "All" clears it.
+  await sections.locator("[data-facet-all]").click();
+  await expect
+    .poll(() => searchParam(page, "content-admin.section"))
+    .toBe(null);
+  await expect(pageTable(page).locator("[data-row-id]")).toHaveCount(
+    Math.min(ada.length, 10)
+  );
 });
 
 test("host blocks render; an unknown block is unavailable; an empty block collapses in a flow", async ({
@@ -766,16 +854,16 @@ test("a number from the catalogue, its view edited in the live table, is saved a
   await dialog.getByLabel("Title", { exact: true }).fill("Ada's pages");
   await dialog.getByRole("button", { name: "Add", exact: true }).click();
   await expect(dialog).toHaveCount(0);
-  await expect(figure(page, "widget-9")).toHaveText(
+  await expect(figure(page, NEW_WIDGET)).toHaveText(
     String(matching("Ada").length)
   );
   await expect(
-    widget(page, "widget-9").locator("[data-widget-title]")
+    widget(page, NEW_WIDGET).locator("[data-widget-title]")
   ).toHaveText("Ada's pages");
   expect(await sourceLoads(page)).toEqual(["pages", "media", "audit"]);
 
   const saved = await done(page);
-  const number = saved.widgets.find((entry) => entry.id === "widget-9");
+  const number = saved.widgets.find((entry) => entry.id === NEW_WIDGET);
   expect(number).toMatchObject({
     type: "kpi",
     tableId: "pages",
@@ -785,7 +873,7 @@ test("a number from the catalogue, its view edited in the live table, is saved a
   // The page size the table started with is left out.
   expect((number?.view as { pageSize?: number }).pageSize).toBeUndefined();
   await page.reload();
-  await expect(figure(page, "widget-9")).toHaveText(
+  await expect(figure(page, NEW_WIDGET)).toHaveText(
     String(matching("Ada").length)
   );
 });
@@ -942,7 +1030,14 @@ test("sections are added, renamed, moved and removed; widgets move between them"
     later.locator('[data-dashboard-item="shortcuts"]')
   ).toBeVisible();
   await expect(later.locator("[data-section-empty]")).toHaveCount(0);
-  // The full-page table only goes to flows: never offered the grid.
+  // The Pages section's widgets follow: the Sections block, then the
+  // full-page table, which only goes to flows (never offered the grid).
+  await openWidgetMenu(page, "page-sections");
+  await page.getByRole("menuitem", { name: "Move to section" }).click();
+  await page.getByRole("menuitem", { name: "Later" }).click();
+  await expect(
+    later.locator('[data-dashboard-item="page-sections"]')
+  ).toBeVisible();
   await openWidgetMenu(page, "pages-table");
   await page.getByRole("menuitem", { name: "Move to section" }).click();
   await expect(page.getByRole("menuitem", { name: "Overview" })).toHaveCount(0);
@@ -964,7 +1059,7 @@ test("sections are added, renamed, moved and removed; widgets move between them"
   await page.getByRole("button", { name: "Section options for Later" }).click();
   await page.getByRole("menuitem", { name: "Remove" }).click();
   const confirm = page.getByRole("alertdialog", { name: "Remove Later?" });
-  await expect(confirm).toContainText("Its 2 widgets are removed with it.");
+  await expect(confirm).toContainText("Its 3 widgets are removed with it.");
   await confirm.getByRole("button", { name: "Cancel" }).click();
   await expect(later).toBeVisible();
 
@@ -977,7 +1072,7 @@ test("sections are added, renamed, moved and removed; widgets move between them"
     id: "section-3",
     type: "flow",
     title: "Later",
-    widgetIds: ["shortcuts", "pages-table"],
+    widgetIds: ["shortcuts", "page-sections", "pages-table"],
   });
   expect(
     saved.sections[0]?.layout?.map((entry) => entry.widgetId)
@@ -1011,10 +1106,10 @@ test("a block's props are JSON, checked before they apply", async ({
   await props.fill('{ "links": [{ "label": "Docs", "href": "#docs" }] }');
   await dialog.getByRole("button", { name: "Add", exact: true }).click();
   await expect(dialog).toHaveCount(0);
-  const added = widget(page, "widget-9");
+  const added = widget(page, NEW_WIDGET);
   await expect(added.locator("[data-shortcuts] a")).toHaveText(["Docs"]);
   // Editing the props.
-  await openWidgetMenu(page, "widget-9");
+  await openWidgetMenu(page, NEW_WIDGET);
   await page.getByRole("menuitem", { name: "Edit…" }).click();
   const editing = widgetDialog(page, "Edit the widget");
   await editing
@@ -1023,8 +1118,8 @@ test("a block's props are JSON, checked before they apply", async ({
   await editing.getByRole("button", { name: "Apply", exact: true }).click();
   await expect(added.locator("[data-shortcuts] a")).toHaveText(["Guides"]);
   const saved = await done(page);
-  expect(saved.widgets.find((entry) => entry.id === "widget-9")).toEqual({
-    id: "widget-9",
+  expect(saved.widgets.find((entry) => entry.id === NEW_WIDGET)).toEqual({
+    id: NEW_WIDGET,
     type: "block",
     block: "shortcuts",
     props: { links: [{ label: "Guides", href: "#docs" }] },

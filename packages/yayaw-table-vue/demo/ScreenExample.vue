@@ -14,8 +14,10 @@ import {
   createScreenStorage,
   SCREEN_BLOCKS,
   type ScreenSourceSpec,
+  screenSectionBlockOptions,
   screenText,
 } from "../../../examples/screen";
+import { createFacetBlock } from "../src/dashboard/dashboard-facet-block";
 import {
   AttentionBlock,
   AttentionSettings,
@@ -61,6 +63,7 @@ const buildSource = (spec: ScreenSourceSpec): DashboardTableSource => {
 const host = createScreenHost(buildSource);
 provide(screenHostKey, host);
 const storage = createScreenStorage();
+// The host's blocks: two of its own and the library's facet list over the pages' sections.
 const blocks: DashboardBlockRegistry = {
   shortcuts: { ...SCREEN_BLOCKS.shortcuts, component: ShortcutsBlock },
   attention: {
@@ -68,6 +71,7 @@ const blocks: DashboardBlockRegistry = {
     component: AttentionBlock,
     settings: AttentionSettings,
   },
+  "pages.sections": createFacetBlock(screenSectionBlockOptions(host)),
 };
 const opened = ref("");
 const openView = (tableId: string, viewId: string | null, context?: DashboardOpenViewContext) => {

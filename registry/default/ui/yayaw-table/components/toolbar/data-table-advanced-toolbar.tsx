@@ -45,6 +45,7 @@ import {
   useDataTableAdvancedFilters,
   useTableAccessors,
 } from "../../hooks/use-data-table-advanced-filters";
+import { useFolderFilterConfig } from "../../hooks/use-folder-filter-config";
 import { useTableConfig } from "../../hooks/use-table-config";
 import { useTableInstance } from "../../hooks/use-table-instance";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
@@ -114,7 +115,9 @@ import { isSchedulable, scheduleLabel } from "../../utils/schedule-model";
 import { TableTooltip } from "../../utils/table-tooltip";
 import { tableViewDefaults } from "../../utils/table-view-state";
 import { sharePageUrl } from "../../utils/view-menu";
+import { FacetsToggle } from "../facets/facet-panel";
 import { TableFilterBar } from "../filters/table-filter-bar";
+import { NewFolderButton } from "../folders/new-folder";
 import {
   catalogueFormAtom,
   openCreateForm,
@@ -554,11 +557,17 @@ function ToolbarEnd({
   applicationActions,
   createButton,
   dataMenu,
+  facetsToggle,
   isMobile,
+  newFolderButton,
   renderToolbarAction,
   search,
   settingsMenu,
 }: {
+  /** Shows and hides the facet panel (a sheet on phones). */
+  facetsToggle?: ReactNode;
+  /** "New folder" outside the File tree. */
+  newFolderButton?: ReactNode;
   applicationActions: {
     beforeCreate: ToolbarAction[];
     betweenCreateAndExport: ToolbarAction[];
@@ -601,8 +610,10 @@ function ToolbarEnd({
             ...applicationActions.betweenCreateAndExport,
             ...applicationActions.afterExport,
           ].map(renderToolbarAction)}
+      {facetsToggle}
       {settingsMenu}
       {dataMenu}
+      {newFolderButton}
       {createButton}
     </div>
   );
@@ -1029,6 +1040,13 @@ export function DataTableAdvancedToolbar<TData>({
       columnOptions,
       columnTypeMapping
     );
+  // The file tree's parent column filters with a folder picker.
+  const filterColumnsConfig = useFolderFilterConfig({
+    advancedFilters: advancedFiltersParam,
+    columnsConfig: advancedColumnsConfig,
+    tableId,
+    tableType,
+  });
 
   // Get final columns and visibility
   const finalColumns = useFinalColumns(state, columnOptions);
@@ -1819,7 +1837,7 @@ export function DataTableAdvancedToolbar<TData>({
           ? {
               filters: advancedFiltersResult.advancedFilters,
               actions: advancedFiltersResult.advancedActions,
-              columnsConfig: advancedColumnsConfig,
+              columnsConfig: filterColumnsConfig,
               onConvertToAdvanced:
                 advancedFiltersResult.convertLegacyToAdvanced as (
                   columnId: string,
@@ -1948,7 +1966,22 @@ export function DataTableAdvancedToolbar<TData>({
               tableId={tableId}
             />
           }
+          facetsToggle={
+            <FacetsToggle
+              compact={isMobile}
+              tableId={tableId}
+              tableType={tableType}
+            />
+          }
           isMobile={isMobile}
+          newFolderButton={
+            <NewFolderButton
+              actionsAsIcons={actionsAsIcons}
+              compact={isMobile}
+              tableId={tableId}
+              tableType={tableType}
+            />
+          }
           renderToolbarAction={renderToolbarAction}
           search={{
             enabled: isColumnFiltersEnabled,

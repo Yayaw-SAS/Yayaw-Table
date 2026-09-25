@@ -45,6 +45,8 @@
     "examples/screen-react.tsx",
     "examples/assets.ts",
     "examples/assets-react.tsx",
+    "examples/products.ts",
+    "examples/products-react.tsx",
     "e2e/**/*.ts",
     "playwright.config.ts"
   ],

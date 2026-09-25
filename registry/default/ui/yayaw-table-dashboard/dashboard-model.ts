@@ -18,7 +18,10 @@ import {
   chartValueFormatter,
   loadChartData,
 } from "../yayaw-table/utils/chart-model";
-import { normalizeDateFilterRules } from "../yayaw-table/utils/date-filter-days";
+import {
+  isCalendarDay,
+  normalizeDateFilterRules,
+} from "../yayaw-table/utils/date-filter-days";
 import { formLocaleMatch } from "../yayaw-table/utils/form-text";
 import { normalizeFilterEnvelope } from "../yayaw-table/utils/table-contracts";
 import {
@@ -1942,6 +1945,139 @@ export function dashboardFilterValues(
   );
 }
 
+// Blocks setting filters -------------------------------------------------------------
+
+/** Why a block's `setFilter` refused a value. */
+export type DashboardSetFilterCode = "invalidValue" | "unknownFilter";
+
+/**
+ * What a block's `setFilter` answers: the value the filter now holds (none
+ * when cleared), or why the value was refused (the filter keeps its value).
+ */
+export type DashboardSetFilterResult =
+  | { ok: true; value?: DashboardFilterValue }
+  | { ok: false; code: DashboardSetFilterCode; message: string };
+
+const DATE_RANGE_KEYS = new Set(["start", "end", "preset"]);
+
+function dateRangeProblem(value: unknown): boolean {
+  if (!isRecord(value)) {
+    return true;
+  }
+  if (Object.keys(value).some((key) => !DATE_RANGE_KEYS.has(key))) {
+    return true;
+  }
+  const { end, preset, start } = value;
+  if (preset !== undefined) {
+    const known = (DASHBOARD_DATE_PRESETS as readonly unknown[]).includes(
+      preset
+    );
+    return !known || start !== undefined || end !== undefined;
+  }
+  const days = [start, end].filter((day) => day !== undefined);
+  return (
+    days.some((day) => !isCalendarDay(day)) ||
+    (typeof start === "string" && typeof end === "string" && end < start)
+  );
+}
+
+const isSelectItem = (item: unknown): boolean =>
+  (typeof item === "string" && item !== "") ||
+  (typeof item === "number" && Number.isFinite(item));
+
+/**
+ * Checks a value a block sets on a screen filter, as the filter bar would
+ * set it: the filter exists; a select takes texts (one, or a list) among its
+ * options when it has some (`filter.options`, else `options.options`, the
+ * first target column's, which the renderer passes); a date range takes
+ * `{ start?, end? }` days (`YYYY-MM-DD`, the start first) or a known
+ * `preset` alone. `undefined` and `null` clear the filter, as does an empty
+ * list or range. Never throws.
+ */
+export function checkDashboardFilterValue(
+  dashboard: Pick<Dashboard, "filters">,
+  filterId: string,
+  value: unknown,
+  options: {
+    options?: readonly DashboardFilterOption[];
+    locale?: string;
+    translate?: DashboardTranslate;
+  } = {}
+): DashboardSetFilterResult {
+  const locale = options.locale ?? "en";
+  const filter = dashboard.filters.find((item) => item.id === filterId);
+  if (!filter) {
+    return {
+      ok: false,
+      code: "unknownFilter",
+      message: dashboardLabel("unknownFilter", locale, options.translate, {
+        filter: filterId,
+      }),
+    };
+  }
+  if (value === undefined || value === null) {
+    return { ok: true };
+  }
+  const name = dashboardText(filter.label, locale) || filter.id;
+  const refuse = (key: DashboardLabelKey, params = {}) =>
+    ({
+      ok: false,
+      code: "invalidValue",
+      message: dashboardLabel(key, locale, options.translate, {
+        filter: name,
+        ...params,
+      }),
+    }) as const;
+  if (filter.type === "dateRange") {
+    if (dateRangeProblem(value)) {
+      return refuse("invalidDateRange");
+    }
+    const range = dashboardDateRange(value);
+    return range.start || range.end || range.preset
+      ? { ok: true, value: range }
+      : { ok: true };
+  }
+  const items = Array.isArray(value) ? value : [value];
+  if (!items.every(isSelectItem)) {
+    return refuse("invalidSelect");
+  }
+  const values = dashboardSelectValues(items);
+  const known = filter.options?.length ? filter.options : options.options;
+  const unknown = known?.length
+    ? values.find((item) => !known.some((option) => option.value === item))
+    : undefined;
+  if (unknown !== undefined) {
+    return refuse("unknownOption", { value: unknown });
+  }
+  return values.length ? { ok: true, value: values } : { ok: true };
+}
+
+/**
+ * The rules the screen's filters give a source's requests, for blocks that
+ * query it (a facet list): every filter targeting the source (whatever
+ * `widgetIds` it names), but those in `exclude`; relative periods resolve
+ * around `today`.
+ */
+export function dashboardSourceFilterRules(
+  dashboard: Pick<Dashboard, "filters">,
+  tableId: string,
+  options: { exclude?: readonly string[]; today?: string } = {}
+): UnknownRecord[] {
+  const today = options.today ?? dashboardDayValue(new Date());
+  const rules: UnknownRecord[] = [];
+  for (const filter of dashboard.filters) {
+    if (options.exclude?.includes(filter.id)) {
+      continue;
+    }
+    const target = filter.targets.find((item) => item.tableId === tableId);
+    const rule = target && dashboardFilterRule(filter, target.columnId, today);
+    if (rule) {
+      rules.push(rule);
+    }
+  }
+  return rules;
+}
+
 // Saved views -------------------------------------------------------------------
 
 /** Saved views from a table source: its static views, then those `views.list` returns. */
@@ -2148,6 +2284,19 @@ const ENGLISH_LABELS = {
   applyAndClose: "Apply and close",
   saveIssues: "The screen was not saved. Fix these problems first:",
   dismiss: "Dismiss",
+  unknownFilter: "The screen has no filter “{filter}”.",
+  invalidDateRange:
+    "The filter “{filter}” takes days (YYYY-MM-DD, the start first) or a period.",
+  invalidSelect: "The filter “{filter}” takes one text or a list of texts.",
+  unknownOption: "“{value}” is not an option of the filter “{filter}”.",
+  facetBlock: "Facet list",
+  facetBlockDescription:
+    "A column’s values with their number of records; a click sets a screen filter.",
+  facetAll: "All",
+  facetClear: "Clear",
+  facetLoading: "Counting…",
+  facetEmpty: "No values",
+  facetError: "The values could not load.",
 };
 
 export type DashboardLabelKey = keyof typeof ENGLISH_LABELS;
@@ -2326,6 +2475,20 @@ const FRENCH_LABELS: Record<DashboardLabelKey, string> = {
   saveIssues:
     "L’écran n’a pas été enregistré. Corrigez d’abord ces problèmes :",
   dismiss: "Masquer",
+  unknownFilter: "L’écran n’a pas de filtre « {filter} ».",
+  invalidDateRange:
+    "Le filtre « {filter} » prend des jours (AAAA-MM-JJ, le début d’abord) ou une période.",
+  invalidSelect:
+    "Le filtre « {filter} » prend un texte ou une liste de textes.",
+  unknownOption: "« {value} » n’est pas une option du filtre « {filter} ».",
+  facetBlock: "Liste de facettes",
+  facetBlockDescription:
+    "Les valeurs d’une colonne avec leur nombre d’enregistrements ; un clic règle un filtre de l’écran.",
+  facetAll: "Toutes",
+  facetClear: "Effacer",
+  facetLoading: "Calcul…",
+  facetEmpty: "Aucune valeur",
+  facetError: "Les valeurs n’ont pas pu être chargées.",
 };
 
 /** Host override for a label (`dashboard.<key>`), or the built-in one. */
