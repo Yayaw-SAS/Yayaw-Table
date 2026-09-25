@@ -1,13 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import { parseAdvancedFiltersParam } from "./use-table-url-state";
 
-const dayOf = (value: unknown) => {
-  const date = value as Date;
-  return [date.getFullYear(), date.getMonth() + 1, date.getDate()];
-};
+/** What older links wrote for a day: the instant of the viewer's local midnight. */
+const localMidnight = (year: number, month: number, day: number) =>
+  new Date(year, month - 1, day).toISOString();
 
 describe("advanced filters from the URL", () => {
-  it("reads date-only values as local calendar days, whatever the time zone", () => {
+  it("keeps date values as calendar days, whatever the time zone", () => {
     const [filter] = parseAdvancedFiltersParam(
       JSON.stringify([
         {
@@ -20,29 +19,35 @@ describe("advanced filters from the URL", () => {
         },
       ])
     ) as unknown as { values: unknown[] }[];
-    const [start, end] = filter?.values ?? [];
-    expect(dayOf(start)).toEqual([2026, 9, 7]);
-    expect(dayOf(end)).toEqual([2026, 9, 13]);
-    // Local midnight, not UTC midnight (the previous day west of Greenwich).
-    expect((start as Date).getHours()).toBe(0);
+    expect(filter?.values).toEqual(["2026-09-07", "2026-09-13"]);
   });
 
-  it("keeps instants and single dates", () => {
-    const [filter] = parseAdvancedFiltersParam(
+  it("reads older instants as the viewer's days", () => {
+    const [between, on] = parseAdvancedFiltersParam(
       JSON.stringify([
+        {
+          id: "week",
+          columnId: "dueDate",
+          type: "date",
+          operator: "between",
+          values: [localMidnight(2026, 9, 7), localMidnight(2026, 9, 13)],
+          isActive: true,
+        },
         {
           id: "on",
           columnId: "dueDate",
           type: "date",
           operator: "equals",
-          values: ["2026-09-07T10:30:00.000Z"],
+          values: [localMidnight(2026, 9, 7)],
           isActive: true,
+          createdAt: "2026-09-01T08:00:00.000Z",
         },
       ])
-    ) as unknown as { values: unknown }[];
-    expect((filter?.values as Date).toISOString()).toBe(
-      "2026-09-07T10:30:00.000Z"
-    );
+    ) as unknown as { values: unknown; createdAt?: unknown }[];
+    expect(between?.values).toEqual(["2026-09-07", "2026-09-13"]);
+    expect(on?.values).toEqual(["2026-09-07"]);
+    // Edit timestamps stay dates.
+    expect(on?.createdAt).toBeInstanceOf(Date);
     expect(parseAdvancedFiltersParam("not json")).toEqual([]);
   });
 });

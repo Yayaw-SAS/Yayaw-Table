@@ -52,6 +52,7 @@ example `src/`).
 | Display mode registry | `components/ui/yayaw-table/utils/display-modes.ts` | `components/ui/yayaw-table-vue/display-modes.ts` |
 | Renderer contract | `components/ui/yayaw-table/types/display-mode-renderer.ts` | `components/ui/yayaw-table-vue/display-mode-renderer.ts` |
 | List parameters, filter engine, column types | `components/ui/yayaw-table/utils/table-contracts.ts` | `components/ui/yayaw-table-vue/table-contracts.ts` |
+| Date rule values (`YYYY-MM-DD` days) | `components/ui/yayaw-table/utils/date-filter-days.ts` | `components/ui/yayaw-table-vue/date-filter-days.ts` |
 | List scopes | `components/ui/yayaw-table/utils/scoped-rows.ts` | `components/ui/yayaw-table-vue/scoped-rows.ts` |
 | Saved views | `components/ui/yayaw-table/types/view-types.ts` | `components/ui/yayaw-table-vue/types.ts` |
 | Number and date formats | `components/ui/yayaw-table/utils/value-format.ts` | `components/ui/yayaw-table-vue/value-format.ts` |

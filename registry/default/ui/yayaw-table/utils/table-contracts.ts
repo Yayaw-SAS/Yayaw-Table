@@ -1,4 +1,5 @@
 /** Framework-independent adapters. Also copied into the standalone Vue registry. */
+import { calendarDay } from "./date-filter-days";
 import {
   formatLocation,
   locationValueError,
@@ -516,55 +517,48 @@ function matchesTypedFilter(
   return;
 }
 
+/**
+ * Date rules compare calendar days: the record's day in the viewer's time
+ * zone (a `YYYY-MM-DD` value is that day) against the rule's days (older
+ * instants read as the viewer's days). `between` includes both days, in
+ * either order.
+ */
 function matchesDateFilter(
   actual: unknown,
   operator: unknown,
   values: unknown[]
 ): boolean {
-  const date = (input: unknown) =>
-    input instanceof Date || typeof input === "number"
-      ? new Date(input)
-      : new Date(
-          DATE_ONLY_PATTERN.test(String(input))
-            ? `${String(input)}T00:00:00`
-            : String(input ?? "")
-        );
-  const value = date(actual);
+  const day = calendarDay(actual);
   if (operator === "isEmpty" || operator === "isNotEmpty") {
-    const valid = Number.isFinite(value.getTime());
-    return operator === "isEmpty" ? !valid : valid;
+    return operator === "isEmpty" ? day === undefined : day !== undefined;
   }
-  const start = date(values[0]);
-  if (!(Number.isFinite(value.getTime()) && Number.isFinite(start.getTime()))) {
+  const first = calendarDay(values[0]);
+  if (!(day && first)) {
     return false;
   }
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setHours(23, 59, 59, 999);
   switch (operator) {
     case "equals":
-      return value >= start && value <= end;
+      return day === first;
     case "notEquals":
-      return value < start || value > end;
+      return day !== first;
     case "before":
     case "lessThan":
-      return value < start;
+      return day < first;
     case "after":
     case "greaterThan":
-      return value > end;
+      return day > first;
     case "greaterThanOrEqual":
-      return value >= start;
+      return day >= first;
     case "lessThanOrEqual":
-      return value <= end;
+      return day <= first;
     case "between": {
-      const last = date(values[1] ?? values[0]);
-      if (last < start) {
-        const first = new Date(last);
-        first.setHours(0, 0, 0, 0);
-        return value >= first && value <= end;
+      const last = calendarDay(values[1] ?? values[0]);
+      if (!last) {
+        return false;
       }
-      last.setHours(23, 59, 59, 999);
-      return value >= start && value <= last;
+      return last < first
+        ? day >= last && day <= first
+        : day >= first && day <= last;
     }
     default:
       return true;

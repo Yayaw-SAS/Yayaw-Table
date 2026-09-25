@@ -211,6 +211,24 @@ and icon action modes, including on mobile. Its tooltip and accessible label use
 `filters.clear` from your translations. `showResetFilters` remains a supported
 alias and now has the same behavior in React and Vue.
 
+### Date filters send calendar days
+
+Date rules compare whole days, so their values are days written `YYYY-MM-DD`
+in both editions, for date and timestamp columns alike:
+`{ operator: "between", values: ["2026-09-05", "2026-09-12"] }` includes both
+days. The column filters, the chart's click-to-filter and the dashboards write
+days, never the instant of the viewer's midnight, so a server that does not
+know the viewer's time zone still reads the days they picked. Local filtering
+(Vue's `data`, client fallbacks) compares the same days.
+
+Links, saved views and presets written by older versions held instants such as
+`2026-09-24T22:00:00.000Z` (25 September in Paris). Both editions read them as
+the viewer's days, and an older saved view is not marked modified for it. On a
+server, `normalizeDateFilterRules(rules, { timeZone })` from
+`utils/date-filter-days.ts` does the same with the zone of the person who saved
+the view. See the
+[server contracts](skills/yayaw-table/references/server-contracts.md#date-rules).
+
 ### Empty states and filter recovery
 
 Table, Kanban, and Gallery use the [Shadcn Empty component](https://ui.shadcn.com/docs/components/empty) in both editions. A filtered empty result offers a **Clear filters** button, even when the toolbar shortcut is disabled or the toolbar is hidden. It clears global search, column filters, and advanced filters and returns to page one. Sorting, grouping, column layout, display mode, page size, and the selected view remain unchanged; the saved view is not overwritten.

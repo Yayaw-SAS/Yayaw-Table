@@ -407,6 +407,18 @@ function recordDemoScope(scope: ListScope | undefined) {
 }
 
 /**
+ * The advanced rules of each list request, as a server receives them (JSON),
+ * for the end-to-end tests.
+ */
+function recordDemoRules(params: Record<string, unknown>) {
+  const holder = globalThis as { yayawDemoListRules?: unknown[] };
+  holder.yayawDemoListRules ??= [];
+  holder.yayawDemoListRules.push(
+    JSON.parse(JSON.stringify(params.advancedFilters ?? []))
+  );
+}
+
+/**
  * In-memory host for the examples: `list` pages through the rows and applies
  * each view's own manual order; `reorder` stores it without touching records.
  */
@@ -489,6 +501,7 @@ export function createViewsActions(host: { aggregate?: boolean } = {}) {
       );
       const scope = params.scope as ListScope | undefined;
       recordDemoScope(scope);
+      recordDemoRules(params);
       const rows = sortRows(
         filterRows(
           searchRows(manual ? ordered(params.viewId) : records, params),

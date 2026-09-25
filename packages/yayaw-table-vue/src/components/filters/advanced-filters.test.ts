@@ -179,6 +179,63 @@ it("supports date ranges and lets Escape discard edits without changing the acti
   expect(names(wrapper)).toHaveLength(2);
 });
 
+it("sends date rules as calendar days, in order, and reads an older link's instants as days", async () => {
+  const list = vi.fn(async (_params: TableListParams) => ({
+    data: rows,
+    meta: { totalCount: 3 },
+  }));
+  const wrapper = mountTable({ getTableActions: () => ({ list }) });
+  const rule = await add(wrapper);
+  await rule.findAll("select")[0]?.setValue("date");
+  await rule.findAll("select")[1]?.setValue("between");
+  const inputs = rule.findAll('input[type="date"]');
+  await inputs[0]?.setValue("2026-09-07");
+  await inputs[1]?.setValue("2026-09-05");
+  await rule.trigger("submit");
+  await flushPromises();
+  expect(list.mock.lastCall?.[0].advancedFilters).toEqual([
+    expect.objectContaining({
+      columnId: "date",
+      type: "date",
+      operator: "between",
+      values: ["2026-09-05", "2026-09-07"],
+    }),
+  ]);
+  wrapper.unmount();
+
+  // Older links held the instants of the viewer's local midnights.
+  const midnight = (day: number) => new Date(2026, 8, day).toISOString();
+  const older: AdvancedFilter = {
+    id: "older",
+    columnId: "date",
+    type: "date",
+    operator: "between",
+    values: [midnight(4), midnight(5)],
+    isActive: true,
+  };
+  window.history.replaceState(
+    {},
+    "",
+    `/?${new URLSearchParams({ "filters-advancedFilters": JSON.stringify([older]) })}`
+  );
+  const restored = mountTable({
+    getTableActions: () => ({ list }),
+    syncUrl: true,
+  });
+  await flushPromises();
+  expect(list.mock.lastCall?.[0].advancedFilters).toEqual([
+    expect.objectContaining({ values: ["2026-09-04", "2026-09-05"] }),
+  ]);
+  await openViewScreen(restored, "Filter");
+  const inputsFromLink = restored
+    .get(".yayaw-filter-rule")
+    .findAll<HTMLInputElement>('input[type="date"]');
+  expect(inputsFromLink.map((input) => input.element.value)).toEqual([
+    "2026-09-04",
+    "2026-09-05",
+  ]);
+});
+
 it("preserves multiple primitive options in server requests and combines rules with OR", async () => {
   const list = vi.fn(async (_params: TableListParams) => ({
     data: rows,

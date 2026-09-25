@@ -11,6 +11,7 @@ import type {
   FilterOperators,
   FilterValues,
 } from "../../types/filter-types";
+import { isCalendarDay, todayCalendarDay } from "../../utils/date-filter-days";
 import { locationFilterHasValue } from "../../utils/location-model";
 import { CompactDateFilter, DateFilter } from "./date-filter";
 import { LocationFilter } from "./location-filter";
@@ -165,7 +166,8 @@ export function FilterValueInput<TType extends ColumnDataType>({
     }
 
     case "date": {
-      const dateValue = value as Date | [Date, Date];
+      // Days (`YYYY-MM-DD`); the pickers also read older instants.
+      const dateValue = value as FilterValues<"date">;
       const dateOperator = operator as FilterOperators["date"];
 
       if (compact) {
@@ -317,14 +319,13 @@ export function getDefaultFilterValue<TType extends ColumnDataType>(
     }
 
     case "date": {
+      // Today, as the viewer's calendar day.
+      const today = todayCalendarDay();
       const dateOperator = operator as FilterOperators["date"];
       if (dateOperator === "between") {
-        const now = new Date();
-        const tomorrow = new Date(now);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        return [now, tomorrow] as FilterValues<TType>;
+        return [today, today] as FilterValues<TType>;
       }
-      return new Date() as FilterValues<TType>;
+      return today as FilterValues<TType>;
     }
 
     case "select": {
@@ -398,19 +399,17 @@ export function isValidFilterValue<TType extends ColumnDataType>(
     }
 
     case "date": {
+      // Date rules name calendar days, written `YYYY-MM-DD`.
       if (operator === "between") {
         return (
           Array.isArray(value) &&
           value.length === 2 &&
-          value[0] instanceof Date &&
-          value[1] instanceof Date
+          isCalendarDay(value[0]) &&
+          isCalendarDay(value[1])
         );
       }
-      return (
-        value != null &&
-        Object.prototype.toString.call(value) === "[object Date]" &&
-        !Number.isNaN((value as Date).getTime())
-      );
+      // One day; saved rules may hold it in a one-item list.
+      return isCalendarDay(Array.isArray(value) ? value[0] : value);
     }
 
     case "select": {

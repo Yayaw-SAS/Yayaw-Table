@@ -14,6 +14,7 @@ import type {
   FilterOperators,
   FilterStrategy,
 } from "../types/filter-types";
+import { normalizeDateFilterRules } from "../utils/date-filter-days";
 import {
   applyFilters,
   convertToTanStackFilters,
@@ -231,7 +232,8 @@ export function useAdvancedFilters<TData = Record<string, unknown>>(
     };
 
     const applyPreset = (preset: AdvancedFilterPreset) => {
-      setFilters(preset.filters);
+      // Older presets saved instants: their date rules read as days.
+      setFilters(normalizeDateFilterRules(preset.filters));
     };
 
     const savePreset = (

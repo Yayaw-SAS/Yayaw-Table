@@ -21,7 +21,7 @@ describe("createTableViewConfigSnapshot", () => {
           operator: "after",
           type: "date",
           updatedAt: filterDate,
-          values: filterDate,
+          values: "2026-01-01",
         },
       ],
       displayModeParam: "kanban",
@@ -59,7 +59,7 @@ describe("createTableViewConfigSnapshot", () => {
           operator: "after",
           type: "date",
           updatedAt: filterDate,
-          values: filterDate,
+          values: "2026-01-01",
         },
       ],
       columnFilters: [{ id: "status", value: "available" }],
@@ -139,6 +139,29 @@ describe("createTableViewConfigSnapshot", () => {
 });
 
 describe("normalizeTableViewConfig", () => {
+  it("reads an older view's date instants as the viewer's calendar days", () => {
+    // Older versions saved the instant of the viewer's local midnight.
+    const midnight = (day: number) => new Date(2026, 8, day).toISOString();
+    const config = normalizeTableViewConfig({
+      advancedFilters: [
+        {
+          columnId: "dueDate",
+          createdAt: new Date(0),
+          id: "week",
+          isActive: true,
+          operator: "between",
+          type: "date",
+          updatedAt: new Date(0),
+          values: [midnight(13), midnight(7)] as unknown as [string, string],
+        },
+      ],
+    });
+    assert.deepEqual(config.advancedFilters?.[0]?.values, [
+      "2026-09-07",
+      "2026-09-13",
+    ]);
+  });
+
   it("normalizes invalid page size and empty pinning", () => {
     const config = normalizeTableViewConfig({
       columnPinning: { left: [], right: [] },

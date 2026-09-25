@@ -1,3 +1,4 @@
+import { normalizeDateFilterRule } from "./date-filter-days";
 import {
   DISPLAY_MODE_CONFIG_KEYS,
   DISPLAY_MODES,
@@ -90,7 +91,8 @@ export function areViewSettingsEqual(left: object, right: object): boolean {
         (id) => id !== "select" && id !== "actions"
       );
     }
-    // Filter identities and edit timestamps do not change the saved query's meaning.
+    // Filter identities and edit timestamps do not change the saved query's
+    // meaning, nor does an older view's instant for the day it names.
     settings.advancedFilters = normalizeFilterEnvelope(
       aliases.advancedFilters
     ).filters.map(
@@ -101,7 +103,7 @@ export function areViewSettingsEqual(left: object, right: object): boolean {
         updatedAt: _updatedAt,
         ...filter
       }) => ({
-        ...filter,
+        ...normalizeDateFilterRule(filter),
         joinOperator: filter.joinOperator === "or" ? "or" : undefined,
       })
     );

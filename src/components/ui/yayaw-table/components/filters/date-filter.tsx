@@ -1,6 +1,7 @@
 /**
  * Date filter component
- * Provides filtering for date columns with various date operators and date picker
+ * Provides filtering for date columns with various date operators and a day
+ * picker. Values are calendar days (`YYYY-MM-DD`), never instants.
  */
 "use client";
 
@@ -31,23 +32,34 @@ import {
 } from "../../types/filter-types";
 import { formatFilterValueForDisplay } from "../../utils/advanced-filters";
 import {
+  addCalendarDays,
+  type CalendarDay,
+  calendarDay,
+  calendarDayToLocalDate,
+  todayCalendarDay,
+} from "../../utils/date-filter-days";
+import {
   getTranslatedOperatorLabel,
   translateWithFallback,
 } from "./i18n-utils";
 
-type DateFilterValue = Date | [Date, Date];
+/** One day, or `[first, last]` days for `between`, written `YYYY-MM-DD`. */
+type DateFilterValue = CalendarDay | [CalendarDay, CalendarDay];
 
 export interface DateFilterProps {
-  /** Current filter value - single date or [start, end] for between */
-  value: DateFilterValue;
+  /**
+   * Current filter value: a `YYYY-MM-DD` day, or `[first, last]` days for
+   * `between`. Older instants and `Date`s read as the viewer's days.
+   */
+  value: unknown;
   /** Current operator */
   operator: FilterOperators["date"];
   /** Available operators (defaults to all date operators) */
   operators?: readonly FilterOperators["date"][];
   /** Whether the filter is disabled */
   disabled?: boolean;
-  /** Callback when the value changes */
-  onValueChange: (value: Date | [Date, Date]) => void;
+  /** Called with the picked day, or `[first, last]` days for `between` */
+  onValueChange: (value: DateFilterValue) => void;
   /** Callback when the operator changes */
   onOperatorChange: (operator: FilterOperators["date"]) => void;
   /** Optional label */
@@ -64,23 +76,8 @@ export interface DateFilterProps {
   inline?: boolean;
 }
 
-const coerceDate = (value: unknown): Date | undefined => {
-  if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? undefined : value;
-  }
-
-  if (typeof value === "string" || typeof value === "number") {
-    const parsedDate = new Date(value);
-    return Number.isNaN(parsedDate.getTime()) ? undefined : parsedDate;
-  }
-
-  return;
-};
-
-const fallbackSingleDate = (): Date => new Date();
-
-const fallbackDateRange = (): [Date, Date] => {
-  const today = new Date();
+const fallbackDateRange = (): [CalendarDay, CalendarDay] => {
+  const today = todayCalendarDay();
   return [today, today];
 };
 
@@ -92,29 +89,25 @@ const CALENDAR_NAVIGATION_PROPS = {
   endMonth: CALENDAR_END_MONTH,
 };
 
-const normalizeBetweenDateValue = (value: unknown): [Date, Date] | undefined => {
+const normalizeBetweenDateValue = (
+  value: unknown
+): [CalendarDay, CalendarDay] | undefined => {
   if (!Array.isArray(value)) {
-    const singleDate = coerceDate(value);
-    return singleDate ? [singleDate, singleDate] : undefined;
+    const singleDay = calendarDay(value);
+    return singleDay ? [singleDay, singleDay] : undefined;
   }
 
-  const startDate = coerceDate(value[0]);
-  const endDate = coerceDate(value[1] ?? value[0]);
-  if (!(startDate && endDate)) {
-    if (startDate) {
-      return [startDate, startDate];
-    }
-    if (endDate) {
-      return [endDate, endDate];
-    }
-    return;
+  const startDay = calendarDay(value[0]);
+  const endDay = calendarDay(value[1] ?? value[0]);
+  if (!(startDay && endDay)) {
+    const day = startDay ?? endDay;
+    return day ? [day, day] : undefined;
   }
 
-  return startDate.getTime() <= endDate.getTime()
-    ? [startDate, endDate]
-    : [endDate, startDate];
+  return startDay <= endDay ? [startDay, endDay] : [endDay, startDay];
 };
 
+/** The filter's day(s), whatever older shape the value has. */
 const normalizeDateValue = (
   value: unknown,
   operator: FilterOperators["date"]
@@ -123,15 +116,15 @@ const normalizeDateValue = (
     return normalizeBetweenDateValue(value);
   }
 
-  return coerceDate(Array.isArray(value) ? value[0] : value);
+  return calendarDay(Array.isArray(value) ? value[0] : value);
 };
 
 const getFallbackValue = (operator: FilterOperators["date"]): DateFilterValue =>
-  operator === "between" ? fallbackDateRange() : fallbackSingleDate();
+  operator === "between" ? fallbackDateRange() : todayCalendarDay();
 
 const toDateRange = (
   normalizedValue: DateFilterValue | undefined
-): [Date, Date] => {
+): [CalendarDay, CalendarDay] => {
   if (Array.isArray(normalizedValue)) {
     return normalizedValue;
   }
@@ -142,6 +135,14 @@ const toDateRange = (
 
   return fallbackDateRange();
 };
+
+/** The day picker works with local dates: a day is its local midnight. */
+const pickerDate = (day: CalendarDay | undefined): Date | undefined =>
+  day ? calendarDayToLocalDate(day) : undefined;
+
+/** A picked local date as the day it shows. */
+const pickedDay = (date: Date | undefined): CalendarDay | undefined =>
+  date ? calendarDay(date) : undefined;
 
 /** The picked day(s) as the column shows days: the date part of its format. */
 const formatDateForDisplayValue = ({
@@ -204,7 +205,7 @@ export function DateFilter({
 
   // Handle value change
   const handleValueChange = useCallback(
-    (newValue: Date | [Date, Date]) => {
+    (newValue: DateFilterValue) => {
       setInternalValue(newValue);
       onValueChange(newValue);
     },
@@ -215,16 +216,23 @@ export function DateFilter({
   const needsValue = !["isEmpty", "isNotEmpty"].includes(operator);
   const isBetween = operator === "between";
   const normalizedInternalValue = normalizeDateValue(internalValue, operator);
-  const currentSingleValue = Array.isArray(normalizedInternalValue)
-    ? normalizedInternalValue[0]
-    : normalizedInternalValue;
+  const currentSingleValue = pickerDate(
+    Array.isArray(normalizedInternalValue)
+      ? normalizedInternalValue[0]
+      : normalizedInternalValue
+  );
   const currentRangeValue = toDateRange(normalizedInternalValue);
+  const currentRangeSelection = {
+    from: pickerDate(currentRangeValue[0]),
+    to: pickerDate(currentRangeValue[1]),
+  };
 
   // Handle single date selection
   const handleSingleDateSelect = useCallback(
     (date: Date | undefined) => {
-      if (date) {
-        handleValueChange(date);
+      const day = pickedDay(date);
+      if (day) {
+        handleValueChange(day);
         setIsOpen(false);
       }
     },
@@ -234,12 +242,14 @@ export function DateFilter({
   // Handle date range selection
   const handleDateRangeSelect = useCallback(
     (range: { from?: Date; to?: Date } | undefined) => {
-      if (range?.from && range?.to) {
-        handleValueChange([range.from, range.to]);
+      const from = pickedDay(range?.from);
+      const to = pickedDay(range?.to);
+      if (from && to) {
+        handleValueChange([from, to]);
         setIsOpen(false);
-      } else if (range?.from) {
+      } else if (from) {
         // If only start date is selected, set end date to same date
-        handleValueChange([range.from, range.from]);
+        handleValueChange([from, from]);
       }
     },
     [handleValueChange]
@@ -311,10 +321,7 @@ export function DateFilter({
                   mode="range"
                   onSelect={handleDateRangeSelect}
                   required
-                  selected={{
-                    from: currentRangeValue[0],
-                    to: currentRangeValue[1],
-                  }}
+                  selected={currentRangeSelection}
                 />
               ) : (
                 <Calendar
@@ -373,10 +380,7 @@ export function DateFilter({
                         mode="range"
                         onSelect={handleDateRangeSelect}
                         required
-                        selected={{
-                          from: currentRangeValue[0],
-                          to: currentRangeValue[1],
-                        }}
+                        selected={currentRangeSelection}
                       />
                     </div>
                   </div>
@@ -447,7 +451,7 @@ export function CompactDateFilter({
   }, [value, operator]);
 
   const handleValueChange = useCallback(
-    (newValue: Date | [Date, Date]) => {
+    (newValue: DateFilterValue) => {
       setInternalValue(newValue);
       onValueChange(newValue);
     },
@@ -456,8 +460,9 @@ export function CompactDateFilter({
 
   const handleSingleDateSelect = useCallback(
     (date: Date | undefined) => {
-      if (date) {
-        handleValueChange(date);
+      const day = pickedDay(date);
+      if (day) {
+        handleValueChange(day);
         setIsOpen(false);
       }
     },
@@ -466,10 +471,12 @@ export function CompactDateFilter({
 
   const handleDateRangeSelect = useCallback(
     (range: { from?: Date; to?: Date } | undefined) => {
-      if (range?.from && range?.to) {
-        handleValueChange([range.from, range.to]);
-      } else if (range?.from) {
-        handleValueChange([range.from, range.from]);
+      const from = pickedDay(range?.from);
+      const to = pickedDay(range?.to);
+      if (from && to) {
+        handleValueChange([from, to]);
+      } else if (from) {
+        handleValueChange([from, from]);
       }
     },
     [handleValueChange]
@@ -504,9 +511,11 @@ export function CompactDateFilter({
   }
 
   const normalizedInternalValue = normalizeDateValue(internalValue, operator);
-  const currentSingleValue = Array.isArray(normalizedInternalValue)
-    ? normalizedInternalValue[0]
-    : normalizedInternalValue;
+  const currentSingleValue = pickerDate(
+    Array.isArray(normalizedInternalValue)
+      ? normalizedInternalValue[0]
+      : normalizedInternalValue
+  );
   const currentRangeValue = toDateRange(normalizedInternalValue);
 
   return (
@@ -537,7 +546,10 @@ export function CompactDateFilter({
             mode="range"
             onSelect={handleDateRangeSelect}
             required
-            selected={{ from: currentRangeValue[0], to: currentRangeValue[1] }}
+            selected={{
+              from: pickerDate(currentRangeValue[0]),
+              to: pickerDate(currentRangeValue[1]),
+            }}
           />
         ) : (
           <Calendar
@@ -561,17 +573,18 @@ export function DateRangeShortcuts({
   onSelect,
   disabled = false,
 }: {
-  onSelect: (range: [Date, Date]) => void;
+  onSelect: (range: [CalendarDay, CalendarDay]) => void;
   disabled?: boolean;
 }) {
   const { t } = useTranslations();
+  // Shortcuts pick the viewer's days when clicked; the rule keeps those days.
   const shortcuts = [
     {
       label: translateWithFallback(t, "filters.date_shortcuts.today", "Today"),
-      getValue: () => {
-        const today = new Date();
-        return [today, today] as [Date, Date];
-      },
+      getValue: (today: CalendarDay): [CalendarDay, CalendarDay] => [
+        today,
+        today,
+      ],
     },
     {
       label: translateWithFallback(
@@ -579,10 +592,9 @@ export function DateRangeShortcuts({
         "filters.date_shortcuts.yesterday",
         "Yesterday"
       ),
-      getValue: () => {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        return [yesterday, yesterday] as [Date, Date];
+      getValue: (today: CalendarDay): [CalendarDay, CalendarDay] => {
+        const yesterday = addCalendarDays(today, -1);
+        return [yesterday, yesterday];
       },
     },
     {
@@ -591,12 +603,10 @@ export function DateRangeShortcuts({
         "filters.date_shortcuts.last_7_days",
         "Last 7 days"
       ),
-      getValue: () => {
-        const end = new Date();
-        const start = new Date();
-        start.setDate(start.getDate() - 6);
-        return [start, end] as [Date, Date];
-      },
+      getValue: (today: CalendarDay): [CalendarDay, CalendarDay] => [
+        addCalendarDays(today, -6),
+        today,
+      ],
     },
     {
       label: translateWithFallback(
@@ -604,12 +614,10 @@ export function DateRangeShortcuts({
         "filters.date_shortcuts.last_30_days",
         "Last 30 days"
       ),
-      getValue: () => {
-        const end = new Date();
-        const start = new Date();
-        start.setDate(start.getDate() - 29);
-        return [start, end] as [Date, Date];
-      },
+      getValue: (today: CalendarDay): [CalendarDay, CalendarDay] => [
+        addCalendarDays(today, -29),
+        today,
+      ],
     },
     {
       label: translateWithFallback(
@@ -617,11 +625,11 @@ export function DateRangeShortcuts({
         "filters.date_shortcuts.this_month",
         "This month"
       ),
-      getValue: () => {
-        const now = new Date();
-        const start = new Date(now.getFullYear(), now.getMonth(), 1);
-        const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        return [start, end] as [Date, Date];
+      getValue: (today: CalendarDay): [CalendarDay, CalendarDay] => {
+        const first = `${today.slice(0, 7)}-01`;
+        // 31 days after the first of a month is always in the next month.
+        const nextFirst = `${addCalendarDays(first, 31).slice(0, 7)}-01`;
+        return [first, addCalendarDays(nextFirst, -1)];
       },
     },
   ];
@@ -633,7 +641,7 @@ export function DateRangeShortcuts({
           className="h-6 px-2 text-xs"
           disabled={disabled}
           key={shortcut.label}
-          onClick={() => onSelect(shortcut.getValue())}
+          onClick={() => onSelect(shortcut.getValue(todayCalendarDay()))}
           size="sm"
           type="button"
           variant="outline"

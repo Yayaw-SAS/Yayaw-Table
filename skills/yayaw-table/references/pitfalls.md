@@ -7,6 +7,13 @@ Each entry: what you see, why, what to do.
 - **"Match any condition" shows the same rows as "all".** The server ignores
   `advancedFilterJoin`. OR the advanced rules when it is `"or"`; keep search,
   column filters, `requiredFilters` and the scope ANDed around them.
+- **Date filters are a day off, or drop their last day.** The server reads
+  date rule values as instants. They are `YYYY-MM-DD` days (`between`
+  includes both): compare `date` fields with the day, and cover
+  `[day start, next day start)` in a zone on timestamps. Views saved by older
+  versions may still hold instants: pass them through
+  `normalizeDateFilterRules(rules, { timeZone })` with the saver's zone (see
+  [Date rules](server-contracts.md#date-rules)).
 - **Dashboard filters do not narrow a widget.** The server ignores
   `requiredFilters`. AND them with everything, including a view whose own
   rules are joined with OR (the dashboard cannot express that in a flat list).

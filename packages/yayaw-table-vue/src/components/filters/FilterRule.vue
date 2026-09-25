@@ -2,6 +2,7 @@
 import { Power, X } from "lucide-vue-next";
 import { computed, nextTick, ref, watch } from "vue";
 import { useTableContext } from "../../context";
+import { calendarDay } from "../../date-filter-days";
 import {
   filterHasValue,
   filterIsMultiple,
@@ -134,15 +135,13 @@ const changeLocation = (event: Event, index: number): void => {
       : Number(values.value[position] ?? Number.NaN)
   );
 };
-const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+// Date inputs show and write calendar days (`YYYY-MM-DD`); an older instant
+// shows as the viewer's day.
 const inputValue = (index: number): string | number => {
   const value = values.value[index];
   if (type.value !== "date" || !value)
     return typeof value === "string" || typeof value === "number" ? value : "";
-  if (typeof value === "string" && DATE_ONLY.test(value)) return value;
-  const date = value instanceof Date ? value : new Date(String(value));
-  if (!Number.isFinite(date.getTime())) return "";
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  return calendarDay(value) ?? "";
 };
 const changeValue = (event: Event, index = 0): void => {
   const raw = (event.target as HTMLInputElement).value;

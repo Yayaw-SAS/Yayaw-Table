@@ -24,6 +24,7 @@ import {
   getFacetedUniqueValues,
   updateFilter,
 } from "../utils/advanced-filters";
+import { normalizeDateFilterRules } from "../utils/date-filter-days";
 
 export interface UseAdvancedFiltersOptions<TData = Record<string, unknown>> {
   /** Filter strategy - client or server */
@@ -231,7 +232,8 @@ export function useAdvancedFilters<TData = Record<string, unknown>>(
     };
 
     const applyPreset = (preset: AdvancedFilterPreset) => {
-      setFilters(preset.filters);
+      // Older presets saved instants: their date rules read as days.
+      setFilters(normalizeDateFilterRules(preset.filters));
     };
 
     const savePreset = (
