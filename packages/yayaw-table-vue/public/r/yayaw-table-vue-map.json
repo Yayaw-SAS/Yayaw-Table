@@ -4,12 +4,8 @@
   "type": "registry:block",
   "title": "YaYaw Table Vue Map",
   "description": "Optional map display mode for YaYaw Table Vue (markers from a location column, clusters, popups, list of records in view, \"Search this area\"), rendered with MapLibre GL like the React item's mapcn. The basemap comes from `table.map.style` or `table.map.styles`. Pass `mapRenderer` to `display-mode-renderers` and add \"map\" to `table.displayModes`.",
-  "dependencies": [
-    "maplibre-gl@^6.11.1"
-  ],
-  "registryDependencies": [
-    "https://table.yayaw.app/r/yayaw-table-vue.json"
-  ],
+  "dependencies": ["maplibre-gl@^6.11.1"],
+  "registryDependencies": ["https://table.yayaw.app/r/yayaw-table-vue.json"],
   "files": [
     {
       "path": "src/map/MapSettings.vue",
