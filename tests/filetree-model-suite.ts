@@ -1002,6 +1002,21 @@ function controllerLoadSuite(test: Test, api: ModelApi & ControllerApi) {
     assert.deepEqual(state.summary, { folders: 8, files: 15 });
   });
 
+  test("new page rows while the first children load still show the tree built in memory", async () => {
+    const { tree } = setup(api, { scopes: false });
+    // Like React and Vue, read the state again after every change.
+    let state = tree.getState();
+    tree.subscribe(() => {
+      state = tree.getState();
+    });
+    tree.start();
+    tree.setOptions({ ...optionsOf(tree), revision: 1 });
+    await flush();
+    assert.equal(state.status, "ready");
+    assert.ok(state.rows.some((row) => row.id === api.FILETREE_UNFILED));
+    assert.ok(!state.rows.some((row) => row.type === "loading"));
+  });
+
   test("pages big folders by 200 with Show more", async () => {
     const children = Array.from({ length: 250 }, (_, index) =>
       FILE(`f${index}`, null, `File ${index + 1}`)
