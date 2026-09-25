@@ -47,7 +47,6 @@ import {
   TableStateSyncProvider,
 } from "../providers/table-state-sync-provider";
 import { seedTableViewState } from "../hooks/use-table-url-state";
-import { toolbarCompactAtom } from "../atoms/table-atoms";
 import { useViewConfigReport } from "../hooks/use-view-config";
 import type { ViewConfig } from "../utils/view-config";
 import { withFeedRenderer } from "../feed/feed-renderer";
@@ -835,7 +834,6 @@ function DataTableContent({
   const Title = TitleComponent || DefaultTableTitle;
   const Description = DescriptionComponent || DefaultTableDescription;
   const shouldShowToolbar = enableToolbar && config.table.showToolbar !== false;
-  const toolbarCompact = useAtomValue(toolbarCompactAtom(tableId));
   const shouldShowToolbarHeader = config.table.showToolbarHeader !== false;
   const shouldShowViews =
     enableViews !== false && config.table.enableViews !== false;
@@ -1072,9 +1070,9 @@ function DataTableContent({
 
             {/* Table content, beside the facet panel when the table has one */}
             <TableFacetsLayout
-              compact={toolbarCompact || !shouldShowToolbar}
               tableId={tableId}
               tableType={tableType}
+              toolbar={shouldShowToolbar}
             >
             {isLoading ? (
               <DataTableSkeleton />

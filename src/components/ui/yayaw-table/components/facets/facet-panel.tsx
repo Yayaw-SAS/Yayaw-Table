@@ -1,5 +1,6 @@
 "use client";
 
+import { useAtomValue } from "jotai";
 import { Check, ListFilter, PanelLeft, PanelRight, X } from "lucide-react";
 import {
   type KeyboardEvent,
@@ -14,6 +15,7 @@ import {
   DrawerContent,
   DrawerTitle,
 } from "@/src/components/ui/drawer";
+import { toolbarCompactAtom } from "../../atoms/table-atoms";
 import { useFacetPanel, useTableFacets } from "../../hooks/use-table-facets";
 import {
   FACETS_MAX_ROWS,
@@ -311,28 +313,30 @@ export function FacetPanelContent({
 }
 
 /**
- * The records with the facet panel beside them on wide screens (phones open
- * it as a sheet from the toolbar). Tables without facets get their records
- * as they are.
+ * The records with the facet panel beside them on wide screens (phones and
+ * compact toolbars open it as a sheet from the toolbar; without a toolbar
+ * there is no panel). Tables without facets get their records as they are.
  */
 export function TableFacetsLayout({
   children,
-  compact,
   tableId,
   tableType,
+  toolbar,
 }: {
   children: ReactNode;
-  compact: boolean;
   tableId: string;
   tableType: string;
+  /** Whether the table shows its toolbar. */
+  toolbar: boolean;
 }) {
   const headingId = useId();
   const { facets, open, shown } = useTableFacets({ tableId, tableType });
+  const compact = useAtomValue(toolbarCompactAtom(tableId));
   if (!facets) {
     return children;
   }
   const panel =
-    shown && open && !compact ? (
+    shown && open && toolbar && !compact ? (
       <aside
         aria-labelledby={headingId}
         className="sticky top-4 max-h-[calc(100dvh-2rem)] shrink-0 overflow-y-auto rounded-lg border bg-background p-2"

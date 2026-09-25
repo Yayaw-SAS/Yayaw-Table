@@ -241,10 +241,12 @@ export function NewFolderButton({
   }
   const text = label("newFolder");
   const iconOnly = compact || actionsAsIcons;
+  // Phones get 44px touch targets, like the toolbar's other icon buttons.
+  const iconSize = compact ? "size-11" : "h-8 w-8";
   const trigger = (
     <Button
       aria-label={iconOnly ? text : undefined}
-      className={iconOnly ? (compact ? "size-11" : "h-8 w-8") : "h-8 gap-2 px-3 font-normal text-xs"}
+      className={iconOnly ? iconSize : "h-8 gap-2 px-3 font-normal text-xs"}
       data-new-folder=""
       onClick={() => setOpen(true)}
       size={iconOnly ? "icon-sm" : "sm"}
