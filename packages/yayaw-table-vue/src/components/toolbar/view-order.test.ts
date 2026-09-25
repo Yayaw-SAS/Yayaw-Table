@@ -168,6 +168,17 @@ it("moves the current view from the view menu, announces it, keeps the focus and
   ]);
 });
 
+it("shares this browser's order between the tables of one type on a page", async () => {
+  const views = [view("a"), view("b")];
+  const first = mountTable({ views, active: "a" });
+  const second = mountTable({ views });
+  await flushPromises();
+  await openViewsMenu(first);
+  await press(first, "Move right");
+  expect(tabNames(first)).toEqual(["Default view", "View b", "View a"]);
+  expect(tabNames(second)).toEqual(["Default view", "View b", "View a"]);
+});
+
 it("keeps system views and the default view first, without move actions", async () => {
   localStorage.setItem(ORDER_KEY, JSON.stringify(["b", "system", "a"]));
   const wrapper = mountTable({

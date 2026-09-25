@@ -1,4 +1,12 @@
-import { computed, nextTick, onMounted, onScopeDispose, ref, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  onMounted,
+  onScopeDispose,
+  ref,
+  shallowReactive,
+  watch,
+} from "vue";
 import { useTableContext } from "../context";
 import {
   createLocalTableViewActions,
@@ -16,6 +24,7 @@ import type {
 import { areViewSettingsEqual } from "../view-menu";
 import {
   formatViewMove,
+  getTableViewOrderStorageKey,
   listedViewOrder,
   moveViewInOrder,
   orderViews,
@@ -24,6 +33,12 @@ import {
   viewMoves,
   viewPosition,
 } from "../view-order";
+
+/**
+ * The orders this browser keeps (no `setOrder`), shared by the managers of one
+ * table on a page, as React shares them through its query cache.
+ */
+const localOrders = shallowReactive(new Map<string, string[] | undefined>());
 
 /** Keep persistence and asynchronous state separate from menu/dialog presentation. */
 export function useSavedViews(
@@ -54,7 +69,8 @@ export function useSavedViews(
     () => typeof actions.value.setOrder === "function"
   );
   const views = ref<TableView[]>(cloneFormValue(initialViews()));
-  const localOrder = ref<string[]>();
+  const localOrderKey = getTableViewOrderStorageKey(actionContext);
+  const localOrder = computed(() => localOrders.get(localOrderKey));
   /** The views in the user's order: tabs, "More views" and the view menu. */
   const orderedViews = computed(() =>
     orderViews(views.value, hostKeepsOrder.value ? undefined : localOrder.value)
@@ -180,9 +196,9 @@ export function useSavedViews(
   };
   /** The order this browser keeps, when the host does not (no `setOrder`). */
   const loadLocalOrder = (): void => {
-    localOrder.value = hostKeepsOrder.value
-      ? undefined
-      : readLocalTableViewOrder(actionContext);
+    if (!hostKeepsOrder.value) {
+      localOrders.set(localOrderKey, readLocalTableViewOrder(actionContext));
+    }
   };
   /** The saved views; false when the manager was disposed meanwhile. */
   const loadViews = async (): Promise<boolean> => {
@@ -333,7 +349,7 @@ export function useSavedViews(
       if (!storeLocalTableViewOrder(actionContext, viewIds)) {
         throw new Error(failure);
       }
-      localOrder.value = viewIds;
+      localOrders.set(localOrderKey, viewIds);
       return viewIds;
     }
     const saved = resultData(

@@ -38,6 +38,8 @@ async function mountManager(options: {
   actions?: TableViewActions;
   initialActiveViewId?: string;
   tabs?: ViewTabsConfig;
+  /** A second manager of the same table, as two instances on one page. */
+  twice?: boolean;
 }) {
   const container = document.createElement("div");
   document.body.append(container);
@@ -55,6 +57,15 @@ async function mountManager(options: {
     list: async () => ({ data: options.views }),
     ...options.actions,
   };
+  const manager = (key: string) => (
+    <DataTableViewManager
+      initialActiveViewId={options.initialActiveViewId}
+      key={key}
+      tableId={TABLE_ID}
+      tableType={context.tableType}
+      tabs={options.tabs}
+    />
+  );
   await act(() => {
     root.render(
       <Provider store={createStore()}>
@@ -66,12 +77,8 @@ async function mountManager(options: {
               tableId={TABLE_ID}
               translations={defaultTranslations}
             >
-              <DataTableViewManager
-                initialActiveViewId={options.initialActiveViewId}
-                tableId={TABLE_ID}
-                tableType={context.tableType}
-                tabs={options.tabs}
-              />
+              {manager("first")}
+              {options.twice ? manager("second") : null}
             </TableProvider>
           </TableStateSyncProvider>
         </NuqsTestingAdapter>
@@ -150,6 +157,27 @@ it("moves the current view from the view menu, announces it, keeps the focus and
   cleanups.pop();
   await mountManager({ views, initialActiveViewId: "b" });
   expect(tabNames()).toEqual(["Default view", "View b", "View c", "View a"]);
+});
+
+it("shares this browser's order between the managers of one table", async () => {
+  await mountManager({
+    views: [view("a"), view("b")],
+    initialActiveViewId: "a",
+    twice: true,
+  });
+  const lists = () =>
+    Array.from(document.querySelectorAll('[role="tablist"]'), (list) =>
+      Array.from(
+        list.querySelectorAll('[role="tab"]'),
+        (tab) => tab.textContent
+      )
+    );
+  await openViewMenu();
+  await press("Move right");
+  expect(lists()).toEqual([
+    ["Default view", "View b", "View a"],
+    ["Default view", "View b", "View a"],
+  ]);
 });
 
 it("keeps system views and the default view first, without move actions", async () => {

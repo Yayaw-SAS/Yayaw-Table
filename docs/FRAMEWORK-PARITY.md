@@ -1453,17 +1453,18 @@ shared `view-order.ts`, synced into Vue by `contracts:sync` and server-safe.
 - Without `setOrder`, the order stays in localStorage under
   `yayaw-table-view-order:<JSON [tableType, tableId]>` (the favorite's
   scope). `createLocalTableViewActions()` has no `setOrder`: the managers keep
-  this fallback (`readLocalTableViewOrder`, `storeLocalTableViewOrder`). React
-  reads it after mounting, so server-rendered tabs hydrate in the list order,
-  and shares it between instances through the query cache; Vue reads it on
-  mount.
+  this fallback (`readLocalTableViewOrder`, `storeLocalTableViewOrder`). Both
+  share it between the managers of one table on a page (React through its
+  query cache, Vue through a shared map). React reads it after mounting, so
+  server-rendered tabs hydrate in the list order; Vue reads it on mount.
 - On phones the Vue view menu's rows are now 44px touch targets, as in React.
 
 Coverage: `tests/view-order-suite.ts` (placement, unknown views, moves at the
 ends, list answers, the local fallback) runs in both editions;
 `tests/table-view-order.test.tsx` and Vue
 `components/toolbar/view-order.test.ts` cover moves, focus, announcements,
-`setOrder`, refusals, the "…" button and the vertical labels;
+the shared local order, `setOrder`, refusals, the "…" button and the vertical
+labels;
 `e2e/view-tabs.spec.ts` moves a view right by mouse and keyboard, reloads the
 demo (localStorage) and moves one up on a phone in both demos.
 
