@@ -19,6 +19,8 @@ export type DashboardEditorApi = Pick<
   | "dashboardSourceChoices"
   | "dashboardSourceMatches"
   | "dashboardViewEdited"
+  | "dashboardViewEditorActions"
+  | "dashboardViewEditorConfig"
   | "dashboardViewEditStart"
   | "dashboardViewToApply"
   | "dashboardWidgetChoices"
@@ -30,6 +32,7 @@ export type DashboardEditorApi = Pick<
   | "removeDashboardSection"
   | "renameDashboardSection"
   | "setDashboardWidgetView"
+  | "updateDashboardWidget"
 > &
   Pick<
     typeof Model,
@@ -606,6 +609,62 @@ function viewEditorSuite(test: Test, api: DashboardEditorApi) {
     });
   });
 
+  test("the view editor's table reads records and never changes them", () => {
+    const read = () => Promise.resolve({ data: [] });
+    const actions = {
+      list: read,
+      aggregate: read,
+      create: read,
+      update: read,
+      delete: read,
+      duplicate: read,
+      bulkDelete: read,
+      bulkCopy: read,
+      bulkUpdate: read,
+      import: { importRows: read },
+      tree: { list: read },
+      views: { list: read },
+    };
+    assert.deepEqual(Object.keys(api.dashboardViewEditorActions(actions)), [
+      "list",
+      "aggregate",
+      "tree",
+      "views",
+    ]);
+    const config = api.dashboardViewEditorConfig({
+      id: "pages",
+      table: {
+        syncUrl: true,
+        enableViews: true,
+        enableRowSelection: true,
+        allowCreate: true,
+        showToolbar: false,
+        defaultPageSize: 20,
+        displayModes: ["table", "list"],
+      },
+    });
+    assert.deepEqual(config, {
+      id: "pages",
+      table: {
+        syncUrl: false,
+        enableViews: false,
+        allowViewSave: false,
+        enableRowSelection: false,
+        allowCreate: false,
+        showToolbar: true,
+        showToolbarHeader: false,
+        defaultPageSize: 20,
+        displayModes: ["table", "list"],
+        allowEdit: false,
+        allowInlineEdit: false,
+        allowDelete: false,
+        allowDuplicate: false,
+        allowBulkEdit: false,
+        allowBulkDelete: false,
+      },
+    });
+  });
+
   test("applying a view and using a copy of a saved view make it inline", () => {
     const dashboard = api.normalizeDashboard(SCREEN);
     // A view widget without a title keeps its saved view's name.
@@ -815,6 +874,23 @@ function draftSuite(test: Test, api: DashboardEditorApi) {
       block: "media.storage",
       settings: {},
     });
+    // Changing a widget keeps its id and its place.
+    const changed = api.updateDashboardWidget(dashboard, "hello", {
+      type: "note",
+      settings: { text: "Bye" },
+    });
+    assert.deepEqual(
+      changed.widgets.find((item) => item.id === "hello"),
+      { id: "hello", type: "note", settings: { text: "Bye" } }
+    );
+    assert.deepEqual(layoutOf(changed, "cards"), layoutOf(dashboard, "cards"));
+    assert.equal(
+      api.updateDashboardWidget(dashboard, "missing", {
+        type: "note",
+        settings: {},
+      }),
+      dashboard
+    );
     // A new widget in a chosen section, where the host's block may go.
     const added = api.addDashboardWidget(
       dashboard,

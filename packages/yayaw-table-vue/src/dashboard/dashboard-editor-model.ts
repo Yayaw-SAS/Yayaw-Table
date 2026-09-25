@@ -41,6 +41,14 @@ type Row = Record<string, unknown>;
 const isRecord = (value: unknown): value is Row =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+/** What the screen editor opens: one dialog at a time. */
+export type DashboardEditorRequest =
+  | { kind: "addWidget"; sectionId?: string }
+  | { kind: "editWidget"; widgetId: string }
+  | { kind: "editView"; widgetId: string }
+  | { kind: "removeSection"; sectionId: string }
+  | { kind: "addFilter" };
+
 // Sections ---------------------------------------------------------------------------
 
 /** Moves a section makes in the page: one place up or down. */
@@ -222,6 +230,37 @@ export function moveDashboardWidgetToSection(
     ...(options.blocks ? { blocks: options.blocks } : {}),
     ...(from?.type !== "grid" && options.size ? { size: options.size } : {}),
   });
+}
+
+/**
+ * A widget changed in the widget dialog: its id and place are kept. A widget
+ * whose section can no longer hold it (another block) moves to the first
+ * section that can.
+ */
+export function updateDashboardWidget(
+  dashboard: Dashboard,
+  widgetId: string,
+  widget: Omit<DashboardWidget, "id">,
+  blocks?: DashboardBlocks
+): Dashboard {
+  if (!dashboard.widgets.some((item) => item.id === widgetId)) {
+    return dashboard;
+  }
+  const next: Dashboard = {
+    ...dashboard,
+    widgets: dashboard.widgets.map((item) =>
+      item.id === widgetId ? { ...widget, id: widgetId } : item
+    ),
+  };
+  const section = dashboardWidgetSection(next, widgetId);
+  const accepted = dashboardAcceptedSections(widget, blocks);
+  if (!section || accepted.includes(section.type)) {
+    return next;
+  }
+  const target = next.sections.find((item) => accepted.includes(item.type));
+  return target
+    ? moveWidgetToSection(next, widgetId, target.id, blocks ? { blocks } : {})
+    : next;
 }
 
 // What the widget dialog offers ---------------------------------------------------------
@@ -446,6 +485,58 @@ export function dashboardViewToApply(
     pageSize !== undefined && pageSize !== edit.baseline?.pageSize;
   const kept = changed ? pageSize : edit.initial.pageSize;
   return kept === undefined ? config : { ...config, pageSize: kept };
+}
+
+/** Actions that change records: the view editor's table leaves them out. */
+const WRITE_ACTIONS: ReadonlySet<string> = new Set([
+  "create",
+  "update",
+  "delete",
+  "duplicate",
+  "bulkDelete",
+  "bulkCopy",
+  "bulkUpdate",
+  "import",
+]);
+
+/**
+ * The source's actions as the view editor's table gets them: reading only
+ * (`list`, `aggregate`, the file tree's and planning's reads…), so editing a
+ * view never changes records.
+ */
+export function dashboardViewEditorActions<T extends object>(actions: T): T {
+  return Object.fromEntries(
+    Object.entries(actions).filter(([name]) => !WRITE_ACTIONS.has(name))
+  ) as T;
+}
+
+/**
+ * The source's config as the view editor's table gets it: its toolbar
+ * (search, filters, sort, columns, display and every mode's settings) without
+ * URL sync, saved views, selection or record changes.
+ */
+export function dashboardViewEditorConfig<T extends { table?: object }>(
+  config: T
+): T {
+  return {
+    ...config,
+    table: {
+      ...config.table,
+      syncUrl: false,
+      enableViews: false,
+      allowViewSave: false,
+      enableRowSelection: false,
+      showToolbar: true,
+      showToolbarHeader: false,
+      allowCreate: false,
+      allowEdit: false,
+      allowInlineEdit: false,
+      allowDelete: false,
+      allowDuplicate: false,
+      allowBulkEdit: false,
+      allowBulkDelete: false,
+    },
+  };
 }
 
 /**

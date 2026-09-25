@@ -512,12 +512,17 @@ export function createScreenHost<S>(
 
 /** A link of the `shortcuts` block. */
 export interface ScreenShortcut {
-  label: Text;
+  /** One text, or one per language. */
+  label: Text | string;
   href: string;
 }
 
-export const screenText = (text: Text, locale: string): string =>
-  locale.toLowerCase().startsWith("fr") ? text.fr : text.en;
+export const screenText = (text: Text | string, locale: string): string => {
+  if (typeof text === "string") {
+    return text;
+  }
+  return locale.toLowerCase().startsWith("fr") ? text.fr : text.en;
+};
 
 /** Something the `attention` block asks to deal with. */
 export interface ScreenAttentionItem {
@@ -761,6 +766,31 @@ export const contentAdminScreen = {
 export const createScreenStorage = () =>
   createDemoDashboardStorage([contentAdminScreen as unknown as Dashboard]);
 
+/** The problems of the `shortcuts` block's props: a list of links, each with a label and an href. */
+export function shortcutProblems(
+  props: Row
+): { message: string; path: string }[] | undefined {
+  const { links } = props;
+  if (links === undefined) {
+    return;
+  }
+  if (!Array.isArray(links)) {
+    return [{ message: "links is a list of { label, href }.", path: "links" }];
+  }
+  const problems = links.flatMap((link: unknown, index) => {
+    const entry = (link ?? {}) as Row;
+    return typeof entry.href === "string" && entry.label !== undefined
+      ? []
+      : [
+          {
+            message: "Each link has a label and an href.",
+            path: `links[${index}]`,
+          },
+        ];
+  });
+  return problems.length ? problems : undefined;
+}
+
 /** The block keys the demo host has, with their labels (the host's registry adds components). */
 export const SCREEN_BLOCKS: Record<
   "shortcuts" | "attention",
@@ -773,6 +803,7 @@ export const SCREEN_BLOCKS: Record<
     placement: "any",
     defaultSize: { w: 1, h: 2 },
     defaultProps: { links: [] },
+    validateProps: shortcutProblems,
     propsSchema: {
       type: "object",
       properties: {

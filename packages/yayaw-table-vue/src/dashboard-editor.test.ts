@@ -14,6 +14,8 @@ import {
   dashboardSourceChoices,
   dashboardSourceMatches,
   dashboardViewEdited,
+  dashboardViewEditorActions,
+  dashboardViewEditorConfig,
   dashboardViewEditStart,
   dashboardViewToApply,
   dashboardWidgetChoices,
@@ -25,6 +27,7 @@ import {
   removeDashboardSection,
   renameDashboardSection,
   setDashboardWidgetView,
+  updateDashboardWidget,
 } from "./dashboard/dashboard-editor-model";
 import {
   dashboardTextInput,
@@ -58,6 +61,8 @@ dashboardEditorSuite(it, {
   dashboardSourceMatches,
   dashboardTextInput,
   dashboardViewEdited,
+  dashboardViewEditorActions,
+  dashboardViewEditorConfig,
   dashboardViewEditStart,
   dashboardViewToApply,
   dashboardWidgetChoices,
@@ -73,5 +78,6 @@ dashboardEditorSuite(it, {
   removeDashboardSection,
   renameDashboardSection,
   setDashboardWidgetView,
+  updateDashboardWidget,
   validateDashboard,
 });

@@ -13,6 +13,8 @@ import {
   dashboardSourceChoices,
   dashboardSourceMatches,
   dashboardViewEdited,
+  dashboardViewEditorActions,
+  dashboardViewEditorConfig,
   dashboardViewEditStart,
   dashboardViewToApply,
   dashboardWidgetChoices,
@@ -24,6 +26,7 @@ import {
   removeDashboardSection,
   renameDashboardSection,
   setDashboardWidgetView,
+  updateDashboardWidget,
 } from "../src/components/ui/yayaw-table-dashboard/dashboard-editor-model";
 import {
   dashboardTextInput,
@@ -58,6 +61,8 @@ dashboardEditorSuite(test, {
   dashboardSourceMatches,
   dashboardTextInput,
   dashboardViewEdited,
+  dashboardViewEditorActions,
+  dashboardViewEditorConfig,
   dashboardViewEditStart,
   dashboardViewToApply,
   dashboardWidgetChoices,
@@ -73,5 +78,6 @@ dashboardEditorSuite(test, {
   removeDashboardSection,
   renameDashboardSection,
   setDashboardWidgetView,
+  updateDashboardWidget,
   validateDashboard,
 });
