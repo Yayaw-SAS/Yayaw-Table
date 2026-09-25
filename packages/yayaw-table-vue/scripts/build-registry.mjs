@@ -1,8 +1,10 @@
+import { execSync } from "node:child_process";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const repositoryRoot = resolve(packageRoot, "../..");
 const sourceRoot = join(packageRoot, "src");
 const outputRoot = join(packageRoot, "public", "r");
 
@@ -191,6 +193,12 @@ for (const registryItem of [
     `${JSON.stringify(registryItem, null, 2)}\n`
   );
 }
+// JSON.stringify is not the project's JSON style: format the items so the
+// committed registry (and its copies in the root public/r) pass `bun run check`.
+execSync(`bun x ultracite fix ${relative(repositoryRoot, outputRoot)}`, {
+  cwd: repositoryRoot,
+  stdio: "inherit",
+});
 console.log(
   `Built ${files.length} Vue registry files, ${calendarItem.files.length} calendar files, ${chartItem.files.length} chart files, ${dashboardItem.files.length} dashboard files, ${mapItem.files.length} map files and ${connectorItems.length} connector items.`
 );

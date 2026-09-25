@@ -500,12 +500,12 @@ fs.writeFileSync(
 
 // 7) Run formatter on registry output so generated files match project style
 try {
-  execSync("bun x ultracite fix registry/default", {
+  execSync("bun x ultracite fix registry/default registry/registry.json", {
     cwd: ROOT,
     stdio: "inherit",
   });
 } catch {
   console.warn(
-    "build-registry: ultracite fix on registry/default failed or not found; run manually: bun x ultracite fix registry/default"
+    "build-registry: ultracite fix on registry output failed or not found; run manually: bun x ultracite fix registry/default registry/registry.json"
   );
 }
