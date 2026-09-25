@@ -60,6 +60,30 @@ The Create button is the final toolbar action and keeps the primary style, in te
 
 Vue Kanban and Gallery controls use Reka UI Select, DropdownMenu, and Checkbox primitives with the same Shadcn-style tokens as the existing menus. This includes card page-size selection and Lucide icons for lane movement. Keyboard navigation, multi-choice property menus, focus restoration, disabled card selection, translated labels, and saved card options have regression coverage. The public configuration and saved-view formats are unchanged.
 
+## View reports
+
+React `DataTable` takes `onViewConfigChange(config)`; Vue `YayawDataTable`
+emits `view-config-change` and exposes `getViewConfig()`. Both report the
+table's view when it starts and after each change (sort, filters, search,
+columns, grouping, density, display mode, a mode's settings, page size),
+once per distinct view; `ToolbarActionContext.getViewConfig()` gives the
+same to toolbar actions in both editions. The config is
+`canonicalViewConfig()` from the shared `view-config.ts`: sanitized like
+`sanitizeViewConfig`, without the `select` and `actions` columns the table
+adds itself, empty maps left out, keys in one order, so equal views give
+equal JSON. React reads it from the URL-state snapshot resolved with the
+table's defaults, as the view manager does (`useCurrentViewConfig`;
+`tableViewDefaults` and `resolveTableViewConfig` in `table-view-state.ts`,
+now shared by the toolbar and the view manager); Vue from its state snapshot.
+The screen editor's view editor and full-page tables read it.
+
+Verification: `tests/fixtures/view-config-change.json` drives
+`tests/table-instances.test.tsx` and
+`packages/yayaw-table-vue/src/components/table-instances.test.ts`: the same
+table reports the same configs in both editions when it starts, after a sort
+and after a search. `tests/view-config-suite.ts` covers
+`canonicalViewConfig`.
+
 ## Shift-click row selection
 
 React and Vue table row checkboxes select or clear an inclusive range when
@@ -2365,11 +2389,13 @@ without touching the URL.
 ## Dashboard
 
 Dashboards ship as optional registry items: `yayaw-table-dashboard` (React:
-`YayawDashboard`, shadcn `button`, `calendar`, `dialog`, `dropdown-menu`,
-`input`, `native-select`, `popover`, `textarea`) and `yayaw-table-vue-dashboard` (Vue:
-`YayawDashboard.vue`, reka-ui like the table). Both list `gridstack` and load
-it, with its stylesheet, in a chunk fetched by the first desktop grid
-(`import("./dashboard-grid-engine")`), never by the table or on phones.
+`YayawDashboard`, shadcn `alert-dialog`, `button`, `calendar`, `command`,
+`dialog`, `dropdown-menu`, `input`, `native-select`, `popover`, `textarea`)
+and `yayaw-table-vue-dashboard` (Vue: `YayawDashboard.vue`, reka-ui like the
+table). Both list `gridstack` and load it, with its stylesheet, in a chunk
+fetched by the first desktop grid (`import("./dashboard-grid-engine")`), never
+by the table or on phones. The screen editor is another chunk, fetched when
+edit mode starts (see [the screen editor](#dashboard-screens-the-screen-editor)).
 
 Grid engine: gridstack.js in both editions rather than react-grid-layout and
 grid-layout-plus, so dragging, resizing, collisions and top gravity are the
@@ -2471,7 +2497,7 @@ own the contract and every rule:
   name, then its value ("Due date" "Any date", "Category" "All"); its legend
   and "Applies to …" stay for screen readers (`aria-describedby`). Edit mode
   shows them as before, with the remove buttons and "Add filter".
-- Widget picker: views choose "Records that do not fit" (fit or scroll);
+- The widget dialog's settings: views choose "Records that do not fit" (fit or scroll);
   numbers choose a date column, "Compare with the previous period" with its
   period (7, 30, 90 or 365 days) and "Better when it" goes up or down, and
   "Trend line" (6 months). The draft is shared (`emptyWidgetDraft`,
@@ -2500,7 +2526,7 @@ own the contract and every rule:
   record widgets keep their rows' height, which sets how many records fit.
 
 Behaviour, identical in both editions: the header shows the name (an input in
-edit mode), "Refresh all", "Add widget" (edit), "Edit"/"Done" when `canEdit`;
+edit mode), "Refresh all", "Add widget" and "Add section" (edit), "Edit"/"Done" when `canEdit`;
 "Done" saves through `actions.dashboards.save` and toasts. Each widget card
 has its title, "Open full view" (`openView(tableId, viewId | null)`, table
 and number widgets) and, in edit mode, a drag handle and the menu (Move
@@ -2639,7 +2665,9 @@ Rendering, identical in both editions (`YayawDashboard`,
   [Dashboard screens: sources, blocks and full-page tables](#dashboard-screens-sources-blocks-and-full-page-tables)).
 - Edit mode: grid cards drag, move and resize as before; flow widgets have no
   drag handle and their menu moves them up and down (no resizing). "Add
-  widget" adds to the first grid section. "Done" saves version 2.
+  widget" adds to the first section that takes the widget (see
+  [the screen editor](#dashboard-screens-the-screen-editor)). "Done" saves
+  version 2.
 
 Verification: `tests/dashboard-schema-suite.ts` (migration round trips,
 refusing version 3, unknown widget types, unknown keys at every level,
@@ -2790,3 +2818,94 @@ bulk deletion reloading the numbers, "Refresh all" asking `list` and
 save, phones and French, and `meta.notice`. Known Vue difference, not
 specific to screens: a Vue table opened with `<tableId>-page` in the URL
 starts on the first page (React keeps it).
+
+### Dashboard screens: the screen editor
+
+The editor is the same in both editions and loads in a chunk of its own when
+edit mode starts: React `dashboard-editor.tsx` (`React.lazy`) with
+`dashboard-widget-dialog.tsx`, `dashboard-source-picker.tsx` (shadcn
+`command`, cmdk), `dashboard-view-editor.tsx` and the filter dialog from
+`dashboard-dialogs.tsx`; Vue `DashboardEditorLayer.vue`
+(`defineAsyncComponent`) with `DashboardWidgetDialog.vue`,
+`DashboardSourcePicker.vue` (reka-ui Listbox), `DashboardViewEditor.vue`,
+`DashboardKpiFields.vue`, `DashboardBlockProps.vue` and
+`DashboardAddFilter.vue`. The section bars (`dashboard-section-bar.tsx`,
+`DashboardSectionBar.vue`, `DashboardEmptySection.vue`), the "Add section"
+menu and the widget menu's new entries stay with the screen. The shared
+`dashboard-editor-model.ts` (synced to Vue, server-safe) owns the rules;
+`dashboard-model.ts` the dialog drafts (`dashboardWidgetFromDraft`,
+`dashboardWidgetDraft`, `dashboardTextInput`, `editDashboardText`) and the
+editor's EN/FR labels; `dashboard-schema.ts` adds `checkDashboardBlockProps`,
+exports `dashboardAcceptedSections` and takes `blocks` in widget placements.
+React's `AddWidgetDialog` and Vue's `DashboardAddWidget.vue` are gone.
+
+Behaviour, identical in both editions (see
+[Dashboard screens](DASHBOARD-SCREENS.md#the-screen-editor)):
+
+- Sections: "Add section" (Grid of cards, Full width, up to 12); in edit mode
+  a bar with the title input ("Section title", the current language's text)
+  and a menu (Move up, Move down, "Add widget here", Remove, confirmed by an
+  alert dialog `[data-dashboard-dialog="remove-section"]` when the section
+  holds widgets); empty sections show in edit mode only
+  (`[data-section-empty]`, "Add widget here").
+- Widget menus in edit mode: "Edit…", "Edit view…" (view, number and
+  full-page table widgets whose source is ready), "Use a copy of this view"
+  (a saved view the screen knows), "Make the current view the screen
+  default" (full-page tables), "Move to section" (a submenu of the sections
+  that take the widget), then the moves, resizes and Remove as before. Long
+  menus scroll inside the window.
+- The widget dialog (`[data-widget-step]`: `what`, `source`, `settings`,
+  "Step 1 of 3"): kinds (`[data-widget-kind]`: Number, View, Table page in
+  flows, Note) then the blocks the section takes under their group; the
+  catalogue (`loader.list()`, searched and grouped, unavailable sources
+  `aria-disabled` with their reason, the first available one highlighted,
+  Enter picks it; picking loads it once and a failure shows its reason); the
+  settings (Start from the default, a saved or a custom view with "Edit
+  view…", a view's overflow, a number's fields, the title, a note's text, a
+  block's `settings` component with props over its `defaultProps` or JSON
+  checked by `checkDashboardBlockProps`). Editing opens on the settings step
+  and keeps the widget's id and place (`updateDashboardWidget`).
+- The view editor (`[data-view-editor]`): a near full-screen dialog (full
+  screen on phones) with the source's live table (`dashboardViewEditorConfig`,
+  `dashboardViewEditorActions`: no URL sync, saved views, selection or
+  writes; the host's `translations`, `getRowId` and `displayModeRenderers`
+  from `tableProps`), "Unsaved changes" (`[data-view-editor-status]`),
+  "Apply" (`[data-view-editor-apply]`, `dashboardViewToApply`) and a close
+  button; closing with changes, or Escape, asks
+  (`[data-view-editor-confirm]`: Keep editing, Discard, Apply and close);
+  clicks outside are ignored.
+- Full-page tables record their reports (`onViewConfigChange` /
+  `view-config-change`, after a host's own handler in `tableProps`) for "Make
+  the current view the screen default".
+- "Done" runs `validateDashboard` with the host's blocks; errors keep edit
+  mode and show in `[data-dashboard-issues]` (`role="alert"`, each item's
+  `data-issue-code`, named by `dashboardIssueTarget`), else the repaired
+  document is saved.
+
+Demo: the `attention` block of `?example=screen` has an `items` prop
+(`validateProps`, `propsSchema`) and a `settings` form (checkboxes); the
+`shortcuts` block's props are JSON.
+
+Verification: `tests/dashboard-editor-suite.ts` runs in both editions
+(`tests/dashboard-editor.test.ts`,
+`packages/yayaw-table-vue/src/dashboard-editor.test.ts`): section limits,
+moves, removal with its widgets and filter targets, titles per language,
+move targets and moves between sections, the dialog's kinds per section and
+block placement, the catalogue's search, groups and reasons, view editor
+sessions (start, changes, what "Apply" stores, the page size rule, hostile
+reports), the read-only table config and actions, inline copies of saved
+views, block props as JSON, drafts to widgets and back,
+`updateDashboardWidget` and issue targets. `tests/dashboard-editor-chunk.test.ts`
+walks both editions' static imports: readers never load the editor's modules
+and the editor's chunk holds them. `tests/server-safe-modules.test.ts` walks
+both `dashboard-editor-model.ts`; `tests/dashboard-sync.test.ts` checks the
+Vue copy. `e2e/screen.spec.ts` on both demos: the editor's chunk requested
+only once editing; a number picked from the catalogue whose view is edited in
+the live table (a search), saved and shown after a reload; the view editor
+asking before closing with changes; a saved view becoming a copy; the page
+table's current view (sorted by title) becoming the screen default; sections
+added, renamed, moved and removed, and widgets moved between them; a block's
+JSON props refused (invalid JSON, `validateProps`), accepted and edited; a
+block's `settings` form; "Done" refusing a screen with errors and naming the
+widget, then saving once fixed; unavailable sources listed disabled with
+their reasons. `e2e/dashboard.spec.ts` adds widgets through the new dialog.

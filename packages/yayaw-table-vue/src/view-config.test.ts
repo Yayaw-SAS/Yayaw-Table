@@ -1,6 +1,7 @@
 import { it } from "vitest";
 import { viewConfigSuite } from "../../../tests/view-config-suite";
 import {
+  canonicalViewConfig,
   copyJson,
   jsonPath,
   sanitizeViewConfig,
@@ -10,6 +11,7 @@ import {
 } from "./view-config";
 
 viewConfigSuite(it, {
+  canonicalViewConfig,
   copyJson,
   jsonPath,
   sanitizeViewConfig,

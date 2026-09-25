@@ -66,7 +66,12 @@ show a notice and are never removed), the host's `blocks`, full-page `table`
 widgets (the list page with its toolbar, saved views and URL; `tableProps`
 and `renderTable` for host code), filter values kept in the URL with relative
 periods (last 30 days, this month…), "Refresh all" and `meta.notice` from the
-host (`?example=screen` in both demos). Nothing scrolls inside
+host (`?example=screen` in both demos). Admins edit screens in place
+(`canEdit` with `actions.dashboards.save`; the editor loads in a chunk of its
+own): sections, a widget dialog (what, source, settings) over the catalogue
+and the host's blocks, and "Edit view…", whose editor is the live table
+(tables report their view with `onViewConfigChange` in React and
+`view-config-change` in Vue); "Done" validates before saving. Nothing scrolls inside
 a widget by default: lists, tables, boards, galleries and feeds show the
 records that fit and "+N more · View all" (`settings.overflow: "scroll"`
 scrolls instead), charts fill their widget, and numbers can compare with the

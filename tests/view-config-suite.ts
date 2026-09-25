@@ -9,6 +9,7 @@ import type * as ViewConfig from "../src/components/ui/yayaw-table/utils/view-co
 /** The view settings functions both editions run through this suite. */
 export type ViewConfigApi = Pick<
   typeof ViewConfig,
+  | "canonicalViewConfig"
   | "copyJson"
   | "jsonPath"
   | "sanitizeViewConfig"
@@ -370,8 +371,40 @@ function copySuite(test: Test, api: ViewConfigApi) {
   });
 }
 
+function canonicalSuite(test: Test, api: ViewConfigApi) {
+  test("canonical views: the table's own columns out, empty maps out, keys in one order", () => {
+    const reported = {
+      columnVisibility: { select: true, name: true, actions: true },
+      columnOrder: ["select", "name", "status", "actions"],
+      columnPinning: { left: ["select"], right: ["actions"] },
+      columnSizing: {},
+      sorting: [{ id: "name", desc: true }],
+      displayMode: "table",
+      unknown: 1,
+    };
+    const canonical = api.canonicalViewConfig(reported);
+    assert.deepEqual(canonical, {
+      displayMode: "table",
+      sorting: [{ id: "name", desc: true }],
+      columnOrder: ["name", "status"],
+      columnVisibility: { name: true },
+    });
+    // Equal views give equal JSON, whatever their key order.
+    const reordered = Object.fromEntries(Object.entries(reported).reverse());
+    assert.equal(
+      JSON.stringify(api.canonicalViewConfig(reordered)),
+      JSON.stringify(canonical)
+    );
+    // A fixed point, and what sanitizing keeps.
+    assert.deepEqual(api.canonicalViewConfig(canonical), canonical);
+    assert.deepEqual(api.sanitizeViewConfig(canonical).config, canonical);
+    assert.deepEqual(api.canonicalViewConfig("nope"), {});
+  });
+}
+
 export function viewConfigSuite(test: Test, api: ViewConfigApi) {
   knownSuite(test, api);
   strictSuite(test, api);
   copySuite(test, api);
+  canonicalSuite(test, api);
 }

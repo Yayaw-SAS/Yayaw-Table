@@ -194,6 +194,12 @@ view is `view` (React also writes `historyIndex`); the file tree adds
   ignored when URL sync is on; use `initialActiveViewId` there.
 - React instances share the app's `QueryClient`, keyed by `tableId`; Vue
   instances create their own client unless you pass `queryClient`.
+- The current view: React `onViewConfigChange(config)`, Vue
+  `@view-config-change` (and the component's exposed `getViewConfig`), and
+  `getViewConfig` in the toolbar actions' context. The config is saved-view
+  settings (`canonicalViewConfig()`: sanitized, without the `select` and
+  `actions` columns, keys in one order), reported on start and after each
+  change, never twice for an equal view (dashboards' view editor reads it).
 
 ## Saved views
 
@@ -244,7 +250,7 @@ framework-native or known:
 | Renderers | `{ View, Settings }` React components | `{ view, settings }` Vue components |
 | Custom content | render props returning React nodes | render functions returning VNodes, plus slots (`#detail-<field-id>`, `form-<id>`, `#extra-fields`) |
 | Icons | React nodes | Vue components |
-| Events | callback props (`onRowActivate`, `onRowSelectionStateChange`) | emits (`row-activate`, `row-selection-change`) |
+| Events | callback props (`onRowActivate`, `onRowSelectionStateChange`, `onViewConfigChange`) | emits (`row-activate`, `row-selection-change`, `view-config-change`) |
 | Bulk callbacks | receive TanStack `Row` objects | receive plain rows |
 | Numbers without `numberFormat` | raw (`1234.5`) | locale-grouped (`1,234.5`) |
 | Bulk Copy without `onBulkCopy` or `actions.bulkCopy` | JSON to the clipboard | hidden |
