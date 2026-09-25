@@ -11,11 +11,13 @@ const ENTRIES = [
   "src/components/ui/yayaw-table-dashboard/dashboard-sources.ts",
   "src/components/ui/yayaw-table-dashboard/dashboard-editor-model.ts",
   "src/components/ui/yayaw-table/utils/view-config.ts",
+  "src/components/ui/yayaw-table/utils/view-order.ts",
   "src/components/ui/yayaw-table/utils/tag-catalog.ts",
   `${VUE}/dashboard/dashboard-schema.ts`,
   `${VUE}/dashboard/dashboard-sources.ts`,
   `${VUE}/dashboard/dashboard-editor-model.ts`,
   `${VUE}/view-config.ts`,
+  `${VUE}/view-order.ts`,
   `${VUE}/tag-catalog.ts`,
 ];
 const UI_PACKAGE =
@@ -154,10 +156,13 @@ for (const entry of ENTRIES) {
   it(`${entry} runs on a server: no React, Vue, CSS or client module in its imports`, () => {
     const { files, problems } = walk(entry);
     expect(problems).toEqual([]);
-    // The walk follows the table's own helpers (view settings reach every mode's normalizer).
-    const standalone = ["sources", "tag-catalog"].some((name) =>
-      entry.includes(name)
-    );
+    // The walk follows the table's own helpers (view settings reach every
+    // mode's normalizer); the sources, the order of views and the tag
+    // catalogs stand alone.
+    const standalone =
+      entry.includes("sources") ||
+      entry.endsWith("view-order.ts") ||
+      entry.endsWith("tag-catalog.ts");
     expect(files.size).toBeGreaterThan(standalone ? 0 : 8);
   });
 }

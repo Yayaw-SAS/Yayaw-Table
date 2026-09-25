@@ -1758,6 +1758,11 @@
           "target": "components/ui/yayaw-table/utils/view-menu.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/view-order.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/view-order.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/view-tabs.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/view-tabs.ts"

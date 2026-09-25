@@ -32,7 +32,7 @@ Every parity-affecting PR must update this document and keep the Vue example at 
 
 ## Actions and views
 
-Both managers support one personal favorite per table, separate from shared view records. The star is available for saved system/shared views even with saving disabled. Arrival priority is explicit URL state, `initialActiveViewId`, an accessible favorite, then `isDefault`. A link with only `?view=<id>` applies that view's settings, and a view named by the link or by `initialActiveViewId` is applied once the saved views load, without waiting for `getFavorite`. Both editions read the incoming URL once on mount, so the table's own first URL writes (React's `<tableId>-order`) never cancel it (`tests/table-view-favorite.test.tsx`, `saved-views.test.ts`, `e2e/views.spec.ts`). Optional `getFavorite`/`setFavorite` actions synchronize preferences; otherwise persistence is browser-local. Organization scoping and permissions remain the host's responsibility; see [saved views](SAVED-VIEWS.md).
+Both managers support one personal favorite per table, separate from shared view records. The star is available for saved system/shared views even with saving disabled. Arrival priority is explicit URL state, `initialActiveViewId`, an accessible favorite, then `isDefault`. A link with only `?view=<id>` applies that view's settings, and a view named by the link or by `initialActiveViewId` is applied once the saved views load, without waiting for `getFavorite`. Both editions read the incoming URL once on mount, so the table's own first URL writes (React's `<tableId>-order`) never cancel it (`tests/table-view-favorite.test.tsx`, `saved-views.test.ts`, `e2e/views.spec.ts`). Optional `getFavorite`/`setFavorite` actions synchronize preferences; otherwise persistence is browser-local. The same holds for each user's order of views: optional `setOrder`, with `list`'s `order`, else browser-local (see [View order](#view-order)). Organization scoping and permissions remain the host's responsibility; see [saved views](SAVED-VIEWS.md).
 
 List actions receive both naming conventions:
 
@@ -1409,14 +1409,64 @@ touch drawers keep the wrapping buttons. The create button reads the
 
 Both editions show saved views as tabs on wide toolbars once a table has at
 least one (`table.viewTabs`, default on, `{ maxVisible }` default 4). The
-shared `view-tabs.ts` decides which views are tabs and which go under "More",
-keeping the active view visible. The default view is always the first tab;
+shared `view-tabs.ts` decides which views are tabs and which go under "…",
+keeping the active view visible. "…" is an icon button (Lucide `Ellipsis`)
+named "More views" ("Plus de vues"; `views.more` in React, `moreViews` in
+Vue) with the same tooltip: no text and no chevron, since the chevron next to
+it opens the view menu. Its menu shows the views' full names (at least 11rem
+wide in React, 180px in Vue). The default view is always the first tab;
 each tab shows its layout icon and the modified dot. "+" opens the save
 dialog, which offers the layout of the new view (the current one by default);
 creating a view in another layout switches to it. With tabs, the view menu
-trigger is an icon button labelled "Views and settings". Compact toolbars and
-touch layouts keep the named trigger. `tests/view-tabs-suite.ts` runs in both
-editions and `e2e/view-tabs.spec.ts` covers both demos.
+trigger is an icon button labelled "View actions". Compact toolbars and
+touch layouts keep the named trigger, whose menu lists every view: they have
+no "…". `tests/view-tabs-suite.ts` runs in both editions and
+`e2e/view-tabs.spec.ts` covers both demos, "…" and its label included.
+
+## View order
+
+Each user orders their saved views, with the same rules in both editions: the
+shared `view-order.ts`, synced into Vue by `contracts:sync` and server-safe.
+
+- The view menu moves the current saved view one step: "Move left" and "Move
+  right" (Lucide arrows) next to tabs, "Move up" and "Move down" where the
+  menu lists the views (compact toolbars and phones, `viewTabs: false`). The
+  actions follow the favorite. They are `aria-disabled` at the ends and during
+  a write rather than `disabled`, so the focus stays on the pressed action
+  and Enter moves again. A polite live region (`<output aria-live="polite">`)
+  announces "View “{name}” moved to position {position} of {count}", counting
+  the built-in default view first. Moves need no save permission, like the
+  favorite.
+- System views (`isSystem`) and the default view (`isDefault`, a dashboard
+  screen's default) stay first in their list order and have no move actions.
+  The order names the others; views it does not name (new ones) come last in
+  their list order, and unknown ids are ignored. Fewer than two such views
+  offer no moves.
+- The order applies to the tabs, the "…" list and the menu's list of views
+  (and its name filter). The arrival view does not depend on it.
+- Contract: optional `actions.views.setOrder({ tableId, tableType, viewIds })`
+  → `{ success, data?: { viewIds }, error? }` with every ordered view, first
+  to last. With it, `list` answers `order` (the ids `setOrder` last received),
+  or lists the views in that order. A refused write keeps the previous order
+  and shows its error in the view manager's alert. Vue, as for other view
+  actions, also accepts an answer without `success`.
+- Without `setOrder`, the order stays in localStorage under
+  `yayaw-table-view-order:<JSON [tableType, tableId]>` (the favorite's
+  scope). `createLocalTableViewActions()` has no `setOrder`: the managers keep
+  this fallback (`readLocalTableViewOrder`, `storeLocalTableViewOrder`). Both
+  share it between the managers of one table on a page (React through its
+  query cache, Vue through a shared map). React reads it after mounting, so
+  server-rendered tabs hydrate in the list order; Vue reads it on mount.
+- On phones the Vue view menu's rows are now 44px touch targets, as in React.
+
+Coverage: `tests/view-order-suite.ts` (placement, unknown views, moves at the
+ends, list answers, the local fallback) runs in both editions;
+`tests/table-view-order.test.tsx` and Vue
+`components/toolbar/view-order.test.ts` cover moves, focus, announcements,
+the shared local order, `setOrder`, refusals, the "…" button and the vertical
+labels;
+`e2e/view-tabs.spec.ts` moves a view right by mouse and keyboard, reloads the
+demo (localStorage) and moves one up on a phone in both demos.
 
 ## Toolbar hierarchy
 

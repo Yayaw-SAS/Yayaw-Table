@@ -164,12 +164,13 @@ calculations, at most 2,000 rows for a chart) and computes in the browser.
 <!-- skill-check: actions.views -->
 | Action | Call and answer |
 | --- | --- |
-| `actions.views.list` | `({ tableId, tableType })` → `{ success: true, data: TableView[] }` (React reads `data`; Vue also accepts a bare array) |
+| `actions.views.list` | `({ tableId, tableType })` → `{ success: true, data: TableView[], order? }` (React reads `data`; Vue also accepts a bare array). `order`: the user's order of their views |
 | `actions.views.create` | `({ tableId, tableType, name, config, isGlobal?, isDefault? })` → `{ success, data: view }` |
 | `actions.views.update` | `(id, { tableId, tableType, name?, config?, isGlobal? })` → `{ success, data: view }` |
 | `actions.views.delete` | `(id, { tableId, tableType })` → `{ success }` |
 | `actions.views.getFavorite` | `({ tableId, tableType })` → `{ success: true, data: { viewId } }` (`null` for none) |
 | `actions.views.setFavorite` | `(viewId \| null, { tableId, tableType })` → `{ success: true, data: { viewId } }` |
+| `actions.views.setOrder` | `({ tableId, tableType, viewIds })` → `{ success: true, data: { viewIds } }`; `viewIds`: every view the user orders, first to last |
 
 Provide all four CRUD handlers (omitted ones fall back to `localStorage`) and
 both favorite handlers or neither. The server lists only system views, the
@@ -179,6 +180,16 @@ true`; checks ownership or an editor role on update and delete; protects
 `isSystem` views; stores favorites per user, organization, table type and
 table id, and clears them when a view is deleted. Resolve `canEdit` and
 `canDelete` per view for the interface.
+
+The order of views is per user too ("Move left" and "Move right" in the view
+menu, applied to the tabs, "…" and the menu). With `setOrder`, store
+`viewIds` as they come per user, organization, table type and table id, and
+answer them as `order` from `list` (or list the views in that order;
+`orderViews()` from `utils/view-order.ts` sorts them alike on a server). The
+table puts system views and the default view (`isDefault`) first, then the
+order, then views it does not name, and ignores unknown ids. Without
+`setOrder` the order stays in `localStorage` under
+`yayaw-table-view-order:<JSON [tableType, tableId]>`.
 
 ## File tree
 

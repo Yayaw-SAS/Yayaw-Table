@@ -360,23 +360,20 @@
 .yayaw-view-tablist {
   overflow: hidden;
 }
-.yayaw-toolbar .yayaw-view-tab,
-.yayaw-toolbar .yayaw-view-more {
+.yayaw-toolbar .yayaw-view-tab {
   height: 32px;
   min-height: 32px;
   max-width: 12rem;
   flex-shrink: 0;
   gap: 6px;
   padding: 0 10px;
-}
-.yayaw-toolbar .yayaw-view-more {
-  gap: 4px;
-  padding: 0 8px;
-}
-.yayaw-toolbar .yayaw-view-tab,
-.yayaw-toolbar .yayaw-view-more {
   font-size: 14px;
   line-height: 20px;
+}
+/* "…" (More views) is an icon-only square, like "+" and the view menu chevron. */
+.yayaw-toolbar .yayaw-view-more {
+  height: 32px;
+  min-height: 32px;
 }
 .yayaw-view-tab.yayaw-button-ghost,
 .yayaw-view-more,
@@ -2642,6 +2639,10 @@
   padding: 6px 8px;
   border-radius: 4px;
   gap: 8px;
+}
+/* On phones the views, and their actions (Move up, Move down…), are touch targets, as in React. */
+.yayaw-toolbar-menu[data-compact="true"] .yayaw-view-menu-item {
+  min-height: 44px;
 }
 
 /* Bulk edits use flat property rows and a footer outside the scrolling body. */

@@ -190,11 +190,13 @@ export * from "./types/translations";
 // Core types used in docs
 export type {
   CreateTableViewInput,
+  SetTableViewOrderInput,
   TableView,
   TableViewActionContext,
   TableViewActionResult,
   TableViewActions,
   TableViewConfig,
+  TableViewListResult,
   UpdateTableViewInput,
 } from "./types/view-types";
 export type { TableActivityRecord } from "./utils/activity-shortcuts";
@@ -207,7 +209,12 @@ export type {
   RecordPresentation,
   RecordPresentationConfig,
 } from "./utils/record-presentation";
-export { createLocalTableViewActions } from "./utils/table-view-storage";
+export {
+  createLocalTableViewActions,
+  type LocalTableViewActions,
+} from "./utils/table-view-storage";
+// The user's order of saved views: hosts may sort their `list` answer alike.
+export { orderViews } from "./utils/view-order";
 // Location columns and the Map mode: shared helpers a host can use on its server.
 export {
   boundsContain,

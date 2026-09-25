@@ -67,6 +67,7 @@ for (const file of [
   "map-model.ts",
   "schedule-model.ts",
   "view-tabs.ts",
+  "view-order.ts",
   "display-modes.ts",
   "scoped-rows.ts",
   "manual-order.ts",

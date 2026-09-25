@@ -18,9 +18,9 @@ const titles = (page: Page) =>
 const settingsParam = (page: Page) =>
   JSON.parse(new URL(page.url()).searchParams.get(SETTINGS_PARAM) ?? "{}");
 
-/** The example's "Updates" view is under "More" (three tabs show). */
+/** The example's "Updates" view is under "…" (More views; three tabs show). */
 const openUpdates = async (page: Page) => {
-  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("button", { name: "More views", exact: true }).click();
   await page.getByRole("menuitem", { name: "Updates" }).click();
   await expect(cards(page).first()).toBeVisible();
 };
@@ -207,7 +207,7 @@ test("infinite scroll loads pages while the end is within a screen, then stops",
 
 test("both editions draw cards with the same measures", async ({ page }) => {
   // Same width as the other feed tests: narrower, the view tabs fold into
-  // the views menu on CI fonts and "More" disappears.
+  // the views menu on CI fonts and "More views" disappears.
   await page.setViewportSize({ width: 1280, height: 900 });
   await openUpdates(page);
   const styles = await cards(page)

@@ -276,7 +276,7 @@ runs where you implement it (fetch, server action, RPC), so authorize there.
 | `actions.bulkUpdate` | The built-in bulk editor (when there is no `onBulkEdit`) | No bulk edit unless `onBulkEdit` is passed |
 | `actions.bulkCopy` | Bulk Copy (after `onBulkCopy`) | React copies the rows as JSON; Vue hides Copy |
 | `actions.reorder` | "Manual order" sort (`table.manualOrder`) | No manual order |
-| `actions.views` | Saved views and the personal favorite | Views and favorite in `localStorage`, per browser |
+| `actions.views` | Saved views, the personal favorite and order | Views, favorite and order in `localStorage`, per browser |
 | `actions.tree` | File tree path, moves, new folders | Parent-column walk, `update`, `create` |
 | `actions.planning` | Transactional Gantt (preview, apply, dependencies) | Derived from `list` and `update`, no dependencies |
 | `actions.import` | Import sources, server bulk writes, key lookup | CSV through `create` and `update`, keys through `list` |
