@@ -24,8 +24,8 @@ import {
   type DashboardTranslate,
   type DashboardView,
   type DashboardWidget,
+  type DashboardDraftType,
   type DashboardWidgetDraft,
-  type DashboardWidgetType,
   dashboardCompareDayOptions,
   dashboardDateColumns,
   dashboardMetricOptions,
@@ -422,7 +422,7 @@ export function AddWidgetDialog({
               onChange={(event) =>
                 setDraft({
                   ...draft,
-                  type: event.target.value as DashboardWidgetType,
+                  type: event.target.value as DashboardDraftType,
                 })
               }
               value={draft.type}

@@ -54,7 +54,12 @@ Dashboards like Notion's are
 arranges saved views of any table, numbers and notes on a 4-column grid
 (gridstack.js, loaded on demand; stacked on phones) with dashboard filters
 sent to each table's `list`/`aggregate`, and stores dashboards through
-`actions.dashboards` (`list`, `load`, `save`, `remove`). Nothing scrolls inside
+`actions.dashboards` (`list`, `load`, `save`, `remove`). Dashboards are JSON
+version 2 screens (sections of grid cards and full-width flows, inline
+views, texts per language); hosts validate them on their servers and describe
+them to AI tools with the pure `dashboard-schema.ts` (`validateDashboard`,
+`checkDashboardReferences`, `dashboardJsonSchema`), see
+[docs/DASHBOARD-SCREENS.md](docs/DASHBOARD-SCREENS.md). Nothing scrolls inside
 a widget by default: lists, tables, boards, galleries and feeds show the
 records that fit and "+N more · View all" (`settings.overflow: "scroll"`
 scrolls instead), charts fill their widget, and numbers can compare with the

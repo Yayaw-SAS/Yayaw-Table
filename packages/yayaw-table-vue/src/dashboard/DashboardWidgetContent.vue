@@ -13,7 +13,7 @@ import type { DashboardLabel, DashboardTableSource } from "./dashboard-types";
 import DashboardKpiWidget from "./DashboardKpiWidget.vue";
 import DashboardTableWidget from "./DashboardTableWidget.vue";
 
-/** What a widget shows: a note, an embedded table, or why it cannot. */
+/** What a widget shows: a note, an embedded table (saved or inline view), a number, or why it cannot. */
 const props = defineProps<{
   dashboard: Dashboard;
   widget: DashboardWidget;
@@ -32,6 +32,8 @@ const props = defineProps<{
   renderers?: DisplayModeRenderers;
   renderMarkdown?: (text: string) => VNodeChild;
   getRowId?: (row: TableRecord) => string;
+  /** A flow section's widget: its natural height. */
+  natural?: boolean;
 }>();
 const emit = defineEmits<{ viewAll: [] }>();
 
@@ -51,12 +53,16 @@ const noteText = computed(() => String(props.widget.settings.text ?? ""));
 const NoteMarkdown = () => props.renderMarkdown?.(noteText.value);
 const source = computed(() => (props.widget.tableId ? props.tables[props.widget.tableId] : undefined));
 const tableViews = computed(() => (props.widget.tableId ? props.views[props.widget.tableId] : undefined));
-const view = computed(() => tableViews.value?.find((item) => item.id === props.widget.viewId));
+// Inline settings need no saved view.
+const saved = computed(() => (props.widget.view ? undefined : props.widget.viewId));
+const view = computed(() => (saved.value ? tableViews.value?.find((item) => item.id === saved.value) : undefined));
 const state = computed(() => {
   if (props.widget.type === "note") return "note";
+  // Full-page tables and host blocks come with the next version of the renderer.
+  if (props.widget.type === "table" || props.widget.type === "block") return "placeholder";
   if (!source.value) return "missingTable";
-  if (props.widget.viewId && !tableViews.value) return "loading";
-  if (props.widget.viewId && !view.value) return "missingView";
+  if (saved.value && !tableViews.value) return "loading";
+  if (saved.value && !view.value) return "missingView";
   return props.widget.type === "kpi" ? "kpi" : "table";
 });
 const rules = computed(() => dashboardFilterRules(props.dashboard, props.widget));
@@ -76,6 +82,11 @@ const rules = computed(() => dashboardFilterRules(props.dashboard, props.widget)
       <p v-else>{{ noteText }}</p>
     </div>
   </template>
+  <div v-else-if="state === 'placeholder'" :data-widget-placeholder="props.widget.type">
+    <div class="yayaw-dashboard-message" data-widget-state="muted">
+      <output>{{ props.label("notAvailableYet") }}</output>
+    </div>
+  </div>
   <div v-else-if="state === 'missingTable' || state === 'missingView'" class="yayaw-dashboard-message" data-widget-state="error">
     <p role="alert">{{ props.label(state) }}</p>
   </div>
@@ -110,6 +121,7 @@ const rules = computed(() => dashboardFilterRules(props.dashboard, props.widget)
     :get-row-id="props.getRowId"
     :size="props.size"
     :openable="props.openable"
+    :natural="props.natural"
     @view-all="emit('viewAll')"
   />
 </template>

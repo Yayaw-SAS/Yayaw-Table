@@ -12,7 +12,7 @@ import {
   DASHBOARD_MARGIN,
   DASHBOARD_ROW_HEIGHT,
   type DashboardLayoutItem,
-} from "./dashboard-model";
+} from "./dashboard-layout";
 
 export interface DashboardGridController {
   /** Hands new items to gridstack, drops removed ones and applies `layout`. */

@@ -25,6 +25,7 @@ import {
   dashboardDayValue,
   dashboardFilterColoredTags,
   dashboardFilterColumn,
+  dashboardFilterLabel,
   dashboardFilterOptions,
   dashboardFilterTargetsLabel,
   isDashboardFilterActive,
@@ -44,13 +45,15 @@ interface FilterControlProps {
   onRemove: () => void;
   /** Id of the "Applies to …" text describing the control. */
   describedBy?: string;
+  /** The filter's name in the dashboard's language. */
+  name?: string;
 }
 
 /** Outside edit mode the filter's name leads its button, as a compact chip. */
-function TriggerName({ filter, editing }: FilterControlProps) {
+function TriggerName({ editing, name }: FilterControlProps) {
   return editing ? null : (
     <span className="shrink-0 text-muted-foreground" data-filter-name="">
-      {filter.label}
+      {name}
     </span>
   );
 }
@@ -76,8 +79,16 @@ function useCalendarText(locale: string) {
 
 /** The Form view's popover calendar, picking a range of days. */
 function DateRangeControl(props: FilterControlProps) {
-  const { describedBy, filter, label, locale, onChange, tables, translate } =
-    props;
+  const {
+    describedBy,
+    filter,
+    label,
+    locale,
+    name,
+    onChange,
+    tables,
+    translate,
+  } = props;
   const text = useCalendarText(locale);
   const range = (filter.value ?? {}) as DashboardDateRange;
   const from = dashboardDay(range.start);
@@ -94,7 +105,7 @@ function DateRangeControl(props: FilterControlProps) {
         render={
           <Button
             aria-describedby={describedBy}
-            aria-label={`${filter.label}: ${shown}`}
+            aria-label={`${name}: ${shown}`}
             className="h-8 min-w-56 max-w-full justify-start gap-2 px-2.5 font-normal"
             data-filter-trigger=""
             size="sm"
@@ -180,7 +191,7 @@ function OptionTag({
 
 /** The library's option dropdown: "All" or the chosen options, shown as tags. */
 function SelectControl(props: FilterControlProps) {
-  const { describedBy, filter, label, onChange, tables } = props;
+  const { describedBy, filter, label, name, onChange, tables } = props;
   const values = Array.isArray(filter.value) ? filter.value : [];
   const options = dashboardFilterOptions(filter, tables);
   const colored = dashboardFilterColoredTags(filter, tables);
@@ -197,7 +208,7 @@ function SelectControl(props: FilterControlProps) {
         render={
           <Button
             aria-describedby={describedBy}
-            aria-label={filter.label}
+            aria-label={name}
             className="h-8 min-w-44 max-w-80 justify-start gap-1.5 px-2 font-normal"
             data-filter-trigger=""
             size="sm"
@@ -226,9 +237,9 @@ function SelectControl(props: FilterControlProps) {
         className="w-64 gap-1 p-1"
         data-dashboard-filter-popup={filter.id}
       >
-        <PopoverTitle className="sr-only">{filter.label}</PopoverTitle>
+        <PopoverTitle className="sr-only">{name}</PopoverTitle>
         <fieldset
-          aria-label={filter.label}
+          aria-label={name}
           className="m-0 grid max-h-64 min-w-0 gap-0.5 overflow-auto border-0 p-0"
         >
           <label className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent">
@@ -265,9 +276,10 @@ function SelectControl(props: FilterControlProps) {
  * above and below it while editing.
  */
 function DashboardFilterControl(props: FilterControlProps) {
-  const { editing, filter, label, onChange, onRemove, tables } = props;
+  const { editing, filter, label, locale, onChange, onRemove, tables } = props;
   const targetsId = useId();
-  const control = { ...props, describedBy: targetsId };
+  const name = dashboardFilterLabel(filter, locale);
+  const control = { ...props, describedBy: targetsId, name };
   return (
     <fieldset
       className={cn("flex min-w-0 flex-col", editing && "gap-1.5")}
@@ -278,10 +290,10 @@ function DashboardFilterControl(props: FilterControlProps) {
           editing ? "mb-1.5 flex items-center gap-1 font-medium text-sm" : "sr-only"
         )}
       >
-        {filter.label}
+        {name}
         {editing && (
           <Button
-            aria-label={label("removeFilter", { name: filter.label })}
+            aria-label={label("removeFilter", { name })}
             onClick={onRemove}
             size="icon-xs"
             type="button"

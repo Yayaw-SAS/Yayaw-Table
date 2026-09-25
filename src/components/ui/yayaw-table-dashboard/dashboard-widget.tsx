@@ -41,11 +41,8 @@ import type { DataTableTranslations } from "@/src/components/ui/yayaw-table/type
 import type { TableView } from "@/src/components/ui/yayaw-table/types/view-types";
 import { observeDashboardFit } from "./dashboard-fit";
 import {
-  canMoveLayoutItem,
-  canResizeLayoutItem,
   type DashboardDirection,
   type DashboardLabelKey,
-  type DashboardLayoutItem,
   type DashboardOverflow,
   type DashboardResize,
   type DashboardView,
@@ -54,6 +51,7 @@ import {
   dashboardFitsRecords,
   dashboardListTotal,
   dashboardMoreCount,
+  dashboardWidgetViewId,
   widgetDisplayMode,
   widgetOverflow,
   widgetViewConfig,
@@ -101,21 +99,24 @@ const RESIZE_ICONS = {
 
 /** Edit menu: keyboard alternatives to dragging and resizing, and removal. */
 function WidgetMenu({
+  canMove,
+  canResize,
   label,
-  layout,
   onMove,
   onRemove,
   onResize,
+  resizable,
   title,
-  widgetId,
 }: {
+  canMove: (direction: DashboardDirection) => boolean;
+  canResize: (change: DashboardResize) => boolean;
   label: DashboardLabel;
-  layout: DashboardLayoutItem[];
   onMove: (direction: DashboardDirection) => void;
   onRemove: () => void;
   onResize: (change: DashboardResize) => void;
+  /** Grid widgets resize; flow widgets keep their natural size. */
+  resizable: boolean;
   title: string;
-  widgetId: string;
 }) {
   return (
     <DropdownMenu>
@@ -136,7 +137,7 @@ function WidgetMenu({
           const Icon = MOVE_ICONS[direction];
           return (
             <DropdownMenuItem
-              disabled={!canMoveLayoutItem(layout, widgetId, direction)}
+              disabled={!canMove(direction)}
               key={direction}
               onClick={() => onMove(direction)}
             >
@@ -146,20 +147,24 @@ function WidgetMenu({
           );
         })}
         <DropdownMenuSeparator />
-        {RESIZES.map(({ change, key }) => {
-          const Icon = RESIZE_ICONS[change];
-          return (
-            <DropdownMenuItem
-              disabled={!canResizeLayoutItem(layout, widgetId, change)}
-              key={change}
-              onClick={() => onResize(change)}
-            >
-              <Icon aria-hidden="true" />
-              {label(key)}
-            </DropdownMenuItem>
-          );
-        })}
-        <DropdownMenuSeparator />
+        {resizable ? (
+          <>
+            {RESIZES.map(({ change, key }) => {
+              const Icon = RESIZE_ICONS[change];
+              return (
+                <DropdownMenuItem
+                  disabled={!canResize(change)}
+                  key={change}
+                  onClick={() => onResize(change)}
+                >
+                  <Icon aria-hidden="true" />
+                  {label(key)}
+                </DropdownMenuItem>
+              );
+            })}
+            <DropdownMenuSeparator />
+          </>
+        ) : null}
         <DropdownMenuItem onClick={onRemove} variant="destructive">
           <Trash2 aria-hidden="true" />
           {label("remove")}
@@ -173,9 +178,15 @@ export interface DashboardWidgetFrameProps {
   widget: DashboardWidget;
   title: string;
   editing: boolean;
-  phone: boolean;
-  layout: DashboardLayoutItem[];
+  /** Desktop grid widgets show a drag handle in edit mode. */
+  draggable: boolean;
+  /** Grid widgets resize from the menu; flow widgets keep their natural size. */
+  resizable: boolean;
+  /** 4 under a section title, else 3 (under the dashboard's name). */
+  headingLevel?: 3 | 4;
   label: DashboardLabel;
+  canMove: (direction: DashboardDirection) => boolean;
+  canResize: (change: DashboardResize) => boolean;
   onMove: (direction: DashboardDirection) => void;
   onResize: (change: DashboardResize) => void;
   onRemove: () => void;
@@ -185,21 +196,25 @@ export interface DashboardWidgetFrameProps {
 
 /** A widget's card: title, "Open full view", the edit menu and its content. */
 export function DashboardWidgetFrame({
+  canMove,
+  canResize,
   children,
+  draggable,
   editing,
+  headingLevel = 3,
   label,
-  layout,
   onMove,
   onOpen,
   onRemove,
   onResize,
-  phone,
+  resizable,
   title,
   widget,
 }: DashboardWidgetFrameProps) {
   const titleId = useId();
   const overflow: DashboardOverflow =
     widget.type === "view" ? widgetOverflow(widget) : "fit";
+  const Heading = headingLevel === 4 ? "h4" : "h3";
   return (
     <section
       aria-labelledby={titleId}
@@ -211,7 +226,7 @@ export function DashboardWidgetFrame({
         className="flex min-h-10 items-center gap-1 border-b px-2 py-1"
         data-widget-header=""
       >
-        {editing && !phone && (
+        {editing && draggable && (
           <span
             aria-hidden="true"
             className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
@@ -221,13 +236,13 @@ export function DashboardWidgetFrame({
             <GripVertical className="size-4" />
           </span>
         )}
-        <h3
+        <Heading
           className="min-w-0 flex-1 truncate px-1 font-medium text-sm"
           data-widget-title=""
           id={titleId}
         >
           {title}
-        </h3>
+        </Heading>
         {onOpen && (
           <Button
             aria-label={label("openFullView")}
@@ -242,13 +257,14 @@ export function DashboardWidgetFrame({
         )}
         {editing && (
           <WidgetMenu
+            canMove={canMove}
+            canResize={canResize}
             label={label}
-            layout={layout}
             onMove={onMove}
             onRemove={onRemove}
             onResize={onResize}
+            resizable={resizable}
             title={title}
-            widgetId={widget.id}
           />
         )}
       </header>
@@ -434,18 +450,25 @@ export interface EmbeddedTableWidgetProps {
   onViewAll?: () => void;
   /** The page's table labels, e.g. French pagination. */
   translations?: DataTableTranslations;
+  /**
+   * A flow section's widget: its natural height, so records keep the
+   * view's pagination instead of fitting a height.
+   */
+  natural?: boolean;
 }
 
 /**
  * A table instance of its own (no URL, private state) showing the widget's
- * view; the dashboard filters join its `list`/`aggregate` requests. A fit
- * widget (the default) shows the records that fit and "+N more".
+ * view (inline settings or a saved view); the dashboard filters join its
+ * `list`/`aggregate` requests. A fit widget (the default in grids) shows the
+ * records that fit and "+N more".
  */
 export function EmbeddedTableWidget({
   dashboardId,
   getRowId,
   label,
   locale,
+  natural = false,
   onViewAll,
   renderers,
   revision,
@@ -464,7 +487,7 @@ export function EmbeddedTableWidget({
   );
   const mode = widgetDisplayMode(viewConfig);
   const records = dashboardFitsRecords(mode);
-  const fits = records && widgetOverflow(widget) === "fit";
+  const fits = records && !natural && widgetOverflow(widget) === "fit";
   const pageSize = fits
     ? dashboardFitPageSize(mode, size, viewConfig.pageSize)
     : undefined;
@@ -515,12 +538,13 @@ export function EmbeddedTableWidget({
     setFailure(undefined);
     setAttempt((value) => value + 1);
   }, []);
+  const viewId = dashboardWidgetViewId(widget);
   const initialView = useMemo(
     () => ({
-      id: view?.id ?? null,
+      id: viewId,
       config: pageSize ? { ...viewConfig, pageSize } : viewConfig,
     }),
-    [pageSize, view?.id, viewConfig]
+    [pageSize, viewId, viewConfig]
   );
   const fit = useFitRecords(fits, instanceId);
   if (mode === "chart" && !renderers?.chart) {

@@ -16,6 +16,7 @@ import {
   dashboardKpiPlan,
   dashboardViewParams,
   loadDashboardKpi,
+  widgetViewConfig,
 } from "./dashboard-model";
 import type { DashboardLabel, DashboardTableSource } from "./dashboard-widget";
 
@@ -67,7 +68,10 @@ function KpiContent({
     () => JSON.parse(planKey) as DashboardKpiPlan,
     [planKey]
   );
-  const paramsKey = JSON.stringify(dashboardViewParams(view?.config));
+  // Inline settings, else the saved view's: its filters and search.
+  const paramsKey = JSON.stringify(
+    dashboardViewParams(widgetViewConfig(widget, view))
+  );
   const { actions } = source;
   useEffect(() => {
     const controller = new AbortController();

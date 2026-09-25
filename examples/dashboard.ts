@@ -9,6 +9,7 @@ import {
 import type {
   Dashboard,
   DashboardStorage,
+  DashboardV1,
 } from "../src/components/ui/yayaw-table-dashboard/dashboard-model";
 
 /**
@@ -434,8 +435,12 @@ export const createProjectActions = (today: Date = new Date()) =>
 export const createTaskActions = (today: Date = new Date()) =>
   createDemoActions(dashboardTaskRows(today));
 
-/** The dashboard as first saved: 4 columns, a row is 120px, 1280×800 without scrolling. */
-export const projectsOverviewDashboard: Dashboard = {
+/**
+ * The dashboard as first saved, in version 1 (before sections): hosts keep
+ * such JSON, the dashboard migrates it on load and saves version 2. 4
+ * columns, a row is 120px, 1280×800 without scrolling.
+ */
+export const projectsOverviewDashboard: DashboardV1 = {
   version: 1,
   id: "projects-overview",
   name: "Projects overview",
@@ -557,10 +562,10 @@ const readSaved = (): Record<string, unknown> => {
 
 /**
  * `actions.dashboards` of the examples: in memory, mirrored in the tab's
- * session storage so a reload keeps what was saved.
+ * session storage so a reload keeps what was saved (version 2).
  */
 export function createDemoDashboardStorage(
-  initial: Dashboard[] = [projectsOverviewDashboard]
+  initial: readonly (Dashboard | DashboardV1)[] = [projectsOverviewDashboard]
 ): DashboardStorage {
   const dashboards = new Map<string, unknown>(
     initial.map((dashboard) => [dashboard.id, dashboard])

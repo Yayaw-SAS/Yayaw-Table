@@ -12,6 +12,7 @@ import {
   dashboardComparison,
   dashboardComparisonText,
   dashboardDateColumns,
+  dashboardFilterLabel,
   dashboardFilterRules,
   dashboardFilterTargetsLabel,
   dashboardFitPageSize,
@@ -31,6 +32,7 @@ import {
   dashboardWidgetFromDraft,
   dashboardWidgetSize,
   dashboardWidgetTitle,
+  dashboardWidgetViewId,
   defaultWidgetSize,
   emptyWidgetDraft,
   findFreeSpot,
@@ -50,6 +52,7 @@ import {
   validateDashboard,
   widgetFilterSignature,
   widgetOverflow,
+  widgetViewConfig,
   withDashboardFilters,
 } from "./dashboard/dashboard-model";
 
@@ -65,6 +68,7 @@ dashboardModelSuite(it, {
   dashboardComparison,
   dashboardComparisonText,
   dashboardDateColumns,
+  dashboardFilterLabel,
   dashboardFilterRules,
   dashboardFilterTargetsLabel,
   dashboardFitPageSize,
@@ -84,6 +88,7 @@ dashboardModelSuite(it, {
   dashboardWidgetFromDraft,
   dashboardWidgetSize,
   dashboardWidgetTitle,
+  dashboardWidgetViewId,
   defaultWidgetSize,
   emptyWidgetDraft,
   findFreeSpot,
@@ -103,5 +108,6 @@ dashboardModelSuite(it, {
   validateDashboard,
   widgetFilterSignature,
   widgetOverflow,
+  widgetViewConfig,
   withDashboardFilters,
 });

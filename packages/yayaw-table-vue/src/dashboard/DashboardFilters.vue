@@ -31,6 +31,7 @@ import {
   dashboardDateRangeText,
   dashboardFilterColoredTags,
   dashboardFilterColumn,
+  dashboardFilterLabel,
   dashboardFilterOptions,
   dashboardFilterTargetsLabel,
   isDashboardFilterActive,
@@ -80,6 +81,8 @@ const toggle = (filter: DashboardFilter, value: string) => {
 };
 const tag = (filter: DashboardFilter, value: string) =>
   tagAppearance(value, dashboardFilterColoredTags(filter, props.tables));
+/** A filter's name in the dashboard's language. */
+const nameOf = (filter: DashboardFilter) => dashboardFilterLabel(filter, props.locale);
 // "Applies to …" describes each filter's button.
 const prefix = useId();
 const targetsId = (filter: DashboardFilter) => `${prefix}-${filter.id}-targets`;
@@ -95,13 +98,13 @@ const targetsId = (filter: DashboardFilter) => `${prefix}-${filter.id}-targets`;
   >
     <fieldset v-for="filter in props.filters" :key="filter.id" class="yayaw-dashboard-filter" :data-dashboard-filter="filter.id">
       <legend :class="{ 'yayaw-dashboard-sr-only': !props.editing }">
-        {{ filter.label }}
+        {{ nameOf(filter) }}
         <button
           v-if="props.editing"
           type="button"
           class="yayaw-dashboard-icon-button"
           data-size="xs"
-          :aria-label="props.label('removeFilter', { name: filter.label })"
+          :aria-label="props.label('removeFilter', { name: nameOf(filter) })"
           @click="emit('remove', filter.id)"
         >
           <X :size="12" aria-hidden="true" />
@@ -114,11 +117,11 @@ const targetsId = (filter: DashboardFilter) => `${prefix}-${filter.id}-targets`;
               type="button"
               class="yayaw-button yayaw-button-outline yayaw-dashboard-filter-trigger yayaw-dashboard-date-trigger"
               data-filter-trigger=""
-              :aria-label="`${filter.label}: ${rangeText(filter)}`"
+              :aria-label="`${nameOf(filter)}: ${rangeText(filter)}`"
               :aria-describedby="targetsId(filter)"
             >
               <CalendarIcon :size="16" aria-hidden="true" class="yayaw-dashboard-muted" />
-              <span v-if="!props.editing" class="yayaw-dashboard-filter-name" data-filter-name="">{{ filter.label }}</span>
+              <span v-if="!props.editing" class="yayaw-dashboard-filter-name" data-filter-name="">{{ nameOf(filter) }}</span>
               <span class="yayaw-dashboard-filter-value" data-filter-value="" :data-empty="!hasRange(filter) || undefined">{{ rangeText(filter) }}</span>
               <ChevronDown :size="16" aria-hidden="true" class="yayaw-dashboard-muted" />
             </button>
@@ -172,10 +175,10 @@ const targetsId = (filter: DashboardFilter) => `${prefix}-${filter.id}-targets`;
               type="button"
               class="yayaw-button yayaw-button-outline yayaw-dashboard-filter-trigger"
               data-filter-trigger=""
-              :aria-label="filter.label"
+              :aria-label="nameOf(filter)"
               :aria-describedby="targetsId(filter)"
             >
-              <span v-if="!props.editing" class="yayaw-dashboard-filter-name" data-filter-name="">{{ filter.label }}</span>
+              <span v-if="!props.editing" class="yayaw-dashboard-filter-name" data-filter-name="">{{ nameOf(filter) }}</span>
               <span class="yayaw-dashboard-filter-value yayaw-dashboard-filter-tags" data-filter-value="">
                 <template v-if="chosen(filter).length">
                   <span
@@ -194,8 +197,8 @@ const targetsId = (filter: DashboardFilter) => `${prefix}-${filter.id}-targets`;
             </button>
           </PopoverTrigger>
           <PopoverPortal>
-            <PopoverContent class="yayaw-filter-picker yayaw-dashboard-options" :data-dashboard-filter-popup="filter.id" :aria-label="filter.label" align="start" :side-offset="4" :collision-padding="8">
-              <fieldset class="yayaw-dashboard-choices" :aria-label="filter.label">
+            <PopoverContent class="yayaw-filter-picker yayaw-dashboard-options" :data-dashboard-filter-popup="filter.id" :aria-label="nameOf(filter)" align="start" :side-offset="4" :collision-padding="8">
+              <fieldset class="yayaw-dashboard-choices" :aria-label="nameOf(filter)">
                 <label class="yayaw-filter-choice">
                   <input type="checkbox" :checked="!selected(filter).length" @change="emit('change', filter.id, undefined)" />
                   <span>{{ props.label("any") }}</span>

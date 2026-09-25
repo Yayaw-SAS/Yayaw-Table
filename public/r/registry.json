@@ -1738,6 +1738,11 @@
           "target": "components/ui/yayaw-table/utils/value-format.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/view-config.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/view-config.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/view-menu.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/view-menu.ts"
@@ -1830,7 +1835,7 @@
       "name": "yayaw-table-dashboard",
       "type": "registry:block",
       "title": "Yayaw Table Dashboard",
-      "description": "Optional Notion-like dashboard for YaYaw Table: a 4-column grid (gridstack.js, loaded on demand) of widgets showing saved views of any table in any display mode, numbers and notes, with dashboard filters sent to each table's list and aggregate requests. Render `<YayawDashboard actions={{ dashboards }} tables={…} />`; the host stores dashboards (`list`, `load`, `save`, `remove`).",
+      "description": "Optional Notion-like dashboards and screens for YaYaw Table: sections of 4-column grids (gridstack.js, loaded on demand) and full-width flows, whose widgets show saved or inline views of any table in any display mode, numbers and notes, with dashboard filters sent to each table's list and aggregate requests. Documents are JSON version 2, validated on servers with the pure `dashboard-schema.ts` (`validateDashboard`, `checkDashboardReferences`, `dashboardJsonSchema`). Render `<YayawDashboard actions={{ dashboards }} tables={…} />`; the host stores dashboards (`list`, `load`, `save`, `remove`).",
       "registryDependencies": [
         "button",
         "calendar",
@@ -1880,9 +1885,29 @@
           "target": "components/ui/yayaw-table-dashboard/dashboard-kpi.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table-dashboard/dashboard-layout.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-dashboard/dashboard-layout.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table-dashboard/dashboard-model.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table-dashboard/dashboard-model.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-dashboard/dashboard-schema.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-dashboard/dashboard-schema.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-dashboard/dashboard-section.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-dashboard/dashboard-section.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-dashboard/dashboard-sources.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-dashboard/dashboard-sources.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table-dashboard/dashboard-widget.tsx",

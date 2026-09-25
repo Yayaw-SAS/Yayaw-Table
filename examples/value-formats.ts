@@ -6,7 +6,7 @@ import {
   compatibleListParams,
   matchesContractFilter,
 } from "../src/components/ui/yayaw-table/utils/table-contracts";
-import type { Dashboard } from "../src/components/ui/yayaw-table-dashboard/dashboard-model";
+import type { DashboardV1 } from "../src/components/ui/yayaw-table-dashboard/dashboard-model";
 
 /**
  * The format matrix: one field per value format. The React and Vue demos
@@ -274,8 +274,8 @@ export const formatViews = [
   },
 ];
 
-/** Numbers and a date filter on the matrix, as a dashboard shows them. */
-export const formatsDashboard: Dashboard = {
+/** Numbers and a date filter on the matrix, as a dashboard shows them (version 1 JSON, migrated on load). */
+export const formatsDashboard: DashboardV1 = {
   version: 1,
   id: "formats-overview",
   name: "Formats overview",

@@ -18,6 +18,7 @@ import {
   dashboardFitsRecords,
   dashboardListTotal,
   dashboardMoreCount,
+  dashboardWidgetViewId,
   widgetDisplayMode,
   widgetOverflow,
   widgetViewConfig,
@@ -27,8 +28,9 @@ import type { DashboardLabel, DashboardTableSource } from "./dashboard-types";
 
 /**
  * A table instance of its own (no URL, private state) showing the widget's
- * view; the dashboard filters join its `list`/`aggregate` requests. A fit
- * widget (the default) shows the records that fit and "+N more".
+ * view (inline settings or a saved view); the dashboard filters join its
+ * `list`/`aggregate` requests. A fit widget (the default in grids) shows the
+ * records that fit and "+N more".
  */
 const props = defineProps<{
   dashboardId: string;
@@ -47,6 +49,11 @@ const props = defineProps<{
   size: { w: number; h: number };
   /** Whether "View all" (the full view) is offered under a fit widget's records. */
   openable?: boolean;
+  /**
+   * A flow section's widget: its natural height, so records keep the view's
+   * pagination instead of fitting a height.
+   */
+  natural?: boolean;
 }>();
 const emit = defineEmits<{ viewAll: [] }>();
 
@@ -57,7 +64,7 @@ const shown = ref<number>();
 const viewConfig = computed(() => widgetViewConfig(props.widget, props.view));
 const mode = computed(() => widgetDisplayMode(viewConfig.value));
 const records = computed(() => dashboardFitsRecords(mode.value));
-const fits = computed(() => records.value && widgetOverflow(props.widget) === "fit");
+const fits = computed(() => records.value && !props.natural && widgetOverflow(props.widget) === "fit");
 const pageSize = computed(() =>
   fits.value ? dashboardFitPageSize(mode.value, props.size, viewConfig.value.pageSize) : undefined
 );
@@ -116,7 +123,7 @@ const instanceId = computed(
     `dashboard-${hash(`${props.dashboardId}:${props.widget.id}:${rulesKey.value}:${props.revision}:${attempt.value}:${pageSize.value ?? ""}`)}`
 );
 const initialView = computed(() => ({
-  id: props.view?.id ?? null,
+  id: dashboardWidgetViewId(props.widget),
   config: (pageSize.value ? { ...viewConfig.value, pageSize: pageSize.value } : viewConfig.value) as TableViewConfig,
 }));
 const missingRenderer = computed(() => mode.value === "chart" && !props.renderers?.chart);

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  type DashboardDraftType,
   type DashboardFilter,
   type DashboardFilterType,
   type DashboardKpiMetric,
@@ -25,7 +26,6 @@ import {
   type DashboardView,
   type DashboardWidget,
   type DashboardWidgetDraft,
-  type DashboardWidgetType,
   dashboardCompareDayOptions,
   dashboardDateColumns,
   dashboardMetricOptions,
@@ -428,7 +428,7 @@ export function AddWidgetDialog({
               onChange={(event) =>
                 setDraft({
                   ...draft,
-                  type: event.target.value as DashboardWidgetType,
+                  type: event.target.value as DashboardDraftType,
                 })
               }
               value={draft.type}

@@ -36,6 +36,80 @@ const OPEN_TASKS = dashboardTaskRows().filter((task) => !task.done);
 const TREND = /^Trend: /;
 const HAS_DIGITS = /\d/;
 const SELECT = /select/i;
+const NEXT_PAGE = /next/i;
+/** The demo host's saved dashboards, in the tab's session storage. */
+const STORAGE_KEY = "yayaw-demo-dashboards-v2";
+
+/**
+ * A version 2 dashboard: numbers in a titled grid, then a flow holding an
+ * inline list view, a full-page table, a host block and a note.
+ */
+const SCREEN = {
+  version: 2,
+  id: projectsOverviewDashboard.id,
+  name: { en: "Projects overview", fr: "Vue des projets" },
+  sections: [
+    {
+      id: "numbers",
+      type: "grid",
+      title: { en: "Numbers", fr: "Chiffres" },
+      layout: [
+        { widgetId: "projects-count", x: 0, y: 0, w: 1, h: 1 },
+        { widgetId: "software", x: 1, y: 0, w: 1, h: 1 },
+      ],
+    },
+    {
+      id: "details",
+      type: "flow",
+      title: { en: "Details", fr: "Détails" },
+      widgetIds: ["biggest", "pages", "summary", "notes"],
+    },
+  ],
+  widgets: [
+    ...projectsOverviewDashboard.widgets.filter(
+      (entry) => entry.id === "projects-count"
+    ),
+    {
+      id: "software",
+      type: "kpi",
+      tableId: "projects",
+      title: { en: "Software", fr: "Logiciel" },
+      view: {
+        advancedFilters: [
+          {
+            id: "software",
+            columnId: "category",
+            type: "select",
+            operator: "isAnyOf",
+            values: ["Software"],
+            isActive: true,
+          },
+        ],
+      },
+      settings: { metric: "count" },
+    },
+    {
+      id: "biggest",
+      type: "view",
+      tableId: "projects",
+      title: { en: "Biggest projects", fr: "Plus gros projets" },
+      view: {
+        displayMode: "list",
+        sorting: [{ id: "revenue", desc: true }],
+        pageSize: 5,
+      },
+      settings: {},
+    },
+    { id: "pages", type: "table", tableId: "tasks", settings: {} },
+    { id: "summary", type: "block", block: "home.summary", settings: {} },
+    {
+      id: "notes",
+      type: "note",
+      settings: { text: "Figures follow today's date." },
+    },
+  ],
+  filters: [],
+};
 
 interface LoggedRequest {
   tableId: string;
@@ -54,6 +128,27 @@ const requests = (page: Page) =>
     () =>
       (globalThis as { yayawDashboardRequests?: LoggedRequest[] })
         .yayawDashboardRequests ?? []
+  );
+const saveDashboards = (page: Page, dashboards: readonly { id: string }[]) =>
+  page.addInitScript(
+    ([key, saved]) => {
+      sessionStorage.setItem(
+        key,
+        JSON.stringify(
+          Object.fromEntries(saved.map((entry) => [entry.id, entry]))
+        )
+      );
+    },
+    [STORAGE_KEY, dashboards] as const
+  );
+const savedDashboards = (page: Page) =>
+  page.evaluate(
+    (key) =>
+      JSON.parse(sessionStorage.getItem(key) ?? "{}") as Record<
+        string,
+        Record<string, unknown>
+      >,
+    STORAGE_KEY
   );
 const clearRequests = (page: Page) =>
   page.evaluate(() => {
@@ -696,8 +791,6 @@ test("Open full view asks the host, and readers cannot edit", async ({
   );
 });
 
-const NEXT_PAGE = /next/i;
-
 test("list pages render alike in both editions", async ({ page }) => {
   // More rows than a page: both editions show the list's pagination.
   await page.goto("/?example=views&views-display=list&views-pageSize=5");
@@ -705,4 +798,136 @@ test("list pages render alike in both editions", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: NEXT_PAGE }).first()
   ).toBeVisible();
+});
+
+test("a version 1 dashboard is saved back as version 2", async ({ page }) => {
+  await page.goto(DASHBOARD);
+  await gridReady(page);
+  await toolbar(page).getByRole("button", { name: "Edit" }).click();
+  await toolbar(page).getByRole("button", { name: "Done" }).click();
+  await expect(page.getByText("Dashboard saved")).toBeVisible();
+  const saved = (await savedDashboards(page))[projectsOverviewDashboard.id];
+  expect(saved?.version).toBe(2);
+  expect(saved?.layout).toBeUndefined();
+  expect(saved?.sections).toEqual([
+    { id: "main", type: "grid", layout: projectsOverviewDashboard.layout },
+  ]);
+  expect((saved?.widgets as { id: string }[]).map((entry) => entry.id)).toEqual(
+    WIDGETS
+  );
+  // Read again, it shows as before.
+  await page.reload();
+  await expect(item(page, "revenue")).toHaveAttribute("data-layout", "0,0,1,1");
+  await expect(figure(page, "projects-count")).toHaveText(
+    String(PROJECTS.length)
+  );
+});
+
+test("version 2 sections: a titled grid, a flow, inline views and placeholders", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await saveDashboards(page, [SCREEN]);
+  await page.goto(DASHBOARD);
+  await expect(
+    page.getByRole("heading", { name: "Projects overview", level: 2 })
+  ).toBeVisible();
+  await expect(
+    page.locator('[data-dashboard-section="numbers"]')
+  ).toHaveAttribute("data-section-type", "grid");
+  await expect(
+    page.locator('[data-dashboard-section="details"]')
+  ).toHaveAttribute("data-section-type", "flow");
+  await expect(
+    page.getByRole("heading", { name: "Numbers", level: 3 })
+  ).toBeVisible();
+  // Widget titles sit one level under their section's.
+  await expect(
+    widget(page, "software").getByRole("heading", { level: 4 })
+  ).toHaveText("Software");
+  // A number over inline settings: its own filter, no saved view.
+  await expect(figure(page, "software")).toHaveText(
+    String(PROJECTS.filter((row) => row.category === "Software").length)
+  );
+  // A flow widget takes its natural height and keeps the view's pagination.
+  const biggest = widget(page, "biggest");
+  await expect(biggest.locator("[data-row-id]").first()).toContainText(
+    "Yarrow data platform"
+  );
+  await expect(
+    biggest.getByRole("button", { name: NEXT_PAGE }).first()
+  ).toBeVisible();
+  // Full-page tables and blocks render in a later version: a placeholder.
+  for (const id of ["pages", "summary"]) {
+    await expect(
+      widget(page, id).locator("[data-widget-placeholder]")
+    ).toContainText("Not available yet");
+  }
+  await expect(widget(page, "notes")).toContainText(
+    "Figures follow today's date."
+  );
+  expect(await innerScrollbars(page)).toEqual([]);
+  // An inline view opens the source's default view.
+  await biggest.getByRole("button", { name: "Open full view" }).click();
+  await expect(page.locator("[data-dashboard-opened]")).toHaveText(
+    "projects › default"
+  );
+});
+
+test("version 2 texts follow the page's language", async ({ page }) => {
+  await saveDashboards(page, [SCREEN]);
+  await page.goto(`${DASHBOARD}&lang=fr`);
+  await expect(
+    page.getByRole("heading", { name: "Vue des projets", level: 2 })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Chiffres", level: 3 })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Détails", level: 3 })
+  ).toBeVisible();
+  await expect(
+    widget(page, "software").locator("[data-widget-title]")
+  ).toHaveText("Logiciel");
+  await expect(
+    widget(page, "biggest").locator("[data-widget-title]")
+  ).toHaveText("Plus gros projets");
+  await expect(
+    widget(page, "pages").locator("[data-widget-placeholder]")
+  ).toContainText("Pas encore disponible");
+});
+
+test("flow widgets move up and down in edit mode, and sections are saved", async ({
+  page,
+}) => {
+  await saveDashboards(page, [SCREEN]);
+  await page.goto(DASHBOARD);
+  await gridReady(page);
+  await toolbar(page).getByRole("button", { name: "Edit" }).click();
+  // No drag handle in a flow; the menu moves up and down, without resizing.
+  await expect(
+    widget(page, "biggest").locator("[data-dashboard-drag-handle]")
+  ).toHaveCount(0);
+  await openMenu(page, "Biggest projects");
+  await expect(page.getByRole("menuitem", { name: "Move up" })).toBeDisabled();
+  await expect(page.getByRole("menuitem", { name: "Wider" })).toHaveCount(0);
+  await page.getByRole("menuitem", { name: "Move down" }).click();
+  const order = () =>
+    page
+      .locator('[data-dashboard-section="details"] [data-dashboard-item]')
+      .evaluateAll((items) =>
+        items.map((entry) => entry.getAttribute("data-dashboard-item"))
+      );
+  await expect.poll(order).toEqual(["pages", "biggest", "summary", "notes"]);
+  await toolbar(page).getByRole("button", { name: "Done" }).click();
+  await expect(page.getByText("Dashboard saved")).toBeVisible();
+  const saved = (await savedDashboards(page))[SCREEN.id];
+  expect(saved?.name).toEqual(SCREEN.name);
+  expect(saved?.sections).toEqual([
+    SCREEN.sections[0],
+    {
+      ...SCREEN.sections[1],
+      widgetIds: ["pages", "biggest", "summary", "notes"],
+    },
+  ]);
 });

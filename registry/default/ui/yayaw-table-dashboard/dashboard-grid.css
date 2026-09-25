@@ -108,6 +108,39 @@
   overflow: auto;
 }
 
+/*
+ * Flow sections: widgets one under the other, at full width and the height
+ * of their content. Bodies grow with it (no size container, nothing clipped),
+ * so records keep the view's pagination; charts take a 16:10 body, as on
+ * phones, since they fill their container.
+ */
+.yayaw-dashboard-flow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: calc(var(--dashboard-margin, 6px) * 2);
+}
+.yayaw-dashboard-flow > [data-dashboard-item] {
+  display: flex;
+  min-width: 0;
+}
+.yayaw-dashboard-flow > [data-dashboard-item] > * {
+  flex: 1;
+  min-width: 0;
+}
+.yayaw-dashboard-flow [data-dashboard-widget] > [data-widget-body] {
+  container-type: inline-size;
+  overflow: visible;
+}
+.yayaw-dashboard-flow
+  [data-dashboard-widget]:has([data-widget-mode="chart"])
+  > [data-widget-body] {
+  container-type: size;
+  height: auto;
+  min-height: 11rem;
+  max-height: 24rem;
+  aspect-ratio: 16 / 10;
+}
+
 /* Fit: the records that do not fit are hidden (dashboard-fit.ts). */
 [data-dashboard-fit] {
   display: flex;

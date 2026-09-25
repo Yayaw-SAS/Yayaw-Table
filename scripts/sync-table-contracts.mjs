@@ -142,6 +142,22 @@ await copyFile(
   new URL("../packages/yayaw-table-vue/src/bulk-editor.ts", import.meta.url)
 );
 
+// Saved-view settings are sanitized alike in both editions; the planning
+// engine sits one folder up in React and beside the file in Vue.
+{
+  const content = await readFile(
+    new URL(
+      "../src/components/ui/yayaw-table/utils/view-config.ts",
+      import.meta.url
+    ),
+    "utf8"
+  );
+  await writeFile(
+    new URL("../packages/yayaw-table-vue/src/view-config.ts", import.meta.url),
+    content.replaceAll("../planning/", "./planning/")
+  );
+}
+
 // The planning engine, controller and native renderer have identical behavior in both editions.
 const planningSource = new URL(
   "../src/components/ui/yayaw-table/planning/",
@@ -195,9 +211,10 @@ for (const [source, target] of [
   );
 }
 
-// The dashboard's model, record fitting, gridstack controller and grid styles
-// are shared by both optional dashboard items; only the paths of the table's
-// shared helpers (table contracts, chart model) differ.
+// The dashboard's grammar (schema, sources, layout), model, record fitting,
+// gridstack controller and grid styles are shared by both optional dashboard
+// items; only the paths of the table's shared helpers (table contracts, chart
+// model, view settings) differ.
 const dashboardSource = new URL(
   "../src/components/ui/yayaw-table-dashboard/",
   import.meta.url
@@ -208,6 +225,9 @@ const dashboardTarget = new URL(
 );
 await mkdir(dashboardTarget, { recursive: true });
 for (const name of [
+  "dashboard-schema.ts",
+  "dashboard-sources.ts",
+  "dashboard-layout.ts",
   "dashboard-model.ts",
   "dashboard-fit.ts",
   "dashboard-grid-engine.ts",

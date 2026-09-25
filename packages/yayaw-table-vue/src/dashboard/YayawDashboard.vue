@@ -7,42 +7,52 @@ import type { DataTableTranslations, TableRecord } from "../types";
 import DashboardAddFilter from "./DashboardAddFilter.vue";
 import DashboardAddWidget from "./DashboardAddWidget.vue";
 import DashboardFilters from "./DashboardFilters.vue";
-import DashboardGrid from "./DashboardGrid.vue";
+import DashboardSectionView from "./DashboardSection.vue";
 import DashboardWidgetContent from "./DashboardWidgetContent.vue";
 import DashboardWidgetFrame from "./DashboardWidget.vue";
+import type { DashboardDirection, DashboardResize } from "./dashboard-layout";
 import {
   addDashboardFilter,
-  addDashboardWidget,
-  applyGridLayout,
-  type Dashboard,
   type DashboardColumn,
-  type DashboardDirection,
   type DashboardLabelKey,
-  type DashboardResize,
   type DashboardStorage,
   type DashboardTableInfo,
   type DashboardView,
-  type DashboardWidget,
   dashboardColumn,
   dashboardLabel,
   dashboardTranslate,
   dashboardWidgetSize,
   dashboardWidgetTitle,
+  dashboardWidgetViewId,
   loadDashboardViews,
+  removeDashboardFilter,
+  setDashboardFilterValue,
+  setDashboardText,
+} from "./dashboard-model";
+import {
+  addDashboardWidget,
+  applyDashboardSectionLayout,
+  canMoveDashboardWidget,
+  canResizeDashboardWidget,
+  type Dashboard,
+  type DashboardSection,
+  type DashboardWidget,
+  dashboardText,
+  dashboardWidgetSection,
   moveDashboardWidget,
   normalizeDashboard,
-  removeDashboardFilter,
   removeDashboardWidget,
   resizeDashboardWidget,
-  setDashboardFilterValue,
-} from "./dashboard-model";
+} from "./dashboard-schema";
 import type { DashboardLabel, DashboardTableSource } from "./dashboard-types";
 import "./dashboard.css";
 
 /**
- * A Notion-like dashboard: widgets showing saved views of any table (in any
- * display mode), numbers and notes, on a 4-column grid users arrange in edit
- * mode, with dashboard filters sent to every targeted table's requests.
+ * A Notion-like dashboard (JSON version 2): sections in order, each a
+ * 4-column grid users arrange in edit mode or a flow of full-width widgets;
+ * widgets show views of any table (saved or inline, in any display mode),
+ * numbers and notes; dashboard filters reach every targeted table's requests.
+ * Older JSON is migrated on load and saved as version 2.
  */
 const props = withDefaults(
   defineProps<{
@@ -54,13 +64,13 @@ const props = withDefaults(
     dashboardId?: string;
     /** Whether the user may edit (layout, widgets, filters). Default false. */
     canEdit?: boolean;
-    /** "Open full view" on table and number widgets calls it. */
+    /** "Open full view" on view and number widgets calls it (`viewId` null for inline settings). */
     openView?: (tableId: string, viewId: string | null) => void;
     /** Renders note text (e.g. markdown); plain text by default. */
     renderMarkdown?: (text: string) => VNodeChild;
     /** Optional display modes widgets may use, e.g. `{ chart, calendar }`. */
     displayModeRenderers?: DisplayModeRenderers;
-    /** Language of the dashboard and of every widget (dates, numbers, labels). */
+    /** Language of the dashboard, its texts (`{ en, fr }`) and every widget (dates, numbers, labels). */
     locale?: string;
     /** Label overrides keyed `dashboard.<key>`. */
     translations?: Record<string, string>;
@@ -73,7 +83,7 @@ const props = withDefaults(
   }>(),
   { canEdit: false, locale: "en" }
 );
-/** `change`: the dashboard after each change (saved or not). */
+/** `change`: the dashboard (version 2) after each change (saved or not). */
 const emit = defineEmits<{ change: [dashboard: Dashboard] }>();
 
 type LoadState = { status: "loading" | "ready" | "empty" } | { status: "error"; message: string };
@@ -162,24 +172,34 @@ const titleOf = (widget: DashboardWidget) =>
     table: widget.tableId ? infos.value[widget.tableId] : undefined,
     view: views.value[widget.tableId ?? ""]?.find((view) => view.id === widget.viewId),
   });
-const openable = (widget: DashboardWidget) => Boolean(props.openView && widget.tableId && widget.type !== "note");
+const openable = (widget: DashboardWidget) =>
+  Boolean(props.openView && widget.tableId && (widget.type === "view" || widget.type === "kpi"));
 const open = (widget: DashboardWidget) => {
-  if (widget.tableId) props.openView?.(widget.tableId, widget.viewId ?? null);
+  if (widget.tableId) props.openView?.(widget.tableId, dashboardWidgetViewId(widget));
 };
 const sizeOf = (widgetId: string) => {
-  const place = dashboard.value?.layout.find((item) => item.widgetId === widgetId);
+  const section = dashboard.value ? dashboardWidgetSection(dashboard.value, widgetId) : undefined;
+  const place = section?.type === "grid" ? section.layout.find((item) => item.widgetId === widgetId) : undefined;
   return { w: place?.w ?? 1, h: place?.h ?? 1 };
 };
+const canMove = (widgetId: string) => (direction: DashboardDirection) =>
+  dashboard.value ? canMoveDashboardWidget(dashboard.value, widgetId, direction) : false;
+const canResize = (widgetId: string) => (change: DashboardResize) =>
+  dashboard.value ? canResizeDashboardWidget(dashboard.value, widgetId, change) : false;
+const hasWidgets = (section: DashboardSection) =>
+  section.type === "grid" ? section.layout.length > 0 : section.widgetIds.length > 0;
+const sections = computed(() => dashboard.value?.sections.filter(hasWidgets) ?? []);
+const name = computed(() => dashboardText(dashboard.value?.name, props.locale));
+const rename = (value: string) =>
+  update((current) => ({ ...current, name: setDashboardText(current.name, props.locale, value) }));
 const addWidget = (widget: Omit<DashboardWidget, "id">) =>
   update((current) =>
-    addDashboardWidget(
-      current,
-      widget,
-      dashboardWidgetSize(widget, {
+    addDashboardWidget(current, widget, {
+      size: dashboardWidgetSize(widget, {
         views: views.value[widget.tableId ?? ""],
         table: infos.value[widget.tableId ?? ""],
-      })
-    )
+      }),
+    })
   );
 const move = (widget: DashboardWidget, direction: DashboardDirection) => {
   update((current) => moveDashboardWidget(current, widget.id, direction));
@@ -224,10 +244,10 @@ const loadMessage = computed(() => {
         v-if="editing"
         class="yayaw-input yayaw-dashboard-name-input"
         :aria-label="label('dashboard')"
-        :value="dashboard.name"
-        @input="update((current) => ({ ...current, name: ($event.target as HTMLInputElement).value }))"
+        :value="name"
+        @input="rename(($event.target as HTMLInputElement).value)"
       >
-      <h2 v-else class="yayaw-dashboard-name">{{ dashboard.name || label("dashboard") }}</h2>
+      <h2 v-else class="yayaw-dashboard-name">{{ name || label("dashboard") }}</h2>
       <div class="yayaw-dashboard-actions">
         <button type="button" class="yayaw-button yayaw-button-outline" @click="revision += 1">
           <RefreshCw :size="16" aria-hidden="true" />{{ label("refresh") }}
@@ -254,47 +274,55 @@ const loadMessage = computed(() => {
       @remove="(filterId) => update((current) => removeDashboardFilter(current, filterId))"
       @add="addingFilter = true"
     />
-    <DashboardGrid
-      v-if="dashboard.widgets.length"
-      :layout="dashboard.layout"
-      :editing="editing"
-      @layout-change="(layout) => update((current) => applyGridLayout(current, layout))"
-    >
-      <template #item="{ widgetId, phone }">
-        <DashboardWidgetFrame
-          v-if="widgetOf(widgetId)"
-          :widget="widgetOf(widgetId)!"
-          :title="titleOf(widgetOf(widgetId)!)"
-          :editing="editing"
-          :phone="phone"
-          :layout="dashboard.layout"
-          :label="label"
-          :openable="openable(widgetOf(widgetId)!)"
-          @move="(direction) => move(widgetOf(widgetId)!, direction)"
-          @resize="(change) => resize(widgetOf(widgetId)!, change)"
-          @remove="update((current) => removeDashboardWidget(current, widgetId))"
-          @open="open(widgetOf(widgetId)!)"
-        >
-          <DashboardWidgetContent
-            :dashboard="dashboard"
+    <template v-if="dashboard.widgets.length">
+      <DashboardSectionView
+        v-for="section in sections"
+        :key="section.id"
+        :section="section"
+        :title="dashboardText(section.title, props.locale)"
+        :editing="editing"
+        @layout-change="(layout) => update((current) => applyDashboardSectionLayout(current, section.id, layout))"
+      >
+        <template #item="{ widgetId, phone, flow, titled }">
+          <DashboardWidgetFrame
+            v-if="widgetOf(widgetId)"
             :widget="widgetOf(widgetId)!"
-            :tables="props.tables"
-            :views="views"
-            :revision="revision"
+            :title="titleOf(widgetOf(widgetId)!)"
+            :editing="editing"
+            :draggable="!(phone || flow)"
+            :resizable="!flow"
+            :heading-level="titled ? 4 : 3"
+            :can-move="canMove(widgetId)"
+            :can-resize="canResize(widgetId)"
             :label="label"
-            :locale="props.locale"
-            :translate="translate"
-            :table-translations="props.tableTranslations"
-            :size="sizeOf(widgetId)"
             :openable="openable(widgetOf(widgetId)!)"
-            :renderers="props.displayModeRenderers"
-            :render-markdown="props.renderMarkdown"
-            :get-row-id="props.getRowId"
-            @view-all="open(widgetOf(widgetId)!)"
-          />
-        </DashboardWidgetFrame>
+            @move="(direction) => move(widgetOf(widgetId)!, direction)"
+            @resize="(change) => resize(widgetOf(widgetId)!, change)"
+            @remove="update((current) => removeDashboardWidget(current, widgetId))"
+            @open="open(widgetOf(widgetId)!)"
+          >
+            <DashboardWidgetContent
+              :dashboard="dashboard"
+              :widget="widgetOf(widgetId)!"
+              :tables="props.tables"
+              :views="views"
+              :revision="revision"
+              :label="label"
+              :locale="props.locale"
+              :translate="translate"
+              :table-translations="props.tableTranslations"
+              :size="sizeOf(widgetId)"
+              :openable="openable(widgetOf(widgetId)!)"
+              :renderers="props.displayModeRenderers"
+              :render-markdown="props.renderMarkdown"
+              :get-row-id="props.getRowId"
+              :natural="flow"
+              @view-all="open(widgetOf(widgetId)!)"
+            />
+          </DashboardWidgetFrame>
       </template>
-    </DashboardGrid>
+    </DashboardSectionView>
+    </template>
     <div v-else class="yayaw-dashboard-message" data-widget-state="muted">
       <output>{{ label(editing ? "emptyEditable" : "empty") }}</output>
     </div>
