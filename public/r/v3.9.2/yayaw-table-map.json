@@ -7,7 +7,7 @@
   "registryDependencies": [
     "button",
     "https://mapcn.dev/r/map.json",
-    "https://table.yayaw.app/r/yayaw-table.json"
+    "https://table.yayaw.app/r/v3.9.2/yayaw-table.json"
   ],
   "files": [
     {
