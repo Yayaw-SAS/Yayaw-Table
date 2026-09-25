@@ -1,5 +1,33 @@
 # Changelog
 
+## 3.9.1
+
+### Patch Changes
+
+- afe71e0: React follows the page rules Vue already had, and a query that does not change keeps its page in both editions.
+
+  - **A new query starts on the first page (React).** A search, a column or advanced filter, or a sort changed in the table now returns to the first page, written in the same URL update as the new query. Before, a search from the second page showed an empty table and kept `<tableId>-page` in the URL. A link's page is still kept on arrival and on back and forward.
+  - **A page past the last one moves to the last page (React)** once `list` answers, whether it comes from an old link or rows were removed since. The table shows as loading until then. Before, it showed an empty page without pagination.
+  - **Repeating the current query keeps the page (React and Vue).** Choosing the current sort again (the column menu's "Ascending" on an ascending column) or a search that differs only by surrounding spaces no longer returns Vue to the first page.
+  - With a table id containing `sort` or `filters`, React wrote the search or the sort to the wrong URL key. Each now goes to its own key.
+
+  **Hosts.** Answer a `page` past the last one with `meta.totalCount` and `meta.pageCount` and no rows, not an error. Both editions then move to the last page those counts give and ask `list` for it.
+
+- ac5802f: React display modes keep the same page rows until the data changes, as in Vue.
+
+  - **No reload without new data** (React): the page rows the table hands display modes (`context.rows`) were a new array at many renders: every render while no page was loaded, and every time the column order (`<tableId>-order`) was written or read again, which the table does itself after mounting. Each new array moved `context.revision`, so the File tree, Feed, Calendar, Chart and Map loaded their records again (the File tree: one list call per loaded folder, or every row when the host ignores scopes). The rows are now the page the query returned, the same array until the data changes.
+  - **Row order** (React): the table sorted the page rows by `<tableId>-order`, which holds column ids, so a row whose id equals a column id moved to the top. Rows keep the order `list` returns, as in Vue; a manual row order stays a sort (`__manual`).
+  - The `getRowId` option of `useTableUrlData` (React) is deprecated and ignored: rows are no longer sorted.
+
+- 2664d40: A table requests its first page once and mounts its view once, in both editions.
+
+  - **React mounts the view once, with the first page.** React derived its filters with an asynchronous query, so the page query started one render late: the first render showed an empty table that the loading state then replaced, and every view mounted twice. The File tree listed its root and each folder it opens twice at load, and the renderer context's `revision` started over. The table now shows its loading state from the first render until the first page answers, then mounts the view with the rows. Without `initialData`, the server renders that loading state too, instead of the empty state.
+  - **Vue views load their data once at load, and once per search.** The renderer context's `revision` moved when the first page arrived and when the URL read on mount set equal values, so the File tree listed its root three times and each folder it opens twice, and loaded a search's matches twice. `revision` now moves for a new query or list, and for new rows of the query shown (a mutation, a form submit, another page).
+
+  **Custom renderers.** Load at mount, then again when `revision` or the query in `listParams` changes. In Vue, `revision` no longer moves while the first page loads.
+
+- fbb49b6: Vue keeps the page a link opens on, as React does. A link such as `?<tableId>-page=1` showed the first page and lost the key from the URL, because reading the link's search, filters and sort counted as a new query; back and forward returned to the first page too. A search, filter or sort changed in the table, a saved view, clearing the filters and resetting the view still start on the first page.
+
 ## 3.9.0
 
 ### Minor Changes
