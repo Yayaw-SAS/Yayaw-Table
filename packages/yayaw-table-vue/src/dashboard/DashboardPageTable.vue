@@ -20,6 +20,7 @@ import {
   withMutationSignal,
   withNoticeCapture,
 } from "./dashboard-model";
+import type { ViewConfig } from "../view-config";
 import type { DashboardDataTableProps, DashboardTableSource } from "./dashboard-types";
 
 /**
@@ -50,8 +51,12 @@ const props = defineProps<{
   getRowId?: (row: TableRecord) => string;
   noticeText: (notice: DashboardNotice) => string;
 }>();
-/** `mutated`: after each change of the table's records (the screen reloads its other widgets). */
-const emit = defineEmits<{ mutated: [] }>();
+/**
+ * `mutated`: after each change of the table's records (the screen reloads its
+ * other widgets). `view-config-change`: the view the table shows, which "Make
+ * the current view the screen default" stores.
+ */
+const emit = defineEmits<{ mutated: []; viewConfigChange: [config: ViewConfig] }>();
 
 const notice = ref<DashboardNotice>();
 const rulesKey = computed(() => JSON.stringify(props.rules));
@@ -116,6 +121,11 @@ const tableProps = computed<DashboardDataTableProps>(() => ({
   config: config.value,
   getTableActions: () => actions.value,
   initialViews: initialViews.value,
+  // The screen and the host both hear the view the table shows.
+  onViewConfigChange: (view: ViewConfig) => {
+    emit("viewConfigChange", view);
+    (hostProps.value.onViewConfigChange as ((config: ViewConfig) => void) | undefined)?.(view);
+  },
 }));
 const HostTable = () => props.source.renderTable?.(tableProps.value);
 

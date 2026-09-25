@@ -49,6 +49,11 @@ export type DashboardEditorRequest =
   | { kind: "removeSection"; sectionId: string }
   | { kind: "addFilter" };
 
+/** What the widget dialog does: add a widget (to a section, else the first that takes it) or edit one. */
+export type DashboardWidgetDialogTarget =
+  | { mode: "add"; sectionId?: string; sectionType?: DashboardSectionType }
+  | { mode: "edit"; widget: DashboardWidget };
+
 // Sections ---------------------------------------------------------------------------
 
 /** Moves a section makes in the page: one place up or down. */

@@ -107,3 +107,18 @@ export interface DashboardBlock extends DashboardBlockSchema {
 
 /** The host's blocks, by key (`home.summary`, `media.storage`…). */
 export type DashboardBlockRegistry = Readonly<Record<string, DashboardBlock>>;
+
+/** An entry the screen editor adds at the top of a widget's menu. */
+export interface DashboardWidgetMenuAction {
+  /** Stable id (`data-widget-action`). */
+  id: string;
+  label: string;
+  icon?: Component;
+  onSelect: () => void;
+}
+
+/** A section the widget's menu can move it to ("Move to section"). */
+export interface DashboardWidgetMoveTarget {
+  id: string;
+  name: string;
+}

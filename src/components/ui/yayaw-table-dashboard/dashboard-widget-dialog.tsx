@@ -34,6 +34,7 @@ import { Field, KpiFields, OverflowField } from "./dashboard-dialogs";
 import {
   type DashboardBlockPropsDraft,
   type DashboardWidgetChoice,
+  type DashboardWidgetDialogTarget,
   dashboardBlockPropsText,
   dashboardKindReadsSource,
   dashboardViewEditStart,
@@ -54,18 +55,12 @@ import {
 import {
   checkDashboardBlockProps,
   type DashboardJsonObject,
-  type DashboardSectionType,
   type DashboardWidget,
 } from "./dashboard-schema";
 import type { DashboardSourceLoader } from "./dashboard-sources";
 import { DashboardSourcePicker } from "./dashboard-source-picker";
 import { DashboardViewEditor } from "./dashboard-view-editor";
 import type { DashboardLabel, DashboardTableSource } from "./dashboard-widget";
-
-/** What the dialog does: add a widget (to a section, else the first that takes it) or edit one. */
-export type DashboardWidgetDialogTarget =
-  | { mode: "add"; sectionId?: string; sectionType?: DashboardSectionType }
-  | { mode: "edit"; widget: DashboardWidget };
 
 export interface DashboardWidgetDialogProps {
   open: boolean;

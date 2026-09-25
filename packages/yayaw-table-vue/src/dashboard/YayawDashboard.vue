@@ -1,15 +1,42 @@
 <script setup lang="ts">
-import { Check, Pencil, Plus, RefreshCw } from "lucide-vue-next";
+import {
+  Check, Copy, LayoutGrid, Pencil, Pin, Plus, RefreshCw, Rows3, Settings2, SlidersHorizontal, X,
+} from "lucide-vue-next";
+import {
+  DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger,
+} from "reka-ui";
 import { toast } from "vue-sonner";
-import { computed, ref, type VNodeChild } from "vue";
+import { computed, defineAsyncComponent, ref, shallowRef, type VNodeChild } from "vue";
 import type { DisplayModeRenderers } from "../display-mode-renderer";
 import type { DataTableTranslations, TableRecord } from "../types";
-import DashboardAddFilter from "./DashboardAddFilter.vue";
-import DashboardAddWidget from "./DashboardAddWidget.vue";
+import type { ViewConfig } from "../view-config";
+import DashboardEmptySection from "./DashboardEmptySection.vue";
 import DashboardFilters from "./DashboardFilters.vue";
 import DashboardSectionView from "./DashboardSection.vue";
+import DashboardSectionBar from "./DashboardSectionBar.vue";
 import DashboardWidgetContent from "./DashboardWidgetContent.vue";
 import DashboardWidgetFrame from "./DashboardWidget.vue";
+import {
+  canAddDashboardSection,
+  canMoveDashboardSection,
+  copyDashboardWidgetView,
+  type DashboardEditorRequest,
+  type DashboardSectionMove,
+  type DashboardViewEdit,
+  dashboardIssueTarget,
+  dashboardSaveErrors,
+  dashboardSectionName,
+  dashboardSectionTitleInput,
+  dashboardSectionWidgetIds,
+  dashboardViewToApply,
+  dashboardWidgetMoveTargets,
+  moveDashboardSection,
+  moveDashboardWidgetToSection,
+  recordDashboardViewReport,
+  removeDashboardSection,
+  renameDashboardSection,
+  setDashboardWidgetView,
+} from "./dashboard-editor-model";
 import {
   errorText,
   tableInfo,
@@ -21,7 +48,6 @@ import {
 } from "./dashboard-composables";
 import type { DashboardDirection, DashboardResize } from "./dashboard-layout";
 import {
-  addDashboardFilter,
   type DashboardDateRange,
   type DashboardLabelKey,
   type DashboardNotice,
@@ -29,6 +55,7 @@ import {
   type DashboardStorage,
   type DashboardTableInfo,
   dashboardDayValue,
+  dashboardFilterLabel,
   dashboardFilterValues,
   dashboardLabel,
   dashboardNoticeText,
@@ -44,17 +71,20 @@ import {
   withDashboardFilterValues,
 } from "./dashboard-model";
 import {
-  addDashboardWidget,
+  addDashboardSection,
   applyDashboardSectionLayout,
   canMoveDashboardWidget,
   canResizeDashboardWidget,
   type Dashboard,
+  type DashboardIssue,
   type DashboardSection,
+  type DashboardSectionType,
   type DashboardWidget,
   dashboardText,
   moveDashboardWidget,
   removeDashboardWidget,
   resizeDashboardWidget,
+  validateDashboard,
 } from "./dashboard-schema";
 import {
   type DashboardSources,
@@ -66,8 +96,12 @@ import type {
   DashboardBlockRegistry,
   DashboardLabel,
   DashboardTableSource,
+  DashboardWidgetMenuAction,
 } from "./dashboard-types";
 import "./dashboard.css";
+
+/** The editor's dialogs load with edit mode, never for readers. */
+const DashboardEditorLayer = defineAsyncComponent(() => import("./DashboardEditorLayer.vue"));
 
 /**
  * A Notion-like dashboard, and the screens of an admin (JSON version 2):
@@ -153,9 +187,13 @@ const emit = defineEmits<{ change: [dashboard: Dashboard] }>();
 
 const editing = ref(false);
 const saving = ref(false);
-const addingWidget = ref(false);
-const addingFilter = ref(false);
+/** The dialog the editor shows: one at a time. */
+const request = shallowRef<DashboardEditorRequest | null>(null);
+/** Why "Done" did not save: `validateDashboard`'s errors. */
+const issues = shallowRef<DashboardIssue[]>([]);
 const announcement = ref("");
+/** The view each full-page table reported, by widget. */
+const pageViews = new Map<string, DashboardViewEdit>();
 
 const { dashboard, state: loadState } = useDashboardDocument({
   input: () => props.dashboard,
@@ -223,8 +261,10 @@ const filterValues = computed(() => (shown.value ? dashboardFilterValues(shown.v
 const sections = computed<DashboardSection[]>(() => {
   const current = dashboard.value;
   if (!current) return [];
+  // Edit mode shows every section, empty ones included.
+  if (editing.value) return current.sections;
   const hidden =
-    !editing.value && props.unavailableWidgets === "hide"
+    props.unavailableWidgets === "hide"
       ? dashboardUnavailableWidgetIds(current, availabilityContext)
       : new Set<string>();
   return dashboardVisibleSections(current.sections, hidden);
@@ -255,7 +295,7 @@ const openable = (widget: DashboardWidget) =>
       (widget.type === "view" || widget.type === "kpi") &&
       availabilityOf(widget).status === "ready"
   );
-const open = (widget: DashboardWidget) => {
+const openFull = (widget: DashboardWidget) => {
   if (widget.tableId) {
     props.openView?.(widget.tableId, dashboardWidgetViewId(widget), dashboardOpenViewContext(widget));
   }
@@ -272,15 +312,10 @@ const canResize = (widgetId: string) => (change: DashboardResize) =>
 const name = computed(() => dashboardText(dashboard.value?.name, props.locale));
 const rename = (value: string) =>
   update((current) => ({ ...current, name: setDashboardText(current.name, props.locale, value) }));
-const addWidget = (widget: Omit<DashboardWidget, "id">) =>
-  update((current) =>
-    addDashboardWidget(current, widget, {
-      size: dashboardWidgetSize(widget, {
-        views: views.value[widget.tableId ?? ""],
-        table: infos.value[widget.tableId ?? ""],
-      }),
-    })
-  );
+const tableInfoOf = (id?: string): DashboardTableInfo | undefined => {
+  const source = sourceOf(id);
+  return source && id ? tableInfo(id, source) : undefined;
+};
 const move = (widget: DashboardWidget, direction: DashboardDirection) => {
   update((current) => moveDashboardWidget(current, widget.id, direction));
   announcement.value = label("moved", { title: titleOf(widget) });
@@ -296,7 +331,132 @@ const changeFilter = (filterId: string, value: DashboardDateRange | string[] | u
 const startEditing = () => {
   // Edit mode shows and changes the document's default values.
   viewer.clear();
+  issues.value = [];
   editing.value = true;
+};
+
+// The editor ---------------------------------------------------------------------------
+
+const open = (next: DashboardEditorRequest) => {
+  request.value = next;
+};
+const announce = (message: string) => {
+  announcement.value = message;
+};
+const SOURCED = new Set<DashboardWidget["type"]>(["view", "kpi", "table"]);
+/**
+ * The editor's entries of a widget's menu: edit it, edit its view in the live
+ * table, use a copy of its saved view, make a full-page table's current view
+ * the screen's default.
+ */
+const menuActionsOf = (widget: DashboardWidget): DashboardWidgetMenuAction[] => {
+  if (!editing.value) return [];
+  const widgetId = widget.id;
+  const actions: DashboardWidgetMenuAction[] = [
+    { id: "edit", label: label("editWidget"), icon: Settings2, onSelect: () => open({ kind: "editWidget", widgetId }) },
+  ];
+  const ready = availabilityOf(widget).status === "ready";
+  if (SOURCED.has(widget.type) && ready) {
+    actions.push({
+      id: "edit-view",
+      label: label("editView"),
+      icon: SlidersHorizontal,
+      onSelect: () => open({ kind: "editView", widgetId }),
+    });
+  }
+  const saved =
+    widget.viewId && !widget.view
+      ? views.value[widget.tableId ?? ""]?.find((view) => view.id === widget.viewId)
+      : undefined;
+  if (saved) {
+    actions.push({
+      id: "copy-view",
+      label: label("useViewCopy"),
+      icon: Copy,
+      onSelect: () => {
+        update((current) => copyDashboardWidgetView(current, widgetId, saved));
+        announce(label("viewCopied", { title: titleOf(widget) }));
+      },
+    });
+  }
+  if (widget.type === "table" && ready) {
+    actions.push({
+      id: "screen-default",
+      label: label("makeScreenDefault"),
+      icon: Pin,
+      onSelect: () => {
+        const live = pageViews.get(widgetId);
+        const view = live ? dashboardViewToApply(live) : undefined;
+        if (view) {
+          update((current) => setDashboardWidgetView(current, widgetId, view));
+          announce(label("screenDefaultSet"));
+          toast.success(label("screenDefaultSet"));
+        }
+      },
+    });
+  }
+  return actions;
+};
+const recordPageView = (widget: DashboardWidget, config: ViewConfig) => {
+  pageViews.set(
+    widget.id,
+    recordDashboardViewReport(pageViews.get(widget.id) ?? { initial: widget.view ?? {} }, config)
+  );
+};
+const moveTargetsOf = (widget: DashboardWidget) =>
+  editing.value && dashboard.value
+    ? dashboardWidgetMoveTargets(dashboard.value, widget.id, {
+        blocks: props.blocks,
+        locale: props.locale,
+        translate: translate.value,
+      })
+    : [];
+const moveToSection = (widget: DashboardWidget, sectionId: string) => {
+  const target = moveTargetsOf(widget).find((item) => item.id === sectionId);
+  update((current) =>
+    moveDashboardWidgetToSection(current, widget.id, sectionId, {
+      blocks: props.blocks,
+      size: dashboardWidgetSize(widget, {
+        views: views.value[widget.tableId ?? ""],
+        table: tableInfoOf(widget.tableId),
+        block: blockOf(widget.block),
+      }),
+    })
+  );
+  announce(label("movedToSection", { title: titleOf(widget), section: target?.name ?? sectionId }));
+};
+const sectionName = (section: DashboardSection) =>
+  dashboard.value ? dashboardSectionName(dashboard.value, section.id, props.locale, translate.value) : section.id;
+const canMoveSection = (section: DashboardSection) => (direction: DashboardSectionMove) =>
+  dashboard.value ? canMoveDashboardSection(dashboard.value, section.id, direction) : false;
+const moveSection = (section: DashboardSection, direction: DashboardSectionMove) => {
+  const name = sectionName(section);
+  update((current) => moveDashboardSection(current, section.id, direction));
+  announce(label("moved", { title: name }));
+};
+const removeSection = (section: DashboardSection) => {
+  if (dashboardSectionWidgetIds(section).length) {
+    open({ kind: "removeSection", sectionId: section.id });
+    return;
+  }
+  const name = sectionName(section);
+  update((current) => removeDashboardSection(current, section.id));
+  announce(label("sectionRemoved", { title: name }));
+};
+const renameSection = (section: DashboardSection, title: string) =>
+  update((current) => renameDashboardSection(current, section.id, title, props.locale));
+const addSection = (type: DashboardSectionType) => update((current) => addDashboardSection(current, { type }));
+const canAddSection = computed(() => (dashboard.value ? canAddDashboardSection(dashboard.value) : false));
+/** What an issue of "Done" is about: its widget's title, section, filter, else its path. */
+const issueSubject = (issue: DashboardIssue): string => {
+  const current = dashboard.value;
+  if (!current) return issue.path ?? "";
+  const target = dashboardIssueTarget(current, issue);
+  const widget = current.widgets.find((item) => item.id === target.widgetId);
+  if (widget) return titleOf(widget);
+  if (target.sectionId) return dashboardSectionName(current, target.sectionId, props.locale, translate.value);
+  const filter = current.filters.find((item) => item.id === target.filterId);
+  return filter ? dashboardFilterLabel(filter, props.locale) : (issue.path ?? "");
 };
 const refreshAll = () => {
   revisions.refresh();
@@ -305,14 +465,22 @@ const refreshAll = () => {
   }
 };
 
+// "Done" saves version 2 once `validateDashboard` finds no error.
 const save = async () => {
   const current = dashboard.value;
   const storage = props.actions?.dashboards;
   if (!(current && storage)) return;
+  const checked = validateDashboard(current, { blocks: props.blocks });
+  if (!(checked.ok && checked.dashboard)) {
+    issues.value = dashboardSaveErrors(checked.issues);
+    return;
+  }
+  issues.value = [];
   saving.value = true;
   try {
-    await storage.save({ ...current, updatedAt: new Date().toISOString() });
+    await storage.save({ ...checked.dashboard, updatedAt: new Date().toISOString() });
     editing.value = false;
+    request.value = null;
     toast.success(label("saved"));
   } catch (error) {
     toast.error(label("saveError", { error: errorText(error) }));
@@ -348,9 +516,26 @@ const loadMessage = computed(() => {
         <button type="button" class="yayaw-button yayaw-button-outline" @click="refreshAll">
           <RefreshCw :size="16" aria-hidden="true" />{{ label("refresh") }}
         </button>
-        <button v-if="editing" type="button" class="yayaw-button yayaw-button-outline" @click="addingWidget = true">
+        <button v-if="editing" type="button" class="yayaw-button yayaw-button-outline" @click="open({ kind: 'addWidget' })">
           <Plus :size="16" aria-hidden="true" />{{ label("addWidget") }}
         </button>
+        <DropdownMenuRoot v-if="editing" :modal="false">
+          <DropdownMenuTrigger as-child>
+            <button type="button" class="yayaw-button yayaw-button-outline" data-add-section="" :disabled="!canAddSection">
+              <Plus :size="16" aria-hidden="true" />{{ label("addSection") }}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuPortal>
+            <DropdownMenuContent class="yayaw-row-actions-menu yayaw-dashboard-menu" align="end" :side-offset="4" :collision-padding="8">
+              <DropdownMenuItem as-child @select="addSection('grid')">
+                <button type="button" class="yayaw-row-action-item"><LayoutGrid :size="16" aria-hidden="true" />{{ label("sectionGrid") }}</button>
+              </DropdownMenuItem>
+              <DropdownMenuItem as-child @select="addSection('flow')">
+                <button type="button" class="yayaw-row-action-item"><Rows3 :size="16" aria-hidden="true" />{{ label("sectionFlow") }}</button>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenuPortal>
+        </DropdownMenuRoot>
         <button v-if="editable && editing" type="button" class="yayaw-button" :disabled="saving" @click="save">
           <Check :size="16" aria-hidden="true" />{{ saving ? label("saving") : label("done") }}
         </button>
@@ -359,6 +544,19 @@ const loadMessage = computed(() => {
         </button>
       </div>
     </header>
+    <div v-if="editing && issues.length" class="yayaw-dashboard-issues" data-dashboard-issues="" role="alert">
+      <div class="yayaw-dashboard-issues-body">
+        <p class="yayaw-dashboard-issues-title">{{ label("saveIssues") }}</p>
+        <ul>
+          <li v-for="issue in issues" :key="`${issue.code}:${issue.path ?? ''}:${issue.message}`" :data-issue-code="issue.code">
+            {{ issueSubject(issue) ? `${issueSubject(issue)}: ` : "" }}{{ issue.message }}
+          </li>
+        </ul>
+      </div>
+      <button type="button" class="yayaw-dashboard-icon-button" :aria-label="label('dismiss')" @click="issues = []">
+        <X :size="16" aria-hidden="true" />
+      </button>
+    </div>
     <DashboardFilters
       :filters="shown.filters"
       :tables="infos"
@@ -368,10 +566,10 @@ const loadMessage = computed(() => {
       :translate="translate"
       @change="changeFilter"
       @remove="(filterId) => update((current) => removeDashboardFilter(current, filterId))"
-      @add="addingFilter = true"
+      @add="open({ kind: 'addFilter' })"
     />
     <!-- Widgets query once the reader's filter values are read from the URL. -->
-    <template v-if="dashboard.widgets.length && viewer.ready.value">
+    <template v-if="(editing || dashboard.widgets.length) && viewer.ready.value">
       <DashboardSectionView
         v-for="section in sections"
         :key="section.id"
@@ -380,6 +578,22 @@ const loadMessage = computed(() => {
         :editing="editing"
         @layout-change="(layout) => update((current) => applyDashboardSectionLayout(current, section.id, layout))"
       >
+        <template #bar>
+          <DashboardSectionBar
+            :section="section"
+            :name="sectionName(section)"
+            :title-input="dashboardSectionTitleInput(section, props.locale)"
+            :label="label"
+            :can-move="canMoveSection(section)"
+            @rename="(title) => renameSection(section, title)"
+            @move="(direction) => moveSection(section, direction)"
+            @add-widget="open({ kind: 'addWidget', sectionId: section.id })"
+            @remove="removeSection(section)"
+          />
+        </template>
+        <template #empty>
+          <DashboardEmptySection :label="label" @add-widget="open({ kind: 'addWidget', sectionId: section.id })" />
+        </template>
         <template #item="{ widgetId, phone, flow, titled }">
           <DashboardWidgetFrame
             v-if="widgetOf(widgetId)"
@@ -395,10 +609,13 @@ const loadMessage = computed(() => {
             :can-resize="canResize(widgetId)"
             :label="label"
             :openable="openable(widgetOf(widgetId)!)"
+            :menu-actions="menuActionsOf(widgetOf(widgetId)!)"
+            :move-targets="moveTargetsOf(widgetOf(widgetId)!)"
+            @move-to-section="(sectionId) => moveToSection(widgetOf(widgetId)!, sectionId)"
             @move="(direction) => move(widgetOf(widgetId)!, direction)"
             @resize="(change) => resize(widgetOf(widgetId)!, change)"
             @remove="update((current) => removeDashboardWidget(current, widgetId))"
-            @open="open(widgetOf(widgetId)!)"
+            @open="openFull(widgetOf(widgetId)!)"
           >
             <DashboardWidgetContent
               :dashboard="dashboard"
@@ -429,8 +646,9 @@ const loadMessage = computed(() => {
               :natural="flow"
               :refresh="revisions.refresh"
               :open-view="props.openView"
-              @view-all="open(widgetOf(widgetId)!)"
+              @view-all="openFull(widgetOf(widgetId)!)"
               @mutated="revisions.mutated"
+              @page-view="(config) => recordPageView(widgetOf(widgetId)!, config)"
             />
           </DashboardWidgetFrame>
         </template>
@@ -440,22 +658,24 @@ const loadMessage = computed(() => {
       <output>{{ label(editing ? "emptyEditable" : "empty") }}</output>
     </div>
     <output aria-live="polite" class="yayaw-dashboard-sr-only">{{ announcement }}</output>
-    <template v-if="editing">
-      <DashboardAddWidget
-        v-model:open="addingWidget"
-        :tables="infos"
-        :views="views"
-        :label="label"
-        :locale="props.locale"
-        :translate="translate"
-        @add="addWidget"
-      />
-      <DashboardAddFilter
-        v-model:open="addingFilter"
-        :tables="widgetTables"
-        :label="label"
-        @add="(filter) => update((current) => addDashboardFilter(current, filter))"
-      />
-    </template>
+    <DashboardEditorLayer
+      v-if="editing"
+      :request="request"
+      :dashboard="dashboard"
+      :update="update"
+      :announce="announce"
+      :loader="loader"
+      :views="views"
+      :filter-tables="widgetTables"
+      :blocks="props.blocks"
+      :label="label"
+      :locale="props.locale"
+      :translate="translate"
+      :renderers="props.displayModeRenderers"
+      :get-row-id="props.getRowId"
+      :table-translations="props.tableTranslations"
+      :title-of="titleOf"
+      @close="request = null"
+    />
   </div>
 </template>
