@@ -235,8 +235,6 @@ export {
   createLocalTableViewActions,
   type LocalTableViewActions,
 } from "./utils/table-view-storage";
-// The user's order of saved views: hosts may sort their `list` answer alike.
-export { orderViews } from "./utils/view-order";
 // Tag catalogs (`actions.tags`): shared helpers a host can use on its server.
 export {
   applyTagPatch,
@@ -269,3 +267,5 @@ export {
   type TagColorName,
   tagColorValue,
 } from "./utils/tag-colors";
+// The user's order of saved views: hosts may sort their `list` answer alike.
+export { orderViews } from "./utils/view-order";
