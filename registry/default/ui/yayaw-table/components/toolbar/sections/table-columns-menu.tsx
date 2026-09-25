@@ -33,6 +33,7 @@ import { useTableUrlState } from "../../../hooks/use-table-url-state";
 import { useTranslations } from "../../../providers/table-provider";
 import type { Column, VisibilityState } from "../../../tanstack";
 import { StackMenuContent } from "../../../ui-custom/stack-menu";
+import { resolveColumnOrder } from "../../../utils/table-view-state";
 import { useColumnDnd } from "../../columns/hooks/use-column-dnd";
 
 // Custom type for our enriched column definition
@@ -364,14 +365,12 @@ export function TableColumnsMenu({
       return orderParam as string[];
     }
 
-    // Fallback to table column order if no URL order
-    if (table) {
-      return table.getAllLeafColumns().map((col) => col.id);
-    }
-
-    // Last resort: use original column order
-    return hideableColumns.map((col) => col.id);
-  }, [orderParam, table, hideableColumns]);
+    // Without a URL order, the table shows its configured one (`columns.order`)
+    const columnIds = table
+      ? table.getAllLeafColumns().map((col) => col.id)
+      : hideableColumns.map((col) => col.id);
+    return resolveColumnOrder(config?.columns?.order, columnIds);
+  }, [config?.columns?.order, orderParam, table, hideableColumns]);
 
   // Get a map for quick column lookup
   const _columnMap = useMemo(() => {

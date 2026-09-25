@@ -1467,12 +1467,17 @@ function ModernDataTable<
         header: definition.header,
         id: definition.id,
       })),
-      columnOrder: state.columnOrder,
+      // Without a URL order, the table shows its configured one.
+      columnOrder:
+        state.columnOrder.length > 0
+          ? state.columnOrder
+          : tableConfig.columns.order,
       defaultVisibleColumns: tableConfig.columns.visible,
       visibility: state.columnVisibility,
     });
   }, [
     tableConfig.columns.definitions,
+    tableConfig.columns.order,
     tableConfig.columns.visible,
     state.columnOrder,
     state.columnVisibility,
@@ -1543,6 +1548,7 @@ function ModernDataTable<
     () => ({
       columns: columns as ColumnDef<TData>[],
       data: data as TData[],
+      defaultColumnOrder: tableConfig.columns.order,
       defaultPageSize: tableConfig.table.defaultPageSize,
       defaultVisibleColumns: tableConfig.columns.visible,
       enableColumnFilters,
@@ -1565,6 +1571,7 @@ function ModernDataTable<
     [
       columns,
       data,
+      tableConfig.columns.order,
       tableConfig.table.defaultPageSize,
       tableConfig.columns.visible,
       enableColumnFilters,
@@ -1650,16 +1657,6 @@ function ModernDataTable<
     [table]
   );
 
-  // Update column order effect - simplified
-  useEffect(() => {
-    if (
-      leafColumnIds.length > 0 &&
-      (!columnOrder || columnOrder.length === 0)
-    ) {
-      setColumnOrder(leafColumnIds);
-    }
-  }, [leafColumnIds, columnOrder, setColumnOrder]);
-
   // Update loading state - use ref instead of state
   useEffect(() => {
     isTableUpdatingRef.current = isLoading;
@@ -1688,7 +1685,8 @@ function ModernDataTable<
     tableId,
     handleColumnOrderChange,
     enableColumnDragDropByDefault,
-    tableConfig.table.enableColumnDnd !== false
+    tableConfig.table.enableColumnDnd !== false,
+    leafColumnIds
   );
 
   // Use hook to manage overlay during drag and drop

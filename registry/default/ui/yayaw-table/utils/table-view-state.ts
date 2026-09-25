@@ -142,6 +142,31 @@ export function normalizeColumnPinning(
   return { left, right };
 }
 
+/**
+ * The order a table shows its columns in: the listed columns that exist, in
+ * that order, then the others in definition order (`columnIds`), with
+ * `select` first and `actions` last. Without a URL order, the list is the
+ * configured `columns.order`. Vue: `lockedColumnOrder`.
+ */
+export function resolveColumnOrder(
+  order: readonly string[] | undefined,
+  columnIds: readonly string[]
+): string[] {
+  const existing = new Set(columnIds);
+  const listed = new Set(
+    (Array.isArray(order) ? order : []).filter((id) => existing.has(id))
+  );
+  const dataColumns = [
+    ...listed,
+    ...columnIds.filter((id) => !listed.has(id)),
+  ].filter((id) => id !== "select" && id !== "actions");
+  return [
+    ...(existing.has("select") ? ["select"] : []),
+    ...dataColumns,
+    ...(existing.has("actions") ? ["actions"] : []),
+  ];
+}
+
 function normalizeFooterVisibility(value: unknown): TableViewConfig {
   return typeof value === "boolean" ? { footerCalculationsVisible: value } : {};
 }

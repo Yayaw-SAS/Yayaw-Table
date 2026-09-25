@@ -788,7 +788,6 @@ function DataTableContent({
     pageCount,
     refetch,
     rowCount,
-    visibilityKey,
   } = useDataTable({
     onView: openDetails,
     rowActions,
@@ -1108,7 +1107,11 @@ function DataTableContent({
                 enableSorting={config.table.enableSorting}
                 formType={defaultFormType}
                 getRowId={getRowId}
-                key={`${tableId}-${visibilityKey}`}
+                // Stays mounted when a view or the user changes the column
+                // visibility: the table reads it from the URL state. A table
+                // mounted while those URL writes are pending would keep the
+                // previous URL (nuqs reads it on mount, before it subscribes).
+                key={tableId}
                 loadingOverlay={loadingOverlay}
                 onBulkCopy={onBulkCopy}
                 onBulkDelete={onBulkDelete}

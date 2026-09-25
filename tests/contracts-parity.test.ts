@@ -13,6 +13,7 @@ import {
   resizedColumnSizeFromKey,
   tableQueryKey,
 } from "../src/components/ui/yayaw-table/utils/table-contracts";
+import { resolveColumnOrder } from "../src/components/ui/yayaw-table/utils/table-view-state";
 import fixtures from "./fixtures/parity.json";
 
 it("ships the same contract source in both standalone registries", () => {
@@ -97,6 +98,18 @@ for (const fixture of fixtures.queries) {
     expect(tableQueryKey(fixture.current) === tableQueryKey(fixture.next)).toBe(
       fixture.sameQuery
     );
+  });
+}
+// The order a table starts in, from `columns.order` (or a link's order).
+for (const fixture of fixtures.columnOrders) {
+  it(`React column order: ${fixture.label}`, () => {
+    expect(
+      resolveColumnOrder(fixture.order, [
+        "select",
+        ...fixture.columns,
+        "actions",
+      ])
+    ).toEqual(fixture.resolved);
   });
 }
 it("reads Vue saved-view names without discarding canonical names", () => {

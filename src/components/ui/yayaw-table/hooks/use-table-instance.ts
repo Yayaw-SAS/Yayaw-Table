@@ -17,7 +17,6 @@ import {
   type Row,
   type RowSelectionState,
   type SortingState,
-  type Table,
   fromInternalColumnPinning,
   type InternalColumnPinningState,
   toInternalColumnPinning,
@@ -28,6 +27,7 @@ import { useAtom } from "jotai";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { rowSelectionAtom, selectedRowsAtom } from "../atoms/table-atoms";
+import { resolveColumnOrder } from "../utils/table-view-state";
 import { useTableUrlState } from "./use-table-url-state";
 
 const _DEBUG = false;
@@ -44,6 +44,11 @@ export interface UseTableInstanceOptions<
    * Secondary instances without the table's rows must not overwrite them.
    */
   publishSelection?: boolean;
+  /**
+   * The table's configured column order (`columns.order`), shown while the URL
+   * has none: the listed columns first, the others in definition order.
+   */
+  defaultColumnOrder?: string[];
   /**
    * Column IDs that should be visible by default when no URL visibility state exists.
    * Columns present in column definitions but absent from this list will be hidden.
@@ -96,6 +101,7 @@ export function useTableInstance<TData extends Record<string, unknown>>({
   columns,
   data,
   publishSelection = true,
+  defaultColumnOrder,
   defaultPageSize,
   defaultVisibleColumns,
   enableColumnFilters = true,
@@ -458,42 +464,21 @@ export function useTableInstance<TData extends Record<string, unknown>>({
     return visibility;
   }, [columns, visibilityParam, getColumnId, getDefaultColumnVisibility]);
 
-  // Initialize column order from columns when URL order is empty
-  const initialColumnOrder = useMemo(() => {
-    // Get all column IDs using the same logic as the visibility function
-    return columns.map((column, index) => getColumnId(column, index));
-  }, [columns, getColumnId]);
+  // The table's columns in definition order, its utility columns included
+  const columnIds = useMemo(
+    () => columns.map((column, index) => getColumnId(column, index)),
+    [columns, getColumnId]
+  );
 
-  // Resolve the effective column order from URL params with a safe fallback
+  // The URL's column order, else the configured one (`columns.order`), as in
+  // Vue. The table writes no order: the URL changes when the user moves a column.
   const resolvedColumnOrder = useMemo(() => {
     const urlOrder = Array.isArray(orderParam) ? (orderParam as string[]) : [];
-
-    // When no URL order, use initial order derived from current columns
-    if (urlOrder.length === 0) {
-      return initialColumnOrder;
-    }
-
-    // Filter URL order to only include current columns
-    const currentIds = new Set(initialColumnOrder);
-    const filtered = urlOrder.filter((id) => currentIds.has(id));
-
-    // Append any new/missing columns at the end in their initial order
-    const missing = initialColumnOrder.filter((id) => !filtered.includes(id));
-    let combined = [...filtered, ...missing];
-
-    // Enforce fixed positions for special columns if present
-    const hasSelect = combined.includes("select");
-    const hasActions = combined.includes("actions");
-    combined = combined.filter((id) => id !== "select" && id !== "actions");
-    if (hasSelect) {
-      combined = ["select", ...combined];
-    }
-    if (hasActions) {
-      combined = [...combined, "actions"];
-    }
-
-    return combined;
-  }, [orderParam, initialColumnOrder]);
+    return resolveColumnOrder(
+      urlOrder.length > 0 ? urlOrder : defaultColumnOrder,
+      columnIds
+    );
+  }, [columnIds, defaultColumnOrder, orderParam]);
 
   // TanStack v9 publishes controlled slices after each commit. Preserve their
   // references between updates so an unchanged state cannot trigger a render loop.
@@ -605,39 +590,6 @@ export function useTableInstance<TData extends Record<string, unknown>>({
       return hasSameSelection && hasSameRows ? previousRows : selectedRows;
     });
   }, [effectiveRowSelection, publishSelection, setSelectedRows, tableInstance]);
-
-  // Helper function to check if column order should be updated
-  const shouldUpdateColumnOrder = useCallback(
-    (tableInst: Table<TData> | null, orderParamValue: unknown): boolean => {
-      return !!(
-        tableInst &&
-        orderParamValue &&
-        Array.isArray(orderParamValue) &&
-        orderParamValue.length > 0
-      );
-    },
-    []
-  );
-
-  // Helper function to perform column order update
-  const updateColumnOrder = useCallback(
-    (tableInst: Table<TData>, urlOrder: string[]) => {
-      const currentOrder = tableInst.store.state.columnOrder;
-      // Only update if the order actually changed
-      if (JSON.stringify(currentOrder) !== JSON.stringify(urlOrder)) {
-        tableInst.setColumnOrder(urlOrder);
-      }
-    },
-    []
-  );
-
-  // Sync table column order when URL state changes
-  useEffect(() => {
-    if (shouldUpdateColumnOrder(tableInstance, orderParam) && tableInstance) {
-      const urlOrder = orderParam as string[];
-      updateColumnOrder(tableInstance, urlOrder);
-    }
-  }, [tableInstance, orderParam, shouldUpdateColumnOrder, updateColumnOrder]);
 
   return tableInstance;
 }

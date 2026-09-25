@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import fixtures from "../../../tests/fixtures/parity.json";
+import { lockedColumnOrder } from "./column-locks";
 import { applyAdvancedFilters } from "./core";
 import {
   compatibleListParams,
@@ -62,6 +63,14 @@ for (const fixture of fixtures.queries) {
   it(`Vue query comparison: ${fixture.label}`, () => {
     expect(tableQueryKey(fixture.current) === tableQueryKey(fixture.next)).toBe(
       fixture.sameQuery
+    );
+  });
+}
+// The order a table starts in, from `columns.order` (or a link's order).
+for (const fixture of fixtures.columnOrders) {
+  it(`Vue column order: ${fixture.label}`, () => {
+    expect(lockedColumnOrder(fixture.order, fixture.columns)).toEqual(
+      fixture.resolved
     );
   });
 }
