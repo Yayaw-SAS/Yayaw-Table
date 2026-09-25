@@ -298,8 +298,17 @@ export interface DataTableTranslations {
     tabs?: string;
     viewActions?: string;
     filterViews?: string;
+    /** Name and tooltip of the "…" button of the views past the tabs. */
     more?: string;
     newView?: string;
+    /** The view menu's moves: left and right next to tabs, up and down in lists. */
+    moveLeft?: string;
+    moveRight?: string;
+    moveUp?: string;
+    moveDown?: string;
+    /** Announced after a move: `{name}`, `{position}` and `{count}`. */
+    moved?: string;
+    orderError?: string;
     settings?: string;
     cardSettings?: string;
     modified?: string;
