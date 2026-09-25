@@ -342,10 +342,13 @@ tags: {
   column's `tags: { manage: false }` hide it.
 - Tag colors: palette names (`TAG_COLOR_NAMES`) or CSS colors; tags without a
   color keep their automatic hue, and `coloredTags: false` shows neutral tags.
+- Facets: a tags column listed in `table.facets` shows the catalog's tag
+  names, each counted once per record, and a click filters with `contains`.
 
 Without `actions.tags`, a tags column keeps its static `options`. See the
 [server contracts](skills/yayaw-table/references/server-contracts.md#tag-catalogs);
-`?example=assets&assets-display=table` shows a Tags column in both demos.
+`?example=assets&assets-display=table` shows a Tags column (and a Tags facet
+from the toolbar) in both demos.
 
 ### Migrate from TanStack Table 8
 

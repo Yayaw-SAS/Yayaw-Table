@@ -2,6 +2,14 @@ import { expect, it, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { QueryClient } from "@tanstack/react-query";
 import {
+  aggregateFacetRows,
+  facetEntries,
+  facetSelection,
+  loadFacetCounts,
+  resolveFacets,
+  toggleFacetValue,
+} from "../src/components/ui/yayaw-table/utils/facets-model";
+import {
   applyTagPatch,
   catalogAfterMerge,
   catalogAfterRemove,
@@ -81,7 +89,15 @@ tagCatalogSuite(
     tagColorValue,
     tagSwatchColor,
   },
-  () => new QueryClient()
+  () => new QueryClient(),
+  {
+    aggregateFacetRows,
+    facetEntries,
+    facetSelection,
+    loadFacetCounts,
+    resolveFacets,
+    toggleFacetValue,
+  }
 );
 
 it("ships the same tag catalog and colors in both standalone registries", () => {

@@ -1,9 +1,10 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
+import { assetRows } from "../examples/assets";
 
 /**
  * Tags columns backed by the host's catalog (`actions.tags`) in the Assets
  * example: create a tag on the fly in a cell, bulk add a tag and filter by
- * it, rename and merge in "Manage tags".
+ * it, rename and merge in "Manage tags", the Tags facet.
  */
 const EXAMPLE = "/?example=assets&assets-display=table&assets-pageSize=50";
 const CREATE_SUMMER = /^Create “Summer”/;
@@ -167,4 +168,24 @@ test("Manage tags renames a tag and merges another into a third", async ({
   expect((await tagRequests(page)).map((request) => request.action)).toEqual(
     expect.arrayContaining(["update", "merge"])
   );
+});
+
+test("the Tags facet lists the catalog's names with their counts and filters", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1400, height: 1000 });
+  await page.locator("[data-facets-toggle]").click();
+  const facet = page.locator('[data-facet-panel] [data-facet="tags"]');
+  const brand = facet.locator('button[data-facet-value="tag-brand"]');
+  const branded = assetRows().filter((row) => row.tags.includes("tag-brand"));
+  await expect(brand).toContainText("Brand");
+  await expect(brand.locator("[data-facet-count]")).toHaveText(
+    String(branded.length)
+  );
+  await brand.click();
+  await expect(brand).toHaveAttribute("aria-pressed", "true");
+  for (const row of branded) {
+    await expect(rowOf(page, row.name)).toBeVisible();
+  }
+  await expect(rowOf(page, "Office.jpg")).toHaveCount(0);
 });

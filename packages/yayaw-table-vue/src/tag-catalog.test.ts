@@ -2,6 +2,14 @@ import { QueryClient } from "@tanstack/vue-query";
 import { it } from "vitest";
 import { tagCatalogSuite } from "../../../tests/tag-catalog-suite";
 import {
+  aggregateFacetRows,
+  facetEntries,
+  facetSelection,
+  loadFacetCounts,
+  resolveFacets,
+  toggleFacetValue,
+} from "./facets-model";
+import {
   applyTagPatch,
   catalogAfterMerge,
   catalogAfterRemove,
@@ -80,5 +88,13 @@ tagCatalogSuite(
     tagColorValue,
     tagSwatchColor,
   },
-  () => new QueryClient()
+  () => new QueryClient(),
+  {
+    aggregateFacetRows,
+    facetEntries,
+    facetSelection,
+    loadFacetCounts,
+    resolveFacets,
+    toggleFacetValue,
+  }
 );

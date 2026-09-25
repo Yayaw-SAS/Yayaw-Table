@@ -3173,6 +3173,12 @@ labels (overridden by `tags.<key>` translations).
   `tags.manage` gate it.
 - Vue editable cells no longer open the record on a click: like React's
   editable cells (buttons), a double-click or Enter edits them.
+- Facets: both facet panels read the column options the catalog fills (React
+  through the provider's `getTableConfig`, Vue through the reactive column
+  definitions), so a tags facet lists tag names, each counted once per record
+  (by `aggregate` or from the rows), and a click writes a `contains` rule. The
+  Assets demo lists Tags in its facet panel; its `aggregate` groups by tags
+  only, so folders and kinds still count the rows `list` returns.
 
 Verification: `tests/tag-catalog-suite.ts` runs in both editions
 (`tests/tag-catalog.test.ts` with React Query's client,
@@ -3180,8 +3186,10 @@ Verification: `tests/tag-catalog-suite.ts` runs in both editions
 resolution, list answers, catalog options, one load per table and column and
 reload after invalidation, search and create names, create on the fly and
 selection, patches, values and patch plans, the selection's tags, merge,
-delete and update effects, usage counts, labels, colors and the picker's
-Enter; `tests/tag-catalog.test.ts` also checks the Vue copies are identical.
+delete and update effects, usage counts, labels, colors, the picker's Enter
+and a tags column's facet (names, counts from rows and from `aggregate`, the
+`contains` rule); `tests/tag-catalog.test.ts` also checks the Vue copies are
+identical.
 Component tests: `tests/tags.test.tsx` and
 `packages/yayaw-table-vue/src/components/tags/tags.test.ts` (catalog names
 and colors loaded once, create on the fly in a cell, bulk add in patch mode,
@@ -3189,4 +3197,5 @@ bulk remove in values mode with a partial failure, Manage tags, the record
 form's field; Vue also static options without `actions.tags`).
 `e2e/tags.spec.ts` on both demos (`?example=assets&assets-display=table`):
 a tag created on the fly in a cell, a tag added to three rows in bulk then
-filtered by, and a rename and a merge in "Manage tags".
+filtered by, a rename and a merge in "Manage tags", and the Tags facet (the
+catalog's names and counts, a click filtering).

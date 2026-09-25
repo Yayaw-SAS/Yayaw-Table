@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import type * as Facets from "../src/components/ui/yayaw-table/utils/facets-model";
 import type * as Catalog from "../src/components/ui/yayaw-table/utils/tag-catalog";
 import type * as Colors from "../src/components/ui/yayaw-table/utils/tag-colors";
 
@@ -47,6 +48,14 @@ export type TagHelper =
   | "withTagCatalogOptions"
   | "withTagSelected";
 
+export type FacetHelper =
+  | "aggregateFacetRows"
+  | "facetEntries"
+  | "facetSelection"
+  | "loadFacetCounts"
+  | "resolveFacets"
+  | "toggleFacetValue";
+
 export type ColorHelper =
   | "isTagColorName"
   | "TAG_COLOR_NAMES"
@@ -78,7 +87,8 @@ export function tagCatalogSuite(
   test: Test,
   tags: Pick<typeof Catalog, TagHelper>,
   colors: Pick<typeof Colors, ColorHelper>,
-  createQueryClient: () => CatalogQueryClient
+  createQueryClient: () => CatalogQueryClient,
+  facets: Pick<typeof Facets, FacetHelper>
 ) {
   test("columns opt in with tags and read their field, shape and settings", () => {
     assert.equal(
@@ -232,6 +242,62 @@ export function tagCatalogSuite(
       "assets",
       "tags",
     ]);
+  });
+
+  test("a tags column's facet lists the catalog's names and counts each tag", async () => {
+    // The facet panel reads the options a loaded catalog gives the column.
+    const definitions = tags.withTagCatalogOptions(
+      [
+        { id: "name", header: "Name", type: "text" },
+        { id: "tags", header: "Tags", type: "multiSelect", tags: true },
+      ],
+      { tags: catalog }
+    );
+    const facet = facets.resolveFacets({ columns: ["tags"] }, definitions)
+      ?.columns[0];
+    assert.ok(facet);
+    assert.equal(facet.kind, "multiSelect");
+    const rows = [
+      { id: "a", tags: ["t-brand", "t-print"] },
+      { id: "b", tags: ["t-brand", "t-brand"] },
+      { id: "c", tags: [] },
+    ];
+    const selection = facets.facetSelection(undefined, facet);
+    const listed = async (aggregate?: () => unknown) => {
+      const counts = await facets.loadFacetCounts({
+        facets: [facet],
+        params: {},
+        rows,
+        locale: "en",
+        aggregate,
+      });
+      return facets
+        .facetEntries(facet, { counts: counts.tags, selection, locale: "en" })
+        .map((entry) => [entry.label, entry.count]);
+    };
+    // Each tag counts once per record, from the rows or from `aggregate`,
+    // in the catalog's order; unused tags are left out.
+    const expected = [
+      ["Brand", 2],
+      ["Print", 1],
+      ["No value", 1],
+    ];
+    assert.deepEqual(await listed(), expected);
+    assert.deepEqual(
+      await listed(() => facets.aggregateFacetRows(rows, facet)),
+      expected
+    );
+    // A click filters on the tag's id, as the filter menus do.
+    const { filters } = facets.toggleFacetValue(
+      undefined,
+      facet,
+      "t-print",
+      "1"
+    );
+    assert.deepEqual(
+      filters.map((rule) => [rule.columnId, rule.operator, rule.values]),
+      [["tags", "contains", ["t-print"]]]
+    );
   });
 
   test("pickers search names without case or accents and offer to create new ones", () => {

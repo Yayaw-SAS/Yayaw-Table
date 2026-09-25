@@ -38,7 +38,7 @@ or an `instanceId`.
 | `id`, `header`, `type` | Identity, label, type (below). Vue also takes `accessorKey` or `accessorFn`. |
 | `options` | `{ value, label, color? }[]` for select, tag and multi-select columns; values keep their primitive type. |
 | `displayVariant: "tag"`, `coloredTags`, `tagColorMap` | Tags instead of plain text; colors come from the stored value or `color`. |
-| `tags` | `true` or `{ create?, manage?, bulk? }`: a tags column whose options come from `actions.tags` (see [tag catalogs](server-contracts.md#tag-catalogs)); `bulk: "patch"` sends `{ add, remove }` to `bulkUpdate`. |
+| `tags` | `true` or `{ create?, manage?, bulk? }`: a tags column whose options come from `actions.tags` (see [tag catalogs](server-contracts.md#tag-catalogs)); `bulk: "patch"` sends `{ add, remove }` to `bulkUpdate`. In `table.facets`, it lists the catalog's names. |
 | `numberFormat`, `dateDisplayPreset`, `dateFormat`, `timeZone`, `hour12` | Formats, see below. |
 | `inlineEdit` | `true` or `{ enabled, editor, debounceMs, options, readonly }`; editing is opt-in per column or with `table.inlineEdit.enabled`. |
 | `enableSorting`, `enableFiltering`, `enableGrouping`, `enablePinning`, `enableResizing`, `enableCalculation`, `defaultCalculation` | Per-column capabilities and the default footer calculation. |

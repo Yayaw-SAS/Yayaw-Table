@@ -264,9 +264,10 @@ export const assetTableOptions = {
     | "table"
   )[],
   // The facet panel (closed at first, the toolbar opens it): folders (the
-  // parent column) and kinds, counted from the rows `list` returns (this
-  // host has no `aggregate`).
-  facets: { columns: ["parentId", "kind"], defaultOpen: false },
+  // parent column) and kinds, counted from the rows `list` returns, and the
+  // tags with the catalog's names, counted by `aggregate` (this host groups
+  // by tags only).
+  facets: { columns: ["parentId", "kind", "tags"], defaultOpen: false },
   gallery: {
     titleColumn: "name",
     cardColumnIds: ["size", "updatedAt"],
@@ -296,6 +297,12 @@ export interface AssetRequest {
 }
 
 type Params = Record<string, unknown>;
+
+/** An aggregate request grouped by the tags column only. */
+const groupsByTags = (groupBy: unknown): boolean =>
+  Array.isArray(groupBy) &&
+  groupBy.length === 1 &&
+  (groupBy[0] as Params | undefined)?.columnId === "tags";
 
 const collator = new Intl.Collator("en", {
   numeric: true,
@@ -488,10 +495,12 @@ export function createAssetActions(
       field: "tags",
       log: options.logTags,
     }),
-    // Counts per tag for "Manage tags" (chart groups over every record).
+    // Counts per tag for "Manage tags" and the Tags facet (chart groups over
+    // the records matching the query). Other groupings get no groups: the
+    // table counts the rows `list` returns instead (the folder and kind facets).
     aggregate: (input: Params) =>
       Promise.resolve(
-        Array.isArray(input.groupBy) && input.groupBy.length
+        groupsByTags(input.groupBy)
           ? aggregateChartRows(
               records.filter((row) =>
                 matchesQuery(row, compatibleListParams(input))
