@@ -62,7 +62,7 @@ import { TableTooltip } from "../../utils/table-tooltip";
 import { resolveInitialTableView } from "../../utils/table-view-favorite";
 import {
   areTableViewConfigsEqual,
-  normalizeTableViewConfig,
+  resolveTableViewConfig,
 } from "../../utils/table-view-state";
 import { createLocalTableViewActions } from "../../utils/table-view-storage";
 import { resolveViewTabs, type ViewTabsConfig } from "../../utils/view-tabs";
@@ -891,22 +891,10 @@ export function DataTableViewManager({
 
   const resolveView = useCallback(
     (input: TableViewConfig) =>
-      normalizeTableViewConfig({
-        displayMode: defaultDisplayMode ?? "table",
-        pageSize: 10,
-        ...defaultViewConfig,
-        // Legacy Kanban lanes are grouping defaults only for the Kanban presentation.
-        grouping:
-          (input.displayMode ?? defaultDisplayMode ?? "table") === "kanban" &&
-          input.kanban?.groupBy
-            ? [input.kanban.groupBy]
-            : [],
-        ...input,
-        density: input.density ?? defaultDensity,
-        footerCalculationsVisible:
-          input.footerCalculationsVisible ??
-          defaultViewConfig.footerCalculationsVisible ??
-          true,
+      resolveTableViewConfig(input, {
+        config: defaultViewConfig,
+        density: defaultDensity,
+        displayMode: defaultDisplayMode,
       }),
     [defaultDensity, defaultDisplayMode, defaultViewConfig]
   );

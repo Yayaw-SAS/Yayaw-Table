@@ -14,28 +14,22 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from "@/components/ui/native-select";
-import { Textarea } from "@/components/ui/textarea";
 import {
-  type DashboardDraftType,
   type DashboardFilter,
   type DashboardFilterType,
   type DashboardKpiMetric,
   type DashboardOverflow,
   type DashboardTableInfo,
   type DashboardTranslate,
-  type DashboardView,
-  type DashboardWidget,
   type DashboardWidgetDraft,
   dashboardCompareDayOptions,
   dashboardDateColumns,
   dashboardMetricOptions,
-  dashboardWidgetFromDraft,
-  emptyWidgetDraft,
   filterableColumns,
 } from "./dashboard-model";
 import type { DashboardLabel } from "./dashboard-widget";
 
-function Field({
+export function Field({
   children,
   htmlFor,
   label,
@@ -55,7 +49,7 @@ function Field({
 }
 
 /** A checkbox with its label on the right. */
-function CheckField({
+export function CheckField({
   checked,
   disabled,
   id,
@@ -87,81 +81,8 @@ function CheckField({
 
 const NUMBER_TYPES = new Set(["number", "currency", "percent"]);
 
-export interface AddWidgetDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  tables: Record<string, DashboardTableInfo>;
-  views: Record<string, DashboardView[] | undefined>;
-  label: DashboardLabel;
-  locale: string;
-  translate: DashboardTranslate;
-  onAdd: (widget: Omit<DashboardWidget, "id">) => void;
-}
-
-function TableFields({
-  draft,
-  ids,
-  label,
-  setDraft,
-  tables,
-  views,
-}: {
-  draft: DashboardWidgetDraft;
-  ids: Record<string, string>;
-  label: DashboardLabel;
-  setDraft: (draft: DashboardWidgetDraft) => void;
-  tables: Record<string, DashboardTableInfo>;
-  views: Record<string, DashboardView[] | undefined>;
-}) {
-  return (
-    <>
-      <Field htmlFor={ids.table} label={label("table")}>
-        <NativeSelect
-          className="w-full"
-          id={ids.table}
-          onChange={(event) =>
-            setDraft({
-              ...draft,
-              tableId: event.target.value,
-              viewId: "",
-              metricColumn: "",
-              dateColumn: "",
-            })
-          }
-          value={draft.tableId}
-        >
-          {Object.entries(tables).map(([id, table]) => (
-            <NativeSelectOption key={id} value={id}>
-              {table.name}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-      </Field>
-      <Field htmlFor={ids.view} label={label("view")}>
-        <NativeSelect
-          className="w-full"
-          id={ids.view}
-          onChange={(event) =>
-            setDraft({ ...draft, viewId: event.target.value })
-          }
-          value={draft.viewId}
-        >
-          <NativeSelectOption value="">
-            {label("defaultView")}
-          </NativeSelectOption>
-          {(views[draft.tableId] ?? []).map((view) => (
-            <NativeSelectOption key={view.id} value={view.id}>
-              {view.name}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-      </Field>
-    </>
-  );
-}
-
 /** Records that do not fit: show what fits ("+N more"), or scroll. */
-function OverflowField({
+export function OverflowField({
   draft,
   ids,
   label,
@@ -302,7 +223,7 @@ function KpiPeriodFields({
   );
 }
 
-function KpiFields({
+export function KpiFields({
   draft,
   ids,
   label,
@@ -373,145 +294,6 @@ function KpiFields({
         translate={translate}
       />
     </>
-  );
-}
-
-/** Picker: a table's saved view, a number or a note. */
-export function AddWidgetDialog({
-  label,
-  locale,
-  onAdd,
-  onOpenChange,
-  open,
-  tables,
-  translate,
-  views,
-}: AddWidgetDialogProps) {
-  const prefix = useId();
-  const ids = {
-    type: `${prefix}-type`,
-    table: `${prefix}-table`,
-    view: `${prefix}-view`,
-    overflow: `${prefix}-overflow`,
-    metric: `${prefix}-metric`,
-    column: `${prefix}-column`,
-    date: `${prefix}-date`,
-    compare: `${prefix}-compare`,
-    days: `${prefix}-days`,
-    better: `${prefix}-better`,
-    sparkline: `${prefix}-sparkline`,
-    title: `${prefix}-title`,
-    text: `${prefix}-text`,
-  };
-  const initial = () => emptyWidgetDraft(Object.keys(tables).at(0) ?? "");
-  const [draft, setDraft] = useState(initial);
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    onAdd(dashboardWidgetFromDraft(draft));
-    setDraft(initial());
-    onOpenChange(false);
-  };
-  return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent
-        className="max-h-[calc(100dvh-2rem)] overflow-y-auto"
-        data-dashboard-dialog="add-widget"
-      >
-        <DialogHeader>
-          <DialogTitle>{label("addWidgetTitle")}</DialogTitle>
-        </DialogHeader>
-        <form className="grid gap-4" onSubmit={submit}>
-          <Field htmlFor={ids.type} label={label("widgetType")}>
-            <NativeSelect
-              className="w-full"
-              id={ids.type}
-              onChange={(event) =>
-                setDraft({
-                  ...draft,
-                  type: event.target.value as DashboardDraftType,
-                })
-              }
-              value={draft.type}
-            >
-              <NativeSelectOption value="view">
-                {label("typeView")}
-              </NativeSelectOption>
-              <NativeSelectOption value="kpi">
-                {label("typeKpi")}
-              </NativeSelectOption>
-              <NativeSelectOption value="note">
-                {label("typeNote")}
-              </NativeSelectOption>
-            </NativeSelect>
-          </Field>
-          {draft.type !== "note" && (
-            <TableFields
-              draft={draft}
-              ids={ids}
-              label={label}
-              setDraft={setDraft}
-              tables={tables}
-              views={views}
-            />
-          )}
-          {draft.type === "view" && (
-            <OverflowField
-              draft={draft}
-              ids={ids}
-              label={label}
-              setDraft={setDraft}
-            />
-          )}
-          {draft.type === "kpi" && (
-            <KpiFields
-              draft={draft}
-              ids={ids}
-              label={label}
-              locale={locale}
-              setDraft={setDraft}
-              tables={tables}
-              translate={translate}
-            />
-          )}
-          <Field htmlFor={ids.title} label={label("widgetTitle")}>
-            <Input
-              id={ids.title}
-              onChange={(event) =>
-                setDraft({ ...draft, title: event.target.value })
-              }
-              value={draft.title}
-            />
-          </Field>
-          {draft.type === "note" && (
-            <Field htmlFor={ids.text} label={label("noteText")}>
-              <Textarea
-                id={ids.text}
-                onChange={(event) =>
-                  setDraft({ ...draft, text: event.target.value })
-                }
-                rows={4}
-                value={draft.text}
-              />
-            </Field>
-          )}
-          <DialogFooter>
-            <Button
-              onClick={() => onOpenChange(false)}
-              type="button"
-              variant="outline"
-            >
-              {label("cancel")}
-            </Button>
-            <Button
-              disabled={draft.type !== "note" && !draft.tableId}
-              type="submit"
-            >
-              {label("add")}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
   );
 }
 

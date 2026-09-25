@@ -684,7 +684,12 @@ const done = async (page: Page) => {
   await toolbar(page).getByRole("button", { name: "Done" }).click();
   await expect(page.getByText("Dashboard saved")).toBeVisible();
   return (await savedDashboards(page))["content-admin"] as {
-    sections: { id: string; type: string; title?: unknown }[];
+    sections: {
+      id: string;
+      type: string;
+      title?: unknown;
+      layout?: { widgetId: string }[];
+    }[];
     widgets: Record<string, unknown>[];
   };
 };
@@ -975,9 +980,7 @@ test("sections are added, renamed, moved and removed; widgets move between them"
     widgetIds: ["shortcuts", "pages-table"],
   });
   expect(
-    (saved.sections[0] as { layout: { widgetId: string }[] }).layout.map(
-      (entry) => entry.widgetId
-    )
+    saved.sections[0]?.layout?.map((entry) => entry.widgetId)
   ).not.toContain("shortcuts");
 });
 

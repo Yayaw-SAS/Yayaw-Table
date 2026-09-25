@@ -43,7 +43,7 @@ type Listing =
 
 const listing = ref<Listing>({ status: "loading" });
 const query = ref("");
-const root = ref<{ highlightFirstItem: () => void }>();
+const root = ref<{ highlightItem: (value: string) => void }>();
 let request = 0;
 let unmounted = false;
 onBeforeUnmount(() => {
@@ -57,12 +57,9 @@ watch(
     listing.value = { status: "loading" };
     loader
       .list()
-      .then(async (summaries) => {
+      .then((summaries) => {
         if (unmounted || current !== request) return;
         listing.value = { status: "ready", summaries };
-        // The first source is highlighted, as the search keeps it.
-        await nextTick();
-        root.value?.highlightFirstItem();
       })
       .catch((error: unknown) => {
         if (!unmounted && current === request) {
@@ -84,6 +81,19 @@ const groups = computed(() =>
         translate: props.translate,
       })
     : []
+);
+// The first source that can be picked is highlighted (Enter picks it), as the search changes.
+const firstAvailable = computed(
+  () => groups.value.flatMap((group) => group.sources).find((source) => source.available)?.id
+);
+watch(
+  [firstAvailable, query],
+  async ([id]) => {
+    // After the filter's own highlight (on input), which the new list loses.
+    await nextTick();
+    if (id) root.value?.highlightItem(id);
+  },
+  { flush: "post" }
 );
 </script>
 

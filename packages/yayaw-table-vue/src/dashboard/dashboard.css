@@ -536,6 +536,10 @@
 .yayaw-dashboard-dialog-wide {
   width: min(42rem, calc(100% - 2rem));
 }
+/* The dialog itself takes the focus when a step leaves: no ring around it. */
+.yayaw-dashboard-dialog:focus {
+  outline: none;
+}
 .yayaw-dashboard-dialog-heading {
   display: grid;
   gap: 0.5rem;

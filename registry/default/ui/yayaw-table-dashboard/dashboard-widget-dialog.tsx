@@ -10,7 +10,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Button } from "@/src/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -18,17 +18,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/src/components/ui/dialog";
-import { Input } from "@/src/components/ui/input";
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   NativeSelect,
   NativeSelectOptGroup,
   NativeSelectOption,
-} from "@/src/components/ui/native-select";
-import { Textarea } from "@/src/components/ui/textarea";
-import type { DisplayModeRenderers } from "@/src/components/ui/yayaw-table/types/display-mode-renderer";
-import type { DataTableTranslations } from "@/src/components/ui/yayaw-table/types/translations";
-import { canonicalViewConfig } from "@/src/components/ui/yayaw-table/utils/view-config";
+} from "@/components/ui/native-select";
+import { Textarea } from "@/components/ui/textarea";
+import type { DisplayModeRenderers } from "@/components/ui/yayaw-table/types/display-mode-renderer";
+import type { DataTableTranslations } from "@/components/ui/yayaw-table/types/translations";
+import { canonicalViewConfig } from "@/components/ui/yayaw-table/utils/view-config";
 import type { DashboardBlockRegistry } from "./dashboard-block";
 import { Field, KpiFields, OverflowField } from "./dashboard-dialogs";
 import {
@@ -58,11 +58,11 @@ import {
   type DashboardJsonObject,
   type DashboardWidget,
 } from "./dashboard-schema";
+import { DashboardSourcePicker } from "./dashboard-source-picker";
 import type {
   DashboardSourceLoader,
   DashboardSourceState,
 } from "./dashboard-sources";
-import { DashboardSourcePicker } from "./dashboard-source-picker";
 import { DashboardViewEditor } from "./dashboard-view-editor";
 import type { DashboardLabel, DashboardTableSource } from "./dashboard-widget";
 
@@ -144,7 +144,9 @@ function KindStep({
   const prefix = useId();
   return (
     <fieldset className="grid gap-3" data-widget-kinds="">
-      <legend className="mb-2 font-medium text-sm">{label("chooseKind")}</legend>
+      <legend className="mb-2 font-medium text-sm">
+        {label("chooseKind")}
+      </legend>
       {groups.map((group) => (
         <div className="grid gap-1.5" key={group || "-"}>
           {group ? (
@@ -171,7 +173,10 @@ function KindStep({
                     >
                       <span className="font-medium">{choice.label}</span>
                       {choice.description ? (
-                        <span className="text-muted-foreground text-xs" id={hint}>
+                        <span
+                          className="text-muted-foreground text-xs"
+                          id={hint}
+                        >
                           {choice.description}
                         </span>
                       ) : null}
@@ -228,7 +233,9 @@ function ViewChoice({
           onChange={(event) => choose(event.target.value)}
           value={draft.view ? CUSTOM_VIEW : draft.viewId}
         >
-          <NativeSelectOption value="">{label("defaultView")}</NativeSelectOption>
+          <NativeSelectOption value="">
+            {label("defaultView")}
+          </NativeSelectOption>
           {views?.length ? (
             <NativeSelectOptGroup label={label("savedViews")}>
               {views.map((view) => (
@@ -329,7 +336,11 @@ function BlockPropsField({
         </Field>
       )}
       {check && !check.json ? (
-        <p className="m-0 text-destructive text-sm" data-props-error="" role="alert">
+        <p
+          className="m-0 text-destructive text-sm"
+          data-props-error=""
+          role="alert"
+        >
           {label("invalidJson")}
         </p>
       ) : null}
@@ -497,7 +508,9 @@ function SettingsStep({
         <Input
           id={ids.title}
           maxLength={120}
-          onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+          onChange={(event) =>
+            setDraft({ ...draft, title: event.target.value })
+          }
           value={draft.title}
         />
       </Field>
@@ -506,7 +519,9 @@ function SettingsStep({
           <Textarea
             id={ids.text}
             maxLength={20_000}
-            onChange={(event) => setDraft({ ...draft, text: event.target.value })}
+            onChange={(event) =>
+              setDraft({ ...draft, text: event.target.value })
+            }
             rows={5}
             value={draft.text}
           />
@@ -715,7 +730,10 @@ function WidgetDialogSession({
       next = { ...draft, props: checked.props };
     }
     onSubmit(
-      dashboardWidgetFromDraft(next, edited ? { widget: edited, locale } : undefined),
+      dashboardWidgetFromDraft(
+        next,
+        edited ? { widget: edited, locale } : undefined
+      ),
       views
     );
     onOpenChange(false);
