@@ -6,6 +6,7 @@ import {
   type Dashboard,
   type DashboardKpiPlan,
   type DashboardKpiResult,
+  type DashboardNotice,
   type DashboardTranslate,
   type DashboardView,
   type DashboardWidget,
@@ -33,6 +34,8 @@ const props = defineProps<{
   locale: string;
   label: DashboardLabel;
   translate: DashboardTranslate;
+  /** What a source's `meta.notice` says (`dashboardNoticeText`). */
+  noticeText: (notice: DashboardNotice) => string;
 }>();
 
 type KpiState =
@@ -79,6 +82,9 @@ watch(
   { immediate: true }
 );
 
+const notice = computed(() =>
+  state.value.status === "ready" ? state.value.result.notice : undefined
+);
 const display = computed(() => {
   const current = state.value;
   return current.status === "ready"
@@ -101,6 +107,14 @@ const errorMessage = computed(() => (state.value.status === "error" ? state.valu
     <button type="button" class="yayaw-button yayaw-button-outline yayaw-dashboard-kpi-retry" @click="attempt += 1">
       {{ props.label("retry") }}
     </button>
+  </div>
+  <div
+    v-else-if="notice"
+    class="yayaw-dashboard-message yayaw-dashboard-notice"
+    data-widget-state="notice"
+    :data-widget-reason="notice.code"
+  >
+    <p>{{ props.noticeText(notice) }}</p>
   </div>
   <div v-else-if="!display" aria-busy="true" data-kpi="">
     <output data-kpi-state="loading">{{ props.label("widgetLoading") }}</output>

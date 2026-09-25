@@ -28,6 +28,7 @@ import {
   type DashboardFilter,
   type DashboardTableInfo,
   type DashboardTranslate,
+  dashboardDatePresetOptions,
   dashboardDateRangeText,
   dashboardFilterColoredTags,
   dashboardFilterColumn,
@@ -35,7 +36,9 @@ import {
   dashboardFilterOptions,
   dashboardFilterTargetsLabel,
   isDashboardFilterActive,
+  resolveDashboardDateRange,
 } from "./dashboard-model";
+import { dashboardDateRange } from "./dashboard-schema";
 import type { DashboardLabel } from "./dashboard-types";
 
 /** The dashboard's filters; each joins the widgets it targets. */
@@ -56,8 +59,10 @@ const emit = defineEmits<{
 type WeekStart = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
-const rangeOf = (filter: DashboardFilter): DashboardDateRange =>
-  (filter.value && !Array.isArray(filter.value) ? filter.value : {}) as DashboardDateRange;
+/** A date filter's days: its own, or its relative preset's (resolved around the reader's today). */
+const rangeOf = (filter: DashboardFilter): DashboardDateRange => resolveDashboardDateRange(filter.value);
+const presetOf = (filter: DashboardFilter) => dashboardDateRange(filter.value).preset;
+const presets = () => dashboardDatePresetOptions(props.locale, props.translate);
 const dayOf = (value?: string): DateValue | undefined =>
   value && DATE_ONLY.test(value) ? parseDate(value) : undefined;
 const calendarValue = (filter: DashboardFilter) => {
@@ -128,7 +133,21 @@ const targetsId = (filter: DashboardFilter) => `${prefix}-${filter.id}-targets`;
           </PopoverTrigger>
           <PopoverPortal>
             <PopoverContent class="yayaw-form-popover yayaw-form-calendar-popover" :data-dashboard-filter-popup="filter.id" align="start" :side-offset="4" :collision-padding="8">
+              <div class="yayaw-dashboard-range-layout">
+              <fieldset class="yayaw-dashboard-presets" data-filter-presets="">
+                <legend class="yayaw-dashboard-sr-only">{{ props.label("presets") }}</legend>
+                <button
+                  v-for="option in presets()"
+                  :key="option.value"
+                  type="button"
+                  class="yayaw-button yayaw-button-ghost yayaw-dashboard-preset"
+                  :aria-pressed="presetOf(filter) === option.value"
+                  :data-filter-preset="option.value"
+                  @click="emit('change', filter.id, { preset: option.value })"
+                >{{ option.label }}</button>
+              </fieldset>
               <RangeCalendarRoot
+                :key="presetOf(filter) ?? 'days'"
                 v-slot="{ weekDays, grid }"
                 :model-value="calendarValue(filter)"
                 :default-placeholder="calendarValue(filter).start ?? calendarValue(filter).end"
@@ -163,6 +182,7 @@ const targetsId = (filter: DashboardFilter) => `${prefix}-${filter.id}-targets`;
                   </RangeCalendarGridBody>
                 </RangeCalendarGrid>
               </RangeCalendarRoot>
+              </div>
               <div v-if="hasRange(filter)" class="yayaw-form-calendar-footer">
                 <button type="button" class="yayaw-button yayaw-button-ghost" @click="emit('change', filter.id, undefined)">{{ props.label("clear") }}</button>
               </div>

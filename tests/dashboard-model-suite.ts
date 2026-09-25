@@ -12,6 +12,31 @@ export type DashboardModelApi = Pick<
   | "createDashboard"
   | "dashboardColumnsForWidth"
   | "dashboardCompareDayOptions"
+  | "dashboardDatePresetOptions"
+  | "dashboardDateRangeText"
+  | "dashboardFilterRule"
+  | "dashboardFilterValues"
+  | "dashboardListNotice"
+  | "dashboardNoticeText"
+  | "dashboardOpenViewContext"
+  | "dashboardScreenView"
+  | "dashboardScreenViewId"
+  | "dashboardTableInstanceId"
+  | "dashboardTableViews"
+  | "dashboardUnavailableText"
+  | "dashboardVisibleSections"
+  | "decodeDashboardFilterValue"
+  | "encodeDashboardFilterValue"
+  | "isDashboardFilterActive"
+  | "isDashboardViewId"
+  | "readDashboardFilterValues"
+  | "resolveDashboardDateRange"
+  | "resolveWidgetView"
+  | "setDashboardViewerFilter"
+  | "withDashboardFilterValues"
+  | "withDashboardTableViews"
+  | "withMutationSignal"
+  | "writeDashboardFilterValues"
   | "dashboardComparison"
   | "dashboardComparisonText"
   | "dashboardDateColumns"
@@ -61,6 +86,7 @@ export type DashboardModelApi = Pick<
 type Test = (name: string, run: () => void | Promise<void>) => void;
 type Layout = Model.DashboardLayoutItem[];
 const UNSUPPORTED_VERSION = /version 3 is not supported/;
+const LOCKED = /locked/;
 
 const item = (
   widgetId: string,
@@ -455,8 +481,11 @@ function widgetSuite(test: Test, api: DashboardModelApi) {
       "due"
     );
     assert.equal(
-      api.dashboardLabel("notAvailableYet", "fr"),
-      "Pas encore disponible"
+      api.dashboardWidgetTitle(
+        { id: "b", type: "block", block: "home.summary", settings: {} },
+        { ...context, block: { label: { en: "Summary", fr: "Résumé" } } }
+      ),
+      "Résumé"
     );
   });
 
@@ -1228,6 +1257,624 @@ function draftSuite(test: Test, api: DashboardModelApi) {
 }
 
 /** Shared by `bun test` (React sources) and Vitest (the synced Vue copy). */
+/** A screen: numbers in a grid, then a flow with a full-page table, another flow with a second one. */
+const SCREEN_DOCUMENT = {
+  version: 2,
+  id: "cms",
+  name: "Content",
+  sections: [
+    { id: "top", type: "flow", widgetIds: ["notes", "media-table"] },
+    {
+      id: "cards",
+      type: "grid",
+      layout: [{ widgetId: "count", x: 0, y: 0, w: 1, h: 1 }],
+    },
+    { id: "bottom", type: "flow", widgetIds: ["pages-table"] },
+  ],
+  widgets: [
+    { id: "pages-table", type: "table", tableId: "pages", settings: {} },
+    { id: "count", type: "kpi", tableId: "pages", settings: {} },
+    { id: "notes", type: "note", settings: { text: "Hi" } },
+    { id: "media-table", type: "table", tableId: "media", settings: {} },
+  ],
+  filters: [],
+};
+
+function screenSuite(test: Test, api: DashboardModelApi) {
+  test("widgets resolve their inline, saved or default view", () => {
+    const views = [
+      { id: "board", name: "Board", config: { displayMode: "kanban" } },
+    ];
+    assert.deepEqual(
+      api.resolveWidgetView({ view: { displayMode: "list" } }, undefined),
+      { status: "ready", viewId: null, config: { displayMode: "list" } }
+    );
+    // Inline settings win over a saved view and need no views.
+    assert.deepEqual(
+      api.resolveWidgetView(
+        { viewId: "board", view: { displayMode: "table" } },
+        undefined
+      ),
+      { status: "ready", viewId: null, config: { displayMode: "table" } }
+    );
+    assert.deepEqual(api.resolveWidgetView({}, undefined), {
+      status: "ready",
+      viewId: null,
+      config: {},
+    });
+    assert.deepEqual(api.resolveWidgetView({ viewId: "board" }, undefined), {
+      status: "loading",
+    });
+    assert.deepEqual(api.resolveWidgetView({ viewId: "gone" }, views), {
+      status: "missing",
+    });
+    assert.deepEqual(api.resolveWidgetView({ viewId: "board" }, views), {
+      status: "ready",
+      viewId: "board",
+      view: views[0],
+      config: { displayMode: "kanban" },
+    });
+    assert.deepEqual(
+      api.dashboardOpenViewContext({ view: { displayMode: "list" } }),
+      { view: { displayMode: "list" } }
+    );
+    assert.equal(api.dashboardOpenViewContext({}), undefined);
+  });
+
+  test("the screen's first table keeps the canonical URL keys, the others their widget id", () => {
+    const screen = api.normalizeDashboard(SCREEN_DOCUMENT);
+    // Display order: the top flow's table comes first, whatever the widgets' order.
+    assert.equal(
+      api.dashboardTableInstanceId(screen, "media-table"),
+      undefined
+    );
+    assert.equal(
+      api.dashboardTableInstanceId(screen, "pages-table"),
+      "pages-table"
+    );
+  });
+
+  test("a table widget's inline view becomes the screen's default view", async () => {
+    const widget = {
+      id: "pages",
+      tableId: "pages",
+      view: {
+        displayMode: "table" as const,
+        sorting: [{ id: "updatedAt", desc: true }],
+      },
+    };
+    const view = api.dashboardScreenView("cms", widget, "Screen default");
+    assert.deepEqual(view, {
+      id: "screen:cms:pages",
+      tableId: "pages",
+      name: "Screen default",
+      config: {
+        displayMode: "table",
+        sorting: [{ id: "updatedAt", desc: true }],
+      },
+      createdById: "screen",
+      isSystem: true,
+      isDefault: true,
+      isGlobal: true,
+      canEdit: false,
+      canDelete: false,
+    });
+    assert.equal(api.dashboardScreenViewId("cms", "pages"), "screen:cms:pages");
+    assert.equal(api.isDashboardViewId("screen:cms:pages"), true);
+    assert.equal(api.isDashboardViewId("drafts"), false);
+    assert.equal(api.isDashboardViewId(undefined), false);
+    assert.equal(
+      api.dashboardScreenView("cms", { id: "p", tableId: "pages" }, "x"),
+      undefined
+    );
+    const saved = [{ id: "drafts", isDefault: true }, { id: "mine" }];
+    const flags = (views: { id: string; isDefault?: boolean }[]) =>
+      views.map((entry) => [entry.id, Boolean(entry.isDefault)]);
+    // The screen's view comes first and is the only default: arrival shows
+    // the reader's favorite, else it.
+    assert.deepEqual(
+      flags(api.dashboardTableViews(saved, { screenView: view })),
+      [
+        ["screen:cms:pages", true],
+        ["drafts", false],
+        ["mine", false],
+      ]
+    );
+    assert.deepEqual(
+      flags(api.dashboardTableViews(saved, { defaultViewId: "mine" })),
+      [
+        ["drafts", false],
+        ["mine", true],
+      ]
+    );
+    assert.deepEqual(flags(api.dashboardTableViews(saved, {})), [
+      ["drafts", true],
+      ["mine", false],
+    ]);
+    assert.equal(
+      api.dashboardTableViews(saved, { defaultViewId: "drafts" })[0],
+      saved[0]
+    );
+    // The host's views come back with the screen's default marked.
+    const listed = api.withDashboardTableViews(
+      {
+        views: {
+          list: () =>
+            Promise.resolve({
+              success: true,
+              data: [{ id: "drafts", isDefault: true }, { id: "mine" }],
+            }),
+        },
+      },
+      "mine"
+    );
+    assert.deepEqual(await listed.views?.list?.(), {
+      success: true,
+      data: [
+        { id: "drafts", isDefault: false },
+        { id: "mine", isDefault: true },
+      ],
+    });
+    const plain = api.withDashboardTableViews(
+      { views: { list: () => [{ id: "a" }] } },
+      "a"
+    );
+    assert.deepEqual(await plain.views?.list?.(), [
+      { id: "a", isDefault: true },
+    ]);
+    const untouched = { views: { list: () => [] } };
+    assert.equal(api.withDashboardTableViews(untouched, undefined), untouched);
+  });
+
+  test("a page table's changes signal the screen once each settles", async () => {
+    let signals = 0;
+    const path = () => [];
+    const actions = api.withMutationSignal(
+      {
+        list: () => Promise.resolve({ data: [] }),
+        create: (row: Record<string, unknown>) =>
+          Promise.resolve({ success: true, data: row }),
+        update: () => Promise.resolve({ success: true }),
+        delete: () => Promise.reject(new Error("locked")),
+        bulkDelete: () => ({ success: true }),
+        import: {
+          csv: true,
+          importRows: () => Promise.resolve({ created: 2 }),
+        },
+        tree: { path, move: () => ({ moved: 1 }) },
+      },
+      () => {
+        signals += 1;
+      }
+    );
+    await actions.list();
+    assert.equal(signals, 0);
+    assert.deepEqual(await actions.create({ name: "A" }), {
+      success: true,
+      data: { name: "A" },
+    });
+    assert.equal(signals, 1);
+    await actions.update();
+    // A failed change may have changed something: the screen reloads too.
+    await assert.rejects(actions.delete(), LOCKED);
+    assert.equal(signals, 3);
+    await actions.bulkDelete();
+    await actions.import.importRows();
+    await actions.tree.move();
+    assert.equal(signals, 6);
+    assert.equal(actions.import.csv, true);
+    assert.equal(actions.tree.path, path);
+  });
+
+  test("readers see sections without the hidden widgets, grids closing their gaps", () => {
+    const sections: Model.DashboardSection[] = [
+      {
+        id: "cards",
+        type: "grid",
+        layout: [
+          item("a", 0, 0, 1, 1),
+          item("b", 1, 0, 1, 1),
+          item("c", 0, 1, 1, 1),
+          item("d", 1, 1, 1, 2),
+        ],
+      },
+      { id: "page", type: "flow", widgetIds: ["t", "n"] },
+      { id: "gone", type: "flow", widgetIds: ["x"] },
+      { id: "empty", type: "grid", layout: [] },
+    ];
+    const visible = api.dashboardVisibleSections(
+      sections,
+      new Set(["a", "x", "n"])
+    );
+    assert.deepEqual(
+      visible.map((section) => section.id),
+      ["cards", "page"]
+    );
+    const [cards, page] = visible;
+    assert.deepEqual(places(cards?.type === "grid" ? cards.layout : []), {
+      c: [0, 0, 1, 1],
+      b: [1, 0, 1, 1],
+      d: [1, 1, 1, 2],
+    });
+    assert.deepEqual(page?.type === "flow" ? page.widgetIds : [], ["t"]);
+    // Nothing hidden: empty sections are left out, the others kept as they are.
+    const all = api.dashboardVisibleSections(sections);
+    assert.deepEqual(
+      all.map((section) => section.id),
+      ["cards", "page", "gone"]
+    );
+    assert.equal(all[0], sections[0]);
+    // The document keeps every place.
+    assert.equal(sections[0]?.type === "grid" && sections[0].layout.length, 4);
+  });
+
+  test("a list or aggregate answer's meta.notice is read, and shown instead of a number", async () => {
+    assert.deepEqual(
+      api.dashboardListNotice({
+        data: [],
+        meta: { notice: { code: "notConfigured", message: " Connect. " } },
+      }),
+      { code: "notConfigured", message: "Connect." }
+    );
+    assert.deepEqual(api.dashboardListNotice({ meta: { notice: "Soon" } }), {
+      message: "Soon",
+    });
+    assert.equal(api.dashboardListNotice({ meta: { notice: {} } }), undefined);
+    assert.equal(api.dashboardListNotice({ data: [] }), undefined);
+    assert.equal(api.dashboardListNotice(null), undefined);
+    const plan = api.dashboardKpiPlan(
+      { filters: [] },
+      { id: "views", type: "kpi", tableId: "analytics", settings: {} },
+      "2026-03-15"
+    );
+    const notice = { code: "notConfigured", message: "Connect analytics." };
+    const result = await api.loadDashboardKpi({
+      plan,
+      actions: {
+        aggregate: () => Promise.resolve({ groups: [], meta: { notice } }),
+        list: () => Promise.resolve({ data: [], meta: { notice } }),
+      },
+      params: {},
+      locale: "en",
+    });
+    assert.deepEqual(result.notice, notice);
+    assert.equal(api.dashboardNoticeText(notice, "fr"), "Connect analytics.");
+    assert.equal(
+      api.dashboardNoticeText({ code: "notConfigured" }, "en"),
+      "This source is not configured yet."
+    );
+    assert.equal(
+      api.dashboardNoticeText({ code: "custom" }, "fr"),
+      "Rien à afficher pour l’instant."
+    );
+  });
+
+  test("unavailable sources, unknown blocks and screen views have English and French labels", () => {
+    assert.equal(
+      api.dashboardUnavailableText("forbidden", undefined, "en"),
+      "You don’t have access to this data."
+    );
+    assert.equal(
+      api.dashboardUnavailableText("notConfigured", undefined, "fr"),
+      "Cette source n’est pas encore configurée."
+    );
+    assert.equal(
+      api.dashboardUnavailableText("notFound", undefined, "fr"),
+      "Cette source n’existe plus."
+    );
+    // The host's message wins.
+    assert.equal(
+      api.dashboardUnavailableText("forbidden", "Ask Ada for access.", "fr"),
+      "Ask Ada for access."
+    );
+    assert.equal(
+      api.dashboardUnavailableText(undefined, undefined, "en"),
+      "This source is not available."
+    );
+    assert.equal(api.dashboardLabel("unknownBlock", "en"), "Unavailable block");
+    assert.equal(api.dashboardLabel("unknownBlock", "fr"), "Bloc indisponible");
+    assert.equal(
+      api.dashboardLabel("screenDefaultView", "en"),
+      "Screen default"
+    );
+    assert.equal(
+      api.dashboardLabel("screenDefaultView", "fr"),
+      "Vue de l’écran"
+    );
+    assert.equal(api.dashboardLabel("typeTable", "fr"), "Table pleine page");
+    assert.equal(api.dashboardLabel("refresh", "fr"), "Tout actualiser");
+  });
+}
+
+const PRESET_TODAY = "2026-03-15";
+
+function presetSuite(test: Test, api: DashboardModelApi) {
+  test("relative date presets resolve around the reader's day", () => {
+    const days = (preset: string, today = PRESET_TODAY) =>
+      api.resolveDashboardDateRange({ preset }, today);
+    assert.deepEqual(days("last7Days"), {
+      start: "2026-03-09",
+      end: "2026-03-15",
+    });
+    assert.deepEqual(days("last30Days"), {
+      start: "2026-02-14",
+      end: "2026-03-15",
+    });
+    assert.deepEqual(days("last90Days"), {
+      start: "2025-12-16",
+      end: "2026-03-15",
+    });
+    assert.deepEqual(days("thisMonth"), {
+      start: "2026-03-01",
+      end: "2026-03-31",
+    });
+    assert.deepEqual(days("lastMonth"), {
+      start: "2026-02-01",
+      end: "2026-02-28",
+    });
+    assert.deepEqual(days("thisYear"), {
+      start: "2026-01-01",
+      end: "2026-12-31",
+    });
+    assert.deepEqual(days("lastMonth", "2026-01-10"), {
+      start: "2025-12-01",
+      end: "2025-12-31",
+    });
+    assert.deepEqual(days("thisMonth", "2028-02-10"), {
+      start: "2028-02-01",
+      end: "2028-02-29",
+    });
+    // Days stay days; unknown presets give none.
+    assert.deepEqual(
+      api.resolveDashboardDateRange({ start: "2026-01-01" }, PRESET_TODAY),
+      { start: "2026-01-01" }
+    );
+    assert.deepEqual(days("someday"), {});
+  });
+
+  test("presets filter, read and compare as the days they stand for", () => {
+    const filter = {
+      id: "period",
+      type: "dateRange" as const,
+      value: { preset: "last7Days" as const },
+    };
+    assert.equal(api.isDashboardFilterActive(filter), true);
+    assert.deepEqual(
+      api.dashboardFilterRule(filter, "updatedAt", PRESET_TODAY),
+      {
+        id: "dashboard-period",
+        columnId: "updatedAt",
+        isActive: true,
+        type: "date",
+        operator: "between",
+        values: ["2026-03-09", "2026-03-15"],
+      }
+    );
+    assert.equal(
+      api.dashboardDateRangeText({ preset: "lastMonth" }, "en"),
+      "Last month"
+    );
+    assert.equal(
+      api.dashboardDateRangeText({ preset: "lastMonth" }, "fr"),
+      "Le mois dernier"
+    );
+    assert.deepEqual(
+      api.dashboardDatePresetOptions("fr").map((option) => option.label),
+      [
+        "7 derniers jours",
+        "30 derniers jours",
+        "90 derniers jours",
+        "Ce mois-ci",
+        "Le mois dernier",
+        "Cette année",
+      ]
+    );
+    assert.deepEqual(
+      api.dashboardDatePresetOptions("en").map((option) => option.value),
+      [
+        "last7Days",
+        "last30Days",
+        "last90Days",
+        "thisMonth",
+        "lastMonth",
+        "thisYear",
+      ]
+    );
+    // A number compares the preset's month with the days just before.
+    const plan = api.dashboardKpiPlan(
+      {
+        filters: [
+          {
+            id: "period",
+            type: "dateRange",
+            label: "Period",
+            targets: [{ tableId: "projects", columnId: "due" }],
+            value: { preset: "thisMonth" },
+          },
+        ],
+      },
+      {
+        id: "revenue",
+        type: "kpi",
+        tableId: "projects",
+        settings: { metric: "count", dateColumn: "due", compare: true },
+      },
+      PRESET_TODAY
+    );
+    assert.deepEqual(plan.periods, {
+      current: { start: "2026-03-01", end: "2026-03-31" },
+      previous: { start: "2026-01-29", end: "2026-02-28" },
+    });
+    // Documents keep a preset as their default; unknown presets are dropped.
+    const document = api.validateDashboard({
+      version: 2,
+      id: "d",
+      name: "D",
+      sections: [],
+      widgets: [],
+      filters: [
+        {
+          id: "period",
+          type: "dateRange",
+          label: "Period",
+          targets: [],
+          value: { preset: "last30Days", start: "2026-01-01" },
+        },
+        {
+          id: "old",
+          type: "dateRange",
+          label: "Old",
+          targets: [],
+          value: { preset: "someday" },
+        },
+      ],
+    }).dashboard;
+    assert.deepEqual(
+      document?.filters.map((entry) => entry.value),
+      [{ preset: "last30Days" }, undefined]
+    );
+  });
+}
+
+/** Filters of a screen: a period defaulting to the last 30 days, and a status. */
+const VIEWER_DOCUMENT = {
+  id: "cms",
+  filters: [
+    {
+      id: "period",
+      type: "dateRange" as const,
+      label: "Period",
+      targets: [{ tableId: "pages", columnId: "updatedAt" }],
+      value: { preset: "last30Days" as const },
+    },
+    {
+      id: "status",
+      type: "select" as const,
+      label: "Status",
+      targets: [{ tableId: "pages", columnId: "status" }],
+    },
+  ],
+};
+
+function viewerSuite(test: Test, api: DashboardModelApi) {
+  test("the values readers pick go to the URL, one key per filter", () => {
+    const range = { type: "dateRange" as const };
+    const select = { type: "select" as const };
+    assert.deepEqual(
+      api.encodeDashboardFilterValue(range, { preset: "last7Days" }),
+      ["last7Days"]
+    );
+    assert.deepEqual(
+      api.encodeDashboardFilterValue(range, {
+        start: "2026-03-01",
+        end: "2026-03-31",
+      }),
+      ["2026-03-01..2026-03-31"]
+    );
+    assert.deepEqual(
+      api.encodeDashboardFilterValue(range, { start: "2026-03-01" }),
+      ["2026-03-01.."]
+    );
+    assert.deepEqual(api.encodeDashboardFilterValue(range, {}), [""]);
+    assert.deepEqual(api.encodeDashboardFilterValue(select, ["a", "b,c"]), [
+      "a",
+      "b,c",
+    ]);
+    assert.deepEqual(api.encodeDashboardFilterValue(select, []), [""]);
+    assert.deepEqual(api.decodeDashboardFilterValue(range, ["..2026-03-31"]), {
+      end: "2026-03-31",
+    });
+    assert.deepEqual(api.decodeDashboardFilterValue(range, ["last90Days"]), {
+      preset: "last90Days",
+    });
+    assert.equal(api.decodeDashboardFilterValue(range, [""]), null);
+    assert.equal(api.decodeDashboardFilterValue(range, ["nonsense"]), null);
+    assert.deepEqual(api.decodeDashboardFilterValue(select, ["a", "", "a"]), [
+      "a",
+    ]);
+    assert.equal(api.decodeDashboardFilterValue(select, [""]), null);
+    assert.deepEqual(
+      api.readDashboardFilterValues(
+        VIEWER_DOCUMENT,
+        "?cms.period=2026-03-01..2026-03-31&cms.status=a&cms.status=b%2Cc&pages-page=2&other.status=x"
+      ),
+      {
+        period: { start: "2026-03-01", end: "2026-03-31" },
+        status: ["a", "b,c"],
+      }
+    );
+    assert.deepEqual(
+      api.readDashboardFilterValues(VIEWER_DOCUMENT, "?cms.period="),
+      { period: null }
+    );
+    // The table's keys and other dashboards' stay.
+    assert.equal(
+      api.writeDashboardFilterValues(
+        VIEWER_DOCUMENT,
+        "pages-page=2&cms.status=old&other.status=x",
+        { period: null, status: ["x"] }
+      ),
+      "pages-page=2&other.status=x&cms.period=&cms.status=x"
+    );
+    assert.equal(
+      api.writeDashboardFilterValues(VIEWER_DOCUMENT, "cms.status=old", {}),
+      ""
+    );
+  });
+
+  test("readers' values replace the defaults for widgets, never in the document", () => {
+    const set = (
+      values: Model.DashboardViewerFilters,
+      filterId: string,
+      value: Model.DashboardFilterValue | null | undefined
+    ) => api.setDashboardViewerFilter(VIEWER_DOCUMENT, values, filterId, value);
+    // The default is no reader's value; clearing a default is one.
+    assert.deepEqual(set({}, "period", { preset: "last30Days" }), {});
+    assert.deepEqual(set({}, "period", undefined), { period: null });
+    assert.deepEqual(set({}, "status", undefined), {});
+    assert.deepEqual(set({ period: null }, "status", ["a"]), {
+      period: null,
+      status: ["a"],
+    });
+    assert.deepEqual(set({ status: ["a"] }, "status", []), {});
+    assert.deepEqual(set({}, "unknown", ["a"]), {});
+    const shown = api.withDashboardFilterValues(VIEWER_DOCUMENT, {
+      period: null,
+      status: ["a"],
+    });
+    assert.deepEqual(
+      shown.filters.map((filter) => filter.value),
+      [undefined, ["a"]]
+    );
+    assert.deepEqual(VIEWER_DOCUMENT.filters[0]?.value, {
+      preset: "last30Days",
+    });
+    assert.equal(
+      api.withDashboardFilterValues(VIEWER_DOCUMENT, {}),
+      VIEWER_DOCUMENT
+    );
+    // Blocks read each filter's current value, presets resolved.
+    assert.deepEqual(
+      api.dashboardFilterValues(
+        api.withDashboardFilterValues(VIEWER_DOCUMENT, { status: ["a"] }),
+        PRESET_TODAY
+      ),
+      {
+        period: {
+          start: "2026-02-14",
+          end: "2026-03-15",
+          preset: "last30Days",
+        },
+        status: ["a"],
+      }
+    );
+    assert.deepEqual(api.dashboardFilterValues(shown, PRESET_TODAY), {
+      period: undefined,
+      status: ["a"],
+    });
+  });
+}
+
 export function dashboardModelSuite(test: Test, api: DashboardModelApi): void {
   layoutSuite(test, api);
   widgetSuite(test, api);
@@ -1236,4 +1883,7 @@ export function dashboardModelSuite(test: Test, api: DashboardModelApi): void {
   fitSuite(test, api);
   kpiSuite(test, api);
   draftSuite(test, api);
+  screenSuite(test, api);
+  presetSuite(test, api);
+  viewerSuite(test, api);
 }

@@ -68,7 +68,7 @@ free of them:
 | `yayaw-table-calendar` / `yayaw-table-vue-calendar` | Calendar | FullCalendar |
 | `yayaw-table-chart` / `yayaw-table-vue-chart` | Chart | Recharts / Unovis |
 | `yayaw-table-map` / `yayaw-table-vue-map` | Map | MapLibre (mapcn) |
-| `yayaw-table-dashboard` / `yayaw-table-vue-dashboard` | Dashboard of saved views | gridstack |
+| `yayaw-table-dashboard` / `yayaw-table-vue-dashboard` | Dashboards and admin screens (views, numbers, notes, full-page tables, host blocks) | gridstack |
 | `yayaw-table-connector-notion`, `yayaw-table-connector-google-sheets` (and Vue) | Server modules for two-way sync | none |
 
 ## Shared logic

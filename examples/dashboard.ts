@@ -387,7 +387,7 @@ function sortRows<T extends Row>(rows: T[], sorting: unknown): T[] {
 }
 
 /** An in-memory host: `list` filters, sorts and pages; `aggregate` groups for charts and numbers. */
-function createDemoActions<T extends Row>(records: T[]) {
+export function createDemoActions<T extends Row>(records: T[]) {
   return {
     list: (params: Row) => {
       const rows = sortRows(filterRows(records, params), params.sorting);

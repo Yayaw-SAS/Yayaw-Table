@@ -7,21 +7,17 @@ they place, and filters joined to the widgets' queries. Hosts store the JSON
 modules that import no React, Vue or CSS. AI tools (MCP) prepare drafts with
 the same grammar; people publish them.
 
-This release ships the grammar and its tools, and a renderer that reads
-version 2 in both editions:
+Both editions ship the grammar and its tools, and a renderer for screens:
 
 | Ships now | Comes next |
 | --- | --- |
-| The version 2 grammar, migration from versions 0 and 1 | The full-page `table` widget (the table with its toolbar, saved views and URL) |
-| `validateDashboard`, `checkDashboardReferences`, `dashboardJsonSchema` | Host blocks rendered in `block` widgets |
-| `sanitizeViewConfig` for inline views | The `sources` prop (a lazy catalogue) in `YayawDashboard` |
-| `dashboardFingerprint`, `canonicalDashboardJson`, builders | The screen editor (sections, widget wizard, view editor) |
-| `createDashboardSourceLoader` and the source contract | The `?example=screen` demo |
-| Sections, inline views and localized texts in `YayawDashboard` | |
-
-Until then, `table` and `block` widgets render a neutral "Not available yet"
-(`dashboard.notAvailableYet`), and are kept as they are when the document is
-saved.
+| The version 2 grammar, migration from versions 0 and 1 | The screen editor: sections, the widget wizard (what, source, settings) |
+| `validateDashboard`, `checkDashboardReferences`, `dashboardJsonSchema` | Source and block pickers over `sources.list()` and `blocks` |
+| `sanitizeViewConfig`, `dashboardFingerprint`, builders | The view editor (the real table as the editor, `onViewConfigChange`) |
+| The `sources` catalogue, loaded on demand; unavailable sources kept | "Make the current view the screen's default" |
+| Host `blocks`, full-page `table` widgets with their toolbar, saved views and URL | |
+| Readers' filter values in the URL, relative date periods, `meta.notice` | |
+| "Refresh all", reloads after changes, the `?example=screen` demo | |
 
 ## The document
 
@@ -99,7 +95,10 @@ shows the source's default view.
 
 **Filters.** `{ id, type: "dateRange" | "select", label, targets: [{ tableId,
 columnId, widgetIds? }], options?, value? }`, as in version 1, with a
-localized `label`. A target's `widgetIds` limit it to those widgets.
+localized `label`. A target's `widgetIds` limit it to those widgets. `value`
+is the default readers start from: days (`{ start?, end? }`), a relative
+period (`{ preset: "last30Days" }`, see [Filters](#filters-readers-values-and-relative-periods))
+or the chosen options.
 
 **Localized texts.** Names, descriptions, section and widget titles and
 filter labels are a string (every language) or one string per language
@@ -194,8 +193,10 @@ severity? }`), nothing when the props are valid, and may throw.
 ```ts
 const blocks: DashboardBlocks = {
   "media.storage": {
-    name: { en: "Storage", fr: "Stockage" },
+    label: { en: "Storage", fr: "Stockage" },
     placement: "grid",
+    defaultSize: { w: 1, h: 2 },
+    defaultProps: { unit: "GB" },
     propsSchema: { type: "object", properties: { unit: { enum: ["GB", "MB"] } } },
     validateProps: (props) =>
       props.unit === undefined || ["GB", "MB"].includes(String(props.unit))
@@ -356,17 +357,234 @@ The builders return new documents and never mutate their input:
 | `moveDashboardWidget`, `resizeDashboardWidget` | Keyboard moves and resizes: like a drag in a grid, up and down in a flow |
 | `applyDashboardSectionLayout(dashboard, sectionId, items)` | Positions a section's gridstack reported |
 
-## Rendering
+## Rendering screens
 
-`YayawDashboard` renders each section in order. A grid section is its own
-gridstack grid (stacked on phones, as before). A flow section stacks its
-widgets at full width: record views keep their pagination instead of fitting
-a height, charts take a 16:10 body, and nothing scrolls inside. A titled
-section shows its title (`h3`) and its widgets' titles one level lower
-(`h4`). In edit mode, grid cards move and resize as before; flow widgets move
-up and down from their menu. "Add widget" adds to the first grid section.
-Inline views reach the embedded table as its `initialView`; "Open full view"
-on such a widget calls `openView(tableId, null)`. "Done" saves version 2.
+`YayawDashboard` (React `yayaw-dashboard.tsx`, Vue
+`dashboard/YayawDashboard.vue`) renders a document and what it names, the
+same way in both editions:
+
+```tsx
+<YayawDashboard
+  dashboard={screen} // or actions={{ dashboards }} and dashboardId
+  sources={catalogue} // DashboardSources<DashboardTableSource>
+  blocks={blocks} // the host's blocks, by key
+  canEdit={canManage} // needs actions.dashboards.save
+  showTitle={false} // the page around it shows the title
+  unavailableWidgets="hide" // or "show", the default
+  openView={(tableId, viewId, context) => router.push(listPage(tableId, viewId, context?.view))}
+  locale="fr"
+/>
+```
+
+| Prop | Default | Does |
+| --- | --- | --- |
+| `dashboard` | none | A document to show instead of loading one: fetched on the server, a draft preview, a screen written in code. Read with `normalizeDashboard` (and the host's `blocks`), shown again when it changes (an equal document keeps the edits in progress) |
+| `actions.dashboards` | none | `list`, `load`, `save`, `remove`. Optional when `dashboard` is given and nobody edits: without `save`, "Edit" is not offered |
+| `dashboardId` | the first listed | The document `load` reads |
+| `sources` | none | The host's lazy catalogue (`list`, `load`); see [Sources on screen](#sources-on-screen) |
+| `tables` | none | Sources given up front, by id; they win over `sources` (the only way before `sources`) |
+| `blocks` | none | The host's blocks: `Record<key, DashboardBlock>`; see [Host blocks](#host-blocks) |
+| `canEdit` | `false` | Edit mode: layout, widgets, filters and their default values; "Done" saves version 2 |
+| `showTitle` | `true` | The name as the screen's `h2` |
+| `unavailableWidgets` | `"show"` | `"hide"` leaves unavailable widgets and unknown blocks out of the view |
+| `syncUrl` | `true` | Readers' filter values in the URL; full-page tables keep their own URL sync. `false` keeps both out of the URL |
+| `openView` | none | "Open full view", "View all" and blocks call `openView(tableId, viewId, context?)`: `viewId` is null for inline settings and the default view, `context.view` is a widget's inline view |
+| `renderMarkdown`, `displayModeRenderers`, `locale`, `translations`, `tableTranslations`, `getRowId`, `onChange` (Vue `change`) | | As for dashboards |
+
+Sections render in order. A grid section is its own gridstack grid (stacked
+on phones); a flow section stacks its widgets at full width and their natural
+height (record views keep their pagination, charts take a 16:10 body).
+Headings follow the page: the screen's name is an `h2`, a section title an
+`h3`, a widget title an `h3` (or an `h4` under a section title).
+`dashboardWidgetTitle` names a widget: its own title, else a number's label,
+its saved view's name, the source's name (inline views, full-page tables) or
+the block's `label` (its key when the host has none). In edit mode, grid
+cards move and resize, flow widgets move up and down from their menu, and
+"Add widget" adds to the first grid section.
+
+### Sources on screen
+
+`YayawDashboard` loads a source only when a widget on the screen reads it
+(`dashboardSourceIds(dashboard)`: `view`, `kpi` and `table` widgets, in
+display order; a filter never loads its targets), through
+`createDashboardSourceLoader({ sources, tables })`: `tables` entries win, each
+source loads once, a failed load stays failed until retried. Each widget
+shows its source's state (`dashboardWidgetAvailability`):
+
+| State | Shows |
+| --- | --- |
+| loading | "Loading…" |
+| ready | The widget |
+| error | The error and Retry (which calls `retry(id)`); "Refresh all" retries too |
+| unavailable | A muted notice: the host's `message`, else a text for its reason ("You don't have access to this data.", "This source is not configured yet.", "This source no longer exists.", "This source is not available."), `[data-widget-state="unavailable"][data-widget-reason]` |
+| unknown block | "Unavailable block" (`[data-widget-state="unknownBlock"]`) |
+
+Unavailable widgets and unknown blocks stay in the document: edit mode shows
+them (they can be removed), and "Done" saves them with their settings and
+props. With `unavailableWidgets="hide"`, readers do not see them: grids close
+the gaps (top gravity) and a section left empty disappears
+(`dashboardVisibleSections`), for display only; the layout saved is the
+document's. Edit mode shows every widget.
+
+A loaded source is a `DashboardTableSource`: `{ config, actions, views?,
+name?, tableProps?, renderTable? }` (the last two for full-page tables).
+
+### Full-page tables
+
+A `table` widget (flow sections only) renders the source's list page: the
+table with its toolbar, saved views, selection, bulk actions and URL state,
+without a card. Edit mode adds a bar with its title and menu (move up, move
+down, remove); its heading shows only when the widget has a title of its own,
+the section's and the screen's naming it otherwise (its region is labelled
+with its title).
+
+- **Host code** stays out of the document: `tableProps` (React
+  `Partial<DataTableProps>`, Vue `YayawDataTable` props in camelCase) gives
+  row, toolbar and bulk actions, `getFormConfig`, `details`, file tree hooks
+  and the like. `renderTable(props)` wraps or replaces the table: it receives
+  the props the dashboard would give `DataTable` / `YayawDataTable` and must
+  pass them on. The dashboard keeps the table's id, config, actions and
+  starting views.
+- **Its view.** The widget's inline view becomes a system view of the table,
+  `dashboardScreenView(dashboardId, widget, name)`: id
+  `screen:<dashboardId>:<widgetId>` (`dashboardScreenViewId`,
+  `isDashboardViewId`), `isSystem`, `isDefault`, first of `initialViews`. A
+  reader arrives on their favorite view, else on this one. A widget's
+  `viewId` becomes the default view instead (`dashboardTableViews`,
+  `withDashboardTableViews` mark it in `views.list`). Views saved from the
+  table keep `tableId = sourceId`, so the list page and the screen share them;
+  hosts should not store `screen:` views.
+- **URL keys.** The screen's first table in display order keeps the table's
+  own keys (`view`, `<tableId>-…`), so links to the list page keep working;
+  the others use `instanceId = widget.id`
+  (`dashboardTableInstanceId(dashboard, widgetId)`).
+- **Screen filters** reach every request as `requiredFilters`
+  (`withDashboardFilters`); when they change, the table mounts again without
+  the rows cached for the previous filters.
+
+### Host blocks
+
+A block is the host's code in a widget: `{ id, type: "block", block: key,
+props }`. The host passes its registry as `blocks`:
+
+```tsx
+// React: dashboard-block.tsx
+import type { DashboardBlockRegistry } from "@/components/ui/yayaw-table-dashboard/dashboard-block";
+
+const blocks: DashboardBlockRegistry = {
+  "media.storage": {
+    label: { en: "Storage", fr: "Stockage" },
+    group: "Media",
+    placement: "grid",
+    defaultSize: { w: 1, h: 2 },
+    defaultProps: { unit: "GB" },
+    propsSchema: { type: "object", properties: { unit: { enum: ["GB", "MB"] } } },
+    component: StorageBlock, // receives DashboardBlockProps
+  },
+};
+```
+
+```ts
+// Vue: dashboard/dashboard-types.ts
+const blocks: DashboardBlockRegistry = {
+  "media.storage": { label: "Storage", placement: "grid", component: StorageBlock },
+};
+```
+
+`DashboardBlock` extends the pure `DashboardBlockSchema` (`label`,
+`description`, `group`, `placement`, `defaultSize`, `defaultProps`,
+`validateProps`, `propsSchema`: what `validateDashboard` and
+`dashboardJsonSchema` read on a server) with `component` (a React component
+or a Vue component) and an optional `settings` component for the screen
+editor. `defineDashboardBlock<P>(block)` (React) types a block's props.
+
+The component receives `DashboardBlockProps`:
+
+| Prop | Is |
+| --- | --- |
+| `widgetId` | The widget's id |
+| `props` | The widget's props over the block's `defaultProps` |
+| `size` | `{ w, h }` in a grid section; none in a flow |
+| `editing` | Whether the screen is in edit mode |
+| `locale` | The screen's language |
+| `revision` | Changes with "Refresh all" and after changes to the screen's data: load again |
+| `filters` | The screen's filter values by filter id: `{ start, end, preset? }` for date ranges (presets resolved), options for selects |
+| `refresh(tableId?)` | Reloads the widgets of a source, or all of them |
+| `openView?` | The host's `openView` |
+
+A block that throws shows its error in its widget only (an error boundary in
+React, `onErrorCaptured` in Vue). A block may render nothing: in a flow
+section its widget collapses (it shows while editing), in a grid it stays an
+empty card. A key the host does not have shows "Unavailable block", and the
+widget and its props are kept on save.
+
+### Filters: readers' values and relative periods
+
+The values a reader picks are view state, never written to the document:
+each one is a URL key `<dashboardId>.<filterId>`
+(`dashboardFilterUrlKey`), beside the table's keys:
+
+| Value | In the URL |
+| --- | --- |
+| A relative period | `?cms.period=last30Days` |
+| Days | `?cms.period=2026-09-01..2026-09-30`, `2026-09-01..`, `..2026-09-30` |
+| Options | `?cms.author=Ada&cms.author=Sam` |
+| Cleared while the document has a default | `?cms.period=` |
+
+A value equal to the document's leaves the URL. The document's
+`filters[].value` is the default; edit mode shows and changes the defaults
+(entering it drops the reader's values), and only "Done" saves them. The
+pure helpers are `readDashboardFilterValues`, `writeDashboardFilterValues`,
+`encodeDashboardFilterValue`, `decodeDashboardFilterValue`,
+`setDashboardViewerFilter` and `withDashboardFilterValues`.
+
+Date range filters offer relative periods (`DASHBOARD_DATE_PRESETS`): the
+last 7, 30 and 90 days (up to today), this month, last month and this year
+(whole calendar months and years). A document may store one as its default
+(`{ "preset": "last30Days" }`); `resolveDashboardDateRange(value, today)`
+turns it into days when widgets query, in the reader's time zone, so rules
+send days (`YYYY-MM-DD`) like every date rule. A number comparing periods
+compares the preset's days with as many days before them.
+
+### Refreshing
+
+"Refresh all" loads every widget again: numbers, views and blocks (their
+`revision`), full-page tables (React invalidates the table's query, since a
+remount would show its cached rows; Vue calls the table's exposed
+`refresh()`, or invalidates the query client it gave a host's
+`renderTable`), and sources that failed to load. A change made in a
+full-page table (`create`, `update`, `delete`, `duplicate`, the bulk actions,
+`import.importRows`, the file tree's `move` and `createFolder`, wrapped by
+`withMutationSignal(actions, onMutated)`) reloads the other widgets of that
+source and the blocks, once for a burst of changes.
+
+### Notices from the host
+
+A `list` or `aggregate` answer may carry `meta.notice`: `{ code?, message? }`
+(or a text) when the source has nothing to show for a reason, such as
+`{ code: "notConfigured", message: "Connect an analytics provider." }`.
+Numbers, views and full-page tables then show a muted notice
+(`[data-widget-state="notice"][data-widget-reason=<code>]`) instead of empty
+data: its `message`, else the text of a known code (`forbidden`,
+`notConfigured`, `notFound`, `error`). The table stays mounted behind it, so
+"Refresh all" asks again. `dashboardListNotice(result)` reads a notice,
+`dashboardNoticeText(notice, locale)` words it; both editions type it as
+`TableNotice` in the `list` and `aggregate` answers.
+
+### Demo
+
+`?example=screen` ("Content admin", `examples/screen.ts`, identical in both
+editions) is a screen over a catalogue of ten sources, two of them
+unavailable (`audit` forbidden, `billing` not configured) and one answering
+`meta.notice` (`analytics`): an overview grid (published pages and drafts
+over inline views, the storage of the media outside the trash, an "Audit
+events" number whose source is forbidden, the `shortcuts` and `attention`
+blocks, a gallery of recent uploads), then the Pages list page, wrapped by
+the host's `renderTable`. The period and author filters reach the numbers,
+the table and the attention block. The sources loaded are logged in
+`window.yayawScreenSourceLoads`, requests in `window.yayawDashboardRequests`.
+`?readonly` removes edit rights, `?hide` hides unavailable widgets, `?lang=fr`
+shows it in French.
 
 ## TypeScript migration
 
@@ -384,3 +602,12 @@ on such a widget calls `openView(tableId, null)`. "Done" saves version 2.
   and `phone`.
 - The layout helpers live in `dashboard-layout.ts` and the grammar in
   `dashboard-schema.ts`; `dashboard-model.ts` still exports what moved.
+- `DashboardBlockDefinition` is now `DashboardBlockSchema` (the old name
+  remains as an alias), and a block's `name` is its `label`.
+- `YayawDashboard`'s `actions` and `tables` are optional (`dashboard` or
+  `sources` can replace them); `openView` receives a third argument,
+  `{ view }`, for inline views.
+- `table` and `block` widgets render (the "Not available yet" placeholder and
+  its `dashboard.notAvailableYet` label are gone).
+- Filter values picked in view mode no longer change the document (nor call
+  `onChange`): they stay in the URL. Edit mode changes the defaults.

@@ -378,3 +378,100 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
 }
+/* Notices: an unavailable source, a block the host lacks, a source's `meta.notice`. */
+.yayaw-dashboard-notice {
+  padding-inline: 0.5rem;
+}
+.yayaw-dashboard-message.yayaw-dashboard-notice p {
+  color: var(--yayaw-muted-foreground);
+}
+/* Kept mounted behind a notice, so "Refresh all" asks again. */
+.yayaw-dashboard-hidden {
+  display: none;
+}
+.yayaw-dashboard-contents {
+  display: contents;
+}
+/* Host blocks. */
+.yayaw-dashboard-block {
+  min-width: 0;
+}
+/* Full-page tables: no card; an edit bar in edit mode. */
+.yayaw-dashboard-page-widget {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.yayaw-dashboard-edit-bar {
+  display: flex;
+  min-height: 2.5rem;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px dashed var(--yayaw-border);
+  border-radius: calc(var(--yayaw-radius) + 2px);
+  padding: 0.25rem 0.75rem;
+}
+.yayaw-dashboard-edit-bar-title {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-dashboard-edit-bar-type {
+  flex-shrink: 0;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+}
+.yayaw-dashboard-edit-bar-menu {
+  margin-inline-start: auto;
+}
+.yayaw-dashboard-page-heading {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5rem;
+}
+.yayaw-dashboard-page-body,
+.yayaw-dashboard-page-table {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+/* Date filters: relative periods beside the calendar. */
+.yayaw-dashboard-range-layout {
+  display: flex;
+  flex-direction: column;
+}
+.yayaw-dashboard-presets {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 2px;
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid var(--yayaw-border);
+  padding: 0.5rem;
+}
+.yayaw-dashboard .yayaw-dashboard-preset,
+.yayaw-dashboard-presets .yayaw-dashboard-preset {
+  justify-content: flex-start;
+  min-height: 32px;
+  padding: 4px 10px;
+  font-weight: 400;
+}
+.yayaw-dashboard-preset[aria-pressed="true"] {
+  background: var(--yayaw-muted);
+  font-weight: 500;
+}
+@media (min-width: 640px) {
+  .yayaw-dashboard-range-layout {
+    flex-direction: row;
+  }
+  .yayaw-dashboard-presets {
+    border-bottom: 0;
+    border-inline-end: 1px solid var(--yayaw-border);
+  }
+}

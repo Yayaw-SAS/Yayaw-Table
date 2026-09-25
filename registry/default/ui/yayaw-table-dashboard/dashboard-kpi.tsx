@@ -8,6 +8,7 @@ import {
   type Dashboard,
   type DashboardKpiPlan,
   type DashboardKpiResult,
+  type DashboardNotice,
   type DashboardTranslate,
   type DashboardView,
   type DashboardWidget,
@@ -18,7 +19,11 @@ import {
   loadDashboardKpi,
   widgetViewConfig,
 } from "./dashboard-model";
-import type { DashboardLabel, DashboardTableSource } from "./dashboard-widget";
+import {
+  type DashboardLabel,
+  type DashboardTableSource,
+  WidgetNotice,
+} from "./dashboard-widget";
 
 type KpiState =
   | { status: "loading" }
@@ -41,6 +46,8 @@ export interface KpiWidgetProps {
   locale: string;
   label: DashboardLabel;
   translate: DashboardTranslate;
+  /** What a source's `meta.notice` says (`dashboardNoticeText`). */
+  noticeText: (notice: DashboardNotice) => string;
 }
 
 type KpiContentProps = Omit<KpiWidgetProps, "revision"> & {
@@ -51,6 +58,7 @@ function KpiContent({
   dashboard,
   label,
   locale,
+  noticeText,
   onRetry,
   source,
   translate,
@@ -121,6 +129,13 @@ function KpiContent({
       <div aria-busy="true" data-kpi="">
         <output data-kpi-state="loading">{label("widgetLoading")}</output>
       </div>
+    );
+  }
+  if (state.result.notice) {
+    return (
+      <WidgetNotice kind="notice" reason={state.result.notice.code}>
+        {noticeText(state.result.notice)}
+      </WidgetNotice>
     );
   }
   const display = dashboardKpiDisplay({

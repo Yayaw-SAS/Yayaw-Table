@@ -4,7 +4,11 @@ import type * as Sources from "../src/components/ui/yayaw-table-dashboard/dashbo
 /** The source loader both editions run through this suite. */
 export type DashboardSourcesApi = Pick<
   typeof Sources,
-  "createDashboardSourceLoader" | "isDashboardSourceUnavailable"
+  | "createDashboardSourceLoader"
+  | "dashboardSourceIds"
+  | "dashboardUnavailableWidgetIds"
+  | "dashboardWidgetAvailability"
+  | "isDashboardSourceUnavailable"
 >;
 type Test = (name: string, run: () => void | Promise<void>) => void;
 
@@ -192,6 +196,124 @@ function loadingSuite(test: Test, api: DashboardSourcesApi) {
   });
 }
 
+/** A screen: a flow (a note, a media table), a grid (pages and audit numbers, blocks), a second flow. */
+const SCREEN = {
+  sections: [
+    { id: "top", type: "flow" as const, widgetIds: ["notes", "media-table"] },
+    {
+      id: "cards",
+      type: "grid" as const,
+      layout: [
+        { widgetId: "audit", x: 1, y: 0, w: 1, h: 1 },
+        { widgetId: "published", x: 0, y: 0, w: 1, h: 1 },
+        { widgetId: "shortcuts", x: 2, y: 0, w: 1, h: 1 },
+        { widgetId: "legacy", x: 3, y: 0, w: 1, h: 1 },
+      ],
+    },
+    { id: "bottom", type: "flow" as const, widgetIds: ["pages-table"] },
+  ],
+  widgets: [
+    {
+      id: "pages-table",
+      type: "table" as const,
+      tableId: "pages",
+      settings: {},
+    },
+    { id: "audit", type: "kpi" as const, tableId: "audit", settings: {} },
+    { id: "published", type: "kpi" as const, tableId: "pages", settings: {} },
+    { id: "notes", type: "note" as const, settings: { text: "Hi" } },
+    {
+      id: "media-table",
+      type: "table" as const,
+      tableId: "media",
+      settings: {},
+    },
+    {
+      id: "shortcuts",
+      type: "block" as const,
+      block: "shortcuts",
+      settings: {},
+    },
+    { id: "legacy", type: "block" as const, block: "legacy.box", settings: {} },
+  ],
+};
+
+function screenSuite(test: Test, api: DashboardSourcesApi) {
+  test("a screen loads only the sources its widgets read, in display order", () => {
+    assert.deepEqual(api.dashboardSourceIds(SCREEN), [
+      "media",
+      "pages",
+      "audit",
+    ]);
+    assert.deepEqual(
+      api.dashboardSourceIds({ sections: [], widgets: SCREEN.widgets }),
+      ["pages", "audit", "media"]
+    );
+  });
+
+  test("widgets follow their source's state, blocks the host's registry", async () => {
+    let fail = true;
+    const host = catalogue({
+      pages: () => Promise.resolve({ id: "pages", rows: 3 }),
+      audit: () =>
+        Promise.resolve({
+          unavailable: true as const,
+          reason: "forbidden" as const,
+          message: "Ask an admin.",
+        }),
+      media: () =>
+        fail
+          ? Promise.reject(new Error("Offline"))
+          : Promise.resolve({ id: "media", rows: 1 }),
+    });
+    const loader = api.createDashboardSourceLoader({
+      sources: host.sources,
+      summarize,
+    });
+    const context = {
+      state: loader.state,
+      hasBlock: (key: string) => key === "shortcuts",
+    };
+    const widget = (id: string) => {
+      const found = SCREEN.widgets.find((entry) => entry.id === id);
+      if (!found) {
+        throw new Error(`No widget ${id}`);
+      }
+      return found;
+    };
+    const status = (id: string) =>
+      api.dashboardWidgetAvailability(widget(id), context);
+    // Before their sources load, sourced widgets are loading; notes and known blocks are ready.
+    assert.deepEqual(status("published"), { status: "loading" });
+    assert.deepEqual(status("notes"), { status: "ready" });
+    assert.deepEqual(status("shortcuts"), { status: "ready" });
+    assert.deepEqual(status("legacy"), { status: "unknownBlock" });
+    for (const id of api.dashboardSourceIds(SCREEN)) {
+      await loader.load(id);
+    }
+    assert.deepEqual(status("published"), { status: "ready" });
+    assert.deepEqual(status("pages-table"), { status: "ready" });
+    assert.deepEqual(status("audit"), {
+      status: "unavailable",
+      reason: "forbidden",
+      message: "Ask an admin.",
+    });
+    assert.deepEqual(status("media-table"), {
+      status: "error",
+      message: "Offline",
+    });
+    // Unavailable sources and unknown blocks can be hidden; failures stay (Retry).
+    assert.deepEqual(
+      [...api.dashboardUnavailableWidgetIds(SCREEN, context)],
+      ["audit", "legacy"]
+    );
+    fail = false;
+    await loader.retry("media");
+    assert.deepEqual(status("media-table"), { status: "ready" });
+  });
+}
+
 export function dashboardSourcesSuite(test: Test, api: DashboardSourcesApi) {
   loadingSuite(test, api);
+  screenSuite(test, api);
 }

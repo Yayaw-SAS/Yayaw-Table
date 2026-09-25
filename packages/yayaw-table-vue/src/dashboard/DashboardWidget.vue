@@ -17,7 +17,11 @@ import {
 } from "./dashboard-model";
 import type { DashboardLabel } from "./dashboard-types";
 
-/** A widget's card: title, "Open full view", the edit menu and its content. */
+/**
+ * A widget's card: title, "Open full view", the edit menu and its content.
+ * Full-page tables (`frame: "page"`) have no card: an edit bar in edit mode,
+ * and a heading when the widget has a title of its own (`showHeading`).
+ */
 const props = withDefaults(
   defineProps<{
     widget: DashboardWidget;
@@ -29,12 +33,16 @@ const props = withDefaults(
     resizable: boolean;
     /** 4 under a section title, else 3 (under the dashboard's name). */
     headingLevel?: 3 | 4;
+    /** `card` (default), or `page` for full-page tables. */
+    frame?: "card" | "page";
+    /** Page frames: show the title as a heading. */
+    showHeading?: boolean;
     label: DashboardLabel;
     canMove: (direction: DashboardDirection) => boolean;
     canResize: (change: DashboardResize) => boolean;
     openable: boolean;
   }>(),
-  { headingLevel: 3 }
+  { headingLevel: 3, frame: "card", showHeading: false }
 );
 const emit = defineEmits<{
   move: [direction: DashboardDirection];
@@ -46,6 +54,7 @@ const titleId = useId();
 const overflow = computed<DashboardOverflow>(() =>
   props.widget.type === "view" ? widgetOverflow(props.widget) : "fit"
 );
+const resizable = computed(() => props.resizable && props.frame !== "page");
 
 const moves: { direction: DashboardDirection; key: DashboardLabelKey; icon: unknown }[] = [
   { direction: "left", key: "moveLeft", icon: ArrowLeft },
@@ -63,40 +72,58 @@ const resizes: { change: DashboardResize; key: DashboardLabelKey; icon: unknown 
 
 <template>
   <section
-    class="yayaw-dashboard-widget"
-    :aria-labelledby="titleId"
+    :class="props.frame === 'page' ? 'yayaw-dashboard-page-widget' : 'yayaw-dashboard-widget'"
+    :aria-label="props.frame === 'page' && !props.showHeading ? props.title : undefined"
+    :aria-labelledby="props.frame !== 'page' || props.showHeading ? titleId : undefined"
     :data-dashboard-widget="props.widget.id"
+    :data-widget-frame="props.frame === 'page' ? 'page' : undefined"
     :data-widget-type="props.widget.type"
   >
-    <header class="yayaw-dashboard-widget-header" data-widget-header="">
-      <span
-        v-if="props.editing && props.draggable"
-        class="yayaw-dashboard-handle"
-        aria-hidden="true"
-        data-dashboard-drag-handle=""
-        :title="props.label('dragHandle', { title: props.title })"
-      >
-        <GripVertical :size="16" />
-      </span>
-      <component
-        :is="props.headingLevel === 4 ? 'h4' : 'h3'"
-        :id="titleId"
-        class="yayaw-dashboard-widget-title"
-        data-widget-title=""
-      >{{ props.title }}</component>
-      <button
-        v-if="props.openable"
-        type="button"
-        class="yayaw-dashboard-icon-button"
-        :aria-label="props.label('openFullView')"
-        :title="props.label('openFullView')"
-        @click="emit('open')"
-      >
-        <ExternalLink :size="16" aria-hidden="true" />
-      </button>
+    <header
+      v-if="props.frame !== 'page' || props.editing"
+      :class="props.frame === 'page' ? 'yayaw-dashboard-edit-bar' : 'yayaw-dashboard-widget-header'"
+      :data-widget-header="props.frame === 'page' ? undefined : ''"
+      :data-widget-edit-bar="props.frame === 'page' ? '' : undefined"
+    >
+      <template v-if="props.frame === 'page'">
+        <span class="yayaw-dashboard-edit-bar-title" data-widget-title="">{{ props.title }}</span>
+        <span class="yayaw-dashboard-edit-bar-type">{{ props.label(props.widget.type === "table" ? "typeTable" : "typeBlock") }}</span>
+      </template>
+      <template v-else>
+        <span
+          v-if="props.editing && props.draggable"
+          class="yayaw-dashboard-handle"
+          aria-hidden="true"
+          data-dashboard-drag-handle=""
+          :title="props.label('dragHandle', { title: props.title })"
+        >
+          <GripVertical :size="16" />
+        </span>
+        <component
+          :is="props.headingLevel === 4 ? 'h4' : 'h3'"
+          :id="titleId"
+          class="yayaw-dashboard-widget-title"
+          data-widget-title=""
+        >{{ props.title }}</component>
+        <button
+          v-if="props.openable"
+          type="button"
+          class="yayaw-dashboard-icon-button"
+          :aria-label="props.label('openFullView')"
+          :title="props.label('openFullView')"
+          @click="emit('open')"
+        >
+          <ExternalLink :size="16" aria-hidden="true" />
+        </button>
+      </template>
       <DropdownMenuRoot v-if="props.editing" :modal="false">
         <DropdownMenuTrigger as-child>
-          <button type="button" class="yayaw-dashboard-icon-button" :aria-label="props.label('widgetMenu', { title: props.title })">
+          <button
+            type="button"
+            class="yayaw-dashboard-icon-button"
+            :class="{ 'yayaw-dashboard-edit-bar-menu': props.frame === 'page' }"
+            :aria-label="props.label('widgetMenu', { title: props.title })"
+          >
             <MoreHorizontal :size="16" aria-hidden="true" />
           </button>
         </DropdownMenuTrigger>
@@ -114,7 +141,7 @@ const resizes: { change: DashboardResize; key: DashboardLabelKey; icon: unknown 
               </button>
             </DropdownMenuItem>
             <DropdownMenuSeparator class="yayaw-row-actions-divider" />
-            <template v-if="props.resizable">
+            <template v-if="resizable">
               <DropdownMenuItem
                 v-for="item in resizes"
                 :key="item.change"
@@ -137,7 +164,18 @@ const resizes: { change: DashboardResize; key: DashboardLabelKey; icon: unknown 
         </DropdownMenuPortal>
       </DropdownMenuRoot>
     </header>
-    <div class="yayaw-dashboard-widget-body" data-widget-body="" :data-overflow="overflow">
+    <component
+      :is="props.headingLevel === 4 ? 'h4' : 'h3'"
+      v-if="props.frame === 'page' && props.showHeading"
+      :id="titleId"
+      class="yayaw-dashboard-page-heading"
+      data-widget-heading=""
+    >{{ props.title }}</component>
+    <div
+      :class="props.frame === 'page' ? 'yayaw-dashboard-page-body' : 'yayaw-dashboard-widget-body'"
+      data-widget-body=""
+      :data-overflow="props.frame === 'page' ? undefined : overflow"
+    >
       <slot />
     </div>
   </section>

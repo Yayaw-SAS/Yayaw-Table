@@ -7,6 +7,11 @@
  * Pure and server-safe, shared by the React and Vue editions (synced to Vue).
  */
 import type { FormText } from "../form-text";
+import {
+  type Dashboard,
+  type DashboardWidget,
+  dashboardWidgetOrder,
+} from "./dashboard-schema";
 
 /** Why a source cannot be shown. */
 export const DASHBOARD_SOURCE_UNAVAILABLE_REASONS = [
@@ -255,4 +260,109 @@ export function createDashboardSourceLoader<S>(
       };
     },
   };
+}
+
+// Widgets on a screen ----------------------------------------------------------------
+
+/** Widget types that read a source (`tableId`). */
+const SOURCED_WIDGETS = new Set<DashboardWidget["type"]>([
+  "view",
+  "kpi",
+  "table",
+]);
+
+/**
+ * The sources a screen's widgets read, once each, in display order: the only
+ * ones a renderer loads (a filter alone never loads its targets).
+ */
+export function dashboardSourceIds(
+  dashboard: Pick<Dashboard, "sections" | "widgets">
+): string[] {
+  const byId = new Map(dashboard.widgets.map((widget) => [widget.id, widget]));
+  const ordered = [
+    ...dashboardWidgetOrder(dashboard).flatMap((id) => {
+      const widget = byId.get(id);
+      return widget ? [widget] : [];
+    }),
+    ...dashboard.widgets,
+  ];
+  const ids = new Set<string>();
+  for (const widget of ordered) {
+    if (SOURCED_WIDGETS.has(widget.type) && widget.tableId) {
+      ids.add(widget.tableId);
+    }
+  }
+  return [...ids];
+}
+
+/** Whether a widget can show now: its source's state, or whether the host has its block. */
+export type DashboardWidgetAvailability =
+  | { status: "ready" }
+  | { status: "loading" }
+  | { status: "error"; message: string }
+  | {
+      status: "unavailable";
+      reason: DashboardSourceUnavailableReason;
+      message?: string;
+    }
+  | { status: "unknownBlock" };
+
+export interface DashboardAvailabilityContext {
+  /** A source's state (the loader's `state`); undefined before its first load. */
+  state: (id: string) => DashboardSourceState<unknown> | undefined;
+  /** Whether the host's `blocks` has this key. */
+  hasBlock: (key: string) => boolean;
+}
+
+/**
+ * A widget's availability: notes are always ready, blocks unless the host
+ * lacks their key (`unknownBlock`), views, numbers and tables follow their
+ * source (loading until its first load settles).
+ */
+export function dashboardWidgetAvailability(
+  widget: Pick<DashboardWidget, "type" | "tableId" | "block">,
+  context: DashboardAvailabilityContext
+): DashboardWidgetAvailability {
+  if (widget.type === "block") {
+    return widget.block && context.hasBlock(widget.block)
+      ? { status: "ready" }
+      : { status: "unknownBlock" };
+  }
+  if (!(SOURCED_WIDGETS.has(widget.type) && widget.tableId)) {
+    return { status: "ready" };
+  }
+  const state = context.state(widget.tableId);
+  switch (state?.status) {
+    case "ready":
+      return { status: "ready" };
+    case "unavailable":
+      return {
+        status: "unavailable",
+        reason: state.reason,
+        ...(state.message ? { message: state.message } : {}),
+      };
+    case "error":
+      return { status: "error", message: state.message };
+    default:
+      return { status: "loading" };
+  }
+}
+
+/**
+ * Widgets a reader cannot use: an unavailable source or a block the host
+ * lacks. `unavailableWidgets: "hide"` leaves them out of the view (never out
+ * of the document).
+ */
+export function dashboardUnavailableWidgetIds(
+  dashboard: Pick<Dashboard, "widgets">,
+  context: DashboardAvailabilityContext
+): Set<string> {
+  const ids = new Set<string>();
+  for (const widget of dashboard.widgets) {
+    const { status } = dashboardWidgetAvailability(widget, context);
+    if (status === "unavailable" || status === "unknownBlock") {
+      ids.add(widget.id);
+    }
+  }
+  return ids;
 }

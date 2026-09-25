@@ -22,26 +22,36 @@ import { normalizeDateFilterRules } from "../date-filter-days";
 import { formLocaleMatch } from "../form-text";
 import { normalizeFilterEnvelope } from "../table-contracts";
 import { type ColumnValueFormat, formatColumnDay } from "../value-format";
-import { DASHBOARD_ROW_HEIGHT, defaultWidgetSize } from "./dashboard-layout";
 import {
+  clampLayoutItem,
+  compactLayout,
+  DASHBOARD_ROW_HEIGHT,
+  defaultWidgetSize,
+} from "./dashboard-layout";
+import {
+  DASHBOARD_DATE_PRESETS,
   DASHBOARD_KPI_DEFAULTS,
   DASHBOARD_KPI_METRICS,
   type Dashboard,
+  type DashboardDatePreset,
   type DashboardDateRange,
   type DashboardFilter,
   type DashboardFilterOption,
   type DashboardFilterTarget,
   type DashboardFilterType,
+  type DashboardInlineView,
   type DashboardKpiBetter,
   type DashboardKpiMetric,
   type DashboardKpiSettings,
   type DashboardOverflow,
+  type DashboardSection,
   type DashboardText,
   type DashboardWidget,
   dashboardDateRange,
   dashboardKpiSettings,
   dashboardSelectValues,
   dashboardText,
+  dashboardWidgetOrder,
   normalizeDashboardFilter,
   normalizeDashboardFilterValue,
 } from "./dashboard-schema";
@@ -77,6 +87,7 @@ export {
 } from "./dashboard-layout";
 export type {
   Dashboard,
+  DashboardDatePreset,
   DashboardDateRange,
   DashboardFilter,
   DashboardFilterOption,
@@ -90,6 +101,7 @@ export type {
   DashboardKpiSettings,
   DashboardKpiSparkline,
   DashboardOverflow,
+  DashboardSection,
   DashboardV1,
   DashboardWidget,
   DashboardWidgetType,
@@ -97,6 +109,7 @@ export type {
 export {
   addDashboardWidget,
   createDashboard,
+  DASHBOARD_DATE_PRESETS,
   DASHBOARD_VERSION,
   dashboardKpiSettings,
   moveDashboardWidget,
@@ -182,17 +195,29 @@ const clamp = (value: number, min: number, max: number): number =>
 // Widgets -----------------------------------------------------------------------
 
 /**
- * Size of a widget about to be added: by its type, and for a view by the
- * display mode of its inline settings, of its saved view, or of the table's
- * default view.
+ * Size of a widget about to be added: by its type, for a block by its
+ * `defaultSize`, and for a view by the display mode of its inline settings,
+ * of its saved view, or of the table's default view.
  */
 export function dashboardWidgetSize(
   widget: Pick<DashboardWidget, "type" | "viewId" | "view">,
   context: {
     views?: readonly DashboardView[];
     table?: Pick<DashboardTableInfo, "defaultDisplayMode">;
+    /** The host's block, for block widgets. */
+    block?: { defaultSize?: { w: number; h: number } };
   } = {}
 ): { w: number; h: number } {
+  const blockSize = widget.type === "block" && context.block?.defaultSize;
+  if (blockSize) {
+    const { w, h } = clampLayoutItem({
+      widgetId: "",
+      x: 0,
+      y: 0,
+      ...blockSize,
+    });
+    return { w, h };
+  }
   if (widget.type !== "view") {
     return defaultWidgetSize(widget.type);
   }
@@ -369,9 +394,354 @@ export const dashboardWidgetViewId = (
   widget: Pick<DashboardWidget, "view" | "viewId">
 ): string | null => (widget.view ? null : (widget.viewId ?? null));
 
+/** What `openView` receives besides the source and saved view: a widget's inline view. */
+export interface DashboardOpenViewContext {
+  view?: DashboardInlineView;
+}
+
+/** `openView`'s context for a widget: its inline view, when it has one. */
+export const dashboardOpenViewContext = (
+  widget: Pick<DashboardWidget, "view">
+): DashboardOpenViewContext | undefined =>
+  widget.view ? { view: widget.view } : undefined;
+
 /** Display mode a view widget renders (`table` by default). */
 export const widgetDisplayMode = (config: Record<string, unknown>): string =>
   text(config.displayMode) || "table";
+
+/**
+ * What a widget's view resolves to: its inline settings (no saved view
+ * needed), its saved view once the source's views are loaded (`views`
+ * undefined until then), or the source's default view.
+ */
+export type DashboardWidgetView =
+  | { status: "loading" }
+  | { status: "missing" }
+  | {
+      status: "ready";
+      /** The saved view the widget names; null for inline settings and the default view. */
+      viewId: string | null;
+      /** That saved view. */
+      view?: DashboardView;
+      /** The settings the widget starts from: inline, the saved view's, or `{}` (the source's defaults). */
+      config: Record<string, unknown>;
+    };
+
+/** Resolves the view a widget shows from its source's saved views. */
+export function resolveWidgetView(
+  widget: Pick<DashboardWidget, "view" | "viewId">,
+  views?: readonly DashboardView[]
+): DashboardWidgetView {
+  if (widget.view) {
+    return { status: "ready", viewId: null, config: { ...widget.view } };
+  }
+  if (!widget.viewId) {
+    return { status: "ready", viewId: null, config: {} };
+  }
+  if (!views) {
+    return { status: "loading" };
+  }
+  const view = views.find((item) => item.id === widget.viewId);
+  return view
+    ? { status: "ready", viewId: view.id, view, config: { ...view.config } }
+    : { status: "missing" };
+}
+
+// Full-page tables ------------------------------------------------------------------
+
+/**
+ * The `instanceId` of a `table` widget: none (the table's canonical URL keys,
+ * `view` and `<tableId>-…`) for the first table of the screen in display
+ * order, so links to the list page keep working; the widget's id for the
+ * others.
+ */
+export function dashboardTableInstanceId(
+  dashboard: Pick<Dashboard, "sections" | "widgets">,
+  widgetId: string
+): string | undefined {
+  const tables = new Set(
+    dashboard.widgets
+      .filter((widget) => widget.type === "table")
+      .map((widget) => widget.id)
+  );
+  const first = dashboardWidgetOrder(dashboard).find((id) => tables.has(id));
+  return first === widgetId ? undefined : widgetId;
+}
+
+const SCREEN_VIEW_PREFIX = "screen:";
+
+/** The id of a screen's default view for a table widget: `screen:<dashboardId>:<widgetId>`. */
+export const dashboardScreenViewId = (
+  dashboardId: string,
+  widgetId: string
+): string => `${SCREEN_VIEW_PREFIX}${dashboardId}:${widgetId}`;
+
+/**
+ * Whether a view id is a screen's default view (`screen:…`): a system view the
+ * screen document holds, never stored with the source's saved views.
+ */
+export const isDashboardViewId = (id: unknown): boolean =>
+  typeof id === "string" && id.startsWith(SCREEN_VIEW_PREFIX);
+
+/** A table widget's inline view as the saved view its table starts from. */
+export interface DashboardScreenView {
+  id: string;
+  /** The source: views saved from the page table keep `tableId = sourceId`. */
+  tableId: string;
+  name: string;
+  config: Record<string, unknown>;
+  createdById: string;
+  isSystem: true;
+  isDefault: true;
+  isGlobal: true;
+  canEdit: false;
+  canDelete: false;
+}
+
+/**
+ * The system default view a `table` widget's inline view becomes: the
+ * reader's favorite view still comes first, then this one.
+ */
+export function dashboardScreenView(
+  dashboardId: string,
+  widget: Pick<DashboardWidget, "id" | "tableId" | "view">,
+  name: string
+): DashboardScreenView | undefined {
+  if (!(widget.view && widget.tableId)) {
+    return;
+  }
+  return {
+    id: dashboardScreenViewId(dashboardId, widget.id),
+    tableId: widget.tableId,
+    name,
+    config: { ...widget.view },
+    createdById: "screen",
+    isSystem: true,
+    isDefault: true,
+    isGlobal: true,
+    canEdit: false,
+    canDelete: false,
+  };
+}
+
+/**
+ * The views a page table starts with: the screen's view first, then the
+ * source's; the screen's view (or its saved view, `defaultViewId`) is the only
+ * default, so arrival shows the reader's favorite, else this default.
+ */
+export function dashboardTableViews<
+  T extends { id: string; isDefault?: boolean },
+>(
+  views: readonly T[],
+  defaults: { screenView?: T; defaultViewId?: string | null }
+): T[] {
+  const { screenView } = defaults;
+  const list = screenView
+    ? [screenView, ...views.filter((view) => view.id !== screenView.id)]
+    : [...views];
+  const defaultId = screenView?.id ?? defaults.defaultViewId;
+  if (!defaultId) {
+    return list;
+  }
+  return list.map((view) => {
+    const isDefault = view.id === defaultId;
+    return Boolean(view.isDefault) === isDefault
+      ? view
+      : { ...view, isDefault };
+  });
+}
+
+/**
+ * Actions whose `views.list` answers with the screen's default view marked
+ * (`dashboardTableViews`), whether it returns views or `{ data: views }`.
+ */
+export function withDashboardTableViews<
+  T extends { views?: { list?: (context: never) => unknown } },
+>(actions: T, defaultViewId: string | null | undefined): T {
+  const views = actions.views;
+  const list = views?.list as
+    | ((context: unknown) => Promise<unknown> | unknown)
+    | undefined;
+  if (!(views && list && defaultViewId)) {
+    return actions;
+  }
+  const mark = (data: readonly unknown[]) =>
+    dashboardTableViews(
+      data.filter(isRecord) as { id: string; isDefault?: boolean }[],
+      { defaultViewId }
+    );
+  return {
+    ...actions,
+    views: {
+      ...views,
+      list: async (context: unknown) => {
+        const result = await list(context);
+        if (Array.isArray(result)) {
+          return mark(result);
+        }
+        return isRecord(result) && Array.isArray(result.data)
+          ? { ...result, data: mark(result.data) }
+          : result;
+      },
+    },
+  };
+}
+
+// Mutations -------------------------------------------------------------------------
+
+/** Actions that change a table's records. */
+const MUTATIONS = [
+  "create",
+  "update",
+  "delete",
+  "duplicate",
+  "bulkDelete",
+  "bulkCopy",
+  "bulkUpdate",
+] as const;
+
+type AnyFunction = (...args: never[]) => unknown;
+
+/** `fn`, calling `onSettled` once it has answered or failed. */
+const signalled =
+  (fn: AnyFunction, onSettled: () => void) =>
+  async (...args: unknown[]): Promise<unknown> => {
+    try {
+      return await (fn as (...values: unknown[]) => unknown)(...args);
+    } finally {
+      onSettled();
+    }
+  };
+
+/**
+ * A page table's actions that call `onMutated` after each change settles:
+ * `create`, `update`, `delete`, `duplicate`, the bulk actions,
+ * `import.importRows` and the file tree's `move` and `createFolder`. The
+ * dashboard then reloads the other widgets of that source (numbers, views,
+ * blocks).
+ */
+export function withMutationSignal<T extends object>(
+  actions: T,
+  onMutated: () => void
+): T {
+  const source = actions as Record<string, unknown>;
+  const wrapped: Record<string, unknown> = { ...source };
+  for (const name of MUTATIONS) {
+    const fn = source[name];
+    if (typeof fn === "function") {
+      wrapped[name] = signalled(fn as AnyFunction, onMutated);
+    }
+  }
+  const imports = source.import;
+  if (isRecord(imports) && typeof imports.importRows === "function") {
+    wrapped.import = {
+      ...imports,
+      importRows: signalled(imports.importRows as AnyFunction, onMutated),
+    };
+  }
+  const tree = source.tree;
+  if (isRecord(tree)) {
+    const next: Record<string, unknown> = { ...tree };
+    for (const name of ["move", "createFolder"]) {
+      if (typeof tree[name] === "function") {
+        next[name] = signalled(tree[name] as AnyFunction, onMutated);
+      }
+    }
+    wrapped.tree = next;
+  }
+  return wrapped as T;
+}
+
+// Sections a reader sees --------------------------------------------------------------
+
+const sectionHasWidgets = (section: DashboardSection): boolean =>
+  section.type === "grid"
+    ? section.layout.length > 0
+    : section.widgetIds.length > 0;
+
+/**
+ * The sections as a reader sees them: without the `hidden` widgets (grids
+ * close their gaps, top gravity) and without sections left empty. For
+ * display only: the document keeps every widget and place.
+ */
+export function dashboardVisibleSections(
+  sections: readonly DashboardSection[],
+  hidden: ReadonlySet<string> = new Set()
+): DashboardSection[] {
+  const visible = hidden.size
+    ? sections.map((section): DashboardSection => {
+        if (section.type === "flow") {
+          return {
+            ...section,
+            widgetIds: section.widgetIds.filter((id) => !hidden.has(id)),
+          };
+        }
+        const layout = section.layout.filter(
+          (item) => !hidden.has(item.widgetId)
+        );
+        return {
+          ...section,
+          layout:
+            layout.length === section.layout.length
+              ? section.layout
+              : compactLayout(layout),
+        };
+      })
+    : [...sections];
+  return visible.filter(sectionHasWidgets);
+}
+
+// Notices ---------------------------------------------------------------------------
+
+/**
+ * `meta.notice` of a `list` or `aggregate` answer: the source has nothing to
+ * show for a reason (`{ code: "notConfigured", message }`). Widgets show it,
+ * muted, instead of empty data.
+ */
+export interface DashboardNotice {
+  code?: string;
+  message?: string;
+}
+
+/** The notice a `list` or `aggregate` answer carries in `meta.notice` (an object or a text). */
+export function dashboardListNotice(
+  result: unknown
+): DashboardNotice | undefined {
+  const notice =
+    isRecord(result) && isRecord(result.meta) ? result.meta.notice : undefined;
+  if (typeof notice === "string") {
+    return notice.trim() ? { message: notice.trim() } : undefined;
+  }
+  if (!isRecord(notice)) {
+    return;
+  }
+  const code = text(notice.code);
+  const message = text(notice.message);
+  return code || message
+    ? { ...(code ? { code } : {}), ...(message ? { message } : {}) }
+    : undefined;
+}
+
+/** Actions whose `list` and `aggregate` report the notices they answer. */
+export function withNoticeCapture<
+  T extends {
+    list?: (params: never) => unknown;
+    aggregate?: (params: never) => unknown;
+  },
+>(actions: T, onNotice: (notice: DashboardNotice | undefined) => void): T {
+  const capture =
+    (fn: AnyFunction) =>
+    async (...args: unknown[]): Promise<unknown> => {
+      const result = await (fn as (...values: unknown[]) => unknown)(...args);
+      onNotice(dashboardListNotice(result));
+      return result;
+    };
+  return {
+    ...actions,
+    ...(actions.list ? { list: capture(actions.list) } : {}),
+    ...(actions.aggregate ? { aggregate: capture(actions.aggregate) } : {}),
+  };
+}
 
 // Fitting records ----------------------------------------------------------------
 
@@ -528,11 +898,15 @@ export function dashboardKpiPeriods(
   };
 }
 
-/** The dashboard's date range on a widget's column, when an active date filter targets it. */
+/**
+ * The dashboard's date range on a widget's column, when an active date filter
+ * targets it: its days, a preset's resolved around `today`.
+ */
 export function dashboardDateRangeFor(
   dashboard: Pick<Dashboard, "filters">,
   widget: Pick<DashboardWidget, "id" | "tableId">,
-  columnId: string
+  columnId: string,
+  today: string = dashboardDayValue(new Date())
 ): DashboardDateRange | undefined {
   for (const filter of dashboard.filters) {
     const target =
@@ -540,7 +914,7 @@ export function dashboardDateRangeFor(
         ? filter.targets.find((item) => targetsWidget(item, widget))
         : undefined;
     if (target?.columnId === columnId) {
-      return dashboardDateRange(filter.value);
+      return resolveDashboardDateRange(filter.value, today);
     }
   }
   return;
@@ -734,7 +1108,7 @@ export function dashboardKpiPlan(
   columns: readonly Pick<ChartColumn, "id" | "timeZone">[] = []
 ): DashboardKpiPlan {
   const settings = dashboardKpiSettings(widget);
-  const rules = dashboardFilterRules(dashboard, widget);
+  const rules = dashboardFilterRules(dashboard, widget, today);
   const metrics = [
     settings.metricColumn
       ? { columnId: settings.metricColumn, fn: settings.metric }
@@ -752,7 +1126,7 @@ export function dashboardKpiPlan(
     return { settings, queries: [{ key: "value", rules, request: total }] };
   }
   const others = rules.filter((rule) => rule.columnId !== dateColumn);
-  const range = dashboardDateRangeFor(dashboard, widget, dateColumn);
+  const range = dashboardDateRangeFor(dashboard, widget, dateColumn, today);
   const queries: DashboardKpiQuery[] = [];
   const periods = compare
     ? dashboardKpiPeriods(compare.days, today, range)
@@ -830,6 +1204,8 @@ export interface DashboardKpiResult {
   trend?: number[];
   /** Some groups were computed over part of the records only. */
   truncated?: boolean;
+  /** The source answered a `meta.notice` (e.g. not configured): shown instead of the figure. */
+  notice?: DashboardNotice;
 }
 
 type ActionFn = (params: never) => unknown;
@@ -837,7 +1213,7 @@ type ActionFn = (params: never) => unknown;
 /**
  * Runs a KPI's requests through the table's `aggregate` (or its `list`, when
  * the host cannot group), each with the view's query and its own rules sent
- * as `requiredFilters`.
+ * as `requiredFilters`. A `meta.notice` in any answer comes back as `notice`.
  */
 export async function loadDashboardKpi(input: {
   plan: DashboardKpiPlan;
@@ -846,9 +1222,13 @@ export async function loadDashboardKpi(input: {
   locale: string;
   signal?: AbortSignal;
 }): Promise<DashboardKpiResult> {
+  let notice: DashboardNotice | undefined;
+  const noticed = withNoticeCapture(input.actions, (found) => {
+    notice ??= found;
+  });
   const answers = await Promise.all(
     input.plan.queries.map(async (query) => {
-      const actions = withDashboardFilters(input.actions, query.rules) as {
+      const actions = withDashboardFilters(noticed, query.rules) as {
         list?: (params: Record<string, unknown>) => Promise<{
           data: unknown[];
           meta?: { pageCount?: number; totalCount?: number };
@@ -889,6 +1269,7 @@ export async function loadDashboardKpi(input: {
     ...(previous === undefined ? {} : { previous }),
     ...(trend ? { trend } : {}),
     ...(truncated ? { truncated: true } : {}),
+    ...(notice ? { notice } : {}),
   };
 }
 
@@ -971,18 +1352,74 @@ export const filterableColumns = (
   );
 
 /** Whether a filter currently filters something. */
-export function isDashboardFilterActive(filter: DashboardFilter): boolean {
+export function isDashboardFilterActive(
+  filter: Pick<DashboardFilter, "type" | "value">
+): boolean {
   if (filter.type === "dateRange") {
     const range = dashboardDateRange(filter.value);
-    return Boolean(range.start || range.end);
+    return Boolean(range.start || range.end || range.preset);
   }
   return dashboardSelectValues(filter.value).length > 0;
 }
 
-/** The advanced filter rule of a dashboard filter on one column. */
+/** Last day of a calendar month (`month` 1–12). */
+const monthEnd = (year: number, month: number): string =>
+  new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+const pad2 = (value: number) => String(value).padStart(2, "0");
+
+/** The days of a relative preset around `today` (`YYYY-MM-DD`). */
+function presetRange(
+  preset: DashboardDatePreset,
+  today: string
+): { start: string; end: string } {
+  const [year = 1970, month = 1] = today.split("-").map(Number);
+  switch (preset) {
+    case "last7Days":
+      return { start: shiftDashboardDay(today, -6), end: today };
+    case "last30Days":
+      return { start: shiftDashboardDay(today, -29), end: today };
+    case "last90Days":
+      return { start: shiftDashboardDay(today, -89), end: today };
+    case "thisMonth":
+      return {
+        start: `${year}-${pad2(month)}-01`,
+        end: monthEnd(year, month),
+      };
+    case "lastMonth": {
+      const previousYear = month === 1 ? year - 1 : year;
+      const previous = month === 1 ? 12 : month - 1;
+      return {
+        start: `${previousYear}-${pad2(previous)}-01`,
+        end: monthEnd(previousYear, previous),
+      };
+    }
+    default:
+      return { start: `${year}-01-01`, end: `${year}-12-31` };
+  }
+}
+
+/**
+ * A date range filter's days: its own, or its preset's around `today` (the
+ * reader's calendar day, so presets follow the reader's time zone): the last
+ * 7, 30 or 90 days up to today, this calendar month, the previous one, this
+ * year. Invalid values give no days.
+ */
+export function resolveDashboardDateRange(
+  value: unknown,
+  today: string = dashboardDayValue(new Date())
+): { start?: string; end?: string } {
+  const range = dashboardDateRange(value);
+  if (!range.preset) {
+    return range;
+  }
+  return DATE_ONLY.test(today) ? presetRange(range.preset, today) : {};
+}
+
+/** The advanced filter rule of a dashboard filter on one column (presets resolved around `today`). */
 export function dashboardFilterRule(
-  filter: DashboardFilter,
-  columnId: string
+  filter: Pick<DashboardFilter, "id" | "type" | "value">,
+  columnId: string,
+  today: string = dashboardDayValue(new Date())
 ): UnknownRecord | undefined {
   const base = { id: `dashboard-${filter.id}`, columnId, isActive: true };
   if (filter.type === "select") {
@@ -991,7 +1428,7 @@ export function dashboardFilterRule(
       ? { ...base, type: "select", operator: "isAnyOf", values }
       : undefined;
   }
-  const { start, end } = dashboardDateRange(filter.value);
+  const { start, end } = resolveDashboardDateRange(filter.value, today);
   if (start && end) {
     return { ...base, type: "date", operator: "between", values: [start, end] };
   }
@@ -1015,10 +1452,14 @@ const targetsWidget = (
   target.tableId === widget.tableId &&
   (!target.widgetIds || target.widgetIds.includes(widget.id));
 
-/** The dashboard's filter rules for one widget, on that widget's columns. */
+/**
+ * The dashboard's filter rules for one widget, on that widget's columns;
+ * relative date presets resolve around `today` (the reader's day).
+ */
 export function dashboardFilterRules(
   dashboard: Pick<Dashboard, "filters">,
-  widget: Pick<DashboardWidget, "id" | "tableId" | "type">
+  widget: Pick<DashboardWidget, "id" | "tableId" | "type">,
+  today: string = dashboardDayValue(new Date())
 ): UnknownRecord[] {
   if (widget.type === "note" || widget.type === "block" || !widget.tableId) {
     return [];
@@ -1026,7 +1467,7 @@ export function dashboardFilterRules(
   const rules: UnknownRecord[] = [];
   for (const filter of dashboard.filters) {
     const target = filter.targets.find((item) => targetsWidget(item, widget));
-    const rule = target && dashboardFilterRule(filter, target.columnId);
+    const rule = target && dashboardFilterRule(filter, target.columnId, today);
     if (rule) {
       rules.push(rule);
     }
@@ -1187,8 +1628,199 @@ export function dashboardFilterTargetsLabel(
 /** Changes whenever the widget's rules change, so it reloads (a remount key). */
 export const widgetFilterSignature = (
   dashboard: Pick<Dashboard, "filters">,
-  widget: Pick<DashboardWidget, "id" | "tableId" | "type">
-): string => JSON.stringify(dashboardFilterRules(dashboard, widget));
+  widget: Pick<DashboardWidget, "id" | "tableId" | "type">,
+  today: string = dashboardDayValue(new Date())
+): string => JSON.stringify(dashboardFilterRules(dashboard, widget, today));
+
+// Reader's filter values --------------------------------------------------------------
+
+/** A filter's value: a date range (days or a preset) or the chosen options. */
+export type DashboardFilterValue = DashboardDateRange | string[];
+
+/**
+ * Values a reader picked, by filter id: view state kept in the URL, never
+ * written to the document. `null` is a filter the reader cleared (its default
+ * no longer applies).
+ */
+export type DashboardViewerFilters = Readonly<
+  Record<string, DashboardFilterValue | null>
+>;
+
+/** A filter's URL key: `<dashboardId>.<filterId>`. */
+export const dashboardFilterUrlKey = (
+  dashboardId: string,
+  filterId: string
+): string => `${dashboardId}.${filterId}`;
+
+const RANGE_SEPARATOR = "..";
+
+/**
+ * A filter value as URL values: a preset (`last30Days`), days
+ * (`2026-09-01..2026-09-30`, `2026-09-01..`, `..2026-09-30`) or one value per
+ * option; `[""]` when the filter filters nothing.
+ */
+export function encodeDashboardFilterValue(
+  filter: Pick<DashboardFilter, "type">,
+  value: unknown
+): string[] {
+  if (filter.type === "select") {
+    const values = dashboardSelectValues(value);
+    return values.length ? values : [""];
+  }
+  const range = dashboardDateRange(value);
+  if (range.preset) {
+    return [range.preset];
+  }
+  return range.start || range.end
+    ? [`${range.start ?? ""}${RANGE_SEPARATOR}${range.end ?? ""}`]
+    : [""];
+}
+
+/** URL values back as a filter value; `null` when they filter nothing. */
+export function decodeDashboardFilterValue(
+  filter: Pick<DashboardFilter, "type">,
+  values: readonly string[]
+): DashboardFilterValue | null {
+  if (filter.type === "select") {
+    const chosen = dashboardSelectValues(values);
+    return chosen.length ? chosen : null;
+  }
+  const first = values.at(0) ?? "";
+  const [start, end] = first.includes(RANGE_SEPARATOR)
+    ? first.split(RANGE_SEPARATOR)
+    : [undefined, undefined];
+  const range = dashboardDateRange(
+    (DASHBOARD_DATE_PRESETS as readonly string[]).includes(first)
+      ? { preset: first }
+      : { start, end }
+  );
+  return range.start || range.end || range.preset ? range : null;
+}
+
+/** The values a URL gives a dashboard's filters: only the filters it names. */
+export function readDashboardFilterValues(
+  dashboard: Pick<Dashboard, "id" | "filters">,
+  search: string | URLSearchParams
+): Record<string, DashboardFilterValue | null> {
+  const params =
+    typeof search === "string" ? new URLSearchParams(search) : search;
+  const values: Record<string, DashboardFilterValue | null> = {};
+  for (const filter of dashboard.filters) {
+    const key = dashboardFilterUrlKey(dashboard.id, filter.id);
+    if (params.has(key)) {
+      values[filter.id] = decodeDashboardFilterValue(
+        filter,
+        params.getAll(key)
+      );
+    }
+  }
+  return values;
+}
+
+/**
+ * A URL search with the reader's values of a dashboard's filters (one key per
+ * filter the reader changed; the other keys are left as they are).
+ */
+export function writeDashboardFilterValues(
+  dashboard: Pick<Dashboard, "id" | "filters">,
+  search: string | URLSearchParams,
+  values: DashboardViewerFilters
+): string {
+  const params = new URLSearchParams(search);
+  for (const filter of dashboard.filters) {
+    const key = dashboardFilterUrlKey(dashboard.id, filter.id);
+    params.delete(key);
+    if (Object.hasOwn(values, filter.id)) {
+      for (const value of encodeDashboardFilterValue(
+        filter,
+        values[filter.id]
+      )) {
+        params.append(key, value);
+      }
+    }
+  }
+  return params.toString();
+}
+
+/**
+ * The reader's values with one filter set: dropped when it equals the
+ * document's default (the URL then leaves it out), `null` when cleared.
+ */
+export function setDashboardViewerFilter(
+  dashboard: Pick<Dashboard, "filters">,
+  values: DashboardViewerFilters,
+  filterId: string,
+  value: DashboardFilterValue | null | undefined
+): Record<string, DashboardFilterValue | null> {
+  const filter = dashboard.filters.find((item) => item.id === filterId);
+  if (!filter) {
+    return { ...values };
+  }
+  const next: Record<string, DashboardFilterValue | null> = Object.fromEntries(
+    Object.entries(values).filter(([id]) => id !== filterId)
+  );
+  const picked = normalizeDashboardFilterValue({
+    type: filter.type,
+    value: value ?? undefined,
+  });
+  const same =
+    JSON.stringify(encodeDashboardFilterValue(filter, picked.value)) ===
+    JSON.stringify(encodeDashboardFilterValue(filter, filter.value));
+  if (!same) {
+    next[filterId] = picked.value ?? null;
+  }
+  return next;
+}
+
+/** The dashboard with the reader's filter values instead of the defaults. */
+export function withDashboardFilterValues<T extends Pick<Dashboard, "filters">>(
+  dashboard: T,
+  values: DashboardViewerFilters
+): T {
+  if (!Object.keys(values).length) {
+    return dashboard;
+  }
+  return {
+    ...dashboard,
+    filters: dashboard.filters.map((filter) =>
+      Object.hasOwn(values, filter.id)
+        ? normalizeDashboardFilterValue({
+            ...filter,
+            value: values[filter.id] ?? undefined,
+          })
+        : filter
+    ),
+  };
+}
+
+/**
+ * The filters' current values by filter id, for host blocks: date ranges with
+ * their days (a preset's resolved around `today`, the preset kept), chosen
+ * options; nothing for a filter that filters nothing.
+ */
+export function dashboardFilterValues(
+  dashboard: Pick<Dashboard, "filters">,
+  today: string = dashboardDayValue(new Date())
+): Record<string, DashboardFilterValue | undefined> {
+  return Object.fromEntries(
+    dashboard.filters.map((filter) => {
+      if (!isDashboardFilterActive(filter)) {
+        return [filter.id, undefined];
+      }
+      if (filter.type === "select") {
+        return [filter.id, dashboardSelectValues(filter.value)];
+      }
+      const { preset } = dashboardDateRange(filter.value);
+      return [
+        filter.id,
+        {
+          ...resolveDashboardDateRange(filter.value, today),
+          ...(preset ? { preset } : {}),
+        },
+      ];
+    })
+  );
+}
 
 // Saved views -------------------------------------------------------------------
 
@@ -1317,7 +1949,22 @@ const ENGLISH_LABELS = {
   overflow: "Records that do not fit",
   overflowFit: "Show what fits, then “+N more”",
   overflowScroll: "Scroll inside the widget",
-  notAvailableYet: "Not available yet",
+  typeTable: "Full-page table",
+  typeBlock: "Block",
+  unavailableForbidden: "You don’t have access to this data.",
+  unavailableNotConfigured: "This source is not configured yet.",
+  unavailableNotFound: "This source no longer exists.",
+  unavailableError: "This source is not available.",
+  unknownBlock: "Unavailable block",
+  noticeDefault: "Nothing to show here yet.",
+  screenDefaultView: "Screen default",
+  presets: "Periods",
+  presetLast7Days: "Last 7 days",
+  presetLast30Days: "Last 30 days",
+  presetLast90Days: "Last 90 days",
+  presetThisMonth: "This month",
+  presetLastMonth: "Last month",
+  presetThisYear: "This year",
 };
 
 export type DashboardLabelKey = keyof typeof ENGLISH_LABELS;
@@ -1415,7 +2062,22 @@ const FRENCH_LABELS: Record<DashboardLabelKey, string> = {
   overflow: "Enregistrements qui ne tiennent pas",
   overflowFit: "Afficher ce qui tient, puis « +N de plus »",
   overflowScroll: "Faire défiler dans le widget",
-  notAvailableYet: "Pas encore disponible",
+  typeTable: "Table pleine page",
+  typeBlock: "Bloc",
+  unavailableForbidden: "Vous n’avez pas accès à ces données.",
+  unavailableNotConfigured: "Cette source n’est pas encore configurée.",
+  unavailableNotFound: "Cette source n’existe plus.",
+  unavailableError: "Cette source n’est pas disponible.",
+  unknownBlock: "Bloc indisponible",
+  noticeDefault: "Rien à afficher pour l’instant.",
+  screenDefaultView: "Vue de l’écran",
+  presets: "Périodes",
+  presetLast7Days: "7 derniers jours",
+  presetLast30Days: "30 derniers jours",
+  presetLast90Days: "90 derniers jours",
+  presetThisMonth: "Ce mois-ci",
+  presetLastMonth: "Le mois dernier",
+  presetThisYear: "Cette année",
 };
 
 /** Host override for a label (`dashboard.<key>`), or the built-in one. */
@@ -1459,6 +2121,67 @@ const METRIC_LABELS: Record<DashboardKpiMetric, DashboardLabelKey> = {
   max: "metricMax",
 };
 
+const PRESET_LABELS: Record<DashboardDatePreset, DashboardLabelKey> = {
+  last7Days: "presetLast7Days",
+  last30Days: "presetLast30Days",
+  last90Days: "presetLast90Days",
+  thisMonth: "presetThisMonth",
+  lastMonth: "presetLastMonth",
+  thisYear: "presetThisYear",
+};
+
+/** The relative periods a date range filter offers, in menu order, with their labels. */
+export const dashboardDatePresetOptions = (
+  locale: string,
+  translate?: DashboardTranslate
+): { value: DashboardDatePreset; label: string }[] =>
+  DASHBOARD_DATE_PRESETS.map((value) => ({
+    value,
+    label: dashboardLabel(PRESET_LABELS[value], locale, translate),
+  }));
+
+const UNAVAILABLE_LABELS: Record<string, DashboardLabelKey> = {
+  forbidden: "unavailableForbidden",
+  notConfigured: "unavailableNotConfigured",
+  notFound: "unavailableNotFound",
+  error: "unavailableError",
+};
+
+/**
+ * Why a widget shows nothing: the host's message, else the reason's label
+ * ("You don't have access to this data.", "This source is not configured
+ * yet."…).
+ */
+export function dashboardUnavailableText(
+  reason: string | undefined,
+  message: string | undefined,
+  locale: string,
+  translate?: DashboardTranslate
+): string {
+  const own = text(message);
+  if (own) {
+    return own;
+  }
+  return dashboardLabel(
+    (reason ? UNAVAILABLE_LABELS[reason] : undefined) ?? "unavailableError",
+    locale,
+    translate
+  );
+}
+
+/** What a `meta.notice` says: its message, else its code's label, else a neutral text. */
+export function dashboardNoticeText(
+  notice: DashboardNotice,
+  locale: string,
+  translate?: DashboardTranslate
+): string {
+  const known = notice.code ? UNAVAILABLE_LABELS[notice.code] : undefined;
+  return (
+    text(notice.message) ||
+    dashboardLabel(known ?? "noticeDefault", locale, translate)
+  );
+}
+
 /** KPI metrics in menu order with their labels. */
 export const dashboardMetricOptions = (
   locale: string,
@@ -1471,7 +2194,8 @@ export const dashboardMetricOptions = (
 
 /**
  * The widget's title: its own (in `locale`), the KPI label, its saved view's
- * name, the table's name (inline views and full-page tables) or the block's key.
+ * name, the source's name (inline views and full-page tables) or the block's
+ * label (its key when the host has no label).
  */
 export function dashboardWidgetTitle(
   widget: DashboardWidget,
@@ -1480,6 +2204,8 @@ export function dashboardWidgetTitle(
     translate?: DashboardTranslate;
     table?: Pick<DashboardTableInfo, "name">;
     view?: Pick<DashboardView, "name">;
+    /** The host's block, for block widgets. */
+    block?: { label?: DashboardText };
   }
 ): string {
   const own = dashboardText(widget.title, context.locale);
@@ -1490,7 +2216,10 @@ export function dashboardWidgetTitle(
     return dashboardLabel("typeNote", context.locale, context.translate);
   }
   if (widget.type === "block") {
-    return widget.block ?? "";
+    return (
+      dashboardText(context.block?.label, context.locale) ||
+      (widget.block ?? "")
+    );
   }
   const tableName = context.table?.name ?? widget.tableId ?? "";
   if (widget.type === "kpi") {
@@ -1580,7 +2309,10 @@ export function dashboardDateRangeText(
   translate?: DashboardTranslate,
   column?: DashboardColumn
 ): string {
-  const { start, end } = dashboardDateRange(value);
+  const { start, end, preset } = dashboardDateRange(value);
+  if (preset) {
+    return dashboardLabel(PRESET_LABELS[preset], locale, translate);
+  }
   const format = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
   const show = (day?: string) => {
     const date = dashboardDay(day);

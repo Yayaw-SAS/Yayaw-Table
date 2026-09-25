@@ -753,6 +753,13 @@ export interface TableListParams {
   grouping: string[];
 }
 
+/**
+ * Why a source has nothing to show (`{ code: "notConfigured", message }`), in
+ * a `list` or `aggregate` answer's `meta.notice`: dashboards show it instead
+ * of empty data.
+ */
+export type TableNotice = { code?: string; message?: string } | string;
+
 export interface TableListResult<TData extends TableRecord = TableRecord> {
   data: TData[];
   meta?: {
@@ -768,6 +775,8 @@ export interface TableListResult<TData extends TableRecord = TableRecord> {
     ancestors?: TableRecord[];
     /** The rows were capped (`subtree`, `tree-matches`). */
     truncated?: boolean;
+    /** Why the source has nothing to show; dashboards show it instead of empty data. */
+    notice?: TableNotice;
   };
 }
 
@@ -819,7 +828,7 @@ export interface TableAggregateResponse {
   groups?: import("./chart-model").ChartAggregateGroup[];
   /** The groups were computed over part of the records only. */
   truncated?: boolean;
-  meta?: { totalCount?: number };
+  meta?: { totalCount?: number; notice?: TableNotice };
 }
 
 /** Original displayed row supplied separately from the mutation patch. */

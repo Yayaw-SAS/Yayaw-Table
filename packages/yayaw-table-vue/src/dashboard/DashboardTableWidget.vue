@@ -12,6 +12,7 @@ import type {
 } from "../types";
 import { observeDashboardFit } from "./dashboard-fit";
 import {
+  type DashboardNotice,
   type DashboardView,
   type DashboardWidget,
   dashboardFitPageSize,
@@ -23,6 +24,7 @@ import {
   widgetOverflow,
   widgetViewConfig,
   withDashboardFilters,
+  withNoticeCapture,
 } from "./dashboard-model";
 import type { DashboardLabel, DashboardTableSource } from "./dashboard-types";
 
@@ -30,7 +32,8 @@ import type { DashboardLabel, DashboardTableSource } from "./dashboard-types";
  * A table instance of its own (no URL, private state) showing the widget's
  * view (inline settings or a saved view); the dashboard filters join its
  * `list`/`aggregate` requests. A fit widget (the default in grids) shows the
- * records that fit and "+N more".
+ * records that fit and "+N more". A `meta.notice` in an answer shows instead
+ * of the records.
  */
 const props = defineProps<{
   dashboardId: string;
@@ -54,10 +57,13 @@ const props = defineProps<{
    * pagination instead of fitting a height.
    */
   natural?: boolean;
+  /** What a source's `meta.notice` says (`dashboardNoticeText`). */
+  noticeText: (notice: DashboardNotice) => string;
 }>();
 const emit = defineEmits<{ viewAll: [] }>();
 
 const failure = ref<string>();
+const notice = ref<DashboardNotice>();
 const attempt = ref(0);
 const total = ref<number>();
 const shown = ref<number>();
@@ -92,7 +98,12 @@ const config = computed<TableConfig>(() => {
 });
 const rulesKey = computed(() => JSON.stringify(props.rules));
 const actions = computed<TableActions>(() => {
-  const filtered = withDashboardFilters(props.source.actions, JSON.parse(rulesKey.value) as Record<string, unknown>[]);
+  const filtered = withNoticeCapture(
+    withDashboardFilters(props.source.actions, JSON.parse(rulesKey.value) as Record<string, unknown>[]),
+    (found) => {
+      notice.value = found;
+    }
+  );
   const list = filtered.list as ((params: Record<string, unknown>) => Promise<unknown>) | undefined;
   if (!list) return filtered;
   return {
@@ -151,10 +162,13 @@ watch(
 );
 watch(instanceId, () => {
   total.value = undefined;
+  notice.value = undefined;
 });
 onBeforeUnmount(() => stopFit?.());
 const more = computed(() =>
-  fits.value && total.value !== undefined && shown.value !== undefined ? dashboardMoreCount(total.value, shown.value) : 0
+  fits.value && total.value !== undefined && shown.value !== undefined && !notice.value
+    ? dashboardMoreCount(total.value, shown.value)
+    : 0
 );
 </script>
 
@@ -167,8 +181,36 @@ const more = computed(() =>
       <p role="alert">{{ props.label("widgetError", { error: failure }) }}</p>
       <button type="button" class="yayaw-button yayaw-button-outline" @click="retry">{{ props.label("retry") }}</button>
     </div>
-    <div v-if="fits" ref="fitElement" data-dashboard-fit="">
+    <div
+      v-if="notice"
+      class="yayaw-dashboard-message yayaw-dashboard-notice"
+      data-widget-state="notice"
+      :data-widget-reason="notice.code"
+    >
+      <p>{{ props.noticeText(notice) }}</p>
+    </div>
+    <!-- Kept mounted behind a notice, so "Refresh all" asks again. -->
+    <div :class="notice ? 'yayaw-dashboard-hidden' : 'yayaw-dashboard-contents'">
+      <div v-if="fits" ref="fitElement" data-dashboard-fit="">
+        <YayawDataTable
+          :key="instanceId"
+          :table-type="props.widget.tableId ?? props.source.config.id"
+          :table-id="instanceId"
+          :instance-id="instanceId"
+          :config="config"
+          :get-table-actions="() => actions"
+          :initial-view="initialView"
+          :enable-toolbar="false"
+          :show-filter-bar="false"
+          :sync-url="false"
+          :display-mode-renderers="props.renderers"
+          :locale="props.locale"
+          :translations="props.translations"
+          :get-row-id="props.getRowId"
+        />
+      </div>
       <YayawDataTable
+        v-else
         :key="instanceId"
         :table-type="props.widget.tableId ?? props.source.config.id"
         :table-id="instanceId"
@@ -185,23 +227,6 @@ const more = computed(() =>
         :get-row-id="props.getRowId"
       />
     </div>
-    <YayawDataTable
-      v-else
-      :key="instanceId"
-      :table-type="props.widget.tableId ?? props.source.config.id"
-      :table-id="instanceId"
-      :instance-id="instanceId"
-      :config="config"
-      :get-table-actions="() => actions"
-      :initial-view="initialView"
-      :enable-toolbar="false"
-      :show-filter-bar="false"
-      :sync-url="false"
-      :display-mode-renderers="props.renderers"
-      :locale="props.locale"
-      :translations="props.translations"
-      :get-row-id="props.getRowId"
-    />
     <footer v-if="more > 0" data-widget-more="">
       <span>{{ props.label("moreCount", { count: more }) }}</span>
       <template v-if="props.openable">

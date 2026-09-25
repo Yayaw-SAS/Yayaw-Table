@@ -20,6 +20,7 @@ import {
   type DashboardFilterOption,
   type DashboardTableInfo,
   type DashboardTranslate,
+  dashboardDatePresetOptions,
   dashboardDateRangeText,
   dashboardDay,
   dashboardDayValue,
@@ -29,7 +30,9 @@ import {
   dashboardFilterOptions,
   dashboardFilterTargetsLabel,
   isDashboardFilterActive,
+  resolveDashboardDateRange,
 } from "./dashboard-model";
+import { dashboardDateRange } from "./dashboard-schema";
 import type { DashboardLabel } from "./dashboard-widget";
 
 type WeekStart = 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -77,7 +80,48 @@ function useCalendarText(locale: string) {
   }, [locale]);
 }
 
-/** The Form view's popover calendar, picking a range of days. */
+/** Relative periods ("Last 30 days", "This month"…), the chosen one pressed. */
+function DatePresets({
+  label,
+  locale,
+  onChange,
+  preset,
+  translate,
+}: {
+  label: DashboardLabel;
+  locale: string;
+  onChange: (value: DashboardDateRange) => void;
+  preset?: string;
+  translate: DashboardTranslate;
+}) {
+  return (
+    <fieldset
+      className="m-0 grid min-w-0 content-start gap-0.5 border-b p-2 sm:border-e sm:border-b-0"
+      data-filter-presets=""
+    >
+      <legend className="sr-only">{label("presets")}</legend>
+      {dashboardDatePresetOptions(locale, translate).map((option) => (
+        <Button
+          aria-pressed={preset === option.value}
+          className="justify-start font-normal aria-pressed:bg-accent aria-pressed:font-medium"
+          data-filter-preset={option.value}
+          key={option.value}
+          onClick={() => onChange({ preset: option.value })}
+          size="sm"
+          type="button"
+          variant="ghost"
+        >
+          {option.label}
+        </Button>
+      ))}
+    </fieldset>
+  );
+}
+
+/**
+ * The Form view's popover calendar, picking a range of days, beside the
+ * relative periods (resolved in the reader's time zone when widgets query).
+ */
 function DateRangeControl(props: FilterControlProps) {
   const {
     describedBy,
@@ -90,7 +134,8 @@ function DateRangeControl(props: FilterControlProps) {
     translate,
   } = props;
   const text = useCalendarText(locale);
-  const range = (filter.value ?? {}) as DashboardDateRange;
+  const { preset } = dashboardDateRange(filter.value);
+  const range = resolveDashboardDateRange(filter.value);
   const from = dashboardDay(range.start);
   const to = dashboardDay(range.end);
   const shown = dashboardDateRangeText(
@@ -132,22 +177,32 @@ function DateRangeControl(props: FilterControlProps) {
         className="w-auto gap-0 p-0"
         data-dashboard-filter-popup={filter.id}
       >
-        <Calendar
-          className="[--cell-size:--spacing(8)]"
-          defaultMonth={from ?? to}
-          formatters={text.formatters}
-          labels={text.labels}
-          lang={locale}
-          mode="range"
-          onSelect={(next) =>
-            onChange({
-              start: next?.from ? dashboardDayValue(next.from) : undefined,
-              end: next?.to ? dashboardDayValue(next.to) : undefined,
-            })
-          }
-          selected={from || to ? { from, to } : undefined}
-          weekStartsOn={formWeekStart(locale) as WeekStart}
-        />
+        <div className="flex flex-col sm:flex-row">
+          <DatePresets
+            label={label}
+            locale={locale}
+            onChange={onChange}
+            preset={preset}
+            translate={translate}
+          />
+          <Calendar
+            className="[--cell-size:--spacing(8)]"
+            defaultMonth={from ?? to}
+            formatters={text.formatters}
+            key={preset ?? "days"}
+            labels={text.labels}
+            lang={locale}
+            mode="range"
+            onSelect={(next) =>
+              onChange({
+                start: next?.from ? dashboardDayValue(next.from) : undefined,
+                end: next?.to ? dashboardDayValue(next.to) : undefined,
+              })
+            }
+            selected={from || to ? { from, to } : undefined}
+            weekStartsOn={formWeekStart(locale) as WeekStart}
+          />
+        </div>
         {from || to ? (
           <div className="flex justify-end border-t p-2">
             <Button
@@ -287,7 +342,9 @@ function DashboardFilterControl(props: FilterControlProps) {
     >
       <legend
         className={cn(
-          editing ? "mb-1.5 flex items-center gap-1 font-medium text-sm" : "sr-only"
+          editing
+            ? "mb-1.5 flex items-center gap-1 font-medium text-sm"
+            : "sr-only"
         )}
       >
         {name}

@@ -65,20 +65,23 @@
   min-width: 0;
 }
 /*
- * Rows are sized for a quarter of a desktop grid, not for a phone: figures and
- * notes take the height of their content, charts one proportional to the
- * phone's width. Record widgets keep their rows, which set how many they show.
+ * Rows are sized for a quarter of a desktop grid, not for a phone: figures,
+ * notes and host blocks take the height of their content, charts one
+ * proportional to the phone's width. Record widgets keep their rows, which
+ * set how many they show.
  */
 .yayaw-dashboard-stack
 > [data-dashboard-item]:has(
   [data-widget-type="kpi"],
   [data-widget-type="note"],
+  [data-widget-type="block"],
   [data-widget-mode="chart"]
 ) {
   height: auto;
 }
 .yayaw-dashboard-stack [data-widget-type="kpi"] > [data-widget-body],
-.yayaw-dashboard-stack [data-widget-type="note"] > [data-widget-body] {
+.yayaw-dashboard-stack [data-widget-type="note"] > [data-widget-body],
+.yayaw-dashboard-stack [data-widget-type="block"] > [data-widget-body] {
   flex: none;
   container-type: inline-size;
 }
@@ -304,4 +307,23 @@
 }
 [data-kpi-state="error"] {
   color: var(--yayaw-danger, var(--destructive));
+}
+
+/*
+ * A host block that renders nothing leaves no empty card in a flow (it stays
+ * while editing, so it can be moved or removed); a grid keeps its card.
+ */
+[data-dashboard]:not([data-editing])
+  .yayaw-dashboard-flow
+  > [data-dashboard-item]:has(
+    > [data-widget-type="block"] [data-block-content]:empty
+  ) {
+  display: none;
+}
+
+/* Full-page tables: no card; their body grows with the table. */
+.yayaw-dashboard-flow [data-dashboard-widget][data-widget-frame="page"]
+  > [data-widget-body] {
+  container-type: normal;
+  overflow: visible;
 }

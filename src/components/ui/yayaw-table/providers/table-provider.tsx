@@ -71,6 +71,13 @@ export interface TableAggregateParams {
   weekStartsOn?: number;
 }
 
+/**
+ * Why a source has nothing to show (`{ code: "notConfigured", message }`), in
+ * a `list` or `aggregate` answer's `meta.notice`: dashboards show it instead
+ * of empty data.
+ */
+export type TableNotice = { code?: string; message?: string } | string;
+
 /** What `actions.aggregate` answers: column calculations, or groups for `groupBy`. */
 export interface TableAggregateResponse {
   results?: Record<string, TableAggregateResultValue>;
@@ -80,6 +87,7 @@ export interface TableAggregateResponse {
   truncated?: boolean;
   meta?: {
     totalCount?: number;
+    notice?: TableNotice;
   };
 }
 
@@ -105,6 +113,8 @@ export interface TableActions {
       ancestors?: unknown[];
       /** The rows were capped (`subtree`, `tree-matches`). */
       truncated?: boolean;
+      /** Why the source has nothing to show; dashboards show it instead of empty data. */
+      notice?: TableNotice;
     };
   }>;
   aggregate?: (params: TableAggregateParams) => Promise<TableAggregateResponse>;
@@ -357,7 +367,9 @@ export function TableProvider({
       return mergedTableConfig;
     }
     const behavior =
-      "table" in planningCatalogue ? planningCatalogue.table : planningCatalogue;
+      "table" in planningCatalogue
+        ? planningCatalogue.table
+        : planningCatalogue;
     return { ...behavior, ...tableConfig };
   }, [planningCatalogue, tableConfig, mergedTableConfig]);
   const rawPlanningActions = useMemo(
