@@ -12,3 +12,4 @@ Tags columns backed by the host's tag catalog, the same in React and Vue.
 - The shared, server-safe `tag-catalog.ts` (synced to Vue) holds the contract types and helpers (`resolveTagColumn`, `tagColumnsOf`, `normalizeTagList`, `tagOptions`, `applyTagPatch`, `isTagPatch`, `mergeTagValue`, `removeTagValue`, `tagUsageRequest`, `tagUsageCounts`, `tagLabels`), exported by both editions. EN/FR labels, overridable with `tags.<key>` translations.
 - Vue editable cells no longer open the record view on a single click, as in React: double-click or Enter edits them.
 - The React item's `useBulkActions().completeBulkEdit` takes the targets whose rows it deselects (optional).
+- File tree: when the host ignores the tree's scopes, the tree built in the browser no longer stays on "Loading…" if new page rows arrive during its first load (React and Vue share the fix).
