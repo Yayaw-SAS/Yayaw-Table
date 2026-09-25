@@ -16,7 +16,12 @@ import {
   type ScreenSourceSpec,
   screenText,
 } from "../../../examples/screen";
-import { AttentionBlock, ShortcutsBlock, screenHostKey } from "./screen-blocks";
+import {
+  AttentionBlock,
+  AttentionSettings,
+  ShortcutsBlock,
+  screenHostKey,
+} from "./screen-blocks";
 
 // "Content admin": a screen whose sources load on demand from the host's
 // catalogue, with host blocks and the Pages list page. `?readonly` shows it
@@ -58,7 +63,11 @@ provide(screenHostKey, host);
 const storage = createScreenStorage();
 const blocks: DashboardBlockRegistry = {
   shortcuts: { ...SCREEN_BLOCKS.shortcuts, component: ShortcutsBlock },
-  attention: { ...SCREEN_BLOCKS.attention, component: AttentionBlock },
+  attention: {
+    ...SCREEN_BLOCKS.attention,
+    component: AttentionBlock,
+    settings: AttentionSettings,
+  },
 };
 const opened = ref("");
 const openView = (tableId: string, viewId: string | null, context?: DashboardOpenViewContext) => {
@@ -117,6 +126,24 @@ body:has(.dashboard-example) {
 }
 .screen-block-link:hover {
   text-decoration: underline;
+}
+.screen-block-settings {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  font-size: 14px;
+}
+.screen-block-settings legend {
+  margin-bottom: 0.25rem;
+  padding: 0;
+  font-weight: 500;
+}
+.screen-block-settings label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 </style>
 <style scoped>

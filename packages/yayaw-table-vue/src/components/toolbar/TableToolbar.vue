@@ -87,6 +87,7 @@ import { planningLabelOverrides } from "../../planning/labels";
 import { formLabel } from "../../form-view";
 import { ganttSettingsLabels } from "../../planning/settings";
 import { availableDisplayModes } from "../../view-menu";
+import { canonicalViewConfig } from "../../view-config";
 import { isManualOrder, MANUAL_ORDER_SORT_ID, manualOrderSorting } from "../../manual-order";
 import GallerySettings from "./GallerySettings.vue";
 import ListSettings from "./ListSettings.vue";
@@ -200,6 +201,8 @@ const isCreateEnabled = computed(
 );
 const actionContext = computed<ToolbarActionContext>(() => ({
   actionsAsIcons: actionsAsIcons.value,
+  // Toolbar actions read the live view when they run.
+  getViewConfig: () => canonicalViewConfig(context.state.snapshot.value),
   clearSelection: context.clearSelection,
   count: context.selectedRows.value.length,
   data: context.data.rows.value,

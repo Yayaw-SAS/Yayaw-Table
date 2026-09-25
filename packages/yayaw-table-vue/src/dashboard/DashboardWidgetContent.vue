@@ -2,6 +2,7 @@
 import { computed, onErrorCaptured, ref, toRaw, type VNodeChild } from "vue";
 import type { DisplayModeRenderers } from "../display-mode-renderer";
 import type { DataTableTranslations, TableRecord } from "../types";
+import type { ViewConfig } from "../view-config";
 import {
   type Dashboard,
   type DashboardFilterValue,
@@ -77,7 +78,8 @@ const props = defineProps<{
     context?: DashboardOpenViewContext
   ) => void;
 }>();
-const emit = defineEmits<{ viewAll: []; mutated: [tableId: string] }>();
+/** `page-view`: the view a full-page table shows (`view-config-change`), for "Make the current view the screen default". */
+const emit = defineEmits<{ viewAll: []; mutated: [tableId: string]; pageView: [config: ViewConfig] }>();
 
 // A widget that fails to render shows its error; the others keep working.
 const error = ref<Error>();
@@ -226,6 +228,7 @@ const instanceId = computed(() =>
     :get-row-id="props.getRowId"
     :notice-text="props.noticeText"
     @mutated="emit('mutated', props.widget.tableId)"
+    @view-config-change="(config: ViewConfig) => emit('pageView', config)"
   />
   <DashboardKpiWidget
     v-else-if="state === 'kpi' && source"

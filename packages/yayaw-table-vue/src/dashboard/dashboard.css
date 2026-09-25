@@ -218,6 +218,9 @@
 }
 .yayaw-dashboard-menu {
   min-width: 11rem;
+  /* Long widget menus scroll in short windows instead of leaving the screen. */
+  max-height: var(--reka-dropdown-menu-content-available-height);
+  overflow-y: auto;
 }
 .yayaw-dashboard-sr-only {
   position: absolute;
@@ -474,4 +477,359 @@
     border-bottom: 0;
     border-inline-end: 1px solid var(--yayaw-border);
   }
+}
+/* The screen editor: section bars, empty sections, the widget dialog, the view editor. */
+.yayaw-dashboard-section-bar {
+  display: flex;
+  min-height: 2.5rem;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px dashed var(--yayaw-border);
+  border-radius: calc(var(--yayaw-radius) + 2px);
+  padding: 0.25rem 0.5rem;
+}
+.yayaw-dashboard .yayaw-dashboard-section-input {
+  flex: 1;
+  max-width: 20rem;
+  min-height: 32px;
+  font-weight: 600;
+}
+.yayaw-dashboard-section-empty {
+  display: flex;
+  min-height: 6rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px dashed var(--yayaw-border);
+  border-radius: calc(var(--yayaw-radius) + 6px);
+  padding: 1rem;
+  color: var(--yayaw-muted-foreground);
+  text-align: center;
+}
+.yayaw-dashboard-section-empty p {
+  margin: 0;
+}
+.yayaw-dashboard-issues {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  border: 1px solid color-mix(in oklab, var(--yayaw-danger) 40%, transparent);
+  border-radius: calc(var(--yayaw-radius) + 2px);
+  background: color-mix(in oklab, var(--yayaw-danger) 5%, transparent);
+  padding: 0.5rem 0.75rem;
+}
+.yayaw-dashboard-issues-body {
+  min-width: 0;
+  flex: 1;
+}
+.yayaw-dashboard-issues-title {
+  margin: 0;
+  color: var(--yayaw-danger);
+  font-weight: 500;
+}
+.yayaw-dashboard-issues ul,
+.yayaw-dashboard-props-problems ul {
+  margin: 0.25rem 0 0;
+  padding-inline-start: 1.25rem;
+}
+.yayaw-dashboard-submenu-chevron {
+  margin-inline-start: auto;
+}
+.yayaw-dashboard-dialog-wide {
+  width: min(42rem, calc(100% - 2rem));
+}
+/* The dialog itself takes the focus when a step leaves: no ring around it. */
+.yayaw-dashboard-dialog:focus {
+  outline: none;
+}
+.yayaw-dashboard-dialog-heading {
+  display: grid;
+  gap: 0.5rem;
+  padding-inline-end: 2rem;
+}
+.yayaw-dashboard-dialog-heading p {
+  margin: 0;
+}
+.yayaw-dashboard-kinds {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+.yayaw-dashboard-kinds legend {
+  margin-bottom: 0.5rem;
+  padding: 0;
+  font-weight: 500;
+}
+.yayaw-dashboard-kind-group {
+  display: grid;
+  gap: 0.375rem;
+}
+.yayaw-dashboard-kind-heading {
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+}
+.yayaw-dashboard-kind-list {
+  display: grid;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 640px) {
+  .yayaw-dashboard-kind-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.yayaw-dashboard-kind {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  border: 1px solid var(--yayaw-border);
+  border-radius: calc(var(--yayaw-radius) + 2px);
+  background: transparent;
+  padding: 0.5rem 0.75rem;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.yayaw-dashboard-kind:hover {
+  background: var(--yayaw-muted);
+}
+.yayaw-dashboard-kind:focus-visible {
+  outline: 2px solid var(--yayaw-ring);
+  outline-offset: 1px;
+}
+.yayaw-dashboard-kind-label {
+  font-weight: 500;
+}
+.yayaw-dashboard-kind-hint,
+.yayaw-dashboard-source-detail {
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+}
+.yayaw-dashboard-source-picker {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--yayaw-border);
+  border-radius: calc(var(--yayaw-radius) + 2px);
+}
+.yayaw-dashboard .yayaw-dashboard-source-search,
+.yayaw-dashboard-source-picker .yayaw-dashboard-source-search {
+  width: auto;
+  margin: 4px;
+}
+.yayaw-dashboard-source-list {
+  max-height: 20rem;
+  overflow-y: auto;
+  padding: 4px;
+}
+.yayaw-dashboard-source-state {
+  display: block;
+  margin: 0;
+  padding: 1.5rem 0.5rem;
+  color: var(--yayaw-muted-foreground);
+  text-align: center;
+}
+.yayaw-dashboard-source-error {
+  color: var(--yayaw-danger);
+}
+.yayaw-dashboard-source-group {
+  padding: 2px 0;
+}
+.yayaw-dashboard-source-heading {
+  padding: 6px 8px;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+}
+.yayaw-dashboard-source-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: var(--yayaw-radius);
+  padding: 6px 8px;
+  cursor: default;
+  outline: none;
+}
+.yayaw-dashboard-source-option[data-highlighted] {
+  background: var(--yayaw-muted);
+}
+.yayaw-dashboard-source-option[data-disabled] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.yayaw-dashboard-source-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+.yayaw-dashboard-source-name {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-dashboard-source-line {
+  margin: 0;
+}
+.yayaw-dashboard-source-line span {
+  color: var(--yayaw-foreground);
+}
+.yayaw-dashboard-custom-view {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px dashed var(--yayaw-border);
+  border-radius: calc(var(--yayaw-radius) + 2px);
+  padding: 0.5rem 0.75rem;
+}
+.yayaw-dashboard-custom-view p {
+  min-width: 0;
+  flex: 1;
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-dashboard-block-props {
+  display: grid;
+  gap: 0.5rem;
+}
+.yayaw-dashboard-json {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+.yayaw-dashboard-props-error {
+  margin: 0;
+  color: var(--yayaw-danger);
+}
+.yayaw-dashboard-back {
+  margin-inline-end: auto;
+}
+.yayaw-dashboard .yayaw-dashboard-danger,
+.yayaw-dashboard-dialog .yayaw-dashboard-danger {
+  border-color: transparent;
+  background: color-mix(in oklab, var(--yayaw-danger) 10%, transparent);
+  color: var(--yayaw-danger);
+}
+.yayaw-dashboard-confirm-backdrop {
+  position: fixed;
+  z-index: 86;
+  inset: 0;
+  background: rgb(0 0 0 / 0.1);
+}
+.yayaw-dashboard-dialog.yayaw-dashboard-confirm {
+  z-index: 87;
+  width: min(32rem, calc(100% - 2rem));
+  gap: 1rem;
+}
+.yayaw-dashboard-confirm .yayaw-dashboard-dialog-footer {
+  flex-wrap: wrap;
+}
+/* The view editor: a near full-screen dialog around the source's live table. */
+.yayaw-dashboard-view-editor-backdrop {
+  position: fixed;
+  z-index: 84;
+  inset: 0;
+  background: rgb(0 0 0 / 0.1);
+  backdrop-filter: blur(4px);
+}
+.yayaw-dashboard-view-editor {
+  position: fixed;
+  z-index: 85;
+  inset: 16px;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--yayaw-background);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--yayaw-foreground) 10%, transparent),
+    0 10px 15px -3px rgb(0 0 0 / 0.1);
+  color: var(--yayaw-foreground);
+  font-size: 14px;
+  line-height: 1.4;
+  outline: none;
+}
+.yayaw-dashboard-view-editor,
+.yayaw-dashboard-view-editor * {
+  box-sizing: border-box;
+}
+@media (max-width: 1023px) {
+  .yayaw-dashboard-view-editor {
+    inset: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+.yayaw-dashboard-view-editor-bar {
+  display: flex;
+  min-height: 56px;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  border-bottom: 1px solid var(--yayaw-border);
+  padding: 8px 16px;
+}
+.yayaw-dashboard-view-editor-heading {
+  min-width: 0;
+  flex: 1 1 10rem;
+}
+.yayaw-dashboard-view-editor-title {
+  margin: 0;
+  overflow: hidden;
+  font-size: 1rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-dashboard-view-editor-subtitle {
+  margin: 0;
+  overflow: hidden;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-dashboard-view-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-inline-start: auto;
+}
+.yayaw-dashboard-view-editor-actions .yayaw-button {
+  min-height: 32px;
+  padding: 4px 10px;
+}
+.yayaw-dashboard-view-editor-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.yayaw-dashboard-view-editor-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #f59e0b;
+}
+.yayaw-dashboard-view-editor-table {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  padding: 12px 16px;
 }

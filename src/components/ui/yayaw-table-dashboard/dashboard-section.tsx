@@ -1,6 +1,7 @@
 "use client";
 
 import { type CSSProperties, type ReactNode, useId } from "react";
+import { cn } from "@/lib/utils";
 import { DashboardGrid } from "./dashboard-grid";
 import { DASHBOARD_MARGIN, type DashboardLayoutItem } from "./dashboard-layout";
 import type { DashboardSection } from "./dashboard-schema";
@@ -23,18 +24,30 @@ export interface DashboardSectionViewProps {
     widgetId: string,
     placement: DashboardItemPlacement
   ) => ReactNode;
+  /** Edit mode: the section's bar (its title input and menu), shown instead of its heading. */
+  editBar?: ReactNode;
+  /** Edit mode: what an empty section shows ("Add widget here"). */
+  empty?: ReactNode;
 }
 
 const flowVariables = {
   "--dashboard-margin": `${DASHBOARD_MARGIN}px`,
 } as CSSProperties;
 
+const sectionIsEmpty = (section: DashboardSection): boolean =>
+  section.type === "grid"
+    ? section.layout.length === 0
+    : section.widgetIds.length === 0;
+
 /**
- * A section: its title, then a grid of cards (its own gridstack) or widgets
- * stacked at full width and their natural height (a flow).
+ * A section: its title (in edit mode, its bar), then a grid of cards (its own
+ * gridstack) or widgets stacked at full width and their natural height (a
+ * flow).
  */
 export function DashboardSectionView({
+  editBar,
   editing,
+  empty,
   onLayoutChange,
   renderItem,
   section,
@@ -42,6 +55,36 @@ export function DashboardSectionView({
 }: DashboardSectionViewProps) {
   const titleId = useId();
   const titled = Boolean(title);
+  const bar = editing ? editBar : undefined;
+  let body: ReactNode;
+  if (editing && empty && sectionIsEmpty(section)) {
+    body = empty;
+  } else if (section.type === "grid") {
+    body = (
+      <DashboardGrid
+        editing={editing}
+        layout={section.layout}
+        onLayoutChange={onLayoutChange}
+        renderItem={(widgetId, phone) =>
+          renderItem(widgetId, { phone, flow: false, titled })
+        }
+      />
+    );
+  } else {
+    body = (
+      <div
+        className="yayaw-dashboard-flow"
+        data-dashboard-flow=""
+        style={flowVariables}
+      >
+        {section.widgetIds.map((widgetId) => (
+          <div data-dashboard-item={widgetId} key={widgetId}>
+            {renderItem(widgetId, { phone: false, flow: true, titled })}
+          </div>
+        ))}
+      </div>
+    );
+  }
   return (
     <section
       aria-labelledby={titled ? titleId : undefined}
@@ -51,35 +94,15 @@ export function DashboardSectionView({
     >
       {titled ? (
         <h3
-          className="font-semibold text-base"
+          className={cn("font-semibold text-base", bar ? "sr-only" : undefined)}
           data-section-title=""
           id={titleId}
         >
           {title}
         </h3>
       ) : null}
-      {section.type === "grid" ? (
-        <DashboardGrid
-          editing={editing}
-          layout={section.layout}
-          onLayoutChange={onLayoutChange}
-          renderItem={(widgetId, phone) =>
-            renderItem(widgetId, { phone, flow: false, titled })
-          }
-        />
-      ) : (
-        <div
-          className="yayaw-dashboard-flow"
-          data-dashboard-flow=""
-          style={flowVariables}
-        >
-          {section.widgetIds.map((widgetId) => (
-            <div data-dashboard-item={widgetId} key={widgetId}>
-              {renderItem(widgetId, { phone: false, flow: true, titled })}
-            </div>
-          ))}
-        </div>
-      )}
+      {bar}
+      {body}
     </section>
   );
 }

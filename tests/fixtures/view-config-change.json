@@ -1,0 +1,83 @@
+{
+  "description": "What React onViewConfigChange and Vue view-config-change report for the same table: when it starts, after a sort and after a search.",
+  "columns": [
+    { "id": "name", "header": "Name", "type": "text" },
+    { "id": "status", "header": "Status", "type": "text" }
+  ],
+  "rows": [
+    { "id": "1", "name": "Alpha", "status": "Open" },
+    { "id": "2", "name": "Bravo", "status": "Done" }
+  ],
+  "initialView": {
+    "advancedFilters": [
+      {
+        "id": "open",
+        "columnId": "status",
+        "type": "text",
+        "operator": "isAnyOf",
+        "values": ["Open", "Done"],
+        "isActive": true
+      }
+    ]
+  },
+  "search": "Alpha",
+  "reports": {
+    "started": {
+      "displayMode": "table",
+      "density": "medium",
+      "footerCalculationsVisible": true,
+      "pageSize": 10,
+      "advancedFilters": [
+        {
+          "id": "open",
+          "columnId": "status",
+          "operator": "isAnyOf",
+          "isActive": true,
+          "type": "text",
+          "values": ["Open", "Done"]
+        }
+      ],
+      "columnOrder": ["name", "status"],
+      "columnVisibility": { "name": true, "status": true }
+    },
+    "sorted": {
+      "displayMode": "table",
+      "density": "medium",
+      "footerCalculationsVisible": true,
+      "pageSize": 10,
+      "sorting": [{ "id": "name", "desc": true }],
+      "advancedFilters": [
+        {
+          "id": "open",
+          "columnId": "status",
+          "operator": "isAnyOf",
+          "isActive": true,
+          "type": "text",
+          "values": ["Open", "Done"]
+        }
+      ],
+      "columnOrder": ["name", "status"],
+      "columnVisibility": { "name": true, "status": true }
+    },
+    "searched": {
+      "displayMode": "table",
+      "density": "medium",
+      "footerCalculationsVisible": true,
+      "globalSearch": "Alpha",
+      "pageSize": 10,
+      "sorting": [{ "id": "name", "desc": true }],
+      "advancedFilters": [
+        {
+          "id": "open",
+          "columnId": "status",
+          "operator": "isAnyOf",
+          "isActive": true,
+          "type": "text",
+          "values": ["Open", "Done"]
+        }
+      ],
+      "columnOrder": ["name", "status"],
+      "columnVisibility": { "name": true, "status": true }
+    }
+  }
+}

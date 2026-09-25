@@ -321,3 +321,81 @@ export function areTableViewConfigsEqual(
     normalizeTableViewConfig(right)
   );
 }
+
+/** What a table's view resolves against: its configured defaults. */
+export interface TableViewDefaults {
+  config: TableViewConfig;
+  density?: TableViewConfig["density"];
+  displayMode?: TableDisplayMode;
+}
+
+/** The table's settings a view starts from: the catalogue's columns, sort and mode defaults. */
+export function tableViewDefaults(table: {
+  table: {
+    density?: TableViewConfig["density"];
+    defaultDisplayMode?: TableDisplayMode;
+    defaultPageSize?: number;
+    kanban?: TableViewConfig["kanban"];
+    gallery?: TableViewConfig["gallery"];
+    list?: TableViewConfig["list"];
+    gantt?: TableViewConfig["gantt"];
+  };
+  columns: {
+    definitions: readonly { id: string }[];
+    order?: string[];
+    sort?: TableViewConfig["sorting"];
+    visible?: string[];
+  };
+}): TableViewDefaults {
+  return {
+    density: table.table.density,
+    displayMode: table.table.defaultDisplayMode,
+    config: {
+      // An inactive Kanban lane default must not group the initial table view.
+      grouping: [],
+      density: table.table.density,
+      displayMode: table.table.defaultDisplayMode ?? "table",
+      footerCalculationsVisible: true,
+      pageSize: table.table.defaultPageSize,
+      sorting: table.columns.sort,
+      columnOrder: table.columns.order,
+      columnVisibility: Object.fromEntries(
+        table.columns.definitions.map((column) => [
+          column.id,
+          table.columns.visible?.includes(column.id) ?? true,
+        ])
+      ),
+      kanban: table.table.kanban,
+      gallery: table.table.gallery,
+      list: table.table.list,
+      gantt: table.table.gantt,
+    },
+  };
+}
+
+/**
+ * A view's settings completed with the table's defaults, as saved views
+ * store them: the state of every setting the view does not change.
+ */
+export function resolveTableViewConfig(
+  input: TableViewConfig,
+  defaults: TableViewDefaults
+): TableViewConfig {
+  const displayMode = input.displayMode ?? defaults.displayMode ?? "table";
+  return normalizeTableViewConfig({
+    displayMode: defaults.displayMode ?? "table",
+    pageSize: 10,
+    ...defaults.config,
+    // Legacy Kanban lanes are grouping defaults only for the Kanban presentation.
+    grouping:
+      displayMode === "kanban" && input.kanban?.groupBy
+        ? [input.kanban.groupBy]
+        : [],
+    ...input,
+    density: input.density ?? defaults.density,
+    footerCalculationsVisible:
+      input.footerCalculationsVisible ??
+      defaults.config.footerCalculationsVisible ??
+      true,
+  });
+}

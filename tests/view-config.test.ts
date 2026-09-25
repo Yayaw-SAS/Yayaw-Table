@@ -1,5 +1,6 @@
 import { test } from "bun:test";
 import {
+  canonicalViewConfig,
   copyJson,
   jsonPath,
   sanitizeViewConfig,
@@ -10,6 +11,7 @@ import {
 import { viewConfigSuite } from "./view-config-suite";
 
 viewConfigSuite(test, {
+  canonicalViewConfig,
   copyJson,
   jsonPath,
   sanitizeViewConfig,

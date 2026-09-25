@@ -671,3 +671,483 @@ test("a source's meta.notice shows instead of its data", async ({ page }) => {
   await expect(figure(page, "views")).toHaveCount(0);
   expect(await sourceLoads(page)).toEqual(["analytics"]);
 });
+
+// The screen editor (release B) -------------------------------------------------------
+
+const edit = async (page: Page) => {
+  await toolbar(page).getByRole("button", { name: "Edit" }).click();
+  await expect(
+    toolbar(page).getByRole("button", { name: "Done" })
+  ).toBeVisible();
+};
+const done = async (page: Page) => {
+  await toolbar(page).getByRole("button", { name: "Done" }).click();
+  await expect(page.getByText("Dashboard saved")).toBeVisible();
+  return (await savedDashboards(page))["content-admin"] as {
+    sections: {
+      id: string;
+      type: string;
+      title?: unknown;
+      layout?: { widgetId: string }[];
+    }[];
+    widgets: Record<string, unknown>[];
+  };
+};
+const widgetDialog = (page: Page, name = "Add a widget") =>
+  page.getByRole("dialog", { name });
+const openWidgetMenu = (page: Page, id: string) =>
+  widget(page, id)
+    .getByRole("button", { name: WIDGET_OPTIONS })
+    .first()
+    .click();
+const WIDGET_OPTIONS = /^Widget options for /;
+/** The editor's chunk in each demo's dev server (React `dashboard-editor.tsx`, Vue `DashboardEditorLayer.vue`). */
+const EDITOR_CHUNK = /\/dashboard-editor\.tsx|\/DashboardEditorLayer\.vue/;
+const AUDIT_OPTION = /^Audit log/;
+const INVOICES_OPTION = /^Invoices/;
+const PAGES_OPTION = /^Pages/;
+const SEARCH_RECORDS = /^search/i;
+/** The pages the demo host finds for a search: any field containing it. */
+const matching = (text: string) =>
+  PAGES.filter((entry) =>
+    Object.values(entry).some((value) =>
+      String(value).toLocaleLowerCase().includes(text.toLocaleLowerCase())
+    )
+  );
+const sectionIds = (page: Page) =>
+  page
+    .locator("[data-dashboard-section]")
+    .evaluateAll((sections) =>
+      sections.map((entry) => entry.getAttribute("data-dashboard-section"))
+    );
+
+test("the editor loads with edit mode, never for readers", async ({ page }) => {
+  const requested: string[] = [];
+  page.on("request", (request) => requested.push(request.url()));
+  await page.goto(SCREEN);
+  await ready(page);
+  expect(requested.filter((url) => EDITOR_CHUNK.test(url))).toEqual([]);
+  await edit(page);
+  await toolbar(page).getByRole("button", { name: "Add widget" }).click();
+  await expect(widgetDialog(page)).toBeVisible();
+  expect(requested.some((url) => EDITOR_CHUNK.test(url))).toBe(true);
+});
+
+test("a number from the catalogue, its view edited in the live table, is saved and shown after a reload", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 1100 });
+  await page.goto(SCREEN);
+  await ready(page);
+  await edit(page);
+  await toolbar(page).getByRole("button", { name: "Add widget" }).click();
+  const dialog = widgetDialog(page);
+  await dialog.getByRole("button", { name: "Number", exact: true }).click();
+  await dialog.getByPlaceholder("Search sources").fill("pag");
+  await dialog.getByRole("option", { name: PAGES_OPTION }).click();
+  // Picking the source loads nothing new: it was loaded for the screen.
+  await expect(dialog).toHaveAttribute("data-widget-step", "settings");
+  await dialog
+    .getByLabel("Start from", { exact: true })
+    .selectOption({ label: "Custom view" });
+  await dialog.getByRole("button", { name: "Edit view…" }).click();
+  // The view editor: the source's live table, its toolbar and search.
+  const editor = page.getByRole("dialog", { name: "Edit view" });
+  await expect(editor.locator("[data-row-id]").first()).toBeVisible();
+  await expect(
+    editor.getByRole("button", { name: "Apply", exact: true })
+  ).toBeDisabled();
+  await editor.getByPlaceholder(SEARCH_RECORDS).fill("Ada");
+  await expect(editor.locator("[data-row-id]")).toHaveCount(
+    matching("Ada").length
+  );
+  await editor.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect(editor).toHaveCount(0);
+  await dialog.getByLabel("Title", { exact: true }).fill("Ada's pages");
+  await dialog.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(figure(page, "widget-9")).toHaveText(
+    String(matching("Ada").length)
+  );
+  await expect(
+    widget(page, "widget-9").locator("[data-widget-title]")
+  ).toHaveText("Ada's pages");
+  expect(await sourceLoads(page)).toEqual(["pages", "media", "audit"]);
+
+  const saved = await done(page);
+  const number = saved.widgets.find((entry) => entry.id === "widget-9");
+  expect(number).toMatchObject({
+    type: "kpi",
+    tableId: "pages",
+    view: { globalSearch: "Ada" },
+    settings: { metric: "count", label: "Ada's pages" },
+  });
+  // The page size the table started with is left out.
+  expect((number?.view as { pageSize?: number }).pageSize).toBeUndefined();
+  await page.reload();
+  await expect(figure(page, "widget-9")).toHaveText(
+    String(matching("Ada").length)
+  );
+});
+
+test("the view editor asks before closing with changes", async ({ page }) => {
+  await page.goto(SCREEN);
+  await ready(page);
+  await edit(page);
+  await openWidgetMenu(page, "drafts");
+  await page.getByRole("menuitem", { name: "Edit view…" }).click();
+  const editor = page.getByRole("dialog", { name: "Edit view" });
+  await expect(editor.locator("[data-row-id]")).toHaveCount(count("draft"));
+  await editor.getByPlaceholder(SEARCH_RECORDS).fill("Ada");
+  await expect(editor.getByText("Unsaved changes")).toBeVisible();
+  await editor.getByRole("button", { name: "Close" }).click();
+  const confirm = page.getByRole("alertdialog", {
+    name: "Discard your changes?",
+  });
+  await confirm.getByRole("button", { name: "Keep editing" }).click();
+  await expect(confirm).toHaveCount(0);
+  await expect(editor).toBeVisible();
+  await page.keyboard.press("Escape");
+  await confirm.getByRole("button", { name: "Discard" }).click();
+  await expect(editor).toHaveCount(0);
+  // Nothing changed: the drafts still count every draft.
+  await expect(figure(page, "drafts")).toHaveText(String(count("draft")));
+  // Applying changes the number at once.
+  await openWidgetMenu(page, "drafts");
+  await page.getByRole("menuitem", { name: "Edit view…" }).click();
+  await editor.getByPlaceholder(SEARCH_RECORDS).fill("Ada");
+  await expect(editor.locator("[data-row-id]")).toHaveCount(
+    count("draft", matching("Ada"))
+  );
+  await editor.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect(figure(page, "drafts")).toHaveText(
+    String(count("draft", matching("Ada")))
+  );
+});
+
+test("a saved view becomes a copy of its own", async ({ page }) => {
+  await saveDashboards(page, [
+    {
+      version: 2,
+      id: "content-admin",
+      name: "Copies",
+      sections: [
+        {
+          id: "cards",
+          type: "grid",
+          layout: [{ widgetId: "review", x: 0, y: 0, w: 2, h: 3 }],
+        },
+      ],
+      widgets: [
+        {
+          id: "review",
+          type: "view",
+          tableId: "pages",
+          viewId: "in-review",
+          settings: {},
+        },
+      ],
+      filters: [],
+    },
+  ]);
+  await page.goto(SCREEN);
+  const title = widget(page, "review").locator("[data-widget-title]");
+  await expect(title).toHaveText("In review");
+  await edit(page);
+  await openWidgetMenu(page, "review");
+  await page.getByRole("menuitem", { name: "Use a copy of this view" }).click();
+  // It reads the same, and no longer names the saved view.
+  await expect(title).toHaveText("In review");
+  await expect(
+    widget(page, "review").locator("[data-row-id]").first()
+  ).toBeVisible();
+  await openWidgetMenu(page, "review");
+  await expect(
+    page.getByRole("menuitem", { name: "Use a copy of this view" })
+  ).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  const saved = await done(page);
+  const review = saved.widgets.find((entry) => entry.id === "review");
+  expect(review).toEqual({
+    id: "review",
+    type: "view",
+    tableId: "pages",
+    title: "In review",
+    view: {
+      displayMode: "list",
+      advancedFilters: [
+        {
+          id: "review",
+          columnId: "status",
+          operator: "isAnyOf",
+          isActive: true,
+          type: "select",
+          values: ["review"],
+        },
+      ],
+    },
+    settings: {},
+  });
+});
+
+test("the page table's current view becomes the screen default", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 1100 });
+  await page.goto(`${SCREEN}&pages-sort=${encodeURIComponent(BY_TITLE)}`);
+  const rows = pageTable(page).locator("[data-row-id]");
+  await expect(rows.first()).toContainText(ALPHABETICAL[0] ?? "");
+  await edit(page);
+  await openWidgetMenu(page, "pages-table");
+  await page
+    .getByRole("menuitem", {
+      name: "Make the current view the screen default",
+    })
+    .click();
+  const saved = await done(page);
+  const table = saved.widgets.find((entry) => entry.id === "pages-table");
+  const view = table?.view as { sorting?: unknown; pageSize?: number };
+  expect(view.sorting).toEqual([{ id: "title", desc: false }]);
+  expect(view.pageSize).toBeUndefined();
+  // Readers now arrive on it.
+  await page.goto(SCREEN);
+  await expect(rows.first()).toContainText(ALPHABETICAL[0] ?? "");
+  await expect.poll(() => searchParam(page, "view")).toBe(SCREEN_VIEW);
+});
+
+test("sections are added, renamed, moved and removed; widgets move between them", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 1100 });
+  await page.goto(SCREEN);
+  await ready(page);
+  await edit(page);
+  await toolbar(page).getByRole("button", { name: "Add section" }).click();
+  await page.getByRole("menuitem", { name: "Full width" }).click();
+  const later = page.locator('[data-dashboard-section="section-3"]');
+  await expect(later).toHaveAttribute("data-section-type", "flow");
+  await expect(later.locator("[data-section-empty]")).toBeVisible();
+  await later.getByLabel("Section title").fill("Later");
+  // Up, above the Pages section.
+  await page.getByRole("button", { name: "Section options for Later" }).click();
+  await page.getByRole("menuitem", { name: "Move up" }).click();
+  await expect
+    .poll(() => sectionIds(page))
+    .toEqual(["overview", "section-3", "pages"]);
+  // A card moves to the new section: its grid closes the gap.
+  await openWidgetMenu(page, "shortcuts");
+  await page.getByRole("menuitem", { name: "Move to section" }).click();
+  await page.getByRole("menuitem", { name: "Later" }).click();
+  await expect(
+    later.locator('[data-dashboard-item="shortcuts"]')
+  ).toBeVisible();
+  await expect(later.locator("[data-section-empty]")).toHaveCount(0);
+  // The full-page table only goes to flows: never offered the grid.
+  await openWidgetMenu(page, "pages-table");
+  await page.getByRole("menuitem", { name: "Move to section" }).click();
+  await expect(page.getByRole("menuitem", { name: "Overview" })).toHaveCount(0);
+  await page.getByRole("menuitem", { name: "Later" }).click();
+  // Pages is left empty; it goes without a question.
+  await page.getByRole("button", { name: "Section options for Pages" }).click();
+  await page.getByRole("menuitem", { name: "Remove" }).click();
+  await expect(page.locator('[data-dashboard-section="pages"]')).toHaveCount(0);
+  // Adding a widget here: the dialog offers what a grid takes (no table page).
+  await page
+    .getByRole("button", { name: "Section options for Overview" })
+    .click();
+  await page.getByRole("menuitem", { name: "Add widget here" }).click();
+  await expect(
+    widgetDialog(page).getByRole("button", { name: "Table page" })
+  ).toHaveCount(0);
+  await widgetDialog(page).getByRole("button", { name: "Cancel" }).click();
+  // A section with widgets asks first.
+  await page.getByRole("button", { name: "Section options for Later" }).click();
+  await page.getByRole("menuitem", { name: "Remove" }).click();
+  const confirm = page.getByRole("alertdialog", { name: "Remove Later?" });
+  await expect(confirm).toContainText("Its 2 widgets are removed with it.");
+  await confirm.getByRole("button", { name: "Cancel" }).click();
+  await expect(later).toBeVisible();
+
+  const saved = await done(page);
+  expect(saved.sections.map((section) => section.id)).toEqual([
+    "overview",
+    "section-3",
+  ]);
+  expect(saved.sections[1]).toEqual({
+    id: "section-3",
+    type: "flow",
+    title: "Later",
+    widgetIds: ["shortcuts", "pages-table"],
+  });
+  expect(
+    saved.sections[0]?.layout?.map((entry) => entry.widgetId)
+  ).not.toContain("shortcuts");
+});
+
+test("a block's props are JSON, checked before they apply", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 1100 });
+  await page.goto(SCREEN);
+  await ready(page);
+  await edit(page);
+  await toolbar(page).getByRole("button", { name: "Add widget" }).click();
+  const dialog = widgetDialog(page);
+  await dialog.getByRole("button", { name: "Shortcuts", exact: true }).click();
+  const props = dialog.getByLabel("Properties (JSON)");
+  // The block's default props to start from.
+  await expect(props).toHaveValue('{\n  "links": []\n}');
+  await props.fill('{ "links": [');
+  await dialog.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(dialog.getByRole("alert")).toHaveText("This is not valid JSON.");
+  await props.fill('{ "links": "nope" }');
+  await dialog.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(dialog.getByRole("alert")).toContainText(
+    "The block refuses these properties:"
+  );
+  await expect(dialog.getByRole("alert")).toContainText(
+    "links is a list of { label, href }."
+  );
+  await props.fill('{ "links": [{ "label": "Docs", "href": "#docs" }] }');
+  await dialog.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  const added = widget(page, "widget-9");
+  await expect(added.locator("[data-shortcuts] a")).toHaveText(["Docs"]);
+  // Editing the props.
+  await openWidgetMenu(page, "widget-9");
+  await page.getByRole("menuitem", { name: "Edit…" }).click();
+  const editing = widgetDialog(page, "Edit the widget");
+  await editing
+    .getByLabel("Properties (JSON)")
+    .fill('{ "links": [{ "label": "Guides", "href": "#docs" }] }');
+  await editing.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect(added.locator("[data-shortcuts] a")).toHaveText(["Guides"]);
+  const saved = await done(page);
+  expect(saved.widgets.find((entry) => entry.id === "widget-9")).toEqual({
+    id: "widget-9",
+    type: "block",
+    block: "shortcuts",
+    props: { links: [{ label: "Guides", href: "#docs" }] },
+    settings: {},
+  });
+});
+
+test("a block's own settings form edits its props", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 1100 });
+  await page.goto(SCREEN);
+  await ready(page);
+  const listed = widget(page, "attention").locator("[data-attention-item]");
+  await expect(listed).toHaveCount(2);
+  await edit(page);
+  await openWidgetMenu(page, "attention");
+  await page.getByRole("menuitem", { name: "Edit…" }).click();
+  const dialog = widgetDialog(page, "Edit the widget");
+  // The host's form instead of JSON, showing the block's default props.
+  const settings = dialog.locator("[data-attention-settings]");
+  await expect(settings).toBeVisible();
+  await expect(dialog.getByLabel("Properties (JSON)")).toHaveCount(0);
+  const review = settings.getByRole("checkbox", {
+    name: "Pages waiting for review",
+  });
+  const alt = settings.getByRole("checkbox", {
+    name: "Images without alt text",
+  });
+  await expect(review).toBeChecked();
+  await expect(alt).toBeChecked();
+  await alt.uncheck();
+  await dialog.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  const reviewOnly = [`${count("review")} pages waiting for review`];
+  await expect(listed).toHaveText(reviewOnly);
+  const saved = await done(page);
+  expect(saved.widgets.find((entry) => entry.id === "attention")).toEqual({
+    id: "attention",
+    type: "block",
+    block: "attention",
+    props: { items: ["review"] },
+    settings: {},
+  });
+  await page.reload();
+  await expect(listed).toHaveText(reviewOnly);
+});
+
+test("Done saves nothing while the screen has errors, and says where they are", async ({
+  page,
+}) => {
+  const links = {
+    id: "links",
+    type: "block",
+    block: "shortcuts",
+    title: "Links",
+    props: { links: "nope" },
+    settings: {},
+  };
+  await saveDashboards(page, [
+    {
+      version: 2,
+      id: "content-admin",
+      name: "Errors",
+      sections: [{ id: "page", type: "flow", widgetIds: ["links", "notes"] }],
+      widgets: [
+        links,
+        { id: "notes", type: "note", settings: { text: "Below." } },
+      ],
+      filters: [],
+    },
+  ]);
+  await page.goto(SCREEN);
+  await expect(widget(page, "notes")).toContainText("Below.");
+  await edit(page);
+  await toolbar(page).getByRole("button", { name: "Done" }).click();
+  const issues = page.locator("[data-dashboard-issues]");
+  await expect(issues).toContainText(
+    "The screen was not saved. Fix these problems first:"
+  );
+  await expect(issues.locator("li")).toHaveText([
+    "Links: links is a list of { label, href }.",
+  ]);
+  // Still editing; the stored document is unchanged.
+  await expect(
+    toolbar(page).getByRole("button", { name: "Done" })
+  ).toBeVisible();
+  expect(
+    ((await savedDashboards(page))["content-admin"]?.widgets as unknown[])[0]
+  ).toEqual(links);
+  // Fixed in the widget dialog, the screen saves.
+  await openWidgetMenu(page, "links");
+  await page.getByRole("menuitem", { name: "Edit…" }).click();
+  const editing = widgetDialog(page, "Edit the widget");
+  await editing.getByLabel("Properties (JSON)").fill('{ "links": [] }');
+  await editing.getByRole("button", { name: "Apply", exact: true }).click();
+  const saved = await done(page);
+  await expect(issues).toHaveCount(0);
+  expect(saved.widgets.find((entry) => entry.id === "links")?.props).toEqual({
+    links: [],
+  });
+});
+
+test("unavailable sources are listed in the catalogue, disabled, with the reason", async ({
+  page,
+}) => {
+  await page.goto(SCREEN);
+  await ready(page);
+  await edit(page);
+  await toolbar(page).getByRole("button", { name: "Add widget" }).click();
+  const dialog = widgetDialog(page);
+  await dialog.getByRole("button", { name: "View", exact: true }).click();
+  const audit = dialog.getByRole("option", { name: AUDIT_OPTION });
+  const invoices = dialog.getByRole("option", { name: INVOICES_OPTION });
+  await expect(audit).toBeDisabled();
+  await expect(audit).toContainText("You don’t have access to this data.");
+  await expect(invoices).toBeDisabled();
+  await expect(invoices).toContainText("Connect Stripe to see invoices.");
+  await expect(
+    dialog.getByRole("option", { name: PAGES_OPTION })
+  ).toBeEnabled();
+  // A search narrows the catalogue; nothing unavailable loads.
+  await dialog.getByPlaceholder("Search sources").fill("invoices");
+  await expect(dialog.getByRole("option")).toHaveCount(1);
+  await invoices.click({ force: true });
+  await expect(dialog).toHaveAttribute("data-widget-step", "source");
+  expect(await sourceLoads(page)).toEqual(["pages", "media", "audit"]);
+});

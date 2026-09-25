@@ -14,6 +14,7 @@ import {
   tableUrlKeys,
 } from "../src/components/ui/yayaw-table/providers/table-state-sync-provider";
 import type { TableViewConfig } from "../src/components/ui/yayaw-table/types/view-types";
+import viewChange from "./fixtures/view-config-change.json";
 
 const originalGetAnimations = Object.getOwnPropertyDescriptor(
   Element.prototype,
@@ -223,5 +224,125 @@ it("renders two embedded instances of one table from their own views without tou
     )
   ).toEqual(["Open", "Done"]);
   expect(urlUpdates).toBe(0);
+  client.clear();
+});
+
+it("reports its view when it starts, after a sort and after a search, as Vue does", async () => {
+  const config = defineTableConfig({
+    id: "reported",
+    columns: {
+      definitions: viewChange.columns as never,
+      visible: ["name", "status"],
+      order: ["name", "status"],
+      mandatory: ["name"],
+    },
+    table: {
+      syncUrl: false,
+      enableViews: false,
+      enableRowSelection: false,
+      searchDebounceMs: 0,
+    },
+    translations: { namespace: "reported", keys: {} },
+  });
+  const actions = {
+    list: () =>
+      Promise.resolve({
+        data: viewChange.rows,
+        meta: { pageCount: 1, totalCount: viewChange.rows.length },
+      }),
+  };
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  const reported: unknown[] = [];
+  const read: unknown[] = [];
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  roots.push(root);
+  await act(() =>
+    root.render(
+      <NuqsTestingAdapter hasMemory>
+        <DataTable
+          getRowId={(row) => String(row.id)}
+          getTableActions={() => actions}
+          getTableConfig={() => config}
+          initialView={{
+            id: null,
+            config: viewChange.initialView as unknown as TableViewConfig,
+          }}
+          instanceId="reported-view"
+          onViewConfigChange={(view) => reported.push(view)}
+          queryClient={client}
+          tableType="reported"
+          toolbarActions={[
+            {
+              id: "read-view",
+              label: "Read view",
+              onClick: (context) => {
+                read.push(context.getViewConfig());
+              },
+            },
+          ]}
+        />
+      </NuqsTestingAdapter>
+    )
+  );
+  await settle(200);
+  expect(reported).toEqual([viewChange.reports.started]);
+
+  // Sort by name, descending, from the column's menu.
+  const nameMenu = [
+    ...container.querySelectorAll<HTMLButtonElement>(
+      'th button[aria-label="Toggle columns"]'
+    ),
+  ].find((button) => button.closest("th")?.textContent?.includes("Name"));
+  await act(async () => {
+    nameMenu?.click();
+    await Promise.resolve();
+  });
+  const descending = [
+    ...document.querySelectorAll<HTMLElement>('[role="menuitem"]'),
+  ].find((entry) => entry.textContent?.toLowerCase() === "sort descending");
+  await act(async () => {
+    descending?.click();
+    await Promise.resolve();
+  });
+  // Sorts are written after a 150 ms debounce.
+  await settle(300);
+  expect(reported.at(-1)).toEqual(viewChange.reports.sorted);
+
+  // Search: a filter of the view.
+  const search = container.querySelector<HTMLInputElement>(
+    "[data-table-toolbar] input"
+  );
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value"
+    )?.set?.call(search, viewChange.search);
+    search?.dispatchEvent(new Event("input", { bubbles: true }));
+    await Promise.resolve();
+  });
+  await settle(300);
+  expect(reported.at(-1)).toEqual(viewChange.reports.searched);
+  // Each distinct view once.
+  expect(new Set(reported.map((view) => JSON.stringify(view))).size).toBe(
+    reported.length
+  );
+
+  // A toolbar action reads the live view.
+  const readButton = [
+    ...container.querySelectorAll<HTMLButtonElement>("button"),
+  ].find(
+    (button) =>
+      button.textContent === "Read view" ||
+      button.getAttribute("aria-label") === "Read view"
+  );
+  await act(async () => {
+    readButton?.click();
+    await Promise.resolve();
+  });
+  expect(read).toEqual([viewChange.reports.searched]);
   client.clear();
 });

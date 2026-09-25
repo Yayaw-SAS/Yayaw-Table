@@ -212,7 +212,7 @@ for (const [source, target] of [
   );
 }
 
-// The dashboard's grammar (schema, sources, layout), model, URL filter state,
+// The dashboard's grammar (schema, sources, layout), model, editor rules, URL filter state,
 // record fitting, gridstack controller and grid styles are shared by both
 // optional dashboard items; only the paths of the table's shared helpers
 // (table contracts, chart model, view settings) differ.
@@ -228,6 +228,7 @@ await mkdir(dashboardTarget, { recursive: true });
 for (const name of [
   "dashboard-schema.ts",
   "dashboard-sources.ts",
+  "dashboard-editor-model.ts",
   "dashboard-layout.ts",
   "dashboard-model.ts",
   "dashboard-url.ts",

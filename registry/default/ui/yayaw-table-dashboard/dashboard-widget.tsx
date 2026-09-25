@@ -6,6 +6,7 @@ import {
   ArrowRight,
   ArrowUp,
   ExternalLink,
+  FolderInput,
   GripVertical,
   MoreHorizontal,
   MoveDiagonal2,
@@ -17,6 +18,7 @@ import {
 import {
   Component,
   type ComponentProps,
+  type ComponentType,
   type ReactNode,
   useCallback,
   useEffect,
@@ -31,6 +33,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DataTable } from "@/components/ui/yayaw-table/components/data-table";
@@ -116,27 +121,92 @@ const RESIZE_ICONS = {
   shorter: MoveDiagonal2,
 };
 
-/** Edit menu: keyboard alternatives to dragging and resizing, and removal. */
-function WidgetMenu({
-  canMove,
-  canResize,
-  label,
-  onMove,
-  onRemove,
-  onResize,
-  resizable,
-  title,
-}: {
+/** An entry the screen editor adds at the top of a widget's menu. */
+export interface DashboardWidgetMenuAction {
+  /** Stable id (`data-widget-action`). */
+  id: string;
+  label: string;
+  icon?: ComponentType<{ className?: string }>;
+  onSelect: () => void;
+}
+
+/** A section the widget's menu can move it to ("Move to section"). */
+export interface DashboardWidgetMoveTarget {
+  id: string;
+  name: string;
+}
+
+interface WidgetMenuProps {
   canMove: (direction: DashboardDirection) => boolean;
   canResize: (change: DashboardResize) => boolean;
   label: DashboardLabel;
   onMove: (direction: DashboardDirection) => void;
   onRemove: () => void;
   onResize: (change: DashboardResize) => void;
-  /** Grid widgets resize; flow widgets keep their natural size. */
+  /** Grid widgets resize and move every way; flow widgets move up and down. */
   resizable: boolean;
   title: string;
+  actions?: readonly DashboardWidgetMenuAction[];
+  moveTargets?: readonly DashboardWidgetMoveTarget[];
+  onMoveToSection?: (sectionId: string) => void;
+}
+
+/** "Move to section": the other sections that take the widget. */
+function MoveToSection({
+  label,
+  onMoveToSection,
+  targets,
+}: {
+  label: DashboardLabel;
+  onMoveToSection?: (sectionId: string) => void;
+  targets?: readonly DashboardWidgetMoveTarget[];
 }) {
+  if (!(targets?.length && onMoveToSection)) {
+    return null;
+  }
+  return (
+    <DropdownMenuSub>
+      <DropdownMenuSubTrigger data-widget-move-to="">
+        <FolderInput aria-hidden="true" />
+        {label("moveToSection")}
+      </DropdownMenuSubTrigger>
+      <DropdownMenuSubContent className="min-w-40">
+        {targets.map((target) => (
+          <DropdownMenuItem
+            data-move-target={target.id}
+            key={target.id}
+            onClick={() => onMoveToSection(target.id)}
+          >
+            {target.name}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuSubContent>
+    </DropdownMenuSub>
+  );
+}
+
+/**
+ * Edit menu: the editor's entries (edit, view, copies), keyboard
+ * alternatives to dragging and resizing, moving to another section, removal.
+ */
+function WidgetMenu({
+  actions = [],
+  canMove,
+  canResize,
+  label,
+  moveTargets,
+  onMove,
+  onMoveToSection,
+  onRemove,
+  onResize,
+  resizable,
+  title,
+}: WidgetMenuProps) {
+  const moves = resizable
+    ? MOVES
+    : MOVES.filter(
+        ({ direction }) => direction === "up" || direction === "down"
+      );
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -151,8 +221,26 @@ function WidgetMenu({
       >
         <MoreHorizontal aria-hidden="true" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-44">
-        {MOVES.map(({ direction, key }) => {
+      <DropdownMenuContent align="end" className="min-w-52">
+        {actions.length ? (
+          <>
+            {actions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <DropdownMenuItem
+                  data-widget-action={action.id}
+                  key={action.id}
+                  onClick={action.onSelect}
+                >
+                  {Icon ? <Icon aria-hidden="true" /> : null}
+                  {action.label}
+                </DropdownMenuItem>
+              );
+            })}
+            <DropdownMenuSeparator />
+          </>
+        ) : null}
+        {moves.map(({ direction, key }) => {
           const Icon = MOVE_ICONS[direction];
           return (
             <DropdownMenuItem
@@ -165,6 +253,11 @@ function WidgetMenu({
             </DropdownMenuItem>
           );
         })}
+        <MoveToSection
+          label={label}
+          onMoveToSection={onMoveToSection}
+          targets={moveTargets}
+        />
         <DropdownMenuSeparator />
         {resizable ? (
           <>
@@ -217,6 +310,11 @@ export interface DashboardWidgetFrameProps {
   onResize: (change: DashboardResize) => void;
   onRemove: () => void;
   onOpen?: () => void;
+  /** The editor's entries at the top of the menu (edit, edit view, copies…). */
+  menuActions?: readonly DashboardWidgetMenuAction[];
+  /** The other sections that take the widget. */
+  moveTargets?: readonly DashboardWidgetMoveTarget[];
+  onMoveToSection?: (sectionId: string) => void;
   children: ReactNode;
 }
 
@@ -231,7 +329,10 @@ function PageFrame({
   editing,
   headingLevel = 3,
   label,
+  menuActions,
+  moveTargets,
   onMove,
+  onMoveToSection,
   onRemove,
   onResize,
   showHeading = false,
@@ -262,10 +363,13 @@ function PageFrame({
           </span>
           <span className="ms-auto">
             <WidgetMenu
+              actions={menuActions}
               canMove={canMove}
               canResize={canResize}
               label={label}
+              moveTargets={moveTargets}
               onMove={onMove}
+              onMoveToSection={onMoveToSection}
               onRemove={onRemove}
               onResize={onResize}
               resizable={false}
@@ -306,7 +410,10 @@ function CardFrame({
   editing,
   headingLevel = 3,
   label,
+  menuActions,
+  moveTargets,
   onMove,
+  onMoveToSection,
   onOpen,
   onRemove,
   onResize,
@@ -360,10 +467,13 @@ function CardFrame({
         )}
         {editing && (
           <WidgetMenu
+            actions={menuActions}
             canMove={canMove}
             canResize={canResize}
             label={label}
+            moveTargets={moveTargets}
             onMove={onMove}
+            onMoveToSection={onMoveToSection}
             onRemove={onRemove}
             onResize={onResize}
             resizable={resizable}

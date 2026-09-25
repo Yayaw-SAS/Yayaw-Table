@@ -252,7 +252,8 @@ multi-instance pages: [configuration](references/configuration.md).
 - Dashboards are not a mode: `YayawDashboard` (items `yayaw-table-dashboard`,
   `yayaw-table-vue-dashboard`) arranges views of several sources, numbers,
   notes, full-page tables and host blocks; admin screens use it with a lazy
-  `sources` catalogue.
+  `sources` catalogue, and admins edit them in place (the editor loads with
+  edit mode).
 
 Per-mode settings, contracts and fallbacks, dashboards and custom renderers:
 [display modes](references/display-modes.md).

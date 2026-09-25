@@ -16,6 +16,7 @@ const SYNCED: [
   ...[
     "dashboard-schema.ts",
     "dashboard-sources.ts",
+    "dashboard-editor-model.ts",
     "dashboard-layout.ts",
     "dashboard-model.ts",
     "dashboard-url.ts",

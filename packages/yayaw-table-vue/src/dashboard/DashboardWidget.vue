@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import {
-  ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ExternalLink, GripVertical, MoreHorizontal,
+  ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ChevronRight, ExternalLink, FolderInput, GripVertical, MoreHorizontal,
   MoveDiagonal2, MoveHorizontal, MoveVertical, Shrink, Trash2,
 } from "lucide-vue-next";
 import {
-  DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuSeparator,
+  DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger,
 } from "reka-ui";
 import { computed, useId } from "vue";
 import {
@@ -15,7 +16,11 @@ import {
   type DashboardWidget,
   widgetOverflow,
 } from "./dashboard-model";
-import type { DashboardLabel } from "./dashboard-types";
+import type {
+  DashboardLabel,
+  DashboardWidgetMenuAction,
+  DashboardWidgetMoveTarget,
+} from "./dashboard-types";
 
 /**
  * A widget's card: title, "Open full view", the edit menu and its content.
@@ -41,14 +46,19 @@ const props = withDefaults(
     canMove: (direction: DashboardDirection) => boolean;
     canResize: (change: DashboardResize) => boolean;
     openable: boolean;
+    /** The editor's entries at the top of the menu (edit, edit view, copies…). */
+    menuActions?: readonly DashboardWidgetMenuAction[];
+    /** The other sections that take the widget ("Move to section"). */
+    moveTargets?: readonly DashboardWidgetMoveTarget[];
   }>(),
-  { headingLevel: 3, frame: "card", showHeading: false }
+  { headingLevel: 3, frame: "card", showHeading: false, menuActions: () => [], moveTargets: () => [] }
 );
 const emit = defineEmits<{
   move: [direction: DashboardDirection];
   resize: [change: DashboardResize];
   remove: [];
   open: [];
+  moveToSection: [sectionId: string];
 }>();
 const titleId = useId();
 const overflow = computed<DashboardOverflow>(() =>
@@ -62,6 +72,10 @@ const moves: { direction: DashboardDirection; key: DashboardLabelKey; icon: unkn
   { direction: "up", key: "moveUp", icon: ArrowUp },
   { direction: "down", key: "moveDown", icon: ArrowDown },
 ];
+// Flow widgets (and full-page tables) move up and down only.
+const shownMoves = computed(() =>
+  resizable.value ? moves : moves.filter((item) => item.direction === "up" || item.direction === "down")
+);
 const resizes: { change: DashboardResize; key: DashboardLabelKey; icon: unknown }[] = [
   { change: "wider", key: "wider", icon: MoveHorizontal },
   { change: "narrower", key: "narrower", icon: Shrink },
@@ -129,8 +143,21 @@ const resizes: { change: DashboardResize; key: DashboardLabelKey; icon: unknown 
         </DropdownMenuTrigger>
         <DropdownMenuPortal>
           <DropdownMenuContent class="yayaw-row-actions-menu yayaw-dashboard-menu" align="end" :side-offset="4" :collision-padding="8">
+            <template v-if="props.menuActions.length">
+              <DropdownMenuItem
+                v-for="action in props.menuActions"
+                :key="action.id"
+                as-child
+                @select="action.onSelect()"
+              >
+                <button type="button" class="yayaw-row-action-item" :data-widget-action="action.id">
+                  <component :is="action.icon" v-if="action.icon" :size="16" aria-hidden="true" />{{ action.label }}
+                </button>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator class="yayaw-row-actions-divider" />
+            </template>
             <DropdownMenuItem
-              v-for="item in moves"
+              v-for="item in shownMoves"
               :key="item.direction"
               as-child
               :disabled="!props.canMove(item.direction)"
@@ -140,6 +167,26 @@ const resizes: { change: DashboardResize; key: DashboardLabelKey; icon: unknown 
                 <component :is="item.icon" :size="16" aria-hidden="true" />{{ props.label(item.key) }}
               </button>
             </DropdownMenuItem>
+            <DropdownMenuSub v-if="props.moveTargets.length">
+              <DropdownMenuSubTrigger as-child>
+                <button type="button" class="yayaw-row-action-item" data-widget-move-to="">
+                  <FolderInput :size="16" aria-hidden="true" />{{ props.label("moveToSection") }}
+                  <ChevronRight class="yayaw-dashboard-submenu-chevron" :size="16" aria-hidden="true" />
+                </button>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent class="yayaw-row-actions-menu yayaw-dashboard-menu" :side-offset="4" :collision-padding="8">
+                  <DropdownMenuItem
+                    v-for="target in props.moveTargets"
+                    :key="target.id"
+                    as-child
+                    @select="emit('moveToSection', target.id)"
+                  >
+                    <button type="button" class="yayaw-row-action-item" :data-move-target="target.id">{{ target.name }}</button>
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
             <DropdownMenuSeparator class="yayaw-row-actions-divider" />
             <template v-if="resizable">
               <DropdownMenuItem

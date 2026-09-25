@@ -259,6 +259,20 @@ import YayawDashboard from "@/components/ui/yayaw-table-vue/dashboard/YayawDashb
 - Flow sections stack widgets at full width and their natural height:
   record views keep their pagination, charts take a 16:10 body. In edit mode
   flow widgets move up and down; grid cards drag and resize.
+- Edit mode (`canEdit` and `actions.dashboards.save`) is the screen editor,
+  loaded in a chunk of its own: "Add section" (a grid of cards or full
+  width), section bars (title, move, "Add widget here", remove), "Move to
+  section" in widget menus, and one widget dialog to add or edit (what; a
+  source from `sources.list()`, searched, unavailable ones disabled with
+  their reason; settings). A block's props use its `settings` component
+  (props over `defaultProps`) or JSON checked by `checkDashboardBlockProps()`.
+  "Edit view…" edits a widget's view in the source's live table (no URL,
+  saved views, selection or writes) and stores its last report in
+  `widget.view`, without the page size unless it changed. "Use a copy of
+  this view" inlines a saved view; "Make the current view the screen default"
+  stores a full-page table's current view. "Done" runs `validateDashboard()`
+  and lists the errors instead of saving. The rules are pure, in
+  `dashboard-editor-model.ts` (server-safe).
 - Dashboard filters (date range, select) target table columns. Each widget's
   `list` and `aggregate` receive the rules merged into the view's filters and,
   alone, as `requiredFilters`: the server must AND them with everything else,

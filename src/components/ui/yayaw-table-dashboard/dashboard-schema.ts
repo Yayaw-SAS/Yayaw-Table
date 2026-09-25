@@ -1174,6 +1174,35 @@ function blockProps(
   return props;
 }
 
+/** A block's props as `validateDashboard` reads them. */
+export interface DashboardBlockPropsResult {
+  /** The props kept: a safe JSON copy (`{}` when they were removed). */
+  props: DashboardJsonObject;
+  /** Problems, with paths inside the props. */
+  issues: DashboardIssue[];
+  /** No error: the props can be saved as they are. */
+  ok: boolean;
+}
+
+/**
+ * Checks a block's props as `validateDashboard` does: a JSON object, copied
+ * safely (no prototype keys or functions, 8 levels and 16 KB at most), then
+ * the host block's `validateProps`. Editors run it before applying props.
+ */
+export function checkDashboardBlockProps(
+  block: string,
+  props: unknown,
+  options: DashboardValidationOptions = {}
+): DashboardBlockPropsResult {
+  const context = createContext(DASHBOARD_VERSION, options);
+  const kept = blockProps(props, block, "", context);
+  return {
+    props: kept,
+    issues: context.issues,
+    ok: !context.issues.some((issue) => issue.severity === "error"),
+  };
+}
+
 function blockFields(
   value: Row,
   path: string,
@@ -1495,8 +1524,12 @@ function collectSections(
   }));
 }
 
-/** Section types a widget may go in: tables in flows, blocks where their host puts them. */
-function acceptedSections(
+/**
+ * Section types a widget may go in: full-page tables in flows, blocks where
+ * their host puts them (`placement`, read from the host's `blocks`), the
+ * others anywhere.
+ */
+export function dashboardAcceptedSections(
   widget: Pick<DashboardWidget, "type" | "block">,
   blocks?: DashboardBlocks
 ): readonly DashboardSectionType[] {
@@ -1606,7 +1639,11 @@ function placeReferences(
         );
         continue;
       }
-      if (!acceptedSections(widget, context.blocks).includes(section.type)) {
+      if (
+        !dashboardAcceptedSections(widget, context.blocks).includes(
+          section.type
+        )
+      ) {
         placement.misplaced.set(widget.id, reference.path);
         continue;
       }
@@ -1674,7 +1711,7 @@ function placeRemaining(
     if (placement.placed.has(widget.id)) {
       continue;
     }
-    const accepted = acceptedSections(widget, context.blocks);
+    const accepted = dashboardAcceptedSections(widget, context.blocks);
     let index = placement.sections.findIndex((section) =>
       accepted.includes(section.type)
     );
@@ -3082,6 +3119,8 @@ export interface DashboardWidgetPlacement {
   size?: { w: number; h: number };
   /** Flow sections: the position among its widgets, the end by default. */
   index?: number;
+  /** The host's blocks: a block goes only where its `placement` allows. */
+  blocks?: DashboardBlocks;
 }
 
 const isSize = (value: unknown): value is { w: number; h: number } =>
@@ -3093,7 +3132,7 @@ function placeWidget(
   widget: DashboardWidget,
   placement: DashboardWidgetPlacement
 ): Dashboard {
-  const accepted = acceptedSections(widget);
+  const accepted = dashboardAcceptedSections(widget, placement.blocks);
   let sections = dashboard.sections;
   let target =
     sections.find(
@@ -3203,7 +3242,10 @@ export function moveWidgetToSection(
 ): Dashboard {
   const widget = dashboard.widgets.find((item) => item.id === widgetId);
   const target = dashboard.sections.find((section) => section.id === sectionId);
-  if (!(widget && target && acceptedSections(widget).includes(target.type))) {
+  const accepted = widget
+    ? dashboardAcceptedSections(widget, placement.blocks)
+    : [];
+  if (!(widget && target && accepted.includes(target.type))) {
     return dashboard;
   }
   const from = dashboardWidgetSection(dashboard, widgetId);

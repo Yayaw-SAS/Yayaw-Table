@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { type CSSProperties, useId } from "vue";
+import { type CSSProperties, computed, useId, useSlots } from "vue";
 import DashboardGrid from "./DashboardGrid.vue";
 import { DASHBOARD_MARGIN, type DashboardLayoutItem } from "./dashboard-layout";
 import type { DashboardSection } from "./dashboard-schema";
 
 /**
- * A section: its title, then a grid of cards (its own gridstack) or widgets
- * stacked at full width and their natural height (a flow).
+ * A section: its title (in edit mode, its bar), then a grid of cards (its own
+ * gridstack) or widgets stacked at full width and their natural height (a
+ * flow).
  */
 const props = defineProps<{
   section: DashboardSection;
@@ -17,9 +18,21 @@ const props = defineProps<{
 const emit = defineEmits<{ layoutChange: [layout: DashboardLayoutItem[]] }>();
 defineSlots<{
   item: (props: { widgetId: string; phone: boolean; flow: boolean; titled: boolean }) => unknown;
+  /** Edit mode: the section's bar (its title input and menu), shown instead of its heading. */
+  bar?: () => unknown;
+  /** Edit mode: what an empty section shows ("Add widget here"). */
+  empty?: () => unknown;
 }>();
+const slots = useSlots();
 const titleId = useId();
 const flowVariables = { "--dashboard-margin": `${DASHBOARD_MARGIN}px` } as CSSProperties;
+const hasBar = computed(() => props.editing && Boolean(slots.bar));
+const showsEmpty = computed(
+  () =>
+    props.editing &&
+    Boolean(slots.empty) &&
+    (props.section.type === "grid" ? props.section.layout.length === 0 : props.section.widgetIds.length === 0)
+);
 </script>
 
 <template>
@@ -29,9 +42,16 @@ const flowVariables = { "--dashboard-margin": `${DASHBOARD_MARGIN}px` } as CSSPr
     :data-dashboard-section="props.section.id"
     :data-section-type="props.section.type"
   >
-    <h3 v-if="props.title" :id="titleId" class="yayaw-dashboard-section-title" data-section-title="">{{ props.title }}</h3>
+    <h3
+      v-if="props.title"
+      :id="titleId"
+      :class="['yayaw-dashboard-section-title', { 'yayaw-dashboard-sr-only': hasBar }]"
+      data-section-title=""
+    >{{ props.title }}</h3>
+    <slot v-if="hasBar" name="bar" />
+    <slot v-if="showsEmpty" name="empty" />
     <DashboardGrid
-      v-if="props.section.type === 'grid'"
+      v-else-if="props.section.type === 'grid'"
       :layout="props.section.layout"
       :editing="props.editing"
       @layout-change="(layout) => emit('layoutChange', layout)"
