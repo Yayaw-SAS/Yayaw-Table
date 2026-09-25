@@ -43,6 +43,10 @@ import type {
 } from "../types/translations";
 import type { TableViewActions } from "../types/view-types";
 import { resolveTableQueryClient } from "./query-client-requirements";
+import {
+  TagCatalogProvider,
+  useTagCatalogRuntime,
+} from "./tag-catalog-provider";
 import { createTranslationFunction } from "./translation-cache";
 
 // Define proper types for the helper functions
@@ -452,6 +456,16 @@ export function TableProvider({
       type === planningType ? resolvedActions : getTableActions?.(type),
     [planningType, resolvedActions, getTableActions]
   );
+  // Tags columns take their options from the host's catalogs (`actions.tags`).
+  const tagCatalogs = useTagCatalogRuntime({
+    getTableActions: getResolvedTableActions,
+    getTableConfig,
+    locale,
+    queryClient: resolvedQueryClient.queryClient,
+    tableId: _tableId ?? planningType ?? "",
+    tableType: planningType ?? "",
+    translate: t,
+  });
 
   // Stabilize the context value to prevent unnecessary re-renders
   const value = useMemo(
@@ -461,7 +475,7 @@ export function TableProvider({
       t,
       getFormConfig,
       getTableActions: getResolvedTableActions,
-      getTableConfig,
+      getTableConfig: tagCatalogs.getTableConfig,
       TitleComponent,
       DescriptionComponent,
     }),
@@ -471,7 +485,7 @@ export function TableProvider({
       t,
       getFormConfig,
       getResolvedTableActions,
-      getTableConfig,
+      tagCatalogs.getTableConfig,
       TitleComponent,
       DescriptionComponent,
     ]
@@ -479,9 +493,11 @@ export function TableProvider({
 
   const content = (
     <TableProviderContext.Provider value={value}>
-      <PlanningContext.Provider value={planningSession}>
-        {children}
-      </PlanningContext.Provider>
+      <TagCatalogProvider value={tagCatalogs.api}>
+        <PlanningContext.Provider value={planningSession}>
+          {children}
+        </PlanningContext.Provider>
+      </TagCatalogProvider>
     </TableProviderContext.Provider>
   );
 

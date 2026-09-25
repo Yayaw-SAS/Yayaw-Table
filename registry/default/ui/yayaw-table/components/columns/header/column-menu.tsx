@@ -12,6 +12,7 @@ import {
   GripVertical,
   MenuIcon,
   PinOff,
+  Tags,
 } from "lucide-react";
 import {
   createContext,
@@ -36,7 +37,9 @@ import { useDataTable } from "../../../hooks/use-data-table";
 import { useOnClickOutside } from "../../../hooks/use-on-click-outside";
 import { useTableConfig } from "../../../hooks/use-table-config";
 import { useTableTranslations } from "../../../hooks/use-table-translations";
+import { useTagCatalog } from "../../../providers/tag-catalog-provider";
 import type { Column, Table } from "../../../tanstack";
+import { ManageTagsDialog } from "../../tags/manage-tags-dialog";
 
 // Debug flag to help track sorting issues
 const _DEBUG = false;
@@ -223,7 +226,10 @@ function ColumnMenuBase<TData, TValue>({
   tableId = "default-table",
 }: ColumnMenuProps<TData, TValue>) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isManagingTags, setIsManagingTags] = useState(false);
   const translations = useTableTranslations(tableId);
+  const tagCatalog = useTagCatalog();
+  const canManageTags = tagCatalog?.canManage(column.id) === true;
 
   // Always call useFloating but only use it when needed
   const floating = useFloating(floatingOptions);
@@ -369,6 +375,11 @@ function ColumnMenuBase<TData, TValue>({
     setIsOpen((prev) => !prev);
   }, []);
 
+  const handleManageTags = useCallback(() => {
+    setIsOpen(false);
+    setIsManagingTags(true);
+  }, []);
+
   // Memoize trigger component
   const trigger = useMemo(
     () => (
@@ -406,6 +417,14 @@ function ColumnMenuBase<TData, TValue>({
                 onClick={handleOpenFilters}
               />
             )}
+
+            {canManageTags && tagCatalog ? (
+              <MenuItem
+                icon={Tags}
+                label={tagCatalog.labels.manageTags}
+                onClick={handleManageTags}
+              />
+            ) : null}
 
             {canPin && (
               <div className="mt-1 border-t pt-1">
@@ -470,6 +489,9 @@ function ColumnMenuBase<TData, TValue>({
     translations,
     canFilter,
     handleOpenFilters,
+    canManageTags,
+    tagCatalog,
+    handleManageTags,
     canPin,
     pinnedPosition,
     handlePinLeft,
@@ -487,6 +509,14 @@ function ColumnMenuBase<TData, TValue>({
       <div className="h-full w-full">
         {trigger}
         {menuItems && createPortal(menuItems, document.body)}
+        {canManageTags && tagCatalog ? (
+          <ManageTagsDialog
+            catalog={tagCatalog}
+            columnId={column.id}
+            onOpenChange={setIsManagingTags}
+            open={isManagingTags}
+          />
+        ) : null}
       </div>
     </TranslationsProvider>
   );

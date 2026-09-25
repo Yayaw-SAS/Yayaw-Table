@@ -194,7 +194,8 @@ interface BulkActionsReturn<TData> {
   selectOriginalRows: (rows: TData[]) => void;
   bulkEditTargets: BulkEditTarget[] | null;
   closeBulkEdit: () => void;
-  completeBulkEdit: (ids: string[]) => Promise<void>;
+  /** Deselects the saved rows (of `targets`, default the bulk editor's) and reloads. */
+  completeBulkEdit: (ids: string[], targets?: BulkEditTarget[]) => Promise<void>;
   /**
    * Currently selected rows
    */
@@ -1769,8 +1770,11 @@ export function useBulkActions<TData>({
   return {
     bulkEditTargets,
     closeBulkEdit: () => setBulkEditTargets(null),
-    completeBulkEdit: async (ids) => {
-      const completed = completedBulkSelectionIds(bulkEditTargets ?? [], ids);
+    completeBulkEdit: async (ids, targets) => {
+      const completed = completedBulkSelectionIds(
+        targets ?? bulkEditTargets ?? [],
+        ids
+      );
       table.setRowSelection((previous) =>
         Object.fromEntries(
           Object.entries(previous).filter(([id]) => !completed.has(id))

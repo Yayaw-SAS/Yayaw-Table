@@ -494,9 +494,10 @@ const handleColumnResizeKeyboard = (
     [column.id]: nextSize,
   }));
 };
+// Editable cells are controls (React renders them as buttons): clicks edit, not open the record.
 const isInteractive = (target: EventTarget | null): boolean =>
   target instanceof Element &&
-  Boolean(target.closest("button,a,input,select,textarea,[role='button'],[data-location-editor]"));
+  Boolean(target.closest("button,a,input,select,textarea,[role='button'],[data-location-editor],.yayaw-cell.is-editable"));
 const rowClick = (row: TableRecord, event: MouseEvent): void => {
   if (!isInteractive(event.target)) {
     context.activateRow(row, event);
@@ -829,7 +830,7 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
               </td>
             </tr>
             <tr v-else :class="{ selected: row.getIsSelected() }" :data-row-id="row.id" @click="rowClick(row.original, $event)">
-              <td v-for="cell in row.getVisibleCells()" :key="cell.id" :style="pinnedStyle(cell.column)">
+              <td v-for="cell in row.getVisibleCells()" :key="cell.id" :style="pinnedStyle(cell.column)" :data-column-id="cell.column.id">
                 <span v-if="context.planning && cell.column.id === row.getVisibleCells().find(item => !['select', 'actions'].includes(item.column.id))?.column.id" :style="{paddingInlineStart: `${row.depth * 16}px`}">
                   <button v-if="row.subRows.length" type="button" :aria-expanded="row.getIsExpanded()" :aria-label="`${row.getIsExpanded() ? 'Collapse' : 'Expand'} ${row.id}`" @click.stop="row.toggleExpanded()">{{ row.getIsExpanded() ? '▾' : '▸' }}</button>
                   <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />

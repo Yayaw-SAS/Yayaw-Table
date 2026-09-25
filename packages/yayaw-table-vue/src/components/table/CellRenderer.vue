@@ -17,6 +17,7 @@ import { useTableContext, useTableTranslation } from "../../context";
 import { resolveDataType, resolveDataTypeEditor, TABLE_DATA_TYPES, dataTypeDateInput, dataTypeValueError } from "../../table-contracts";
 import { Check, Image as ImageIcon, MapPin } from "lucide-vue-next";
 import InlineMultiSelect from "./InlineMultiSelect.vue";
+import TagPicker from "../tags/TagPicker.vue";
 import LocationEditor from "../location/LocationEditor.vue";
 import { formatCoordinates, formatLocation, parseLocation } from "../../location-model";
 import { displayCellValue, safeHttpUrl, imageSource } from "../../core";
@@ -380,6 +381,37 @@ const imageUrl = computed(() => {
 const tags = computed(() =>
   Array.isArray(props.value) ? props.value : [props.value]
 );
+const coloredTags = computed(
+  () => (effectiveColumn.value.coloredTags ?? context.config.table.coloredTags) !== false
+);
+// Tags columns take their options, colors and editor from the host's catalog.
+const tagColumn = computed(() => context.tags?.column(props.column.id));
+const tagsLoading = computed(
+  () => Boolean(props.column.tags) && context.tags?.status(props.column.id) === "loading"
+);
+const createTag = computed(() => {
+  const catalog = context.tags;
+  const columnId = props.column.id;
+  return catalog?.canCreate(columnId)
+    ? (name: string) => catalog.create(columnId, name)
+    : undefined;
+});
+/** How a value shows as a tag: its option's label and color. */
+const tagChip = (value: unknown) => {
+  const option = props.column.options?.find((item) => Object.is(item.value, value));
+  const appearance = tagAppearance(
+    String(value),
+    coloredTags.value,
+    effectiveColumn.value.tagColorMap,
+    typeof option?.color === "string" ? option.color : undefined
+  );
+  return {
+    pending: tagsLoading.value && !option,
+    label: option?.label ?? String(value),
+    className: appearance.className,
+    style: appearance.style,
+  };
+};
 </script>
 
 <template>
@@ -391,8 +423,22 @@ const tags = computed(() =>
     @keydown="onKeydown"
   >
     <template v-if="editing">
+      <TagPicker
+        v-if="tagColumn && context.tags"
+        v-model="draft"
+        mode="cell"
+        :tags="context.tags.tags(column.id)"
+        :multiple="tagColumn.multiple"
+        :labels="context.tags.labels.value"
+        :label="formField?.label ?? column.header"
+        :colored-tags="context.tags.coloredTags(column.id)"
+        :disabled="optionsLoading"
+        :create="createTag"
+        @commit="save()"
+        @cancel="cancel"
+      />
       <input
-        v-if="editor === 'boolean'"
+        v-else-if="editor === 'boolean'"
         ref="editorElement"
         :disabled="optionsLoading"
         :aria-label="formField?.label ?? column.header"
@@ -543,21 +589,25 @@ const tags = computed(() =>
       "
       class="yayaw-tags"
     >
-      <span
+      <template
         v-for="tag in tags.filter(
           (item) => item !== null && item !== undefined && item !== ''
         )"
         :key="String(tag)"
-        class="yayaw-tag"
-        :class="tagAppearance(String(tag), effectiveColumn.coloredTags ?? context.config.table.coloredTags, effectiveColumn.tagColorMap).className"
-        :style="tagAppearance(String(tag), effectiveColumn.coloredTags ?? context.config.table.coloredTags, effectiveColumn.tagColorMap).style"
-        :data-colored="(effectiveColumn.coloredTags ?? context.config.table.coloredTags) !== false"
-        :data-custom-color="tagAppearance(String(tag), effectiveColumn.coloredTags ?? context.config.table.coloredTags, effectiveColumn.tagColorMap).className ? '' : undefined"
-        >{{
-          column.options?.find((option) => Object.is(option.value, tag))
-            ?.label ?? tag
-        }}</span
       >
+        <span v-if="tagChip(tag).pending" class="yayaw-tag-pending"
+          ><span class="yayaw-sr-only">{{ context.tags?.labels.value.loading }}</span></span
+        >
+        <span
+          v-else
+          class="yayaw-tag"
+          :class="tagChip(tag).className"
+          :style="tagChip(tag).style"
+          :data-colored="coloredTags"
+          :data-custom-color="tagChip(tag).className ? '' : undefined"
+          >{{ tagChip(tag).label }}</span
+        >
+      </template>
     </span>
     <pre v-else-if="effectiveColumn.type === 'json'" class="yayaw-json">{{
       displayCellValue(value, effectiveColumn, context.locale)

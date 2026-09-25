@@ -731,7 +731,8 @@ export const tagLabels = (locale = "en") =>
         addTags: "Ajouter des étiquettes",
         removeTags: "Retirer des étiquettes",
         manageTags: "Gérer les étiquettes",
-        manageTitle: "Étiquettes de {column}",
+        manageDescription:
+          "Renommez, recolorez, fusionnez ou supprimez les étiquettes de « {column} ».",
         create: "Créer « {name} »",
         creating: "Création…",
         search: "Rechercher ou créer une étiquette…",
@@ -806,7 +807,8 @@ export const tagLabels = (locale = "en") =>
         addTags: "Add tags",
         removeTags: "Remove tags",
         manageTags: "Manage tags",
-        manageTitle: "{column} tags",
+        manageDescription:
+          "Rename, recolor, merge or delete the tags of “{column}”.",
         create: "Create “{name}”",
         creating: "Creating…",
         search: "Search or create a tag…",

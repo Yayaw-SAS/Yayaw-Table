@@ -189,7 +189,10 @@ export function tagCatalogSuite(
       { value: "t-print", label: "Print", color: "#dc2626" },
       { value: "t-ete", label: "Été" },
     ]);
-    assert.equal(next[1]?.displayVariant, "tag");
+    assert.equal(
+      (next[1] as { displayVariant?: string } | undefined)?.displayVariant,
+      "tag"
+    );
     // A tags column without an option type is a list of tags.
     assert.equal(next[2]?.type, "multiSelect");
   });
@@ -321,7 +324,7 @@ export function tagCatalogSuite(
     );
     await assert.rejects(
       tags.createTag({
-        actions: { create: () => ({ name: "No id" }) },
+        actions: { create: () => ({ name: "No id" }) as never },
         scope,
         tags: catalog,
         name: "Other",

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import TableTooltip from "../toolbar/TableTooltip.vue";
 import {
+  BadgeMinus,
+  BadgePlus,
   CheckCheck,
   Copy,
   Download,
@@ -9,6 +11,7 @@ import {
   Trash2,
   X,
 } from "lucide-vue-next";
+import BulkTagsDialog from "../tags/BulkTagsDialog.vue";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import {
   parseBulkEditPatch,
@@ -82,6 +85,28 @@ const canBulkDelete = computed(
 const canBulkCopy = computed(() =>
   Boolean(context.onBulkCopy || context.actions.value?.bulkCopy)
 );
+// Bulk "Add tags" and "Remove tags" on tags columns holding lists.
+const canBulkTag = computed(
+  () =>
+    Boolean(context.tags?.columns.some((column) => column.multiple)) &&
+    context.config.table.allowBulkEdit !== false &&
+    Boolean(context.actions.value?.bulkUpdate || context.actions.value?.update) &&
+    context.selectedRows.value.every(
+      (row) => context.config.table.canEditRow?.(row) !== false
+    )
+);
+const tagMode = ref<"add" | "remove" | null>(null);
+const tagRows = ref<TableRecord[]>([]);
+const openBulkTags = (mode: "add" | "remove"): void => {
+  if (isBusy.value || !canBulkTag.value) {
+    return;
+  }
+  tagRows.value = [...context.selectedRows.value];
+  tagMode.value = mode;
+};
+const closeBulkTags = (): void => {
+  tagMode.value = null;
+};
 const translate = (key: string, fallback: string): string =>
   String(context.translations.value[key] ?? fallback);
 onMounted(() => {
@@ -509,6 +534,33 @@ const bulkExport = async (): Promise<void> => {
         </button>
       </TableTooltip>
 
+      <template v-if="canBulkTag && context.tags">
+        <TableTooltip :label="context.tags.labels.value.addTags">
+          <button
+            type="button"
+            class="yayaw-bulk-action-tab"
+            :disabled="isBusy"
+            :aria-label="context.tags.labels.value.addTags"
+            @click="openBulkTags('add')"
+          >
+            <BadgePlus :size="20" aria-hidden="true" />
+            <span class="yayaw-bulk-action-label">{{ context.tags.labels.value.addTags }}</span>
+          </button>
+        </TableTooltip>
+        <TableTooltip :label="context.tags.labels.value.removeTags">
+          <button
+            type="button"
+            class="yayaw-bulk-action-tab"
+            :disabled="isBusy"
+            :aria-label="context.tags.labels.value.removeTags"
+            @click="openBulkTags('remove')"
+          >
+            <BadgeMinus :size="20" aria-hidden="true" />
+            <span class="yayaw-bulk-action-label">{{ context.tags.labels.value.removeTags }}</span>
+          </button>
+        </TableTooltip>
+      </template>
+
       <TableTooltip v-if="canBulkCopy" :label="translate('copy', 'Copy')">
         <button
           type="button"
@@ -585,6 +637,8 @@ const bulkExport = async (): Promise<void> => {
       </TableTooltip>
     </div>
   </div>
+
+  <BulkTagsDialog v-if="context.tags" :mode="tagMode" :rows="tagRows" @close="closeBulkTags" />
 
   <div
     v-if="confirmation"

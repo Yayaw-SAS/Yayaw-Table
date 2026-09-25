@@ -6059,3 +6059,202 @@
   position: relative;
   min-height: 32px;
 }
+/* Tags columns: pickers, bulk "Add tags" and "Remove tags", "Manage tags". */
+.yayaw-tag-picker {
+  position: relative;
+  width: 100%;
+  min-width: 160px;
+}
+.yayaw-tag-picker[data-mode="field"] .yayaw-inline-selection {
+  height: auto;
+  min-height: 36px;
+  flex-wrap: wrap;
+  padding: 4px 6px;
+  white-space: normal;
+}
+.yayaw-tag-picker[data-mode="field"] .yayaw-inline-chips {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+.yayaw-tag-picker-control[data-invalid] {
+  border-color: var(--yayaw-danger);
+}
+.yayaw-tag-option {
+  gap: 8px;
+}
+/* Above record forms and the tags dialogs. */
+.yayaw-inline-options.yayaw-tag-options {
+  z-index: 121;
+}
+.yayaw-tag-chip {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 0.35rem;
+  padding: 2px 8px;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-tag-count {
+  margin-left: auto;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.yayaw-tag-status {
+  display: grid;
+  gap: 4px;
+  padding: 4px 8px 6px;
+}
+.yayaw-tag-status output {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.yayaw-filter-option-list .yayaw-tag-swatch {
+  margin-inline-end: 2px;
+}
+/* Above the bulk bar and row menus, below the menus and lists they open. */
+.yayaw-tags-overlay {
+  position: fixed;
+  z-index: 94;
+  inset: 0;
+  background: rgb(0 0 0 / 0.1);
+  -webkit-backdrop-filter: blur(var(--blur-xs, 4px));
+  backdrop-filter: blur(var(--blur-xs, 4px));
+}
+.yayaw-tags-dialog {
+  position: fixed;
+  z-index: 95;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  box-sizing: border-box;
+  width: min(28rem, calc(100% - 2rem));
+  max-height: calc(100dvh - 2rem);
+  gap: 1.25rem;
+  overflow: auto;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  color: var(--yayaw-foreground);
+  background: var(--yayaw-background);
+  box-shadow: 0 0 0 1px
+    color-mix(in oklab, var(--yayaw-foreground) 10%, transparent);
+  font:
+    14px / 1.4 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  transform: translate(-50%, -50%);
+}
+.yayaw-tags-dialog *,
+.yayaw-tags-dialog *::before,
+.yayaw-tags-dialog *::after {
+  box-sizing: border-box;
+}
+.yayaw-tags-manage {
+  width: min(32rem, calc(100% - 2rem));
+}
+.yayaw-tags-dialog-header {
+  display: grid;
+  gap: 0.5rem;
+  padding-inline-end: 2rem;
+}
+.yayaw-tags-dialog-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1;
+}
+.yayaw-tags-dialog-header p {
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-tags-dialog-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+}
+.yayaw-tags-field {
+  display: grid;
+  gap: 0.375rem;
+}
+.yayaw-tags-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+.yayaw-tags-manage-body {
+  display: grid;
+  gap: 0.75rem;
+}
+.yayaw-tags-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.yayaw-tags-search svg {
+  position: absolute;
+  left: 10px;
+  color: var(--yayaw-muted-foreground);
+  pointer-events: none;
+}
+.yayaw-tags-search .yayaw-input {
+  width: 100%;
+  padding-left: 32px;
+}
+.yayaw-tags-list {
+  display: grid;
+  max-height: 50vh;
+  gap: 4px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.yayaw-tags-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+}
+.yayaw-tags-name {
+  min-width: 0;
+  flex: 1;
+}
+.yayaw-tags-name .yayaw-input {
+  width: 100%;
+  height: 32px;
+}
+.yayaw-tags-usage {
+  width: 6rem;
+  flex-shrink: 0;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.yayaw-tags-menu-label {
+  flex: 1;
+}
+.yayaw-tags-confirm {
+  display: grid;
+  gap: 0.75rem;
+  border: 1px solid var(--yayaw-border);
+  border-radius: 8px;
+  padding: 12px;
+}
+.yayaw-tags-confirm h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+.yayaw-tags-confirm p {
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-danger-text {
+  color: var(--yayaw-danger);
+}
