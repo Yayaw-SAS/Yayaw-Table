@@ -42,10 +42,10 @@ const tableHeaders = async (page: Page) =>
     (text) => text.trim()
   );
 
-/** Saved views past the first three are under "More". */
+/** Saved views past the first three are under "…" (More views). */
 const openView = async (page: Page, name: string, example = "views") => {
   await page.goto(`/?example=${example}`);
-  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("button", { name: "More views", exact: true }).click();
   await page.getByRole("menuitem", { name }).click();
 };
 const openChartSettings = async (page: Page) => {
