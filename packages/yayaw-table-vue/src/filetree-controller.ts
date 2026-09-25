@@ -48,6 +48,11 @@ import {
   sortFileTreeIds,
   validateFileTreeMove,
 } from "./filetree-model";
+import {
+  canCreateFolderUnder,
+  createFolderRecord,
+  newFolderName,
+} from "./folder-directory";
 import { type ContractRecord, compatibleListParams } from "./table-contracts";
 
 type Row = Record<string, unknown>;
@@ -493,13 +498,14 @@ export class FileTreeController {
     if (parentId === FILETREE_UNFILED) {
       return false;
     }
-    const creatable = Boolean(
-      this.options.tree?.createFolder ??
-        (this.options.canCreate && this.options.createRecord)
-    );
     const parent =
       parentId === null ? null : (this.nodes.get(parentId) ?? null);
-    return creatable && this.options.hooks.canCreateFolder?.(parent) !== false;
+    return canCreateFolderUnder(parent, {
+      tree: this.options.tree,
+      createRecord: this.options.createRecord,
+      canCreate: this.options.canCreate,
+      hooks: this.options.hooks,
+    });
   }
 
   /** Ids an action applies to: the selection when it holds the row, else the row. */
@@ -2151,7 +2157,11 @@ export class FileTreeController {
     if (parentId === undefined) {
       return;
     }
-    const name = value.trim() || this.label("newFolderName");
+    const name = newFolderName(
+      value,
+      this.options.locale,
+      this.options.translate
+    );
     this.draftParent = undefined;
     this.busy = true;
     this.emit();
@@ -2186,25 +2196,21 @@ export class FileTreeController {
     parentId: string | null,
     name: string
   ): Promise<string | undefined> {
-    const { tree, createRecord, settings } = this.options;
-    if (tree?.createFolder) {
-      const row = await tree.createFolder({ parentId, name });
-      const id = isRecord(row) ? this.options.getRowId(row) : undefined;
-      if (id && isRecord(row)) {
-        this.nodes.set(id, row);
-        this.parents.set(id, parentId);
-        this.clientFolders?.add(id);
-      }
-      return id;
-    }
-    const result = await createRecord?.({
-      [settings.nameColumn]: name,
-      [settings.parentColumn]: parentId,
-      ...(settings.kindColumn ? { [settings.kindColumn]: "folder" } : {}),
+    const { id, row } = await createFolderRecord({
+      tree: this.options.tree,
+      createRecord: this.options.createRecord,
+      settings: this.options.settings,
+      parentId,
+      name,
+      getRowId: this.options.getRowId,
+      failure: this.label("moveFailed", { count: 1 }),
     });
-    if (!result?.success) {
-      throw new Error(result?.error ?? this.label("moveFailed", { count: 1 }));
+    if (id && row) {
+      this.nodes.set(id, row);
+      this.parents.set(id, parentId);
+      this.clientFolders?.add(id);
     }
+    return id;
   }
 
   private async reloadFolder(parentId: string | null): Promise<void> {

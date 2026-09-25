@@ -47,6 +47,8 @@ for (const file of [
   "date-filter-days.ts",
   "filetree-model.ts",
   "filetree-controller.ts",
+  "folder-directory.ts",
+  "facets-model.ts",
   "filetree-dom.ts",
   "filetree.css",
   "connector-flow.ts",
@@ -214,7 +216,7 @@ for (const [source, target] of [
 }
 
 // The dashboard's grammar (schema, sources, layout), model, editor rules, URL filter state,
-// record fitting, gridstack controller and grid styles are shared by both
+// the facet list block, record fitting, gridstack controller and grid styles are shared by both
 // optional dashboard items; only the paths of the table's shared helpers
 // (table contracts, chart model, view settings) differ.
 const dashboardSource = new URL(
@@ -233,6 +235,7 @@ for (const name of [
   "dashboard-layout.ts",
   "dashboard-model.ts",
   "dashboard-url.ts",
+  "dashboard-facets.ts",
   "dashboard-fit.ts",
   "dashboard-grid-engine.ts",
   "dashboard-grid.css",
