@@ -33,7 +33,7 @@ GitHub-hosted Ubuntu runners; no Coolify host upgrade is needed for this change.
 
 `CI tests` runs only for opened, updated, or reopened PRs targeting `main`.
 It checks out the explicit PR head, cancels superseded runs for that PR, and
-keeps one `test-and-typecheck` job with a twenty-minute timeout. Node 24 and
+keeps one `test-and-typecheck` job with a 35-minute timeout. Node 24 and
 Bun 1.4.2 (the version observed in successful runs) are explicit. The job
 retains Changeset validation, TypeScript, React tests, the intentional
 repeated-menu stability regression, Vue tests, the Playwright end-to-end
