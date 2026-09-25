@@ -8,11 +8,8 @@ import {
 } from "reka-ui";
 import { computed, useId } from "vue";
 import {
-  canMoveLayoutItem,
-  canResizeLayoutItem,
   type DashboardDirection,
   type DashboardLabelKey,
-  type DashboardLayoutItem,
   type DashboardOverflow,
   type DashboardResize,
   type DashboardWidget,
@@ -21,15 +18,24 @@ import {
 import type { DashboardLabel } from "./dashboard-types";
 
 /** A widget's card: title, "Open full view", the edit menu and its content. */
-const props = defineProps<{
-  widget: DashboardWidget;
-  title: string;
-  editing: boolean;
-  phone: boolean;
-  layout: DashboardLayoutItem[];
-  label: DashboardLabel;
-  openable: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    widget: DashboardWidget;
+    title: string;
+    editing: boolean;
+    /** Desktop grid widgets show a drag handle in edit mode. */
+    draggable: boolean;
+    /** Grid widgets resize from the menu; flow widgets keep their natural size. */
+    resizable: boolean;
+    /** 4 under a section title, else 3 (under the dashboard's name). */
+    headingLevel?: 3 | 4;
+    label: DashboardLabel;
+    canMove: (direction: DashboardDirection) => boolean;
+    canResize: (change: DashboardResize) => boolean;
+    openable: boolean;
+  }>(),
+  { headingLevel: 3 }
+);
 const emit = defineEmits<{
   move: [direction: DashboardDirection];
   resize: [change: DashboardResize];
@@ -64,7 +70,7 @@ const resizes: { change: DashboardResize; key: DashboardLabelKey; icon: unknown 
   >
     <header class="yayaw-dashboard-widget-header" data-widget-header="">
       <span
-        v-if="props.editing && !props.phone"
+        v-if="props.editing && props.draggable"
         class="yayaw-dashboard-handle"
         aria-hidden="true"
         data-dashboard-drag-handle=""
@@ -72,7 +78,12 @@ const resizes: { change: DashboardResize; key: DashboardLabelKey; icon: unknown 
       >
         <GripVertical :size="16" />
       </span>
-      <h3 :id="titleId" class="yayaw-dashboard-widget-title" data-widget-title="">{{ props.title }}</h3>
+      <component
+        :is="props.headingLevel === 4 ? 'h4' : 'h3'"
+        :id="titleId"
+        class="yayaw-dashboard-widget-title"
+        data-widget-title=""
+      >{{ props.title }}</component>
       <button
         v-if="props.openable"
         type="button"
@@ -95,26 +106,28 @@ const resizes: { change: DashboardResize; key: DashboardLabelKey; icon: unknown 
               v-for="item in moves"
               :key="item.direction"
               as-child
-              :disabled="!canMoveLayoutItem(props.layout, props.widget.id, item.direction)"
+              :disabled="!props.canMove(item.direction)"
               @select="emit('move', item.direction)"
             >
-              <button type="button" class="yayaw-row-action-item" :disabled="!canMoveLayoutItem(props.layout, props.widget.id, item.direction)">
+              <button type="button" class="yayaw-row-action-item" :disabled="!props.canMove(item.direction)">
                 <component :is="item.icon" :size="16" aria-hidden="true" />{{ props.label(item.key) }}
               </button>
             </DropdownMenuItem>
             <DropdownMenuSeparator class="yayaw-row-actions-divider" />
-            <DropdownMenuItem
-              v-for="item in resizes"
-              :key="item.change"
-              as-child
-              :disabled="!canResizeLayoutItem(props.layout, props.widget.id, item.change)"
-              @select="emit('resize', item.change)"
-            >
-              <button type="button" class="yayaw-row-action-item" :disabled="!canResizeLayoutItem(props.layout, props.widget.id, item.change)">
-                <component :is="item.icon" :size="16" aria-hidden="true" />{{ props.label(item.key) }}
-              </button>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator class="yayaw-row-actions-divider" />
+            <template v-if="props.resizable">
+              <DropdownMenuItem
+                v-for="item in resizes"
+                :key="item.change"
+                as-child
+                :disabled="!props.canResize(item.change)"
+                @select="emit('resize', item.change)"
+              >
+                <button type="button" class="yayaw-row-action-item" :disabled="!props.canResize(item.change)">
+                  <component :is="item.icon" :size="16" aria-hidden="true" />{{ props.label(item.key) }}
+                </button>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator class="yayaw-row-actions-divider" />
+            </template>
             <DropdownMenuItem as-child @select="emit('remove')">
               <button type="button" class="yayaw-row-action-item yayaw-row-action-danger">
                 <Trash2 :size="16" aria-hidden="true" />{{ props.label("remove") }}

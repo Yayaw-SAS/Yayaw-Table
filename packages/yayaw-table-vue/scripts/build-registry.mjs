@@ -128,7 +128,7 @@ const dashboardItem = {
   type: "registry:block",
   title: "YaYaw Table Vue Dashboard",
   description:
-    'Optional Notion-like dashboard for YaYaw Table Vue: a 4-column grid (gridstack.js, loaded on demand) of widgets showing saved views of any table in any display mode, numbers and notes, with dashboard filters sent to each table\'s list and aggregate requests. Render `<YayawDashboard :actions="{ dashboards }" :tables="…" />`; the host stores dashboards (`list`, `load`, `save`, `remove`).',
+    'Optional Notion-like dashboards and screens for YaYaw Table Vue: sections of 4-column grids (gridstack.js, loaded on demand) and full-width flows, whose widgets show saved or inline views of any table in any display mode, numbers and notes, with dashboard filters sent to each table\'s list and aggregate requests. Documents are JSON version 2, validated on servers with the pure `dashboard/dashboard-schema.ts` (`validateDashboard`, `checkDashboardReferences`, `dashboardJsonSchema`). Render `<YayawDashboard :actions="{ dashboards }" :tables="…" />`; the host stores dashboards (`list`, `load`, `save`, `remove`).',
   dependencies: ["gridstack@^14.0.0"],
   registryDependencies: ["https://table.yayaw.app/r/yayaw-table-vue.json"],
   files: await toRegistryFiles(allSourceFiles.filter(isDashboardFile)),

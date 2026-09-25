@@ -76,7 +76,11 @@ free of them:
 Framework-agnostic modules are written once, in
 `src/components/ui/yayaw-table/utils/` (view models, form conditions,
 connectors, exports, import, contracts), and copied into the Vue package by
-`scripts/sync-table-contracts.mjs` (`bun run contracts:sync`). Shared test
+`scripts/sync-table-contracts.mjs` (`bun run contracts:sync`). The optional
+dashboard items share their grammar, layout and model the same way; the
+grammar (`dashboard-schema.ts`, see [Dashboard screens](docs/DASHBOARD-SCREENS.md))
+and `utils/view-config.ts` import no React, Vue or CSS, so hosts run them on
+their servers. Shared test
 suites (`tests/*-suite.ts`) run against both copies, so the two editions
 cannot drift on behavior. The few framework-native differences are listed in
 [Framework parity](docs/FRAMEWORK-PARITY.md).

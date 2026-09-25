@@ -17,7 +17,7 @@ import {
   dashboardColumnsForWidth,
   layoutRows,
   stackLayout,
-} from "./dashboard-model";
+} from "./dashboard-layout";
 import "./dashboard-grid.css";
 
 // Layout effects measure before paint in the browser; the server skips them.

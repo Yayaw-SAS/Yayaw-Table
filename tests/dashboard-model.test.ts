@@ -11,6 +11,7 @@ import {
   dashboardComparison,
   dashboardComparisonText,
   dashboardDateColumns,
+  dashboardFilterLabel,
   dashboardFilterRules,
   dashboardFilterTargetsLabel,
   dashboardFitPageSize,
@@ -30,6 +31,7 @@ import {
   dashboardWidgetFromDraft,
   dashboardWidgetSize,
   dashboardWidgetTitle,
+  dashboardWidgetViewId,
   defaultWidgetSize,
   emptyWidgetDraft,
   findFreeSpot,
@@ -49,6 +51,7 @@ import {
   validateDashboard,
   widgetFilterSignature,
   widgetOverflow,
+  widgetViewConfig,
   withDashboardFilters,
 } from "../src/components/ui/yayaw-table-dashboard/dashboard-model";
 import { dashboardModelSuite } from "./dashboard-model-suite";
@@ -65,6 +68,7 @@ dashboardModelSuite(test, {
   dashboardComparison,
   dashboardComparisonText,
   dashboardDateColumns,
+  dashboardFilterLabel,
   dashboardFilterRules,
   dashboardFilterTargetsLabel,
   dashboardFitPageSize,
@@ -84,6 +88,7 @@ dashboardModelSuite(test, {
   dashboardWidgetFromDraft,
   dashboardWidgetSize,
   dashboardWidgetTitle,
+  dashboardWidgetViewId,
   defaultWidgetSize,
   emptyWidgetDraft,
   findFreeSpot,
@@ -103,5 +108,6 @@ dashboardModelSuite(test, {
   validateDashboard,
   widgetFilterSignature,
   widgetOverflow,
+  widgetViewConfig,
   withDashboardFilters,
 });

@@ -190,9 +190,11 @@ the whole source loaded. Supply `actions.planning` (`load`, `preview`,
 
 ## Dashboards (optional item)
 
-`YayawDashboard` shows widgets on a four-column grid (gridstack, loaded with
-the first desktop grid; phones stack widgets): a saved view of any table in
-its display mode, a number over a view, or a note.
+`YayawDashboard` shows sections of widgets: four-column grids (gridstack,
+loaded with the first desktop grid; phones stack widgets) and full-width
+flows. A widget is a view of any table (a saved view, or inline settings) in
+its display mode, a number over a view, or a note; full-page tables and host
+blocks show "Not available yet" until the renderer supports them.
 
 ```tsx
 import { YayawDashboard } from "@/components/ui/yayaw-table-dashboard/yayaw-dashboard";
@@ -214,9 +216,20 @@ import YayawDashboard from "@/components/ui/yayaw-table-vue/dashboard/YayawDashb
 - Phones stack widgets: numbers and notes at their content's height, charts
   at a 16:10 body, record widgets at their rows' height.
 - Storage: `actions.dashboards` (`list`, `load`, `save`, `remove`), see
-  [server contracts](server-contracts.md#dashboards). The JSON is
-  `{ version: 1, id, name, layout, widgets, filters }`; the model repairs
-  layouts, migrates older JSON and refuses newer versions.
+  [server contracts](server-contracts.md#dashboards). The JSON is version 2,
+  `{ version: 2, id, name, description?, sections, widgets, filters }`:
+  sections are `{ id, type: "grid", title?, layout }` or `{ id, type:
+  "flow", title?, widgetIds }`; widgets `{ id, type: "view" | "kpi" | "note"
+  | "table" | "block", title?, tableId?, viewId?, view?, block?, props?,
+  settings }` (`table` in flows only). Versions 0 and 1 migrate on load (one
+  grid section `main`), "Done" saves version 2, newer versions are refused.
+- Names, titles and filter labels are a text or `{ en, fr }` (as forms);
+  `locale` picks the version shown. An inline `view` (a saved view's
+  `config`) replaces `viewId`; "Open full view" then calls
+  `openView(tableId, null)`.
+- Flow sections stack widgets at full width and their natural height:
+  record views keep their pagination, charts take a 16:10 body. In edit mode
+  flow widgets move up and down; grid cards drag and resize.
 - Dashboard filters (date range, select) target table columns. Each widget's
   `list` and `aggregate` receive the rules merged into the view's filters and,
   alone, as `requiredFilters`: the server must AND them with everything else,

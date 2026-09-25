@@ -2339,15 +2339,20 @@ Grids narrower than 640px stack the widgets in reading order, full width,
 without drag, each as tall as on desktop (its rows of 120px less the
 margins); the widget menu still moves them.
 
-The shared `dashboard-model.ts` owns the contract and every rule:
+The shared `dashboard-schema.ts` (the JSON grammar), `dashboard-layout.ts`
+(grid layouts) and `dashboard-model.ts` (loading, filters, numbers, labels)
+own the contract and every rule:
 
-- JSON `{ version: 1, id, name, layout: [{ widgetId, x, y, w, h }],
-  widgets: [{ id, type: "view" | "kpi" | "note", tableId?, viewId?, title?,
-  settings }], filters, updatedAt? }`. `validateDashboard` drops invalid or
-  duplicate widgets and filters, repairs the layout and reports issues;
-  `normalizeDashboard` throws for non-dashboards and newer versions. JSON
-  without `version` (0) is migrated: layout items keyed `i`
-  (react-grid-layout) become `widgetId`.
+- JSON version 2: `{ version: 2, id, name, description?, sections: [{ id,
+  type: "grid", title?, layout: [{ widgetId, x, y, w, h }] } | { id, type:
+  "flow", title?, widgetIds }], widgets: [{ id, type: "view" | "kpi" |
+  "note" | "table" | "block", title?, tableId?, viewId?, view?, block?,
+  props?, settings }], filters, updatedAt? }`, described in
+  [Dashboard screens](DASHBOARD-SCREENS.md). `validateDashboard` reads
+  versions 0 and 1 (their layout becomes one grid section `main`; version 0
+  layout items keyed `i` become `widgetId`), repairs what it can and reports
+  issues with a severity and a JSON path; `normalizeDashboard` throws for
+  non-dashboards and newer versions.
 - Layout: 4 columns, rows of 120px, widgets 1–4 wide and 1–12 tall; overlaps
   are resolved with the moved widget fixed, then everything rises (gridstack's
   top gravity). Keyboard moves swap with the neighbour above, below or beside
@@ -2537,3 +2542,79 @@ scrollbars, numbers at their content's height, charts at 16:10 and record
 widgets at their rows' height; a French page (`?lang=fr`) shows French
 dashboard labels and a scrolling widget's pagination in French; "Open full
 view" calls the host and readers cannot edit.
+
+### Dashboard JSON version 2 (screens)
+
+Version 2 turns a dashboard into a screen: sections in order (grids of cards
+and full-width flows), widgets placed by id (views and numbers over saved or
+inline views, notes, full-page tables, host blocks), and localized texts
+(`string | { en, fr }`, the form texts' type and resolver). Both editions
+share the grammar and its tools, synced to Vue by
+`scripts/sync-table-contracts.mjs`:
+
+- `dashboard-schema.ts`: types and constants, `validateDashboard` (versions
+  0, 1 and 2 read, version 2 written; errors and warnings with JSON paths;
+  `DASHBOARD_LIMITS`), `normalizeDashboard`, `checkDashboardReferences`,
+  `dashboardJsonSchema`, `canonicalDashboardJson`, `dashboardFingerprint`
+  (pure SHA-256), the KPI settings (`dashboardKpiSettings`, moved from the
+  model) and the builders (`createDashboard`, `addDashboardSection`,
+  `addDashboardWidget`, `removeDashboardWidget`, `moveWidgetToSection`,
+  `moveDashboardWidget`, `resizeDashboardWidget`,
+  `applyDashboardSectionLayout`).
+- `dashboard-sources.ts`: source summaries, the lazy `DashboardSources`
+  contract and `createDashboardSourceLoader` (cache, shared concurrent loads,
+  unavailable kept, errors retried, `tables` first).
+- `dashboard-layout.ts`: the grid layout helpers, per section;
+  `dashboard-model.ts` still exports what moved.
+- `utils/view-config.ts` (the table's): `sanitizeViewConfig`, strict and
+  hostile-proof, for inline views and any saved-view settings a server
+  receives; synced to `packages/yayaw-table-vue/src/view-config.ts` with
+  `../planning/` read as `./planning/`.
+
+These modules import no React, Vue or CSS
+(`tests/server-safe-modules.test.ts`), so hosts validate documents and AI
+tool inputs on their servers.
+
+Rendering, identical in both editions (`YayawDashboard`,
+`dashboard-section.tsx` / `DashboardSection.vue`):
+
+- Sections render in order; empty ones are skipped. A grid section is its own
+  gridstack grid with its own layout (stacked on phones); a flow section
+  (`[data-dashboard-flow]`) stacks its widgets at full width and their natural
+  height: record views keep their pagination instead of fitting, charts take
+  a 16:10 body (11–24rem), bodies do not clip (`dashboard-grid.css`).
+- A titled section shows an `h3` (`data-section-title`) and its widgets'
+  titles as `h4`; untitled sections keep widget titles at `h3`.
+- Inline views (`widget.view`) reach the embedded table as its `initialView`
+  (id `null`) and the numbers' requests as their filters; "Open full view"
+  calls `openView(tableId, null)`.
+- Names, section and widget titles and filter labels show in `locale`
+  (`dashboardText`, `dashboardFilterLabel`); renaming in edit mode changes
+  the text of the current language (`setDashboardText`).
+- `table` and `block` widgets render a neutral placeholder
+  (`[data-widget-placeholder]`, "Not available yet", `dashboard.notAvailableYet`)
+  until the renderer implements them; they are saved as they are.
+- Edit mode: grid cards drag, move and resize as before; flow widgets have no
+  drag handle and their menu moves them up and down (no resizing). "Add
+  widget" adds to the first grid section. "Done" saves version 2.
+
+Verification: `tests/dashboard-schema-suite.ts` (migration round trips,
+refusing version 3, unknown widget types, unknown keys at every level,
+limits and `tooLarge`, id slugs and remapped references, orphan and
+misplaced widgets, `conflictingView`, settings per type, block props and
+`validateProps` success, problems and throws, severities and `ok`, hostile
+documents, references, JSON Schema enums against the constants, sources and
+blocks in the schema, fingerprints and SHA-256 against the platform's,
+builders), `tests/view-config-suite.ts` (fixed point on the demo views and
+every mode, unknown keys at every level, wrong types, caps, historical names,
+OR rules, hostile JSON, JSON copies) and `tests/dashboard-sources-suite.ts`
+(shared loads, caching, unavailable, error then retry, `tables` first) run in
+both editions; `tests/server-safe-modules.test.ts` walks the modules'
+imports in both; `tests/dashboard-sync.test.ts` checks the Vue copies;
+`tests/dashboard-model-suite.ts` covers version 1 saved back as version 2,
+inline views and localized titles. `e2e/dashboard.spec.ts` on both demos:
+the version 1 demo saved back as version 2 (sessionStorage) and shown again,
+a version 2 document with a titled grid and a flow (inline number filter,
+paginated inline list, placeholders, note, no scrollbar, "Open full view" of
+an inline view), its texts in French, and flow widgets moved in edit mode and
+saved with their sections and localized name.

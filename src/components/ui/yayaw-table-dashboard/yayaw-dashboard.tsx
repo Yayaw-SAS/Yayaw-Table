@@ -17,37 +17,51 @@ import type { DisplayModeRenderers } from "@/src/components/ui/yayaw-table/types
 import type { DataTableTranslations } from "@/src/components/ui/yayaw-table/types/translations";
 import { AddFilterDialog, AddWidgetDialog } from "./dashboard-dialogs";
 import { DashboardFilterBar } from "./dashboard-filters";
-import { DashboardGrid } from "./dashboard-grid";
 import { KpiWidget } from "./dashboard-kpi";
+import type {
+  DashboardDirection,
+  DashboardLayoutItem,
+  DashboardResize,
+} from "./dashboard-layout";
 import {
   addDashboardFilter,
-  addDashboardWidget,
-  applyGridLayout,
-  type Dashboard,
   type DashboardColumn,
-  type DashboardDirection,
   type DashboardLabelKey,
-  type DashboardLayoutItem,
-  type DashboardResize,
   type DashboardStorage,
   type DashboardTableInfo,
   type DashboardTranslate,
   type DashboardView,
-  type DashboardWidget,
   dashboardColumn,
   dashboardFilterRules,
   dashboardLabel,
   dashboardTranslate,
   dashboardWidgetSize,
   dashboardWidgetTitle,
+  dashboardWidgetViewId,
   loadDashboardViews,
+  removeDashboardFilter,
+  setDashboardFilterValue,
+  setDashboardText,
+} from "./dashboard-model";
+import {
+  addDashboardWidget,
+  applyDashboardSectionLayout,
+  canMoveDashboardWidget,
+  canResizeDashboardWidget,
+  type Dashboard,
+  type DashboardSection,
+  type DashboardWidget,
+  dashboardText,
+  dashboardWidgetSection,
   moveDashboardWidget,
   normalizeDashboard,
-  removeDashboardFilter,
   removeDashboardWidget,
   resizeDashboardWidget,
-  setDashboardFilterValue,
-} from "./dashboard-model";
+} from "./dashboard-schema";
+import {
+  type DashboardItemPlacement,
+  DashboardSectionView,
+} from "./dashboard-section";
 import {
   type DashboardLabel,
   type DashboardTableSource,
@@ -69,13 +83,13 @@ export interface YayawDashboardProps {
   dashboardId?: string;
   /** Whether the user may edit (layout, widgets, filters). Default false. */
   canEdit?: boolean;
-  /** "Open full view" on table and number widgets calls it. */
+  /** "Open full view" on view and number widgets calls it (`viewId` null for inline settings). */
   openView?: (tableId: string, viewId: string | null) => void;
   /** Renders note text (e.g. markdown); plain text by default. */
   renderMarkdown?: (text: string) => ReactNode;
   /** Optional display modes widgets may use, e.g. `{ chart, calendar }`. */
   displayModeRenderers?: DisplayModeRenderers;
-  /** Language of the dashboard and of every widget (dates, numbers, labels). */
+  /** Language of the dashboard, its texts (`{ en, fr }`) and every widget (dates, numbers, labels). */
   locale?: string;
   /** Label overrides keyed `dashboard.<key>`. */
   translations?: Record<string, string>;
@@ -85,7 +99,7 @@ export interface YayawDashboardProps {
    */
   tableTranslations?: DataTableTranslations;
   getRowId?: (row: Record<string, unknown>) => string;
-  /** Called with the dashboard after each change (saved or not). */
+  /** Called with the dashboard (version 2) after each change (saved or not). */
   onChange?: (dashboard: Dashboard) => void;
   className?: string;
 }
@@ -181,6 +195,8 @@ interface WidgetContentProps {
   renderMarkdown?: (text: string) => ReactNode;
   getRowId?: (row: Record<string, unknown>) => string;
   onViewAll?: () => void;
+  /** A flow section's widget: its natural height. */
+  natural: boolean;
 }
 
 function WidgetContent(props: WidgetContentProps) {
@@ -194,16 +210,31 @@ function WidgetContent(props: WidgetContentProps) {
       />
     );
   }
+  if (widget.type === "table" || widget.type === "block") {
+    // Full-page tables and host blocks come with the next version of the renderer.
+    return (
+      <div
+        className="flex h-full flex-col"
+        data-widget-placeholder={widget.type}
+      >
+        <WidgetMessage>{label("notAvailableYet")}</WidgetMessage>
+      </div>
+    );
+  }
   const source = widget.tableId ? tables[widget.tableId] : undefined;
   if (!(source && widget.tableId)) {
     return <WidgetMessage tone="error">{label("missingTable")}</WidgetMessage>;
   }
+  // Inline settings need no saved view.
+  const saved = widget.view ? undefined : widget.viewId;
   const tableViews = views[widget.tableId];
-  if (widget.viewId && !tableViews) {
+  if (saved && !tableViews) {
     return <WidgetMessage>{label("widgetLoading")}</WidgetMessage>;
   }
-  const view = tableViews?.find((item) => item.id === widget.viewId);
-  if (widget.viewId && !view) {
+  const view = saved
+    ? tableViews?.find((item) => item.id === saved)
+    : undefined;
+  if (saved && !view) {
     return <WidgetMessage tone="error">{label("missingView")}</WidgetMessage>;
   }
   if (widget.type === "kpi") {
@@ -226,6 +257,7 @@ function WidgetContent(props: WidgetContentProps) {
       getRowId={props.getRowId}
       label={label}
       locale={props.locale}
+      natural={props.natural}
       onViewAll={props.onViewAll}
       renderers={props.renderers}
       revision={props.revision}
@@ -241,9 +273,9 @@ function WidgetContent(props: WidgetContentProps) {
 
 function DashboardHeader({
   canEdit,
-  dashboard,
   editing,
   label,
+  name,
   onAddWidget,
   onDone,
   onEdit,
@@ -252,7 +284,8 @@ function DashboardHeader({
   saving,
 }: {
   canEdit: boolean;
-  dashboard: Dashboard;
+  /** The dashboard's name in its language. */
+  name: string;
   editing: boolean;
   label: DashboardLabel;
   onAddWidget: () => void;
@@ -269,11 +302,11 @@ function DashboardHeader({
           aria-label={label("dashboard")}
           className="h-9 max-w-80 flex-1 font-semibold text-lg"
           onChange={(event) => onRename(event.target.value)}
-          value={dashboard.name}
+          value={name}
         />
       ) : (
         <h2 className="min-w-0 flex-1 truncate font-semibold text-xl">
-          {dashboard.name || label("dashboard")}
+          {name || label("dashboard")}
         </h2>
       )}
       <div className="ms-auto flex flex-wrap items-center gap-2">
@@ -309,10 +342,17 @@ function DashboardHeader({
   );
 }
 
+const hasWidgets = (section: DashboardSection): boolean =>
+  section.type === "grid"
+    ? section.layout.length > 0
+    : section.widgetIds.length > 0;
+
 /**
- * A Notion-like dashboard: widgets showing saved views of any table (in any
- * display mode), numbers and notes, on a 4-column grid users arrange in edit
- * mode, with dashboard filters sent to every targeted table's requests.
+ * A Notion-like dashboard (JSON version 2): sections in order, each a
+ * 4-column grid users arrange in edit mode or a flow of full-width widgets;
+ * widgets show views of any table (saved or inline, in any display mode),
+ * numbers and notes; dashboard filters reach every targeted table's requests.
+ * Older JSON is migrated on load and saved as version 2.
  */
 export function YayawDashboard({
   actions,
@@ -426,7 +466,10 @@ export function YayawDashboard({
       dashboard.widgets.some((widget) => widget.tableId === id)
     )
   );
-  const renderItem = (widgetId: string, phone: boolean) => {
+  const renderItem = (
+    widgetId: string,
+    { flow, phone, titled }: DashboardItemPlacement
+  ) => {
     const widget = dashboard.widgets.find((item) => item.id === widgetId);
     if (!widget) {
       return null;
@@ -434,15 +477,26 @@ export function YayawDashboard({
     const title = titleOf(widget);
     const tableId = widget.tableId;
     const open =
-      openView && tableId && widget.type !== "note"
-        ? () => openView(tableId, widget.viewId ?? null)
+      openView && tableId && (widget.type === "view" || widget.type === "kpi")
+        ? () => openView(tableId, dashboardWidgetViewId(widget))
         : undefined;
-    const place = dashboard.layout.find((item) => item.widgetId === widgetId);
+    const section = dashboardWidgetSection(dashboard, widgetId);
+    const place =
+      section?.type === "grid"
+        ? section.layout.find((item) => item.widgetId === widgetId)
+        : undefined;
     return (
       <DashboardWidgetFrame
+        canMove={(direction) =>
+          canMoveDashboardWidget(dashboard, widgetId, direction)
+        }
+        canResize={(change) =>
+          canResizeDashboardWidget(dashboard, widgetId, change)
+        }
+        draggable={!(phone || flow)}
         editing={editing}
+        headingLevel={titled ? 4 : 3}
         label={label}
-        layout={dashboard.layout}
         onMove={(direction: DashboardDirection) => {
           update((current) => moveDashboardWidget(current, widgetId, direction));
           setAnnouncement(label("moved", { title }));
@@ -457,7 +511,7 @@ export function YayawDashboard({
           );
           setAnnouncement(label("resized", { title }));
         }}
-        phone={phone}
+        resizable={!flow}
         title={title}
         widget={widget}
       >
@@ -477,6 +531,7 @@ export function YayawDashboard({
             getRowId={getRowId}
             label={label}
             locale={locale}
+            natural={flow}
             onViewAll={open}
             renderers={displayModeRenderers}
             renderMarkdown={renderMarkdown}
@@ -501,14 +556,19 @@ export function YayawDashboard({
     >
       <DashboardHeader
         canEdit={canEdit}
-        dashboard={dashboard}
         editing={editing}
         label={label}
+        name={dashboardText(dashboard.name, locale)}
         onAddWidget={() => setAddingWidget(true)}
         onDone={save}
         onEdit={() => setEditing(true)}
         onRefresh={() => setRevision((value) => value + 1)}
-        onRename={(name) => update((current) => ({ ...current, name }))}
+        onRename={(name) =>
+          update((current) => ({
+            ...current,
+            name: setDashboardText(current.name, locale, name),
+          }))
+        }
         saving={saving}
       />
       <DashboardFilterBar
@@ -527,14 +587,22 @@ export function YayawDashboard({
         translate={translate}
       />
       {dashboard.widgets.length ? (
-        <DashboardGrid
-          editing={editing}
-          layout={dashboard.layout}
-          onLayoutChange={(layout: DashboardLayoutItem[]) =>
-            update((current) => applyGridLayout(current, layout))
-          }
-          renderItem={renderItem}
-        />
+        dashboard.sections
+          .filter(hasWidgets)
+          .map((section) => (
+            <DashboardSectionView
+              editing={editing}
+              key={section.id}
+              onLayoutChange={(layout: DashboardLayoutItem[]) =>
+                update((current) =>
+                  applyDashboardSectionLayout(current, section.id, layout)
+                )
+              }
+              renderItem={renderItem}
+              section={section}
+              title={dashboardText(section.title, locale)}
+            />
+          ))
       ) : (
         <WidgetMessage>
           {label(editing ? "emptyEditable" : "empty")}
@@ -550,14 +618,12 @@ export function YayawDashboard({
             locale={locale}
             onAdd={(widget) =>
               update((current) =>
-                addDashboardWidget(
-                  current,
-                  widget,
-                  dashboardWidgetSize(widget, {
+                addDashboardWidget(current, widget, {
+                  size: dashboardWidgetSize(widget, {
                     views: views[widget.tableId ?? ""],
                     table: infos[widget.tableId ?? ""],
-                  })
-                )
+                  }),
+                })
               )
             }
             onOpenChange={setAddingWidget}

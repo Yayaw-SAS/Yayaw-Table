@@ -304,6 +304,18 @@ and the sync engine: [connectors](connectors.md).
 | `actions.dashboards.save` | `(dashboard)`, called by "Done" in edit mode |
 | `actions.dashboards.remove` | `(id)` |
 
+`load` may answer JSON of any version (it is migrated); `save` receives
+version 2. Validate what browsers and AI tools send with the pure
+`dashboard-schema.ts` (no React, Vue or CSS; Vue:
+`components/ui/yayaw-table-vue/dashboard/dashboard-schema.ts`):
+`validateDashboard()` migrates, repairs and reports issues with a severity
+and a JSON path (refuse when `ok` is false), `checkDashboardReferences()`
+checks the sources, views, columns and blocks a document names against what
+the user may see, and `dashboardJsonSchema()` describes documents for MCP
+tool inputs. Inline views go through `sanitizeViewConfig()`. AI tools save
+drafts; people publish. See
+[Dashboard screens](https://github.com/Yayaw-SAS/Yayaw-Table/blob/main/docs/DASHBOARD-SCREENS.md).
+
 Authorize every call; `canEdit` only shows the editing controls. Widgets call
 each table's own `list` and `aggregate` with `requiredFilters`. Number
 widgets call `aggregate` with `groupBy: []` (and, for a trend line, one date

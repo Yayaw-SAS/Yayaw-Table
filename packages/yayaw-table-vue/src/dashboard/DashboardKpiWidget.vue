@@ -14,6 +14,7 @@ import {
   dashboardKpiPlan,
   dashboardViewParams,
   loadDashboardKpi,
+  widgetViewConfig,
 } from "./dashboard-model";
 import type { DashboardLabel, DashboardTableSource } from "./dashboard-types";
 
@@ -49,7 +50,8 @@ const planKey = computed(() =>
   JSON.stringify(dashboardKpiPlan(props.dashboard, props.widget, dashboardDayValue(new Date()), columns.value))
 );
 const plan = computed(() => JSON.parse(planKey.value) as DashboardKpiPlan);
-const paramsKey = computed(() => JSON.stringify(dashboardViewParams(props.view?.config)));
+// Inline settings, else the saved view's: its filters and search.
+const paramsKey = computed(() => JSON.stringify(dashboardViewParams(widgetViewConfig(props.widget, props.view))));
 
 let pending: AbortController | undefined;
 watch(

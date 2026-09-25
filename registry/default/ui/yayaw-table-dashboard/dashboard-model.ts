@@ -1,8 +1,11 @@
 /**
- * Dashboards: a grid of widgets (saved views of any table, numbers and notes)
- * with dashboard-wide filters. Framework-neutral and shared by the React and
- * Vue editions (synced to Vue by `scripts/sync-table-contracts.mjs`), so both
- * normalize, lay out, filter and label dashboards the same way.
+ * Dashboards: sections of widgets (views of any table, numbers, notes,
+ * full-page tables and host blocks) with dashboard-wide filters. Framework-
+ * neutral and shared by the React and Vue editions (synced to Vue by
+ * `scripts/sync-table-contracts.mjs`), so both lay out, filter, load and
+ * label dashboards the same way. The JSON grammar and its validator live in
+ * `dashboard-schema.ts` and grid layouts in `dashboard-layout.ts`; what moved
+ * there is still exported from here.
  */
 import {
   type ChartAggregateGroup,
@@ -15,101 +18,98 @@ import {
   chartValueFormatter,
   loadChartData,
 } from "../yayaw-table/utils/chart-model";
+import { formLocaleMatch } from "../yayaw-table/utils/form-text";
 import { normalizeFilterEnvelope } from "../yayaw-table/utils/table-contracts";
 import {
   type ColumnValueFormat,
   formatColumnDay,
 } from "../yayaw-table/utils/value-format";
+import { DASHBOARD_ROW_HEIGHT, defaultWidgetSize } from "./dashboard-layout";
+import {
+  DASHBOARD_KPI_DEFAULTS,
+  DASHBOARD_KPI_METRICS,
+  type Dashboard,
+  type DashboardDateRange,
+  type DashboardFilter,
+  type DashboardFilterOption,
+  type DashboardFilterTarget,
+  type DashboardFilterType,
+  type DashboardKpiBetter,
+  type DashboardKpiMetric,
+  type DashboardKpiSettings,
+  type DashboardOverflow,
+  type DashboardText,
+  type DashboardWidget,
+  dashboardDateRange,
+  dashboardKpiSettings,
+  dashboardSelectValues,
+  dashboardText,
+  normalizeDashboardFilter,
+  normalizeDashboardFilterValue,
+} from "./dashboard-schema";
+
+// Moved in version 2 ---------------------------------------------------------------
+
+export type {
+  DashboardDirection,
+  DashboardLayoutItem,
+  DashboardResize,
+} from "./dashboard-layout";
+// biome-ignore lint/performance/noBarrelFile: the layout helpers and the grammar lived here before dashboards had sections; hosts still import them from this module.
+export {
+  applyGridLayout,
+  canMoveLayoutItem,
+  canResizeLayoutItem,
+  clampLayoutItem,
+  compactLayout,
+  DASHBOARD_COLUMNS,
+  DASHBOARD_MARGIN,
+  DASHBOARD_MAX_HEIGHT,
+  DASHBOARD_PHONE_MAX_WIDTH,
+  DASHBOARD_ROW_HEIGHT,
+  dashboardColumnsForWidth,
+  defaultWidgetSize,
+  findFreeSpot,
+  layoutRows,
+  moveLayoutItem,
+  normalizeLayout,
+  resizeLayoutItem,
+  resolveLayout,
+  stackLayout,
+} from "./dashboard-layout";
+export type {
+  Dashboard,
+  DashboardDateRange,
+  DashboardFilter,
+  DashboardFilterOption,
+  DashboardFilterTarget,
+  DashboardFilterType,
+  DashboardIssue,
+  DashboardIssueCode,
+  DashboardKpiBetter,
+  DashboardKpiCompare,
+  DashboardKpiMetric,
+  DashboardKpiSettings,
+  DashboardKpiSparkline,
+  DashboardOverflow,
+  DashboardV1,
+  DashboardWidget,
+  DashboardWidgetType,
+} from "./dashboard-schema";
+export {
+  addDashboardWidget,
+  createDashboard,
+  DASHBOARD_VERSION,
+  dashboardKpiSettings,
+  moveDashboardWidget,
+  nextWidgetId,
+  normalizeDashboard,
+  removeDashboardWidget,
+  resizeDashboardWidget,
+  validateDashboard,
+} from "./dashboard-schema";
 
 // Contract ----------------------------------------------------------------------
-
-/** Version of the dashboard JSON written by `normalizeDashboard`. */
-export const DASHBOARD_VERSION = 1;
-/** Widgets per row on desktop. */
-export const DASHBOARD_COLUMNS = 4;
-/** Tallest widget, in rows. */
-export const DASHBOARD_MAX_HEIGHT = 12;
-/** Height of one row, in pixels (the gaps are included). */
-export const DASHBOARD_ROW_HEIGHT = 120;
-/** Space around each widget, in pixels. */
-export const DASHBOARD_MARGIN = 6;
-/** Grids narrower than this (phones) stack widgets in one column, without drag. */
-export const DASHBOARD_PHONE_MAX_WIDTH = 639;
-
-export type DashboardWidgetType = "view" | "kpi" | "note";
-export type DashboardKpiMetric = "count" | "sum" | "avg" | "min" | "max";
-export type DashboardFilterType = "dateRange" | "select";
-export type DashboardDirection = "left" | "right" | "up" | "down";
-export type DashboardResize = "wider" | "narrower" | "taller" | "shorter";
-
-/** Where a widget sits: columns `x`…`x + w - 1`, rows `y`…`y + h - 1`. */
-export interface DashboardLayoutItem {
-  widgetId: string;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-
-/**
- * A widget. `view`: a saved view (`viewId`, or the table's default view) of
- * `tableId` shown in its display mode, `settings: { overflow? }`. `kpi`: one
- * number over a table (or a view's records), `settings: { metric,
- * metricColumn?, label?, dateColumn?, compare?, sparkline? }`. `note`: text,
- * `settings: { text }`, rendered by the host's `renderMarkdown`.
- */
-export interface DashboardWidget {
-  id: string;
-  type: DashboardWidgetType;
-  tableId?: string;
-  viewId?: string;
-  /** Title shown instead of the view's name. */
-  title?: string;
-  settings: Record<string, unknown>;
-}
-
-/** Calendar days `YYYY-MM-DD`, both optional. */
-export interface DashboardDateRange {
-  start?: string;
-  end?: string;
-}
-
-/** A column a filter applies to: every widget of `tableId`, or only `widgetIds`. */
-export interface DashboardFilterTarget {
-  tableId: string;
-  columnId: string;
-  widgetIds?: string[];
-}
-
-export interface DashboardFilterOption {
-  value: string;
-  label: string;
-}
-
-/**
- * A dashboard filter, joined (AND) to each targeted widget's own filters and
- * sent to the table's `list`/`aggregate`. `value` is a date range or the
- * chosen options; empty values filter nothing.
- */
-export interface DashboardFilter {
-  id: string;
-  type: DashboardFilterType;
-  label: string;
-  targets: DashboardFilterTarget[];
-  /** Choices of a select filter; by default the first target column's options. */
-  options?: DashboardFilterOption[];
-  value?: DashboardDateRange | string[];
-}
-
-export interface Dashboard {
-  version: typeof DASHBOARD_VERSION;
-  id: string;
-  name: string;
-  layout: DashboardLayoutItem[];
-  widgets: DashboardWidget[];
-  filters: DashboardFilter[];
-  updatedAt?: string;
-}
 
 export interface DashboardSummary {
   id: string;
@@ -117,8 +117,9 @@ export interface DashboardSummary {
 }
 
 /**
- * `actions.dashboards`: the host stores dashboards. `load` may return JSON
- * written by an older version; it is normalized before use.
+ * `actions.dashboards`: the host stores dashboards. `load` may return JSON of
+ * any version (1, or 0 without `version`); it is migrated to version 2 before
+ * use, and `save` receives version 2.
  */
 export interface DashboardStorage {
   list: () => Promise<DashboardSummary[]>;
@@ -180,44 +181,15 @@ const integer = (value: unknown, fallback: number): number => {
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value));
 
-// Layout ------------------------------------------------------------------------
-
-const DEFAULT_SIZES: Record<DashboardWidgetType, { w: number; h: number }> = {
-  view: { w: 2, h: 2 },
-  kpi: { w: 1, h: 1 },
-  note: { w: 1, h: 2 },
-};
-
-/**
- * View widgets by display mode: records and charts take 2×2 (the default),
- * boards, galleries, calendars and feeds 2×3, file trees 1×3, Gantt charts
- * the whole width.
- */
-const MODE_SIZES: Readonly<Record<string, { w: number; h: number }>> = {
-  kanban: { w: 2, h: 3 },
-  gallery: { w: 2, h: 3 },
-  calendar: { w: 2, h: 3 },
-  feed: { w: 2, h: 3 },
-  form: { w: 2, h: 3 },
-  filetree: { w: 1, h: 3 },
-  gantt: { w: 4, h: 3 },
-};
-
-/** Size of a new widget of this type (and, for views, display mode). */
-export const defaultWidgetSize = (
-  type: DashboardWidgetType,
-  mode?: string
-): { w: number; h: number } => ({
-  ...((type === "view" && mode ? MODE_SIZES[mode] : undefined) ??
-    DEFAULT_SIZES[type]),
-});
+// Widgets -----------------------------------------------------------------------
 
 /**
  * Size of a widget about to be added: by its type, and for a view by the
- * display mode of its saved view (or of the table's default view).
+ * display mode of its inline settings, of its saved view, or of the table's
+ * default view.
  */
 export function dashboardWidgetSize(
-  widget: Pick<DashboardWidget, "type" | "viewId">,
+  widget: Pick<DashboardWidget, "type" | "viewId" | "view">,
   context: {
     views?: readonly DashboardView[];
     table?: Pick<DashboardTableInfo, "defaultDisplayMode">;
@@ -225,6 +197,9 @@ export function dashboardWidgetSize(
 ): { w: number; h: number } {
   if (widget.type !== "view") {
     return defaultWidgetSize(widget.type);
+  }
+  if (widget.view) {
+    return defaultWidgetSize("view", widgetDisplayMode({ ...widget.view }));
   }
   const view = widget.viewId
     ? context.views?.find((item) => item.id === widget.viewId)
@@ -235,410 +210,12 @@ export function dashboardWidgetSize(
   return defaultWidgetSize("view", mode);
 }
 
-/** Whole numbers inside the grid: `w` 1…columns, `h` 1…max, `x` keeps it inside. */
-export function clampLayoutItem(
-  item: DashboardLayoutItem,
-  columns = DASHBOARD_COLUMNS
-): DashboardLayoutItem {
-  const w = clamp(integer(item.w, 1), 1, columns);
-  return {
-    widgetId: item.widgetId,
-    x: clamp(integer(item.x, 0), 0, columns - w),
-    y: Math.max(0, integer(item.y, 0)),
-    w,
-    h: clamp(integer(item.h, 1), 1, DASHBOARD_MAX_HEIGHT),
-  };
-}
-
-const overlaps = (a: DashboardLayoutItem, b: DashboardLayoutItem): boolean =>
-  a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
-
-const readingOrder = (a: DashboardLayoutItem, b: DashboardLayoutItem) =>
-  a.y - b.y || a.x - b.x;
-
-/** Rows the layout takes. */
-export const layoutRows = (layout: readonly DashboardLayoutItem[]): number =>
-  layout.reduce((rows, item) => Math.max(rows, item.y + item.h), 0);
-
-/** Moves each widget down until it overlaps none placed before it. */
-function pushDown(
-  items: readonly DashboardLayoutItem[]
-): DashboardLayoutItem[] {
-  const placed: DashboardLayoutItem[] = [];
-  for (const item of items) {
-    const next = { ...item };
-    let blocker = placed.find((other) => overlaps(other, next));
-    while (blocker) {
-      next.y = blocker.y + blocker.h;
-      blocker = placed.find((other) => overlaps(other, next));
-    }
-    placed.push(next);
-  }
-  return placed;
-}
-
-/** Top gravity, as gridstack's default mode: widgets rise into free space above them. */
-export function compactLayout(
-  layout: readonly DashboardLayoutItem[]
-): DashboardLayoutItem[] {
-  const placed: DashboardLayoutItem[] = [];
-  for (const item of [...layout].sort(readingOrder)) {
-    const next = { ...item };
-    while (
-      next.y > 0 &&
-      !placed.some((other) => overlaps(other, { ...next, y: next.y - 1 }))
-    ) {
-      next.y -= 1;
-    }
-    placed.push(next);
-  }
-  return placed.sort(readingOrder);
-}
-
-/**
- * Resolves overlaps: `fixedId` (the widget just moved or resized) keeps its
- * place, the others move below what they overlap, then everything rises.
- */
-export function resolveLayout(
-  layout: readonly DashboardLayoutItem[],
-  fixedId?: string,
-  columns = DASHBOARD_COLUMNS
-): DashboardLayoutItem[] {
-  const items = layout.map((item) => clampLayoutItem(item, columns));
-  const fixed = items.filter((item) => item.widgetId === fixedId);
-  const others = items
-    .filter((item) => item.widgetId !== fixedId)
-    .sort(readingOrder);
-  return compactLayout(pushDown([...fixed, ...others]));
-}
-
-/** First free place for a widget of this size, scanning rows then columns. */
-export function findFreeSpot(
-  layout: readonly DashboardLayoutItem[],
-  size: { w: number; h: number },
-  columns = DASHBOARD_COLUMNS
-): { x: number; y: number } {
-  const w = clamp(size.w, 1, columns);
-  const rows = layoutRows(layout);
-  for (let y = 0; y <= rows; y += 1) {
-    for (let x = 0; x + w <= columns; x += 1) {
-      const candidate = { widgetId: "", x, y, w, h: size.h };
-      if (!layout.some((item) => overlaps(item, candidate))) {
-        return { x, y };
-      }
-    }
-  }
-  return { x: 0, y: rows };
-}
-
-/**
- * The layout of these widgets: one item per widget (unknown items dropped,
- * missing widgets placed in the first free spot), inside the grid, without
- * overlaps and risen to the top.
- */
-export function normalizeLayout(
-  layout: readonly DashboardLayoutItem[],
-  widgets: readonly Pick<DashboardWidget, "id" | "type">[],
-  columns = DASHBOARD_COLUMNS
-): DashboardLayoutItem[] {
-  const known = new Set(widgets.map((widget) => widget.id));
-  const seen = new Set<string>();
-  const items: DashboardLayoutItem[] = [];
-  for (const item of layout) {
-    if (known.has(item.widgetId) && !seen.has(item.widgetId)) {
-      seen.add(item.widgetId);
-      items.push(clampLayoutItem(item, columns));
-    }
-  }
-  let resolved = resolveLayout(items, undefined, columns);
-  for (const widget of widgets) {
-    if (!seen.has(widget.id)) {
-      const size = defaultWidgetSize(widget.type);
-      const spot = findFreeSpot(resolved, size, columns);
-      resolved = resolveLayout(
-        [...resolved, { widgetId: widget.id, ...spot, ...size }],
-        widget.id,
-        columns
-      );
-    }
-  }
-  return resolved;
-}
-
-const sameColumns = (a: DashboardLayoutItem, b: DashboardLayoutItem) =>
-  a.x < b.x + b.w && b.x < a.x + a.w;
-const sameRows = (a: DashboardLayoutItem, b: DashboardLayoutItem) =>
-  a.y < b.y + b.h && b.y < a.y + a.h;
-
-/** The nearest widget in a direction sharing the item's columns or rows. */
-function neighbour(
-  layout: readonly DashboardLayoutItem[],
-  item: DashboardLayoutItem,
-  direction: DashboardDirection
-): DashboardLayoutItem | undefined {
-  const others = layout.filter((other) => other.widgetId !== item.widgetId);
-  const candidates: Record<DashboardDirection, () => DashboardLayoutItem[]> = {
-    up: () =>
-      others
-        .filter((o) => sameColumns(o, item) && o.y + o.h <= item.y)
-        .sort((a, b) => b.y + b.h - (a.y + a.h) || a.x - b.x),
-    down: () =>
-      others
-        .filter((o) => sameColumns(o, item) && o.y >= item.y + item.h)
-        .sort((a, b) => a.y - b.y || a.x - b.x),
-    left: () =>
-      others
-        .filter((o) => sameRows(o, item) && o.x + o.w <= item.x)
-        .sort((a, b) => b.x + b.w - (a.x + a.w) || a.y - b.y),
-    right: () =>
-      others
-        .filter((o) => sameRows(o, item) && o.x >= item.x + item.w)
-        .sort((a, b) => a.x - b.x || a.y - b.y),
-  };
-  return candidates[direction]().at(0);
-}
-
-const replaceItem = (
-  layout: readonly DashboardLayoutItem[],
-  ...changed: DashboardLayoutItem[]
-): DashboardLayoutItem[] =>
-  layout.map(
-    (item) =>
-      changed.find((next) => next.widgetId === item.widgetId) ?? { ...item }
-  );
-
-/** Left or right: swap with the adjacent widget when both fit, else one column. */
-function moveSideways(
-  layout: readonly DashboardLayoutItem[],
-  item: DashboardLayoutItem,
-  direction: "left" | "right",
-  columns: number
-): DashboardLayoutItem[] {
-  const other = neighbour(layout, item, direction);
-  const adjacent =
-    other &&
-    (direction === "left"
-      ? other.x + other.w === item.x
-      : item.x + item.w === other.x);
-  if (other && adjacent) {
-    const left = direction === "left" ? item : other;
-    const right = direction === "left" ? other : item;
-    const start = Math.min(item.x, other.x);
-    const moved = [
-      { ...left, x: start },
-      { ...right, x: start + left.w },
-    ];
-    if (start + left.w + right.w <= columns) {
-      return resolveLayout(replaceItem(layout, ...moved), item.widgetId);
-    }
-  }
-  const x = item.x + (direction === "left" ? -1 : 1);
-  return resolveLayout(
-    replaceItem(layout, { ...item, x }),
-    item.widgetId,
-    columns
-  );
-}
-
-/**
- * Keyboard alternative to dragging: up and down swap with the nearest widget
- * above or below, left and right with the adjacent one (or move a column).
- */
-export function moveLayoutItem(
-  layout: readonly DashboardLayoutItem[],
-  widgetId: string,
-  direction: DashboardDirection,
-  columns = DASHBOARD_COLUMNS
-): DashboardLayoutItem[] {
-  const item = layout.find((entry) => entry.widgetId === widgetId);
-  if (!(item && canMoveLayoutItem(layout, widgetId, direction, columns))) {
-    return layout.map((entry) => ({ ...entry }));
-  }
-  if (direction === "left" || direction === "right") {
-    return moveSideways(layout, item, direction, columns);
-  }
-  const other = neighbour(layout, item, direction);
-  if (!other) {
-    return layout.map((entry) => ({ ...entry }));
-  }
-  // Up: take the place of the widget above. Down: let the widget below rise
-  // into this place and settle under it.
-  const y = direction === "up" ? other.y : other.y + other.h;
-  const moved = replaceItem(layout, { ...item, y });
-  return direction === "up"
-    ? resolveLayout(moved, item.widgetId, columns)
-    : resolveLayout(moved, other.widgetId, columns);
-}
-
-/** Whether the widget can move that way (menus disable the others). */
-export function canMoveLayoutItem(
-  layout: readonly DashboardLayoutItem[],
-  widgetId: string,
-  direction: DashboardDirection,
-  columns = DASHBOARD_COLUMNS
-): boolean {
-  const item = layout.find((entry) => entry.widgetId === widgetId);
-  if (!item) {
-    return false;
-  }
-  switch (direction) {
-    case "left":
-      return item.x > 0;
-    case "right":
-      return item.x + item.w < columns;
-    case "up":
-    case "down":
-      return Boolean(neighbour(layout, item, direction));
-    default:
-      return false;
-  }
-}
-
-const RESIZE_CHANGES: Record<DashboardResize, { w: number; h: number }> = {
-  wider: { w: 1, h: 0 },
-  narrower: { w: -1, h: 0 },
-  taller: { w: 0, h: 1 },
-  shorter: { w: 0, h: -1 },
-};
-
-/** Whether the widget can grow or shrink that way. */
-export function canResizeLayoutItem(
-  layout: readonly DashboardLayoutItem[],
-  widgetId: string,
-  change: DashboardResize,
-  columns = DASHBOARD_COLUMNS
-): boolean {
-  const item = layout.find((entry) => entry.widgetId === widgetId);
-  if (!item) {
-    return false;
-  }
-  const { w, h } = RESIZE_CHANGES[change];
-  const width = item.w + w;
-  const height = item.h + h;
-  return (
-    width >= 1 &&
-    width <= columns &&
-    height >= 1 &&
-    height <= DASHBOARD_MAX_HEIGHT
-  );
-}
-
-/** Keyboard alternative to the resize handle; a wider widget moves left when it must. */
-export function resizeLayoutItem(
-  layout: readonly DashboardLayoutItem[],
-  widgetId: string,
-  change: DashboardResize,
-  columns = DASHBOARD_COLUMNS
-): DashboardLayoutItem[] {
-  const item = layout.find((entry) => entry.widgetId === widgetId);
-  if (!(item && canResizeLayoutItem(layout, widgetId, change, columns))) {
-    return layout.map((entry) => ({ ...entry }));
-  }
-  const { w, h } = RESIZE_CHANGES[change];
-  const width = item.w + w;
-  const next = {
-    ...item,
-    w: width,
-    h: item.h + h,
-    x: Math.min(item.x, columns - width),
-  };
-  return resolveLayout(replaceItem(layout, next), widgetId, columns);
-}
-
-/** Columns for a grid this wide: one on phones, four otherwise. */
-export const dashboardColumnsForWidth = (width: number): number =>
-  width > 0 && width <= DASHBOARD_PHONE_MAX_WIDTH ? 1 : DASHBOARD_COLUMNS;
-
-/** Phone layout: widgets in reading order, one per row, full width, same heights. */
-export function stackLayout(
-  layout: readonly DashboardLayoutItem[]
-): DashboardLayoutItem[] {
-  let y = 0;
-  return [...layout].sort(readingOrder).map((item) => {
-    const stacked = { ...item, x: 0, y, w: 1 };
-    y += item.h;
-    return stacked;
-  });
-}
-
-const sameLayout = (
-  a: readonly DashboardLayoutItem[],
-  b: readonly DashboardLayoutItem[]
-) =>
-  a.length === b.length &&
-  a.every((item) => {
-    const other = b.find((entry) => entry.widgetId === item.widgetId);
-    return (
-      other &&
-      other.x === item.x &&
-      other.y === item.y &&
-      other.w === item.w &&
-      other.h === item.h
-    );
-  });
-
-/** Positions reported by the grid after a drag or resize; unchanged layouts stay the same object. */
-export function applyGridLayout(
-  dashboard: Dashboard,
-  items: readonly DashboardLayoutItem[]
-): Dashboard {
-  const layout = normalizeLayout(
-    dashboard.layout.map(
-      (item) => items.find((next) => next.widgetId === item.widgetId) ?? item
-    ),
-    dashboard.widgets
-  );
-  return sameLayout(layout, dashboard.layout)
-    ? dashboard
-    : { ...dashboard, layout };
-}
-
-// Widgets -----------------------------------------------------------------------
-
-const WIDGET_TYPES = new Set<DashboardWidgetType>(["view", "kpi", "note"]);
-const KPI_METRICS = new Set<DashboardKpiMetric>([
-  "count",
-  "sum",
-  "avg",
-  "min",
-  "max",
-]);
-
-/** A widget id not used yet. */
-export function nextWidgetId(widgets: readonly { id: string }[]): string {
-  const ids = new Set(widgets.map((widget) => widget.id));
-  let index = widgets.length + 1;
-  while (ids.has(`widget-${index}`)) {
-    index += 1;
-  }
-  return `widget-${index}`;
-}
-
-/**
- * Adds a widget in the first free spot, at `size` (by default the size of its
- * type, see `defaultWidgetSize`).
- */
-export function addDashboardWidget(
-  dashboard: Dashboard,
-  widget: Omit<DashboardWidget, "id"> & { id?: string },
-  size: { w: number; h: number } = defaultWidgetSize(widget.type)
-): Dashboard {
-  const id = widget.id ?? nextWidgetId(dashboard.widgets);
-  const added: DashboardWidget = { ...widget, id, settings: widget.settings };
-  const spot = findFreeSpot(dashboard.layout, size);
-  return {
-    ...dashboard,
-    widgets: [...dashboard.widgets, added],
-    layout: resolveLayout(
-      [...dashboard.layout, { widgetId: id, ...spot, ...size }],
-      id
-    ),
-  };
-}
+/** Widget types the widget picker adds. */
+export type DashboardDraftType = "view" | "kpi" | "note";
 
 /** What the widget picker collects before a widget is added. */
 export interface DashboardWidgetDraft {
-  type: DashboardWidgetType;
+  type: DashboardDraftType;
   tableId: string;
   /** Saved view; empty for the table's default view. */
   viewId: string;
@@ -670,7 +247,7 @@ export const emptyWidgetDraft = (tableId = ""): DashboardWidgetDraft => ({
   metricColumn: "",
   dateColumn: "",
   compare: false,
-  compareDays: DEFAULT_COMPARE_DAYS,
+  compareDays: DASHBOARD_KPI_DEFAULTS.compareDays,
   compareBetter: "up",
   sparkline: false,
 });
@@ -698,7 +275,10 @@ function kpiDraftSettings(
       : {}),
     ...(dateColumn && draft.sparkline
       ? {
-          sparkline: { bucket: "month", buckets: DEFAULT_SPARKLINE_BUCKETS },
+          sparkline: {
+            bucket: "month",
+            buckets: DASHBOARD_KPI_DEFAULTS.sparklineBuckets,
+          },
         }
       : {}),
   };
@@ -747,59 +327,14 @@ export const dashboardCompareDayOptions = (
     label: dashboardLabel("lastDays", locale, translate, { count }),
   }));
 
-/** Removes a widget, its place and its mentions in filter targets. */
-export function removeDashboardWidget(
-  dashboard: Dashboard,
-  widgetId: string
-): Dashboard {
-  return {
-    ...dashboard,
-    widgets: dashboard.widgets.filter((widget) => widget.id !== widgetId),
-    layout: compactLayout(
-      dashboard.layout.filter((item) => item.widgetId !== widgetId)
-    ),
-    filters: dashboard.filters.map((filter) => ({
-      ...filter,
-      targets: filter.targets
-        .map((target) =>
-          target.widgetIds
-            ? {
-                ...target,
-                widgetIds: target.widgetIds.filter((id) => id !== widgetId),
-              }
-            : target
-        )
-        .filter((target) => !target.widgetIds || target.widgetIds.length > 0),
-    })),
-  };
-}
-
-/** Moves a widget with the keyboard menu. */
-export const moveDashboardWidget = (
-  dashboard: Dashboard,
-  widgetId: string,
-  direction: DashboardDirection
-): Dashboard => ({
-  ...dashboard,
-  layout: moveLayoutItem(dashboard.layout, widgetId, direction),
-});
-
-/** Resizes a widget with the keyboard menu. */
-export const resizeDashboardWidget = (
-  dashboard: Dashboard,
-  widgetId: string,
-  change: DashboardResize
-): Dashboard => ({
-  ...dashboard,
-  layout: resizeLayoutItem(dashboard.layout, widgetId, change),
-});
-
 /** The view settings a KPI widget renders: its view's filters, as a number chart. */
 export function kpiViewConfig(
   widget: DashboardWidget,
   base: Record<string, unknown> = {}
 ): Record<string, unknown> {
-  const metric = KPI_METRICS.has(widget.settings.metric as DashboardKpiMetric)
+  const metric = DASHBOARD_KPI_METRICS.includes(
+    widget.settings.metric as DashboardKpiMetric
+  )
     ? (widget.settings.metric as DashboardKpiMetric)
     : "count";
   const metricColumn = text(widget.settings.metricColumn);
@@ -815,29 +350,32 @@ export function kpiViewConfig(
 }
 
 /**
- * What a table or KPI widget shows: its saved view's settings (the table's
- * defaults without a view), as a number chart for KPIs.
+ * What a table or KPI widget shows: its inline settings, else its saved
+ * view's (the table's defaults without either), as a number chart for KPIs.
  */
 export function widgetViewConfig(
   widget: DashboardWidget,
   view?: Pick<DashboardView, "config">
 ): Record<string, unknown> {
-  const base = isRecord(view?.config) ? view.config : {};
+  let base: Record<string, unknown> = {};
+  if (widget.view) {
+    base = { ...widget.view };
+  } else if (isRecord(view?.config)) {
+    base = view.config;
+  }
   return widget.type === "kpi" ? kpiViewConfig(widget, base) : { ...base };
 }
+
+/** The saved view a widget's table starts from: none for inline settings. */
+export const dashboardWidgetViewId = (
+  widget: Pick<DashboardWidget, "view" | "viewId">
+): string | null => (widget.view ? null : (widget.viewId ?? null));
 
 /** Display mode a view widget renders (`table` by default). */
 export const widgetDisplayMode = (config: Record<string, unknown>): string =>
   text(config.displayMode) || "table";
 
 // Fitting records ----------------------------------------------------------------
-
-/**
- * What a view widget does with records that do not fit its height: `fit`
- * (the default) shows the ones that fit and "+N more"; `scroll` keeps the
- * view's pagination and scrolls inside the widget.
- */
-export type DashboardOverflow = "fit" | "scroll";
 
 /** A widget's `settings.overflow`: `fit` unless it asks to scroll. */
 export const widgetOverflow = (
@@ -925,116 +463,8 @@ export function dashboardListTotal(result: unknown): number | undefined {
 
 // Numbers: comparison and trend ----------------------------------------------------
 
-/** Which change a comparison shows as good: an increase (`up`) or a decrease. */
-export type DashboardKpiBetter = "up" | "down";
-
-/**
- * Comparison with the period just before, as long as the current one. The
- * current period is the dashboard's date range on the KPI's `dateColumn` when
- * a date filter targets it, otherwise the last `days` days up to today.
- */
-export interface DashboardKpiCompare {
-  period: "previous";
-  days: number;
-  better: DashboardKpiBetter;
-}
-
-/** A tiny line of the metric over the last `buckets` date buckets. */
-export interface DashboardKpiSparkline {
-  bucket: ChartBucket;
-  buckets: number;
-}
-
-/** A KPI widget's settings, normalized. */
-export interface DashboardKpiSettings {
-  metric: DashboardKpiMetric;
-  metricColumn?: string;
-  label?: string;
-  /** The date column periods and trend buckets read; required by both. */
-  dateColumn?: string;
-  compare?: DashboardKpiCompare;
-  sparkline?: DashboardKpiSparkline;
-}
-
 /** Days `compare.days` offers in the widget picker. */
 export const DASHBOARD_COMPARE_DAYS = [7, 30, 90, 365] as const;
-const DEFAULT_COMPARE_DAYS = 30;
-const MAX_COMPARE_DAYS = 3660;
-const DEFAULT_SPARKLINE_BUCKETS = 6;
-const MIN_SPARKLINE_BUCKETS = 2;
-const MAX_SPARKLINE_BUCKETS = 24;
-const SPARKLINE_BUCKETS = new Set<ChartBucket>([
-  "day",
-  "week",
-  "month",
-  "quarter",
-  "year",
-]);
-
-const optionRecord = (value: unknown): UnknownRecord | undefined => {
-  if (value === true) {
-    return {};
-  }
-  return isRecord(value) ? value : undefined;
-};
-
-function normalizeCompare(value: unknown): DashboardKpiCompare | undefined {
-  const input = optionRecord(value);
-  if (!input || (input.period !== undefined && input.period !== "previous")) {
-    return;
-  }
-  return {
-    period: "previous",
-    days: clamp(integer(input.days, DEFAULT_COMPARE_DAYS), 1, MAX_COMPARE_DAYS),
-    better: input.better === "down" ? "down" : "up",
-  };
-}
-
-function normalizeSparkline(value: unknown): DashboardKpiSparkline | undefined {
-  const input = optionRecord(value);
-  if (!input) {
-    return;
-  }
-  const bucket = text(input.bucket) as ChartBucket;
-  return {
-    bucket: SPARKLINE_BUCKETS.has(bucket) ? bucket : "month",
-    buckets: clamp(
-      integer(input.buckets, DEFAULT_SPARKLINE_BUCKETS),
-      MIN_SPARKLINE_BUCKETS,
-      MAX_SPARKLINE_BUCKETS
-    ),
-  };
-}
-
-/**
- * A KPI's settings: `metric` other than `count` needs `metricColumn`;
- * `compare` (`true` or `{ period: "previous", days?, better? }`) and
- * `sparkline` (`true` or `{ bucket?, buckets? }`) need `dateColumn`.
- */
-export function dashboardKpiSettings(
-  widget: Pick<DashboardWidget, "settings">
-): DashboardKpiSettings {
-  const { settings } = widget;
-  const metric = KPI_METRICS.has(settings.metric as DashboardKpiMetric)
-    ? (settings.metric as DashboardKpiMetric)
-    : "count";
-  const metricColumn = text(settings.metricColumn);
-  const reads = metric !== "count" && Boolean(metricColumn);
-  const label = text(settings.label);
-  const dateColumn = text(settings.dateColumn);
-  const compare = dateColumn ? normalizeCompare(settings.compare) : undefined;
-  const sparkline = dateColumn
-    ? normalizeSparkline(settings.sparkline)
-    : undefined;
-  return {
-    metric: reads ? metric : "count",
-    ...(reads ? { metricColumn } : {}),
-    ...(label ? { label } : {}),
-    ...(dateColumn ? { dateColumn } : {}),
-    ...(compare ? { compare } : {}),
-    ...(sparkline ? { sparkline } : {}),
-  };
-}
 
 /** Days from `start` to `end`, both included. */
 export interface DashboardPeriod {
@@ -1075,11 +505,11 @@ export function dashboardKpiPeriods(
   range: DashboardDateRange = {}
 ): { current: DashboardPeriod; previous: DashboardPeriod } {
   const length = clamp(
-    integer(days, DEFAULT_COMPARE_DAYS),
+    integer(days, DASHBOARD_KPI_DEFAULTS.compareDays),
     1,
-    MAX_COMPARE_DAYS
+    DASHBOARD_KPI_DEFAULTS.maxCompareDays
   );
-  const { start, end } = dateRangeOf(range);
+  const { start, end } = dashboardDateRange(range);
   let current: DashboardPeriod;
   if (start && end) {
     current = start <= end ? { start, end } : { start: end, end: start };
@@ -1112,7 +542,7 @@ export function dashboardDateRangeFor(
         ? filter.targets.find((item) => targetsWidget(item, widget))
         : undefined;
     if (target?.columnId === columnId) {
-      return dateRangeOf(filter.value);
+      return dashboardDateRange(filter.value);
     }
   }
   return;
@@ -1539,28 +969,13 @@ export const filterableColumns = (
     )
   );
 
-const dateRangeOf = (value: unknown): DashboardDateRange => {
-  const range = isRecord(value) ? value : {};
-  const start = text(range.start);
-  const end = text(range.end);
-  return {
-    ...(DATE_ONLY.test(start) ? { start } : {}),
-    ...(DATE_ONLY.test(end) ? { end } : {}),
-  };
-};
-
-const selectValuesOf = (value: unknown): string[] =>
-  Array.isArray(value)
-    ? [...new Set(value.map(String).filter((item) => item !== ""))]
-    : [];
-
 /** Whether a filter currently filters something. */
 export function isDashboardFilterActive(filter: DashboardFilter): boolean {
   if (filter.type === "dateRange") {
-    const range = dateRangeOf(filter.value);
+    const range = dashboardDateRange(filter.value);
     return Boolean(range.start || range.end);
   }
-  return selectValuesOf(filter.value).length > 0;
+  return dashboardSelectValues(filter.value).length > 0;
 }
 
 /** The advanced filter rule of a dashboard filter on one column. */
@@ -1570,12 +985,12 @@ export function dashboardFilterRule(
 ): UnknownRecord | undefined {
   const base = { id: `dashboard-${filter.id}`, columnId, isActive: true };
   if (filter.type === "select") {
-    const values = selectValuesOf(filter.value);
+    const values = dashboardSelectValues(filter.value);
     return values.length
       ? { ...base, type: "select", operator: "isAnyOf", values }
       : undefined;
   }
-  const { start, end } = dateRangeOf(filter.value);
+  const { start, end } = dashboardDateRange(filter.value);
   if (start && end) {
     return { ...base, type: "date", operator: "between", values: [start, end] };
   }
@@ -1604,7 +1019,7 @@ export function dashboardFilterRules(
   dashboard: Pick<Dashboard, "filters">,
   widget: Pick<DashboardWidget, "id" | "tableId" | "type">
 ): UnknownRecord[] {
-  if (widget.type === "note" || !widget.tableId) {
+  if (widget.type === "note" || widget.type === "block" || !widget.tableId) {
     return [];
   }
   const rules: UnknownRecord[] = [];
@@ -1694,23 +1109,11 @@ export function setDashboardFilterValue(
     ...dashboard,
     filters: dashboard.filters.map((filter) =>
       filter.id === filterId
-        ? normalizeFilterValue({ ...filter, value })
+        ? normalizeDashboardFilterValue({ ...filter, value })
         : filter
     ),
   };
 }
-
-const normalizeFilterValue = (filter: DashboardFilter): DashboardFilter => {
-  const { value: _value, ...rest } = filter;
-  const value =
-    filter.type === "dateRange"
-      ? dateRangeOf(filter.value)
-      : selectValuesOf(filter.value);
-  const empty = Array.isArray(value)
-    ? value.length === 0
-    : !(value.start || value.end);
-  return empty ? rest : { ...rest, value };
-};
 
 /** A filter id not used yet. */
 export function nextFilterId(filters: readonly { id: string }[]): string {
@@ -1727,7 +1130,7 @@ export function addDashboardFilter(
   dashboard: Dashboard,
   filter: Omit<DashboardFilter, "id"> & { id?: string }
 ): Dashboard {
-  const added = normalizeFilter({
+  const added = normalizeDashboardFilter({
     ...filter,
     id: filter.id ?? nextFilterId(dashboard.filters),
   });
@@ -1786,216 +1189,7 @@ export const widgetFilterSignature = (
   widget: Pick<DashboardWidget, "id" | "tableId" | "type">
 ): string => JSON.stringify(dashboardFilterRules(dashboard, widget));
 
-// Normalization and versions ----------------------------------------------------
-
-export type DashboardIssueCode =
-  | "invalidDashboard"
-  | "unsupportedVersion"
-  | "invalidWidget"
-  | "duplicateWidget"
-  | "invalidLayout"
-  | "invalidFilter";
-
-export interface DashboardIssue {
-  code: DashboardIssueCode;
-  message: string;
-}
-
-const normalizeWidget = (value: unknown): DashboardWidget | undefined => {
-  if (!isRecord(value)) {
-    return;
-  }
-  const id = text(value.id);
-  const type = text(value.type) as DashboardWidgetType;
-  if (!(id && WIDGET_TYPES.has(type))) {
-    return;
-  }
-  const tableId = text(value.tableId);
-  if (type !== "note" && !tableId) {
-    return;
-  }
-  const viewId = text(value.viewId);
-  const title = text(value.title);
-  return {
-    id,
-    type,
-    ...(tableId && type !== "note" ? { tableId } : {}),
-    ...(viewId && type !== "note" ? { viewId } : {}),
-    ...(title ? { title } : {}),
-    settings: isRecord(value.settings) ? { ...value.settings } : {},
-  };
-};
-
-const normalizeTarget = (value: unknown): DashboardFilterTarget | undefined => {
-  if (!isRecord(value)) {
-    return;
-  }
-  const tableId = text(value.tableId);
-  const columnId = text(value.columnId);
-  if (!(tableId && columnId)) {
-    return;
-  }
-  const widgetIds = Array.isArray(value.widgetIds)
-    ? value.widgetIds.map(text).filter(Boolean)
-    : undefined;
-  return { tableId, columnId, ...(widgetIds?.length ? { widgetIds } : {}) };
-};
-
-const normalizeOptions = (value: unknown): DashboardFilterOption[] =>
-  Array.isArray(value)
-    ? value.filter(isRecord).map((option) => ({
-        value: String(option.value ?? ""),
-        label: String(option.label ?? option.value ?? ""),
-      }))
-    : [];
-
-function normalizeFilter(value: unknown): DashboardFilter | undefined {
-  if (!isRecord(value)) {
-    return;
-  }
-  const id = text(value.id);
-  const type = text(value.type);
-  if (!(id && (type === "dateRange" || type === "select"))) {
-    return;
-  }
-  const targets = (Array.isArray(value.targets) ? value.targets : [])
-    .map(normalizeTarget)
-    .filter((target): target is DashboardFilterTarget => Boolean(target));
-  const options = normalizeOptions(value.options);
-  return normalizeFilterValue({
-    id,
-    type,
-    label: text(value.label) || id,
-    targets,
-    ...(options.length ? { options } : {}),
-    ...(value.value === undefined
-      ? {}
-      : { value: value.value as DashboardFilter["value"] }),
-  });
-}
-
-/** Version 0 (before `version`): layout items keyed `i`, as in react-grid-layout. */
-function migrateLegacyDashboard(input: UnknownRecord): UnknownRecord {
-  const layout = Array.isArray(input.layout) ? input.layout : [];
-  return {
-    ...input,
-    version: DASHBOARD_VERSION,
-    layout: layout.filter(isRecord).map((item) => ({
-      ...item,
-      widgetId: item.widgetId ?? item.i ?? item.id,
-    })),
-  };
-}
-
-const normalizeLayoutItems = (value: unknown): DashboardLayoutItem[] =>
-  (Array.isArray(value) ? value : [])
-    .filter(isRecord)
-    .filter((item) => text(item.widgetId))
-    .map((item) => ({
-      widgetId: text(item.widgetId),
-      x: integer(item.x, 0),
-      y: integer(item.y, 0),
-      w: integer(item.w, 1),
-      h: integer(item.h, 1),
-    }));
-
-function collectWidgets(value: unknown, issues: DashboardIssue[]) {
-  const widgets: DashboardWidget[] = [];
-  for (const entry of Array.isArray(value) ? value : []) {
-    const widget = normalizeWidget(entry);
-    if (!widget) {
-      issues.push({ code: "invalidWidget", message: "A widget was dropped." });
-    } else if (widgets.some((item) => item.id === widget.id)) {
-      issues.push({
-        code: "duplicateWidget",
-        message: `Widget "${widget.id}" appears twice.`,
-      });
-    } else {
-      widgets.push(widget);
-    }
-  }
-  return widgets;
-}
-
-function collectFilters(value: unknown, issues: DashboardIssue[]) {
-  const filters: DashboardFilter[] = [];
-  for (const entry of Array.isArray(value) ? value : []) {
-    const filter = normalizeFilter(entry);
-    if (filter && !filters.some((item) => item.id === filter.id)) {
-      filters.push(filter);
-    } else {
-      issues.push({ code: "invalidFilter", message: "A filter was dropped." });
-    }
-  }
-  return filters;
-}
-
-/**
- * Checks and repairs dashboard JSON: older versions are migrated, invalid
- * widgets and filters dropped, the layout normalized. `dashboard` is
- * undefined when the input is not a dashboard or comes from a newer version.
- */
-export function validateDashboard(input: unknown): {
-  dashboard?: Dashboard;
-  issues: DashboardIssue[];
-} {
-  if (!(isRecord(input) && text(input.id))) {
-    return {
-      issues: [{ code: "invalidDashboard", message: "Not a dashboard." }],
-    };
-  }
-  const version = input.version === undefined ? 0 : integer(input.version, -1);
-  if (version < 0 || version > DASHBOARD_VERSION) {
-    return {
-      issues: [
-        {
-          code: "unsupportedVersion",
-          message: `Dashboard version ${String(input.version)} is not supported (latest: ${DASHBOARD_VERSION}).`,
-        },
-      ],
-    };
-  }
-  const source = version === 0 ? migrateLegacyDashboard(input) : input;
-  const issues: DashboardIssue[] = [];
-  const widgets = collectWidgets(source.widgets, issues);
-  const items = normalizeLayoutItems(source.layout);
-  const layout = normalizeLayout(items, widgets);
-  if (items.length !== layout.length || !sameLayout(items, layout)) {
-    issues.push({ code: "invalidLayout", message: "The layout was repaired." });
-  }
-  const updatedAt = text(source.updatedAt);
-  return {
-    dashboard: {
-      version: DASHBOARD_VERSION,
-      id: text(source.id),
-      name: text(source.name),
-      layout,
-      widgets,
-      filters: collectFilters(source.filters, issues),
-      ...(updatedAt ? { updatedAt } : {}),
-    },
-    issues,
-  };
-}
-
-/** A valid dashboard of the current version; throws for newer versions or non-dashboards. */
-export function normalizeDashboard(input: unknown): Dashboard {
-  const { dashboard, issues } = validateDashboard(input);
-  if (!dashboard) {
-    throw new Error(issues.at(0)?.message ?? "Not a dashboard.");
-  }
-  return dashboard;
-}
-
-/** An empty dashboard. */
-export const createDashboard = (id: string, name: string): Dashboard => ({
-  version: DASHBOARD_VERSION,
-  id,
-  name,
-  layout: [],
-  widgets: [],
-  filters: [],
-});
+// Saved views -------------------------------------------------------------------
 
 /** Saved views from a table source: its static views, then those `views.list` returns. */
 export async function loadDashboardViews(
@@ -2122,6 +1316,7 @@ const ENGLISH_LABELS = {
   overflow: "Records that do not fit",
   overflowFit: "Show what fits, then “+N more”",
   overflowScroll: "Scroll inside the widget",
+  notAvailableYet: "Not available yet",
 };
 
 export type DashboardLabelKey = keyof typeof ENGLISH_LABELS;
@@ -2219,6 +1414,7 @@ const FRENCH_LABELS: Record<DashboardLabelKey, string> = {
   overflow: "Enregistrements qui ne tiennent pas",
   overflowFit: "Afficher ce qui tient, puis « +N de plus »",
   overflowScroll: "Faire défiler dans le widget",
+  notAvailableYet: "Pas encore disponible",
 };
 
 /** Host override for a label (`dashboard.<key>`), or the built-in one. */
@@ -2272,7 +1468,10 @@ export const dashboardMetricOptions = (
     label: dashboardLabel(METRIC_LABELS[value], locale, translate),
   }));
 
-/** The widget's title: its own, its view's name, the KPI label, or the table's name. */
+/**
+ * The widget's title: its own (in `locale`), the KPI label, its saved view's
+ * name, the table's name (inline views and full-page tables) or the block's key.
+ */
 export function dashboardWidgetTitle(
   widget: DashboardWidget,
   context: {
@@ -2282,21 +1481,51 @@ export function dashboardWidgetTitle(
     view?: Pick<DashboardView, "name">;
   }
 ): string {
-  if (widget.title) {
-    return widget.title;
+  const own = dashboardText(widget.title, context.locale);
+  if (own) {
+    return own;
   }
   if (widget.type === "note") {
     return dashboardLabel("typeNote", context.locale, context.translate);
+  }
+  if (widget.type === "block") {
+    return widget.block ?? "";
   }
   const tableName = context.table?.name ?? widget.tableId ?? "";
   if (widget.type === "kpi") {
     const label = text(widget.settings.label);
     return label || tableName;
   }
+  if (widget.type === "table" || widget.view) {
+    return tableName;
+  }
   return context.view?.name
     ? context.view.name
     : `${tableName} › ${dashboardLabel("defaultView", context.locale, context.translate)}`;
 }
+
+/**
+ * A text with the version `locale` reads replaced by `value` (a rename in
+ * edit mode): a plain text stays plain, a localized one keeps its other
+ * languages.
+ */
+export function setDashboardText(
+  text: DashboardText | undefined,
+  locale: string,
+  value: string
+): DashboardText {
+  if (text === undefined || typeof text === "string") {
+    return value;
+  }
+  const shown = formLocaleMatch(Object.keys(text), locale) ?? locale;
+  return { ...text, [shown]: value };
+}
+
+/** A filter's name in `locale`, else its id. */
+export const dashboardFilterLabel = (
+  filter: Pick<DashboardFilter, "id" | "label">,
+  locale: string
+): string => dashboardText(filter.label, locale) || filter.id;
 
 /** Whether a select filter's option tags are colored: its first target table's setting. */
 export function dashboardFilterColoredTags(
@@ -2350,7 +1579,7 @@ export function dashboardDateRangeText(
   translate?: DashboardTranslate,
   column?: DashboardColumn
 ): string {
-  const { start, end } = dateRangeOf(value);
+  const { start, end } = dashboardDateRange(value);
   const format = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
   const show = (day?: string) => {
     const date = dashboardDay(day);

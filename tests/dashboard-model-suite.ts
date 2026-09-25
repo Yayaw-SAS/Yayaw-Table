@@ -15,6 +15,7 @@ export type DashboardModelApi = Pick<
   | "dashboardComparison"
   | "dashboardComparisonText"
   | "dashboardDateColumns"
+  | "dashboardFilterLabel"
   | "dashboardFilterRules"
   | "dashboardFilterTargetsLabel"
   | "dashboardFitPageSize"
@@ -34,6 +35,7 @@ export type DashboardModelApi = Pick<
   | "dashboardWidgetFromDraft"
   | "dashboardWidgetSize"
   | "dashboardWidgetTitle"
+  | "dashboardWidgetViewId"
   | "defaultWidgetSize"
   | "emptyWidgetDraft"
   | "findFreeSpot"
@@ -53,11 +55,12 @@ export type DashboardModelApi = Pick<
   | "validateDashboard"
   | "widgetFilterSignature"
   | "widgetOverflow"
+  | "widgetViewConfig"
   | "withDashboardFilters"
 >;
 type Test = (name: string, run: () => void | Promise<void>) => void;
 type Layout = Model.DashboardLayoutItem[];
-const UNSUPPORTED_VERSION = /version 2 is not supported/;
+const UNSUPPORTED_VERSION = /version 3 is not supported/;
 
 const item = (
   widgetId: string,
@@ -79,6 +82,11 @@ const places = (layout: Layout) =>
       [entry.x, entry.y, entry.w, entry.h],
     ])
   );
+/** The layout of a dashboard's grid section (`main`, the one version 1 migrates to). */
+const layoutOf = (dashboard: Model.Dashboard, sectionId = "main"): Layout => {
+  const section = dashboard.sections.find((entry) => entry.id === sectionId);
+  return section?.type === "grid" ? section.layout : [];
+};
 const overlapping = (layout: Layout) =>
   layout.some((a, index) =>
     layout
@@ -276,14 +284,18 @@ function layoutSuite(test: Test, api: DashboardModelApi) {
     );
   });
 
-  test("grid changes are normalized and unchanged layouts keep the dashboard", () => {
-    const dashboard = api.normalizeDashboard(DASHBOARD);
-    assert.equal(api.applyGridLayout(dashboard, dashboard.layout), dashboard);
-    const moved = api.applyGridLayout(dashboard, [
+  test("grid changes are normalized and unchanged layouts keep the section", () => {
+    const section = {
+      id: "main",
+      layout: layoutOf(api.normalizeDashboard(DASHBOARD)),
+    };
+    assert.equal(api.applyGridLayout(section, section.layout), section);
+    const moved = api.applyGridLayout(section, [
       item("note", 0, 0, 1, 1),
       item("count", 1, 0, 1, 1),
     ]);
-    assert.notEqual(moved, dashboard);
+    assert.notEqual(moved, section);
+    assert.equal(moved.id, "main");
     assert.deepEqual(places(moved.layout).note, [0, 0, 1, 1]);
     assert.deepEqual(places(moved.layout).count, [1, 0, 1, 1]);
   });
@@ -300,7 +312,7 @@ function widgetSuite(test: Test, api: DashboardModelApi) {
     const widget = added.widgets.at(-1);
     assert.equal(widget?.id, "widget-5");
     assert.deepEqual(
-      added.layout.find((entry) => entry.widgetId === "widget-5"),
+      layoutOf(added).find((entry) => entry.widgetId === "widget-5"),
       item("widget-5", 2, 3, 1, 1)
     );
     const removed = api.removeDashboardWidget(added, "chart");
@@ -309,7 +321,7 @@ function widgetSuite(test: Test, api: DashboardModelApi) {
       false
     );
     assert.equal(
-      removed.layout.some((entry) => entry.widgetId === "chart"),
+      layoutOf(removed).some((entry) => entry.widgetId === "chart"),
       false
     );
     // A filter only targeting the removed widget loses that target.
@@ -375,6 +387,77 @@ function widgetSuite(test: Test, api: DashboardModelApi) {
     const translate = api.dashboardTranslate({ "dashboard.edit": "Arrange" });
     assert.equal(api.dashboardLabel("edit", "en", translate), "Arrange");
     assert.equal(api.dashboardLabel("done", "en", translate), "Done");
+  });
+
+  test("titles and filter names follow the locale; inline views need no saved view", () => {
+    const localized = {
+      id: "k",
+      type: "kpi" as const,
+      tableId: "projects",
+      title: { en: "Revenue", fr: "Chiffre d’affaires" },
+      settings: {},
+    };
+    const context = { locale: "fr-CA", table: { name: "Projects" } };
+    assert.equal(
+      api.dashboardWidgetTitle(localized, context),
+      "Chiffre d’affaires"
+    );
+    assert.equal(
+      api.dashboardWidgetTitle(localized, { ...context, locale: "de" }),
+      "Revenue"
+    );
+    const inline = {
+      id: "i",
+      type: "view" as const,
+      tableId: "projects",
+      view: {
+        displayMode: "list" as const,
+        sorting: [{ id: "revenue", desc: true }],
+      },
+      settings: {},
+    };
+    // An inline view is the table's; a saved one is named after its view.
+    assert.equal(api.dashboardWidgetTitle(inline, context), "Projects");
+    assert.equal(api.dashboardWidgetViewId(inline), null);
+    assert.equal(api.dashboardWidgetViewId({ viewId: "board" }), "board");
+    assert.deepEqual(
+      api.widgetViewConfig(inline, { config: { displayMode: "table" } }),
+      { displayMode: "list", sorting: [{ id: "revenue", desc: true }] }
+    );
+    assert.deepEqual(
+      api.widgetViewConfig({ ...inline, type: "kpi" as const }).chart,
+      { type: "number", metric: "count" }
+    );
+    assert.deepEqual(api.dashboardWidgetSize(inline), { w: 2, h: 2 });
+    assert.equal(
+      api.dashboardWidgetTitle(
+        { id: "t", type: "table", tableId: "projects", settings: {} },
+        context
+      ),
+      "Projects"
+    );
+    assert.equal(
+      api.dashboardWidgetTitle(
+        { id: "b", type: "block", block: "home.summary", settings: {} },
+        context
+      ),
+      "home.summary"
+    );
+    assert.equal(
+      api.dashboardFilterLabel(
+        { id: "due", label: { en: "Due", fr: "Échéance" } },
+        "fr"
+      ),
+      "Échéance"
+    );
+    assert.equal(
+      api.dashboardFilterLabel({ id: "due", label: "" }, "fr"),
+      "due"
+    );
+    assert.equal(
+      api.dashboardLabel("notAvailableYet", "fr"),
+      "Pas encore disponible"
+    );
   });
 
   test("saved views come from the source and the views action", async () => {
@@ -574,7 +657,7 @@ function versionSuite(test: Test, api: DashboardModelApi) {
       filters: [...DASHBOARD.filters, { id: "x", type: "slider" }],
       layout: [...DASHBOARD.layout, item("bad", 0, 0, 1, 1)],
     });
-    assert.equal(dashboard?.version, 1);
+    assert.equal(dashboard?.version, 2);
     assert.deepEqual(
       dashboard?.widgets.map((widget) => widget.id),
       ["count", "chart", "tasks", "note"]
@@ -585,6 +668,8 @@ function versionSuite(test: Test, api: DashboardModelApi) {
         "duplicateWidget",
         "invalidWidget",
         "invalidWidget",
+        // The layout names a missing widget, and "tasks" rises into free space.
+        "invalidLayout",
         "invalidLayout",
         "invalidFilter",
       ]
@@ -594,7 +679,29 @@ function versionSuite(test: Test, api: DashboardModelApi) {
     assert.deepEqual(api.validateDashboard(normalized), {
       dashboard: normalized,
       issues: [],
+      ok: true,
     });
+  });
+
+  test("version 1 JSON is saved back as version 2", () => {
+    // What "Done" hands to `actions.dashboards.save` after loading version 1.
+    const saved = JSON.parse(JSON.stringify(api.normalizeDashboard(DASHBOARD)));
+    assert.equal(saved.version, 2);
+    assert.equal("layout" in saved, false);
+    assert.deepEqual(saved.sections, [
+      {
+        id: "main",
+        type: "grid",
+        layout: layoutOf(api.normalizeDashboard(DASHBOARD)),
+      },
+    ]);
+    assert.deepEqual(
+      saved.widgets.map((widget: Model.DashboardWidget) => widget.id),
+      DASHBOARD.widgets.map((widget) => widget.id)
+    );
+    // Read again, it is version 2 as it is.
+    const again = api.validateDashboard(saved);
+    assert.deepEqual(again, { dashboard: saved, issues: [], ok: true });
   });
 
   test("dashboards without a version are migrated and newer ones refused", () => {
@@ -604,11 +711,11 @@ function versionSuite(test: Test, api: DashboardModelApi) {
       widgets: [{ id: "n", type: "note", settings: { text: "Hi" } }],
       layout: [{ i: "n", x: 1, y: 0, w: 2, h: 2 }],
     });
-    assert.equal(legacy.version, 1);
-    assert.deepEqual(legacy.layout, [item("n", 1, 0, 2, 2)]);
+    assert.equal(legacy.version, 2);
+    assert.deepEqual(layoutOf(legacy), [item("n", 1, 0, 2, 2)]);
     assert.deepEqual(legacy.filters, []);
     assert.throws(
-      () => api.normalizeDashboard({ ...DASHBOARD, version: 2 }),
+      () => api.normalizeDashboard({ ...DASHBOARD, version: 3 }),
       UNSUPPORTED_VERSION
     );
     assert.throws(() => api.normalizeDashboard({ name: "No id" }));
@@ -645,7 +752,7 @@ function fitSuite(test: Test, api: DashboardModelApi) {
       { type: "view", tableId: "projects", settings: {} },
       { w: 2, h: 3 }
     );
-    assert.deepEqual(added.layout, [item("widget-1", 0, 0, 2, 3)]);
+    assert.deepEqual(layoutOf(added), [item("widget-1", 0, 0, 2, 3)]);
   });
 
   test("fit widgets load enough records to fill their size", () => {

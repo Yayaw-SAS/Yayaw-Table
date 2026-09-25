@@ -8,7 +8,7 @@ import {
   dashboardColumnsForWidth,
   layoutRows,
   stackLayout,
-} from "./dashboard-model";
+} from "./dashboard-layout";
 import "./dashboard-grid.css";
 
 /** Four columns with gridstack on desktop; one stacked column on phones. */

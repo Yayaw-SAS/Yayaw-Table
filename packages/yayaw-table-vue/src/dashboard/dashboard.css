@@ -126,6 +126,19 @@
   width: 24px;
   height: 24px;
 }
+/* Sections: an optional title above their grid or flow. */
+.yayaw-dashboard-section {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.yayaw-dashboard-section-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5rem;
+}
 .yayaw-dashboard-widget {
   display: flex;
   height: 100%;
