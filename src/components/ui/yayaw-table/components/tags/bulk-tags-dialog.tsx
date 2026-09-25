@@ -417,6 +417,7 @@ export function BulkTagsDialog({
             key={`${mode}:${column.columnId}`}
             label={labels.chooseTags}
             labels={labels}
+            loadError={catalog.status(column.columnId) === "error"}
             multiple
             onChange={(next) => setPicked(next as string[])}
             onCreate={
@@ -424,6 +425,9 @@ export function BulkTagsDialog({
                 ? (name) => catalog.create(column.columnId, name)
                 : undefined
             }
+            onRetry={() => {
+              catalog.reload(column.columnId).catch(() => undefined);
+            }}
             tags={
               mode === "remove" ? usage.map(({ tag }) => tag) : catalogTags
             }

@@ -59,6 +59,9 @@ export interface TagPickerProps {
   onCancel?: () => void;
   /** Numbers shown next to tags (records using them). */
   counts?: Readonly<Record<string, number>>;
+  /** The catalog could not load: shown with a Retry button. */
+  loadError?: boolean;
+  onRetry?: () => void;
   id?: string;
   invalid?: boolean;
   describedBy?: string;
@@ -78,6 +81,130 @@ const NAVIGATION_KEYS = new Set([
   "PageUp",
 ]);
 
+/** What the list says above its tags: creating, a failure, a catalog that did not load. */
+function TagPickerStatus({
+  creating,
+  error,
+  labels,
+  loadError,
+  onRetry,
+}: {
+  creating?: string;
+  error?: string;
+  labels: TagLabels;
+  loadError?: boolean;
+  onRetry?: () => void;
+}) {
+  if (!(creating || error || loadError)) {
+    return null;
+  }
+  return (
+    <div className="flex flex-col gap-1 px-2 pt-2 text-xs">
+      {loadError ? (
+        <p className="flex items-center gap-2 text-destructive" role="alert">
+          {labels.loadError}
+          {onRetry ? (
+            <button
+              className="underline underline-offset-2"
+              onClick={onRetry}
+              type="button"
+            >
+              {labels.retry}
+            </button>
+          ) : null}
+        </p>
+      ) : null}
+      {creating ? (
+        <output className="flex items-center gap-1.5 text-muted-foreground">
+          <Loader2 aria-hidden="true" className="size-3.5 animate-spin" />
+          {labels.creating}
+        </output>
+      ) : null}
+      {error ? (
+        <p className="text-destructive" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/** A selected tag: its name on its color, and a button that removes it. */
+function TagPickerChip({
+  coloredTags,
+  disabled,
+  labels,
+  tag,
+}: {
+  coloredTags?: boolean;
+  disabled?: boolean;
+  labels: TagLabels;
+  tag: TableTag;
+}) {
+  const chip = tagChipProps({ color: tag.color, coloredTags, id: tag.id });
+  return (
+    <ComboboxPrimitive.Chip
+      {...chip}
+      className={cn(
+        chip.className,
+        "flex h-[calc(--spacing(5.5))] max-w-full shrink-0 items-center gap-1 rounded-md px-1.5 text-xs"
+      )}
+      data-tag-id={tag.id}
+    >
+      <span className="truncate">{tag.name}</span>
+      {disabled ? null : (
+        <ComboboxPrimitive.ChipRemove
+          aria-label={formatTagLabel(labels.removeTag, { name: tag.name })}
+          className="-mr-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded-sm opacity-60 outline-none hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <XIcon aria-hidden="true" className="size-3" />
+        </ComboboxPrimitive.ChipRemove>
+      )}
+    </ComboboxPrimitive.Chip>
+  );
+}
+
+/** A tag of the list, with its count, or "Create “name”". */
+function TagPickerItem({
+  coloredTags,
+  count,
+  createLabel,
+  creating,
+  item,
+  tag,
+}: {
+  coloredTags?: boolean;
+  count?: number;
+  createLabel: string;
+  creating: boolean;
+  item: string;
+  tag: TableTag;
+}) {
+  if (item === TAG_CREATE_ITEM) {
+    return (
+      <ComboboxItem data-tag-create="" disabled={creating} value={item}>
+        <Plus aria-hidden="true" className="size-4" />
+        <span className="truncate">{createLabel}</span>
+      </ComboboxItem>
+    );
+  }
+  return (
+    <ComboboxItem value={item}>
+      <TagChip
+        color={tag.color}
+        coloredTags={coloredTags}
+        id={tag.id}
+        name={tag.name}
+      />
+      {count === undefined ? null : (
+        <span className="ml-auto text-muted-foreground text-xs tabular-nums">
+          {count}
+        </span>
+      )}
+    </ComboboxItem>
+  );
+}
+
 /**
  * Picks tags from a catalog: colored chips, search by name (without case or
  * accents) and "Create “name”" when nothing has that name. Arrow keys move in
@@ -93,12 +220,14 @@ export function TagPicker({
   invalid,
   label,
   labels,
+  loadError,
   mode = "field",
   multiple,
   onCancel,
   onChange,
   onCommit,
   onCreate,
+  onRetry,
   placeholder,
   tags,
   value,
@@ -273,22 +402,17 @@ export function TagPicker({
     }
   };
 
-  const status =
-    creating || error ? (
-      <div className="flex flex-col gap-1 px-2 pt-2 text-xs">
-        {creating ? (
-          <output className="flex items-center gap-1.5 text-muted-foreground">
-            <Loader2 aria-hidden="true" className="size-3.5 animate-spin" />
-            {labels.creating}
-          </output>
-        ) : null}
-        {error ? (
-          <p className="text-destructive" role="alert">
-            {error}
-          </p>
-        ) : null}
-      </div>
-    ) : null;
+  const emptyPlaceholder =
+    placeholder ?? (onCreate ? labels.search : labels.searchOnly);
+  const status = (
+    <TagPickerStatus
+      creating={creating}
+      error={error}
+      labels={labels}
+      loadError={loadError}
+      onRetry={onRetry}
+    />
+  );
 
   return (
     <div className={cn("relative w-full", className)} data-tag-picker="">
@@ -320,37 +444,15 @@ export function TagPicker({
           )}
           ref={anchor}
         >
-          {selected.map((tagId) => {
-            const tag = tagOf(tagId);
-            const chip = tagChipProps({
-              color: tag.color,
-              coloredTags,
-              id: tagId,
-            });
-            return (
-              <ComboboxPrimitive.Chip
-                {...chip}
-                className={cn(
-                  chip.className,
-                  "flex h-[calc(--spacing(5.5))] max-w-full shrink-0 items-center gap-1 rounded-md px-1.5 text-xs"
-                )}
-                data-tag-id={tagId}
-                key={tagId}
-              >
-                <span className="truncate">{tag.name}</span>
-                {disabled ? null : (
-                  <ComboboxPrimitive.ChipRemove
-                    aria-label={formatTagLabel(labels.removeTag, {
-                      name: tag.name,
-                    })}
-                    className="-mr-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded-sm opacity-60 outline-none hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <XIcon aria-hidden="true" className="size-3" />
-                  </ComboboxPrimitive.ChipRemove>
-                )}
-              </ComboboxPrimitive.Chip>
-            );
-          })}
+          {selected.map((tagId) => (
+            <TagPickerChip
+              coloredTags={coloredTags}
+              disabled={disabled}
+              key={tagId}
+              labels={labels}
+              tag={tagOf(tagId)}
+            />
+          ))}
           <ComboboxChipsInput
             aria-describedby={describedBy}
             aria-invalid={invalid || undefined}
@@ -359,12 +461,7 @@ export function TagPicker({
             className="h-6 min-w-16 bg-transparent text-sm"
             id={id}
             onKeyDown={handleKeyDown}
-            placeholder={
-              selected.length
-                ? undefined
-                : (placeholder ??
-                  (onCreate ? labels.search : labels.searchOnly))
-            }
+            placeholder={selected.length ? undefined : emptyPlaceholder}
           />
         </ComboboxChips>
         <ComboboxContent anchor={anchor}>
@@ -373,33 +470,17 @@ export function TagPicker({
             {tags.length ? labels.noMatch : labels.noTags}
           </ComboboxEmpty>
           <ComboboxList>
-            {(item: string) =>
-              item === TAG_CREATE_ITEM ? (
-                <ComboboxItem
-                  data-tag-create=""
-                  disabled={Boolean(creating)}
-                  key={item}
-                  value={item}
-                >
-                  <Plus aria-hidden="true" className="size-4" />
-                  <span className="truncate">{createLabel}</span>
-                </ComboboxItem>
-              ) : (
-                <ComboboxItem key={item} value={item}>
-                  <TagChip
-                    color={tagOf(item).color}
-                    coloredTags={coloredTags}
-                    id={item}
-                    name={tagOf(item).name}
-                  />
-                  {counts?.[item] === undefined ? null : (
-                    <span className="ml-auto text-muted-foreground text-xs tabular-nums">
-                      {counts[item]}
-                    </span>
-                  )}
-                </ComboboxItem>
-              )
-            }
+            {(item: string) => (
+              <TagPickerItem
+                coloredTags={coloredTags}
+                count={counts?.[item]}
+                createLabel={createLabel}
+                creating={Boolean(creating)}
+                item={item}
+                key={item}
+                tag={tagOf(item)}
+              />
+            )}
           </ComboboxList>
         </ComboboxContent>
       </Combobox>

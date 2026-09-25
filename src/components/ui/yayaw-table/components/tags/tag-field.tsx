@@ -61,6 +61,7 @@ export function TagField({
         invalid={!fieldApi.state.meta.isValid}
         label={label}
         labels={catalog.labels}
+        loadError={catalog.status(column.columnId) === "error"}
         mode="field"
         multiple={column.multiple}
         onChange={(next) => {
@@ -72,6 +73,9 @@ export function TagField({
             ? (name) => catalog.create(column.columnId, name)
             : undefined
         }
+        onRetry={() => {
+          catalog.reload(column.columnId).catch(() => undefined);
+        }}
         placeholder={
           (field.placeholderKey ? t(field.placeholderKey) : field.placeholder) ??
           undefined

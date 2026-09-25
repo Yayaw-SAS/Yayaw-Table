@@ -365,6 +365,8 @@ watch(valueType, (next, previous) => {
         :described-by="describedBy"
         :placeholder="field.placeholder"
         :create="createTag"
+        :load-error="tagCatalog.status(tagColumn.columnId) === 'error'"
+        :retry="() => tagCatalog?.reload(tagColumn!.columnId)"
         @update:model-value="update"
       />
       <output v-if="tagCatalog.status(tagColumn.columnId) === 'loading'" class="yayaw-help">{{ tagCatalog.labels.value.loading }}</output>

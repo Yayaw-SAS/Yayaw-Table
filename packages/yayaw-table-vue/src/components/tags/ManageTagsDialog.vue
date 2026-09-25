@@ -266,7 +266,11 @@ const setTarget = (value: unknown): void => {
             <Search :size="16" aria-hidden="true" />
             <input v-model="query" type="search" class="yayaw-input" :aria-label="labels.searchOnly" :placeholder="labels.searchOnly" />
           </label>
-          <output v-if="catalog.status(columnId) === 'loading'" class="yayaw-help">{{ labels.loading }}</output>
+          <p v-if="catalog.status(columnId) === 'error'" class="yayaw-field-error" role="alert">
+            {{ labels.loadError }}
+            <button type="button" class="yayaw-button yayaw-button-outline" @click="catalog.reload(columnId)">{{ labels.retry }}</button>
+          </p>
+          <output v-else-if="catalog.status(columnId) === 'loading'" class="yayaw-help">{{ labels.loading }}</output>
           <p v-else-if="!tags.length" class="yayaw-help">{{ labels.noTags }}</p>
           <p v-else-if="!visible.length" class="yayaw-help">{{ labels.noMatch }}</p>
           <ul class="yayaw-tags-list" :aria-label="labels.tags">

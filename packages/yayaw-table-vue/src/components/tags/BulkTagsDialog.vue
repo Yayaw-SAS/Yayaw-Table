@@ -225,6 +225,8 @@ const apply = (): void => {
           :label="labels.chooseTags"
           :colored-tags="catalog.coloredTags(column.columnId)"
           :create="createTag"
+          :load-error="catalog.status(column.columnId) === 'error'"
+          :retry="() => catalog?.reload(column!.columnId)"
           @update:model-value="picked = $event as string[]"
         />
         <div class="yayaw-tags-actions">

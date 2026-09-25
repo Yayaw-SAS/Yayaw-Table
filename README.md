@@ -274,6 +274,47 @@ handle is focused. Double-click restores the configured width. Add
 `enableResizing: false` to an individual column to keep it fixed. Resized widths
 are included in saved views and shareable URLs in both React and Vue.
 
+### Tags columns
+
+A column with `tags: true` is a tags column: `multiSelect` columns hold a
+list of tag ids, `select` columns one. With `actions.tags` in both editions,
+its options are the host's catalog, loaded once per table and column when the
+table mounts and cached, so cells, cards, filters, grouping and the record
+view show the tags' names and colors:
+
+```ts
+columns: [{ id: "tags", header: "Tags", type: "multiSelect", tags: true, inlineEdit: true }],
+// getTableActions(tableType)
+tags: {
+  list: ({ tableId, tableType, columnId }) => listTags(columnId), // [{ id, name, color? }]
+  create: ({ columnId, name, color }) => createTag(columnId, name, color), // the new tag
+  update: ({ id, name, color }) => updateTag(id, { name, color }), // color: null clears it
+  merge: ({ sourceIds, targetId }) => mergeTags(sourceIds, targetId), // rewrites the records
+  remove: ({ id }) => deleteTag(id), // and removes it from the records
+},
+```
+
+- The tag picker (cells, record forms) searches names without case or
+  accents and offers "Create “name”" (with `create`, unless the column sets
+  `tags: { create: false }`): the tag is created, selected and cached at once.
+- Bulk "Add tags" and "Remove tags" (tags columns holding lists, with
+  `allowBulkEdit` and `bulkUpdate` or `update`) show the change at once and
+  restore the rows that fail, which stay selected. By default `bulkUpdate`
+  receives each group of rows' resulting lists; with `tags: { bulk: "patch" }`
+  it receives `{ [field]: { add, remove } }` once, for the server to apply with
+  `applyTagPatch()`.
+- "Manage tags" in the column menu renames, recolors (a palette of named
+  colors; any CSS color from the host shows too), merges and deletes tags,
+  confirming a deletion with the number of records using the tag (one
+  `aggregate` call grouped by the column). `table.canManageTags: false` or the
+  column's `tags: { manage: false }` hide it.
+- Tag colors: palette names (`TAG_COLOR_NAMES`) or CSS colors; tags without a
+  color keep their automatic hue, and `coloredTags: false` shows neutral tags.
+
+Without `actions.tags`, a tags column keeps its static `options`. See the
+[server contracts](skills/yayaw-table/references/server-contracts.md#tag-catalogs);
+`?example=assets&assets-display=table` shows a Tags column in both demos.
+
 ### Migrate from TanStack Table 8
 
 Reinstall the registry so the generated `tanstack.ts` adapter and the TanStack

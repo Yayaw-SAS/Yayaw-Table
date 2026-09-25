@@ -2909,3 +2909,70 @@ JSON props refused (invalid JSON, `validateProps`), accepted and edited; a
 block's `settings` form; "Done" refusing a screen with errors and naming the
 widget, then saving once fixed; unavailable sources listed disabled with
 their reasons. `e2e/dashboard.spec.ts` adds widgets through the new dialog.
+
+## Tags columns
+
+Both editions read `tags` on a column (`true` or `{ create, manage, bulk }`)
+and `actions.tags` (`list`, `create`, `update`, `merge`, `remove`, each called
+with the catalog's `{ tableId, tableType, columnId }`), and share
+`tag-catalog.ts` (server-safe, synced to Vue) for everything that is not
+rendering: column resolution, the cached catalog query
+(`["yayaw-table", tableId, "tags", tableType, columnId]`, five minutes), the
+catalog as options, search and create-on-the-fly names, what Enter does in a
+picker (`tagPickerEnter`), bulk plans (`planTagBulkUpdate`, values or
+`{ add, remove }` patch, `applyTagPatch` for hosts), merge and delete effects
+on records and catalogs, usage counts from `aggregate` groups and the EN/FR
+labels (overridden by `tags.<key>` translations).
+
+- Catalog options: React's `TableProvider` loads the catalogs with
+  `useQueries` and hands a `getTableConfig` whose tags columns carry the
+  catalog's options, so every `useTableConfig` reader (cells, cards, filters,
+  forms, details, charts, maps, kanban lanes) sees them; Vue's `YayawDataTable`
+  turns `config.columns.definitions` into a shallow reactive array and swaps
+  each tags column for a copy with the catalog's options as it loads or
+  changes. Before the catalog loads, cells show pulsing placeholders for ids
+  it would name; static `options` stay until then, and without
+  `actions.tags` for good.
+- Colors: `tagAppearance(value, coloredTags, map, color)` takes a tag's own
+  color (a `TAG_COLOR_NAMES` palette name or a CSS color, as a tinted chip)
+  over `tagColorMap` and the automatic hue, in cells, cards (Vue through
+  `CellRenderer`), the Feed and pickers; filter menus show a swatch.
+- Tag picker: React `components/tags/tag-picker.tsx` (Base UI combobox),
+  Vue `components/tags/TagPicker.vue` (Reka combobox), same keyboard: arrows
+  move, Enter picks the highlighted tag after typing or moving (else a typed
+  name is picked or created, else the cell saves or the list closes),
+  Backspace removes the last chip, Escape cancels a cell. Used by inline
+  editing of tags columns, record form fields bound to a tags column (by
+  `inlineEdit.formField`, `accessorKey` or id) and the bulk dialogs.
+- Bulk "Add tags" / "Remove tags" (after bulk edit in the bulk bar, for tags
+  columns holding lists, with `allowBulkEdit`, `canEditRow` and `bulkUpdate`
+  or `update`): "Remove" offers the selection's tags with how many rows use
+  each; applying patches the loaded rows at once (React: the `tableData`
+  cache; Vue: the rows), then puts back the rows that fail (`failedIds` or a
+  failed call), which stay selected, and reloads.
+- "Manage tags" (column menu: React's header menu, Vue's column options):
+  rename (Enter or leaving the field; empty and duplicate names refused),
+  recolor (Default and the palette), merge into another tag and delete, both
+  confirmed in the dialog (deletion with the records counted by one
+  `aggregate` call). Changes are optimistic and restored on failure; merges
+  and deletions rewrite the loaded rows. `table.canManageTags` and
+  `tags.manage` gate it.
+- Vue editable cells no longer open the record on a click: like React's
+  editable cells (buttons), a double-click or Enter edits them.
+
+Verification: `tests/tag-catalog-suite.ts` runs in both editions
+(`tests/tag-catalog.test.ts` with React Query's client,
+`packages/yayaw-table-vue/src/tag-catalog.test.ts` with Vue Query's): column
+resolution, list answers, catalog options, one load per table and column and
+reload after invalidation, search and create names, create on the fly and
+selection, patches, values and patch plans, the selection's tags, merge,
+delete and update effects, usage counts, labels, colors and the picker's
+Enter; `tests/tag-catalog.test.ts` also checks the Vue copies are identical.
+Component tests: `tests/tags.test.tsx` and
+`packages/yayaw-table-vue/src/components/tags/tags.test.ts` (catalog names
+and colors loaded once, create on the fly in a cell, bulk add in patch mode,
+bulk remove in values mode with a partial failure, Manage tags, the record
+form's field; Vue also static options without `actions.tags`).
+`e2e/tags.spec.ts` on both demos (`?example=assets&assets-display=table`):
+a tag created on the fly in a cell, a tag added to three rows in bulk then
+filtered by, and a rename and a merge in "Manage tags".

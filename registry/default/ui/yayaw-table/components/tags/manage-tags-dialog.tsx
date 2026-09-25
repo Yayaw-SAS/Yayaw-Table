@@ -474,6 +474,8 @@ function ManagedTagList({
   let status: string | undefined;
   if (loading) {
     status = labels.loading;
+  } else if (catalog.status(columnId) === "error") {
+    status = undefined;
   } else if (tags.length === 0) {
     status = labels.noTags;
   } else if (visible.length === 0) {
@@ -495,6 +497,24 @@ function ManagedTagList({
           value={query}
         />
       </div>
+      {catalog.status(columnId) === "error" ? (
+        <p
+          className="flex items-center gap-2 text-destructive text-sm"
+          role="alert"
+        >
+          {labels.loadError}
+          <Button
+            onClick={() => {
+              catalog.reload(columnId).catch(() => undefined);
+            }}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            {labels.retry}
+          </Button>
+        </p>
+      ) : null}
       {status ? (
         <output className="text-muted-foreground text-sm">{status}</output>
       ) : null}

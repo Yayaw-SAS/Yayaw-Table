@@ -51,6 +51,9 @@ const props = withDefaults(
     create?: (name: string) => Promise<TableTag>;
     /** Numbers shown next to tags (records using them). */
     counts?: Readonly<Record<string, number>>;
+    /** The catalog could not load: shown with a Retry button. */
+    loadError?: boolean;
+    retry?: () => void;
     id?: string;
     invalid?: boolean;
     describedBy?: string;
@@ -304,7 +307,11 @@ onMounted(async () => {
           :aria-label="label"
           @escape-key-down="onEscape"
         >
-          <div v-if="creating || error" class="yayaw-tag-status">
+          <div v-if="creating || error || loadError" class="yayaw-tag-status">
+            <p v-if="loadError" class="yayaw-field-error" role="alert">
+              {{ labels.loadError }}
+              <button v-if="retry" type="button" class="yayaw-button yayaw-button-ghost" @click="retry">{{ labels.retry }}</button>
+            </p>
             <output v-if="creating" class="yayaw-help">
               <LoaderCircle :size="14" class="yayaw-spin" aria-hidden="true" />
               {{ labels.creating }}

@@ -434,6 +434,8 @@ const tagChip = (value: unknown) => {
         :colored-tags="context.tags.coloredTags(column.id)"
         :disabled="optionsLoading"
         :create="createTag"
+        :load-error="context.tags.status(column.id) === 'error'"
+        :retry="() => context.tags?.reload(column.id)"
         @commit="save()"
         @cancel="cancel"
       />

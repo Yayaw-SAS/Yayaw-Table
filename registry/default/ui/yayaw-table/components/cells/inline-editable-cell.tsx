@@ -593,6 +593,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
             : cell.column.id
         }
         labels={tagCatalog.labels}
+        loadError={tagCatalog.status(columnId) === "error"}
         mode="cell"
         multiple={tagColumn.multiple}
         onCancel={cancelEditing}
@@ -605,6 +606,9 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
             ? (name) => tagCatalog.create(columnId, name)
             : undefined
         }
+        onRetry={() => {
+          tagCatalog.reload(columnId).catch(() => undefined);
+        }}
         tags={tagCatalog.tags(columnId)}
         value={editorValue}
       />

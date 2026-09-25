@@ -46,7 +46,8 @@ Every other action is optional; without one, the table hides the matching
 interface or falls back to client-side work where it can: `aggregate`
 (charts, column calculations, dashboards), `create`, `update`, `delete`,
 `duplicate`, `bulkUpdate`, `bulkDelete`, `bulkCopy`, `reorder`, `views`,
-`tree`, `exportFile`, `import`, `formLinks` and `geocode`. The Vue edition can
+`tree`, `exportFile`, `import`, `formLinks`, `geocode` and `tags` (the tag
+catalogs of tags columns). The Vue edition can
 also filter, sort and page a local `data` array. The complete contracts are in
 the [README](README.md) and the
 [agent skill](skills/yayaw-table/references/server-contracts.md).
