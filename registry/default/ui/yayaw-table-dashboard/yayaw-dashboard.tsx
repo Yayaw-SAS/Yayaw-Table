@@ -74,21 +74,25 @@ import type {
   DashboardResize,
 } from "./dashboard-layout";
 import {
+  checkDashboardFilterValue,
   type DashboardFilterValue,
   type DashboardLabelKey,
   type DashboardNotice,
   type DashboardOpenViewContext,
+  type DashboardSetFilterResult,
   type DashboardStorage,
   type DashboardTableInfo,
   type DashboardTranslate,
   type DashboardView,
   dashboardDayValue,
   dashboardFilterLabel,
+  dashboardFilterOptions,
   dashboardFilterRules,
   dashboardFilterValues,
   dashboardLabel,
   dashboardNoticeText,
   dashboardOpenViewContext,
+  dashboardSourceFilterRules,
   dashboardTableInstanceId,
   dashboardTranslate,
   dashboardUnavailableText,
@@ -250,6 +254,13 @@ interface Screen {
   views: Record<string, DashboardView[] | undefined>;
   blocks?: DashboardBlockRegistry;
   filterValues: Record<string, DashboardFilterValue | undefined>;
+  /** A block sets a screen filter, as the filter bar does. */
+  setFilter: (filterId: string, value: unknown) => DashboardSetFilterResult;
+  /** The rules the screen's filters give a source's requests, for blocks. */
+  filterRules: (
+    tableId: string,
+    options?: { exclude?: readonly string[] }
+  ) => Record<string, unknown>[];
   revisions: ReturnType<typeof useDashboardRevisions>;
   label: DashboardLabel;
   locale: string;
@@ -325,12 +336,14 @@ function BlockWidget({ flow, screen, size, widget }: WidgetContentProps) {
     <BlockContent
       block={block}
       editing={screen.editing}
+      filterRules={screen.filterRules}
       filters={screen.filterValues}
       locale={screen.locale}
       openView={screen.openView}
       props={{ ...block.defaultProps, ...widget.props }}
       refresh={screen.revisions.refresh}
       revision={screen.revisions.blockRevision}
+      setFilter={screen.setFilter}
       size={flow ? undefined : size}
       widgetId={widget.id}
     />
@@ -1054,6 +1067,17 @@ function DashboardScreen({
     }
   };
 
+  // Readers' values go to the URL; edit mode changes the document's defaults.
+  const setFilterValue = (
+    filterId: string,
+    value: DashboardFilterValue | undefined
+  ) => {
+    if (editing) {
+      update((current) => setDashboardFilterValue(current, filterId, value));
+    } else {
+      viewer.set(filterId, value);
+    }
+  };
   // Edit mode shows and changes the document's default filter values.
   const shown = editing
     ? dashboard
@@ -1081,6 +1105,23 @@ function DashboardScreen({
     views,
     blocks,
     filterValues: dashboardFilterValues(shown, today),
+    setFilter: (filterId, value) => {
+      const filter = dashboard.filters.find((item) => item.id === filterId);
+      const checked = checkDashboardFilterValue(dashboard, filterId, value, {
+        options: filter ? dashboardFilterOptions(filter, infos) : undefined,
+        locale,
+        translate,
+      });
+      if (checked.ok) {
+        setFilterValue(filterId, checked.value);
+      }
+      return checked;
+    },
+    filterRules: (tableId, options) =>
+      dashboardSourceFilterRules(shown, tableId, {
+        exclude: options?.exclude,
+        today,
+      }),
     revisions,
     label,
     locale,
@@ -1213,15 +1254,7 @@ function DashboardScreen({
         label={label}
         locale={locale}
         onAddFilter={() => setRequest({ kind: "addFilter" })}
-        onChange={(filterId, value) => {
-          if (editing) {
-            update((current) =>
-              setDashboardFilterValue(current, filterId, value)
-            );
-          } else {
-            viewer.set(filterId, value);
-          }
-        }}
+        onChange={setFilterValue}
         onRemove={(filterId) =>
           update((current) => removeDashboardFilter(current, filterId))
         }

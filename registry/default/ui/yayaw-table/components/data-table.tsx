@@ -66,7 +66,9 @@ import type {
 } from "../types/toolbar-types";
 import type { DataTableTranslations } from "../types/translations";
 import type { TableView, TableViewConfig } from "../types/view-types";
+import { resolveFacets } from "../utils/facets-model";
 import { isFileTreeAvailable } from "../utils/filetree-model";
+import { folderTreeOf } from "../utils/folder-directory";
 import { isFormModeEnabled } from "../utils/form-view";
 import type {
   DetailRevertHandler,
@@ -78,6 +80,7 @@ import type { CustomBulkActionsInput } from "./bulk-actions";
 import type { ActionItem } from "./columns/actions-column";
 import { DataTableSkeleton } from "./data-table-skeleton";
 import { TableRecordDetails } from "./details/table-record-details";
+import { TableFacetsLayout } from "./facets/facet-panel";
 // Direct import keeps the toolbar available without a client-only dynamic wrapper.
 import { translateWithFallback } from "./filters/i18n-utils";
 import { TableFilterBar } from "./filters/table-filter-bar";
@@ -233,8 +236,17 @@ function resolveToolbarRuntime({
       toolbarActionsPlacement ??
       config.toolbarActionsPlacement ??
       "between-create-export",
+    // Facet clicks are advanced rules: tables with facets show their menu.
     shouldEnableAdvancedFilters:
-      enableAdvancedFilters ?? config.table.enableAdvancedFilters ?? false,
+      (enableAdvancedFilters ?? config.table.enableAdvancedFilters ?? false) ||
+      Boolean(
+        resolveFacets(config.table.facets, config.columns.definitions, {
+          folderColumn: folderTreeOf(
+            config.table.filetree,
+            config.columns.definitions
+          )?.parentColumn,
+        })
+      ),
   } as const;
 }
 
@@ -1057,75 +1069,81 @@ function DataTableContent({
                 </div>
               )}
 
-              {/* Table content */}
-              {isLoading ? (
-                <DataTableSkeleton />
-              ) : (
-                <DataTableClient
-                  activeRowId={activeRowId}
-                  className={className}
-                  closeOnError={closeOnError}
-                  columns={
-                    columns as import("../tanstack").ColumnDef<
-                      Record<string, unknown>
-                    >[]
-                  }
-                  customBulkActions={customBulkActions}
-                  data={finalData}
-                  details={recordDetails}
-                  displayModeRenderers={modeRenderers}
-                  emptyState={emptyState}
-                  enableColumnDragDropByDefault={Boolean(
-                    config.table.enableColumnDragDropByDefault
-                  )}
-                  enableColumnFilters={config.table.enableColumnFilters}
-                  enableColumnPinning={
-                    config.table.enableColumnPinning !== false
-                  }
-                  enableColumnResizing={
-                    config.table.enableColumnResizing === true
-                  }
-                  enableGrouping={config.table.enableGrouping}
-                  enableMultiRowSelection={
-                    config.table.enableMultiRowSelection !== false
-                  }
-                  enablePagination={config.table.enablePagination !== false}
-                  enableRowSelection={config.table.enableRowSelection}
-                  enableSorting={config.table.enableSorting}
-                  formType={defaultFormType}
-                  getRowId={getRowId}
-                  key={`${tableId}-${visibilityKey}`}
-                  loadingOverlay={loadingOverlay}
-                  onBulkCopy={onBulkCopy}
-                  onBulkDelete={onBulkDelete}
-                  onBulkEdit={onBulkEdit}
-                  onBulkExport={onBulkExport}
-                  onOpenDetails={openDetails}
-                  onRevertActivity={onRevertActivity}
-                  onRowActivate={rowActivationHandler(
-                    openDetails,
-                    onRowActivate
-                  )}
-                  onRowClick={onRowClick}
-                  onRowSelectionChange={onRowSelectionChange}
-                  onRowSelectionStateChange={onRowSelectionStateChange}
-                  queryFn={async (_params) => {
-                    // For fetched data, use the refetch function
-                    await refetch();
-                    return {
-                      data: finalData,
-                      pageCount: pageCount || 1,
-                      rowCount: rowCount || finalData.length,
-                    };
-                  }}
-                  rowSelection={rowSelection}
-                  showDefaultToastsForCustomHandlers={
-                    showDefaultToastsForCustomHandlers
-                  }
-                  tableId={tableId}
-                  tableType={tableType}
-                />
-              )}
+              {/* Table content, beside the facet panel when the table has one */}
+              <TableFacetsLayout
+                tableId={tableId}
+                tableType={tableType}
+                toolbar={shouldShowToolbar}
+              >
+                {isLoading ? (
+                  <DataTableSkeleton />
+                ) : (
+                  <DataTableClient
+                    activeRowId={activeRowId}
+                    className={className}
+                    closeOnError={closeOnError}
+                    columns={
+                      columns as import("../tanstack").ColumnDef<
+                        Record<string, unknown>
+                      >[]
+                    }
+                    customBulkActions={customBulkActions}
+                    data={finalData}
+                    details={recordDetails}
+                    displayModeRenderers={modeRenderers}
+                    emptyState={emptyState}
+                    enableColumnDragDropByDefault={Boolean(
+                      config.table.enableColumnDragDropByDefault
+                    )}
+                    enableColumnFilters={config.table.enableColumnFilters}
+                    enableColumnPinning={
+                      config.table.enableColumnPinning !== false
+                    }
+                    enableColumnResizing={
+                      config.table.enableColumnResizing === true
+                    }
+                    enableGrouping={config.table.enableGrouping}
+                    enableMultiRowSelection={
+                      config.table.enableMultiRowSelection !== false
+                    }
+                    enablePagination={config.table.enablePagination !== false}
+                    enableRowSelection={config.table.enableRowSelection}
+                    enableSorting={config.table.enableSorting}
+                    formType={defaultFormType}
+                    getRowId={getRowId}
+                    key={`${tableId}-${visibilityKey}`}
+                    loadingOverlay={loadingOverlay}
+                    onBulkCopy={onBulkCopy}
+                    onBulkDelete={onBulkDelete}
+                    onBulkEdit={onBulkEdit}
+                    onBulkExport={onBulkExport}
+                    onOpenDetails={openDetails}
+                    onRevertActivity={onRevertActivity}
+                    onRowActivate={rowActivationHandler(
+                      openDetails,
+                      onRowActivate
+                    )}
+                    onRowClick={onRowClick}
+                    onRowSelectionChange={onRowSelectionChange}
+                    onRowSelectionStateChange={onRowSelectionStateChange}
+                    queryFn={async (_params) => {
+                      // For fetched data, use the refetch function
+                      await refetch();
+                      return {
+                        data: finalData,
+                        pageCount: pageCount || 1,
+                        rowCount: rowCount || finalData.length,
+                      };
+                    }}
+                    rowSelection={rowSelection}
+                    showDefaultToastsForCustomHandlers={
+                      showDefaultToastsForCustomHandlers
+                    }
+                    tableId={tableId}
+                    tableType={tableType}
+                  />
+                )}
+              </TableFacetsLayout>
             </div>
           </DataTableUIProvider>
         </Suspense>
