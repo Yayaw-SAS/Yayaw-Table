@@ -43,6 +43,8 @@ answer it too). Exports, select-all and scoped views page through `list` with
 the same query until `pageCount` or `totalCount` is reached; without either,
 a short page ends the collection, and an empty page before the end, a failed
 page or more than 1,000 pages is an error rather than a partial result.
+Answer a `page` past the last one (an old link, rows removed since) with the
+counts and no rows, not an error: the table then asks for the last page.
 
 ```ts
 // Server side (API route, server action…): one function per table.

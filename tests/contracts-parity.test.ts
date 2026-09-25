@@ -11,6 +11,7 @@ import {
   normalizeFilterEnvelope,
   normalizeViewAliases,
   resizedColumnSizeFromKey,
+  tableQueryKey,
 } from "../src/components/ui/yayaw-table/utils/table-contracts";
 import fixtures from "./fixtures/parity.json";
 
@@ -88,6 +89,14 @@ for (const fixture of fixtures.requests) {
       globalSearch: fixture.search,
       sorting: fixture.sorting,
     });
+  });
+}
+// The same query keeps the page; another one starts on the first page.
+for (const fixture of fixtures.queries) {
+  it(`React query comparison: ${fixture.label}`, () => {
+    expect(tableQueryKey(fixture.current) === tableQueryKey(fixture.next)).toBe(
+      fixture.sameQuery
+    );
   });
 }
 it("reads Vue saved-view names without discarding canonical names", () => {

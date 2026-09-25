@@ -6,7 +6,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAtom } from "jotai";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 
 import { rowSelectionAtom } from "../atoms/table-atoms";
 import {
@@ -155,6 +155,24 @@ export function shouldUseInitialTableQueryData(
   return resolveInitialTableRowsUse(state) !== "unused";
 }
 
+/**
+ * The last page index a list response leaves: its page count, or the pages
+ * its row total fills when that is more. At least the first page.
+ */
+export function resolveLastPageIndex(
+  result: { pageCount?: number; rowCount?: number },
+  pageSize: number
+): number {
+  const byPageCount = Number.isFinite(result.pageCount)
+    ? Number(result.pageCount)
+    : 0;
+  const byRowCount =
+    Number.isFinite(result.rowCount) && pageSize > 0
+      ? Math.ceil(Number(result.rowCount) / pageSize)
+      : 0;
+  return Math.max(0, Math.max(byPageCount, byRowCount) - 1);
+}
+
 export function resolveInitialTableQueryData<TData>({
   initialData,
   initialPageCount,
@@ -212,6 +230,7 @@ export function useTableUrlData<TData>({
     advancedFiltersParam,
     orderParam,
     pagination,
+    setPageParam,
     sortParam,
     globalSearchParam,
     viewParam,
@@ -394,8 +413,20 @@ export function useTableUrlData<TData>({
     staleTime: 30_000, // 30 seconds
   });
 
-  // Get data from query result or use initial data
-  const data = queryResult?.data || [];
+  // A page past the last one (a link, rows removed since) moves to the last
+  // page once the list answers, as in Vue. Until then the table loads.
+  const lastPageIndex = queryResult
+    ? resolveLastPageIndex(queryResult, pagination.pageSize)
+    : pagination.pageIndex;
+  const isPastLastPage = pagination.pageIndex > lastPageIndex;
+  useEffect(() => {
+    if (isPastLastPage) {
+      setPageParam(String(lastPageIndex));
+    }
+  }, [isPastLastPage, lastPageIndex, setPageParam]);
+
+  // Get data from query result or use initial data (none past the last page)
+  const data = (!isPastLastPage && queryResult?.data) || [];
 
   // Apply row ordering if drag is enabled and we have a row order
   const orderedData = useMemo(() => {
@@ -451,7 +482,7 @@ export function useTableUrlData<TData>({
     enhancedRefetch,
     error,
     isError,
-    isLoading,
+    isLoading: isLoading || isPastLastPage,
     pageCount: queryResult?.pageCount ?? initialPageCount ?? 0,
     pagination,
     refetch,

@@ -50,6 +50,14 @@ afterEach(async () => {
   document.body.replaceChildren();
 });
 const settle = () => new Promise((resolve) => setTimeout(resolve, 80));
+/** Lets the table render until `done` holds, for a few frames at most. */
+const settleUntil = async (done: () => boolean, frames = 10): Promise<void> => {
+  if (done() || frames === 0) {
+    return;
+  }
+  await act(settle);
+  await settleUntil(done, frames - 1);
+};
 const modes = ["table", "kanban", "gallery"] as const;
 const rows = [{ id: "one", name: "Alpha", status: "Open" }];
 async function mountEmpty({
@@ -204,9 +212,14 @@ for (const mode of modes) {
         });
       },
     });
-    const button = harness.container.querySelector<HTMLButtonElement>(
-      '[data-slot="empty-content"] button'
-    );
+    const findButton = () =>
+      harness.container.querySelector<HTMLButtonElement>(
+        '[data-slot="empty-content"] button'
+      );
+    // The link's fourth page is past the only page of no results: the table
+    // moves back to it first (url-page-parity.test.tsx).
+    await settleUntil(() => Boolean(findButton()));
+    const button = findButton();
     expect(button).not.toBeNull();
     await act(async () => {
       button?.click();

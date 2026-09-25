@@ -362,6 +362,29 @@ export function positiveInteger(value: unknown, fallback: number): number {
     : fallback;
 }
 
+/** Object keys in order, so `{ id, desc }` and `{ desc, id }` compare equal. */
+const orderedKeys = (_key: string, value: unknown): unknown =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? Object.fromEntries(
+        Object.entries(value).sort(([left], [right]) => (left < right ? -1 : 1))
+      )
+    : value;
+
+/**
+ * A search, filters or a sort in a form that compares. Equal keys are the
+ * same query, so the table keeps its page: absent and empty match, a search
+ * matches without its surrounding spaces, objects whatever their key order.
+ */
+export function tableQueryKey(value: unknown): string {
+  const comparable = typeof value === "string" ? value.trim() : value;
+  const isEmpty =
+    comparable === undefined ||
+    comparable === null ||
+    comparable === "" ||
+    (Array.isArray(comparable) && comparable.length === 0);
+  return isEmpty ? "" : JSON.stringify(comparable, orderedKeys);
+}
+
 /** Collect every result using the server's pagination metadata, including capped page sizes. */
 export async function fetchAllContractRows<T>({
   list,

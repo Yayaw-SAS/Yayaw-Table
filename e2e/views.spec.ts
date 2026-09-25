@@ -138,6 +138,29 @@ test("a link's page is kept on arrival, in the table and the URL", async ({
   expect(urlParam(page, "views-page")).toBe("1");
 });
 
+test("a search from the second page starts on the first page", async ({
+  page,
+}) => {
+  await page.goto(`${EXAMPLE}&views-page=1&views-pageSize=5`);
+  const rows = page.getByRole("row");
+  await expect(rows.filter({ hasText: "Foxtrot portal" })).toBeVisible();
+  // Every project is due in 2026: the results still fill two pages.
+  await page.getByPlaceholder(SEARCH_PLACEHOLDER).fill("2026");
+  await expect(rows.filter({ hasText: "Alpha launch" })).toBeVisible();
+  await expect(rows.filter({ hasText: "Foxtrot portal" })).toHaveCount(0);
+  await expect.poll(() => urlParam(page, "views-q")).toBe("2026");
+  expect(urlParam(page, "views-page")).toBeNull();
+});
+
+test("a link past the last page opens the last page", async ({ page }) => {
+  // Five per page, the six projects fill two pages: the fifth is past them.
+  await page.goto(`${EXAMPLE}&views-page=4&views-pageSize=5`);
+  const rows = page.getByRole("row");
+  await expect(rows.filter({ hasText: "Foxtrot portal" })).toBeVisible();
+  await expect(rows.filter({ hasText: "Alpha launch" })).toHaveCount(0);
+  await expect.poll(() => urlParam(page, "views-page")).toBe("1");
+});
+
 test("a saved view restores its display mode", async ({ page }) => {
   await chooseMode(page, MODE.kanban);
   await openViewActions(page);

@@ -186,5 +186,122 @@
         }
       ]
     }
+  ],
+  "queries": [
+    {
+      "label": "the same search without its surrounding spaces",
+      "current": " beta ",
+      "next": "beta",
+      "sameQuery": true
+    },
+    {
+      "label": "another search",
+      "current": "beta",
+      "next": "gamma",
+      "sameQuery": false
+    },
+    {
+      "label": "no search and an empty one",
+      "current": null,
+      "next": "",
+      "sameQuery": true
+    },
+    {
+      "label": "no filters and an empty list",
+      "current": null,
+      "next": [],
+      "sameQuery": true
+    },
+    {
+      "label": "a first column filter",
+      "current": [],
+      "next": [
+        {
+          "id": "status",
+          "value": "open"
+        }
+      ],
+      "sameQuery": false
+    },
+    {
+      "label": "the same rules, keys in another order",
+      "current": [
+        {
+          "id": "open",
+          "columnId": "status",
+          "type": "select",
+          "operator": "is",
+          "values": ["open"],
+          "isActive": true
+        }
+      ],
+      "next": [
+        {
+          "isActive": true,
+          "values": ["open"],
+          "operator": "is",
+          "type": "select",
+          "columnId": "status",
+          "id": "open"
+        }
+      ],
+      "sameQuery": true
+    },
+    {
+      "label": "the same sort, keys in another order",
+      "current": [
+        {
+          "id": "name",
+          "desc": true
+        }
+      ],
+      "next": [
+        {
+          "desc": true,
+          "id": "name"
+        }
+      ],
+      "sameQuery": true
+    },
+    {
+      "label": "a reversed sort",
+      "current": [
+        {
+          "id": "name",
+          "desc": true
+        }
+      ],
+      "next": [
+        {
+          "id": "name",
+          "desc": false
+        }
+      ],
+      "sameQuery": false
+    },
+    {
+      "label": "the same sorts in another priority",
+      "current": [
+        {
+          "id": "name",
+          "desc": false
+        },
+        {
+          "id": "amount",
+          "desc": true
+        }
+      ],
+      "next": [
+        {
+          "id": "amount",
+          "desc": true
+        },
+        {
+          "id": "name",
+          "desc": false
+        }
+      ],
+      "sameQuery": false
+    }
   ]
 }

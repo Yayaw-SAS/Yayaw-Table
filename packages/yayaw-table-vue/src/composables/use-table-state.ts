@@ -28,6 +28,7 @@ import {
   normalizeFilterEnvelope,
   normalizeViewAliases,
   positiveInteger,
+  tableQueryKey,
 } from "../table-contracts";
 import type {
   AdvancedFiltersState,
@@ -656,13 +657,22 @@ export const useTableState = <TData extends TableRecord>({
     writeUrl,
     { deep: true }
   );
-  // A new query starts on the first page. Synchronous, so it runs while the
-  // URL is read: arrival keeps the link's page, and `fromUrl` sets the page
-  // after the query on back and forward.
+  // A new query starts on the first page; repeating the current one keeps it,
+  // as in React. Synchronous, so it runs while the URL is read: arrival keeps
+  // the link's page, and `fromUrl` sets the page after the query on back and
+  // forward.
+  const queryKey = (): string =>
+    [search.value, filters.value, advancedFilters.value, sorting.value]
+      .map(tableQueryKey)
+      .join("\n");
+  let shownQuery = queryKey();
   watch(
     [search, filters, advancedFilters, sorting],
     () => {
-      if (!hydrating && pagination.value.pageIndex !== 0) {
+      const query = queryKey();
+      const isNewQuery = query !== shownQuery;
+      shownQuery = query;
+      if (isNewQuery && !hydrating && pagination.value.pageIndex !== 0) {
         pagination.value = { ...pagination.value, pageIndex: 0 };
       }
     },
