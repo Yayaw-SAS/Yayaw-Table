@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.9.2
+
+### Patch Changes
+
+- 0d225ed: React starts a table in its configured `columns.order`, as Vue does, and writes nothing to the URL until the user changes something.
+
+  - **The configured column order (React).** The table showed its columns in definition order and ignored `columns.order`. It now shows the listed columns first, in that order, then the others in definition order, with the selection column first and the actions column last. The Properties menu and the bulk export follow the same order.
+  - **Favorite and default views on arrival (React).** Right after mounting, the table wrote its column order to the URL (`<tableId>-order`). When `columns.order` differed from the definitions, that write looked like a change by the user, so the favorite or default view never applied. The table now writes its column order only once the user moves a column.
+  - **Back and forward (React)** show the column order each URL names. Before, the table wrote its previous order back to the URL.
+  - **Applying a saved view or hiding a column no longer remounts the React table.**
+
+- 6153acc: Vue sets only what the URL changed on back and forward, as React does, so the same query no longer loads the rows and the display modes again.
+
+  Reading the URL on back or forward set every value again, as new objects, even when the URL had not changed or only the column order had. The table then loaded its page again, and the File tree, Feed, Calendar, Chart and Map reloaded with the new rows: a File tree listed its root and every open folder again. A value now changes only when it differs from the current one, compared as JSON once read the way the table keeps it. On arrival the table still writes its whole state to the URL once.
+
 ## 3.9.1
 
 ### Patch Changes
