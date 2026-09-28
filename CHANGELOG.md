@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.9.3
+
+### Patch Changes
+
+- b1747ce: Keep invalid and incomplete location drafts in React and Vue validation state so record forms, public forms and inline edits cannot save an older valid location. Preserve drafts during navigation, apply controlled resets, normalize pasted coordinates into their visible inputs, and retain optional/required Clear behavior.
+
 ## 3.9.2
 
 ### Patch Changes
