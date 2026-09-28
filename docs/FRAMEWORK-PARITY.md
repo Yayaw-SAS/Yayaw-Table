@@ -3260,3 +3260,28 @@ form's field; Vue also static options without `actions.tags`).
 a tag created on the fly in a cell, a tag added to three rows in bulk then
 filtered by, a rename and a merge in "Manage tags", and the Tags facet (the
 catalog's names and counts, a click filtering).
+
+### Dashboard visual hierarchy
+
+React and Vue use the same dashboard presentation: a wrapping dashboard name,
+semibold section labels, subordinate widget headings (up to two lines), compact
+card surfaces. Compact KPI feedback remains suitable for a single grid row.
+Narrow KPI cards prioritize the figure over the optional sparkline while keeping
+its accessible description. The comparison percentage remains visible; its
+contextual suffix may ellipsize. Header actions move below the name
+when the available width requires it, including embedded narrow panels.
+KPI bodies up to 160px wide use a 24px value, retaining 28px on wider cards
+and a 32px line height throughout. The narrow-card regression checks both the
+inherited platform font and Verdana to cover wider host font metrics.
+
+The widget editor starts with its title, then groups source, value, and period
+and comparison settings. Field labels are secondary to group headings; checkbox
+controls reuse each edition's accessible table primitives. Widget and filter
+dialogs retain their heading and footer while the field area scrolls. Comparison
+fields and footer actions stack on narrow screens in both editions. Stored
+configuration and the semantic h2/h3/h4 hierarchy are unchanged.
+
+Verification: the shared dashboard browser suite covers editor access, scrolling,
+working drafts and narrow layouts in both frameworks. The explicit harness in
+`scripts/visual` captures desktop/mobile, light/dark, grid/flow, editing, and long
+titles in a narrow host panel without adding capture work to the normal gate.

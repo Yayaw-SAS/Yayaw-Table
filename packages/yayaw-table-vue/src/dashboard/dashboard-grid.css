@@ -216,11 +216,12 @@
 [data-widget-type="kpi"] > [data-widget-header] {
   min-height: 0;
   border-bottom-width: 0;
+  padding-top: 0.25rem;
   padding-bottom: 0;
 }
 [data-widget-type="kpi"] > [data-widget-header] [data-widget-title] {
   color: var(--yayaw-muted-foreground, var(--muted-foreground));
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
 }
 [data-widget-type="kpi"] > [data-widget-body] {
   padding-top: 0.125rem;
@@ -261,6 +262,22 @@
   flex: none;
   overflow: visible;
   color: var(--yayaw-chart-1, var(--chart-1, currentColor));
+}
+/* Narrow cards prioritize the figure; keep the optional trend accessible. */
+@container (max-width: 16rem) {
+  [data-kpi-trend] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+/* Wider host fonts still fit the figure in a small desktop grid column. */
+@container (max-width: 10rem) {
+  [data-kpi-value] {
+    font-size: 1.5rem;
+  }
 }
 [data-kpi-trend] polyline {
   fill: none;

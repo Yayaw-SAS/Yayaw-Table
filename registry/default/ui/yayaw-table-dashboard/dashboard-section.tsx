@@ -88,13 +88,13 @@ export function DashboardSectionView({
   return (
     <section
       aria-labelledby={titled ? titleId : undefined}
-      className="flex min-w-0 flex-col gap-2"
+      className="flex min-w-0 flex-col gap-3"
       data-dashboard-section={section.id}
       data-section-type={section.type}
     >
       {titled ? (
         <h3
-          className={cn("font-semibold text-base", bar ? "sr-only" : undefined)}
+          className={cn("font-semibold text-sm", bar ? "sr-only" : undefined)}
           data-section-title=""
           id={titleId}
         >

@@ -260,7 +260,7 @@ const viewStart = computed(() => dashboardViewEditStart({ view: draft.value.view
     <DialogPortal>
       <DialogOverlay class="yayaw-dashboard-dialog-backdrop" />
       <DialogContent
-        class="yayaw-dashboard-dialog yayaw-dashboard-dialog-wide"
+        class="yayaw-dashboard-dialog yayaw-dashboard-dialog-wide yayaw-dashboard-editor-dialog"
         data-dashboard-dialog="widget"
         :data-widget-step="step"
       >
@@ -273,126 +273,132 @@ const viewStart = computed(() => dashboardViewEditStart({ view: draft.value.view
         <DialogClose class="yayaw-dashboard-icon-button yayaw-dashboard-dialog-close" :aria-label="props.label('close')">
           <X :size="16" aria-hidden="true" />
         </DialogClose>
-        <form class="yayaw-dashboard-form" @submit.prevent="submit">
-          <fieldset v-if="step === 'what'" class="yayaw-dashboard-kinds" data-widget-kinds="">
-            <legend>{{ props.label("chooseKind") }}</legend>
-            <div v-for="group in groups" :key="group || '-'" class="yayaw-dashboard-kind-group">
-              <p v-if="group" class="yayaw-dashboard-kind-heading" data-kind-group="">{{ group }}</p>
-              <ul class="yayaw-dashboard-kind-list">
-                <li v-for="choice in inGroup(group)" :key="choiceKey(choice)">
-                  <button
-                    type="button"
-                    class="yayaw-dashboard-kind"
-                    :aria-label="choice.label"
-                    :aria-describedby="choice.description ? `${prefix}-${choiceKey(choice)}` : undefined"
-                    :data-widget-kind="choice.kind"
-                    :data-widget-block="choice.block"
-                    @click="chooseKind(choice)"
-                  >
-                    <span class="yayaw-dashboard-kind-label">{{ choice.label }}</span>
-                    <span v-if="choice.description" :id="`${prefix}-${choiceKey(choice)}`" class="yayaw-dashboard-kind-hint">{{ choice.description }}</span>
-                  </button>
-                </li>
-              </ul>
+        <form class="yayaw-dashboard-dialog-form" @submit.prevent="submit">
+          <div class="yayaw-dashboard-dialog-body" data-dashboard-dialog-body="">
+            <fieldset v-if="step === 'what'" class="yayaw-dashboard-kinds" data-widget-kinds="">
+              <legend>{{ props.label("chooseKind") }}</legend>
+              <div v-for="group in groups" :key="group || '-'" class="yayaw-dashboard-kind-group">
+                <p v-if="group" class="yayaw-dashboard-kind-heading" data-kind-group="">{{ group }}</p>
+                <ul class="yayaw-dashboard-kind-list">
+                  <li v-for="choice in inGroup(group)" :key="choiceKey(choice)">
+                    <button
+                      type="button"
+                      class="yayaw-dashboard-kind"
+                      :aria-label="choice.label"
+                      :aria-describedby="choice.description ? `${prefix}-${choiceKey(choice)}` : undefined"
+                      :data-widget-kind="choice.kind"
+                      :data-widget-block="choice.block"
+                      @click="chooseKind(choice)"
+                    >
+                      <span class="yayaw-dashboard-kind-label">{{ choice.label }}</span>
+                      <span v-if="choice.description" :id="`${prefix}-${choiceKey(choice)}`" class="yayaw-dashboard-kind-hint">{{ choice.description }}</span>
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </fieldset>
+            <div v-else-if="step === 'source'" class="yayaw-dashboard-form">
+              <DashboardSourcePicker
+                :loader="props.loader"
+                :label="props.label"
+                :locale="props.locale"
+                :translate="props.translate"
+                :value="draft.tableId"
+                :picking="picking"
+                @pick="pickSource"
+              />
+              <p v-if="pickError" class="yayaw-dashboard-props-error" role="alert">{{ pickError }}</p>
             </div>
-          </fieldset>
-          <div v-else-if="step === 'source'" class="yayaw-dashboard-form">
-            <DashboardSourcePicker
-              :loader="props.loader"
-              :label="props.label"
-              :locale="props.locale"
-              :translate="props.translate"
-              :value="draft.tableId"
-              :picking="picking"
-              @pick="pickSource"
-            />
-            <p v-if="pickError" class="yayaw-dashboard-props-error" role="alert">{{ pickError }}</p>
-          </div>
-          <template v-else>
-            <p v-if="reads" class="yayaw-dashboard-muted yayaw-dashboard-source-line" data-widget-source="">
-              {{ props.label("stepSource") }}: <span>{{ sourceName }}</span>
-            </p>
-            <template v-if="reads">
+            <template v-else>
               <div class="yayaw-dashboard-field">
-                <label :for="`${prefix}-view`">{{ props.label("startFrom") }}</label>
-                <select
-                  :id="`${prefix}-view`"
-                  class="yayaw-select"
-                  :value="draft.view ? CUSTOM_VIEW : draft.viewId"
-                  @change="chooseView(($event.target as HTMLSelectElement).value)"
+                <label :for="`${prefix}-title`">{{ props.label("widgetTitle") }}</label>
+                <input
+                  :id="`${prefix}-title`"
+                  class="yayaw-input"
+                  maxlength="120"
+                  :value="draft.title"
+                  @input="setDraft({ title: ($event.target as HTMLInputElement).value })"
                 >
-                  <option value="">{{ props.label("defaultView") }}</option>
-                  <optgroup v-if="views?.length" :label="props.label('savedViews')">
-                    <option v-for="view in views" :key="view.id" :value="view.id">{{ view.name }}</option>
-                  </optgroup>
-                  <option v-if="draft.viewId && !knownView" :value="draft.viewId">{{ draft.viewId }}</option>
-                  <option :value="CUSTOM_VIEW">{{ props.label("customView") }}</option>
+              </div>
+
+              <fieldset v-if="reads" class="yayaw-dashboard-settings-group">
+                <legend>{{ props.label("stepSource") }}</legend>
+                <div class="yayaw-dashboard-settings-fields">
+                  <p class="yayaw-dashboard-muted yayaw-dashboard-source-line" data-widget-source="">
+                    <span>{{ sourceName }}</span>
+                  </p>
+                  <div class="yayaw-dashboard-field">
+                    <label :for="`${prefix}-view`">{{ props.label("startFrom") }}</label>
+                    <select
+                      :id="`${prefix}-view`"
+                      class="yayaw-select"
+                      :value="draft.view ? CUSTOM_VIEW : draft.viewId"
+                      @change="chooseView(($event.target as HTMLSelectElement).value)"
+                    >
+                      <option value="">{{ props.label("defaultView") }}</option>
+                      <optgroup v-if="views?.length" :label="props.label('savedViews')">
+                        <option v-for="view in views" :key="view.id" :value="view.id">{{ view.name }}</option>
+                      </optgroup>
+                      <option v-if="draft.viewId && !knownView" :value="draft.viewId">{{ draft.viewId }}</option>
+                      <option :value="CUSTOM_VIEW">{{ props.label("customView") }}</option>
+                    </select>
+                  </div>
+                  <div v-if="draft.view" class="yayaw-dashboard-custom-view" data-custom-view="">
+                    <p>{{ props.label("customViewHint") }}</p>
+                    <button type="button" class="yayaw-button yayaw-button-outline" :disabled="!source" @click="viewEditing = true">
+                      <Pencil :size="16" aria-hidden="true" />{{ props.label("editView") }}
+                    </button>
+                  </div>
+                </div>
+              </fieldset>
+              <div v-if="draft.type === 'view'" class="yayaw-dashboard-field">
+                <label :for="`${prefix}-overflow`">{{ props.label("overflow") }}</label>
+                <select
+                  :id="`${prefix}-overflow`"
+                  class="yayaw-select"
+                  :value="draft.overflow"
+                  @change="setDraft({ overflow: ($event.target as HTMLSelectElement).value as DashboardOverflow })"
+                >
+                  <option value="fit">{{ props.label("overflowFit") }}</option>
+                  <option value="scroll">{{ props.label("overflowScroll") }}</option>
                 </select>
               </div>
-              <div v-if="draft.view" class="yayaw-dashboard-custom-view" data-custom-view="">
-                <p>{{ props.label("customViewHint") }}</p>
-                <button type="button" class="yayaw-button yayaw-button-outline" :disabled="!source" @click="viewEditing = true">
-                  <Pencil :size="16" aria-hidden="true" />{{ props.label("editView") }}
-                </button>
-              </div>
-            </template>
-            <div v-if="draft.type === 'view'" class="yayaw-dashboard-field">
-              <label :for="`${prefix}-overflow`">{{ props.label("overflow") }}</label>
-              <select
-                :id="`${prefix}-overflow`"
-                class="yayaw-select"
-                :value="draft.overflow"
-                @change="setDraft({ overflow: ($event.target as HTMLSelectElement).value as DashboardOverflow })"
-              >
-                <option value="fit">{{ props.label("overflowFit") }}</option>
-                <option value="scroll">{{ props.label("overflowScroll") }}</option>
-              </select>
-            </div>
-            <DashboardKpiFields
-              v-if="draft.type === 'kpi' && info"
-              :draft="draft"
-              :columns="info.columns"
-              :prefix="prefix"
-              :label="props.label"
-              :locale="props.locale"
-              :translate="props.translate"
-              @update:draft="(next) => (draft = next)"
-            />
-            <div class="yayaw-dashboard-field">
-              <label :for="`${prefix}-title`">{{ props.label("widgetTitle") }}</label>
-              <input
-                :id="`${prefix}-title`"
-                class="yayaw-input"
-                maxlength="120"
-                :value="draft.title"
-                @input="setDraft({ title: ($event.target as HTMLInputElement).value })"
-              >
-            </div>
-            <div v-if="draft.type === 'note'" class="yayaw-dashboard-field">
-              <label :for="`${prefix}-text`">{{ props.label("noteText") }}</label>
-              <textarea
-                :id="`${prefix}-text`"
-                class="yayaw-textarea"
-                rows="5"
-                maxlength="20000"
-                :value="draft.text"
-                @input="setDraft({ text: ($event.target as HTMLTextAreaElement).value })"
+              <DashboardKpiFields
+                v-if="draft.type === 'kpi' && info"
+                :draft="draft"
+                :columns="info.columns"
+                :prefix="prefix"
+                :label="props.label"
+                :locale="props.locale"
+                :translate="props.translate"
+                @update:draft="(next) => (draft = next)"
               />
-            </div>
-            <DashboardBlockProps
-              v-if="draft.type === 'block'"
-              :blocks="props.blocks"
-              :draft="draft"
-              :text="propsText"
-              :check="propsCheck"
-              :id="`${prefix}-props`"
-              :label="props.label"
-              :locale="props.locale"
-              :widget-id="target.mode === 'edit' ? target.widget.id : ''"
-              @update:draft="(next) => (draft = next)"
-              @update:text="setText"
-            />
-          </template>
+              <div v-if="draft.type === 'note'" class="yayaw-dashboard-field">
+                <label :for="`${prefix}-text`">{{ props.label("noteText") }}</label>
+                <textarea
+                  :id="`${prefix}-text`"
+                  class="yayaw-textarea"
+                  rows="5"
+                  maxlength="20000"
+                  :value="draft.text"
+                  @input="setDraft({ text: ($event.target as HTMLTextAreaElement).value })"
+                />
+              </div>
+              <DashboardBlockProps
+                v-if="draft.type === 'block'"
+                :blocks="props.blocks"
+                :draft="draft"
+                :text="propsText"
+                :check="propsCheck"
+                :id="`${prefix}-props`"
+                :label="props.label"
+                :locale="props.locale"
+                :widget-id="target.mode === 'edit' ? target.widget.id : ''"
+                @update:draft="(next) => (draft = next)"
+                @update:text="setText"
+              />
+            </template>
+          </div>
           <footer class="yayaw-dashboard-dialog-footer">
             <button v-if="index > 0" type="button" class="yayaw-button yayaw-button-ghost yayaw-dashboard-back" @click="back">
               <ChevronLeft :size="16" aria-hidden="true" />{{ props.label("back") }}

@@ -1935,6 +1935,7 @@
         "alert-dialog",
         "button",
         "calendar",
+        "checkbox",
         "command",
         "dialog",
         "dropdown-menu",
