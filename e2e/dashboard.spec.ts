@@ -130,7 +130,10 @@ const requests = (page: Page) =>
       (globalThis as { yayawDashboardRequests?: LoggedRequest[] })
         .yayawDashboardRequests ?? []
   );
-const saveDashboards = (page: Page, dashboards: readonly { id: string }[]) =>
+const saveDashboards = <T extends { id: string }>(
+  page: Page,
+  dashboards: readonly T[]
+) =>
   page.addInitScript(
     ([key, saved]) => {
       sessionStorage.setItem(
