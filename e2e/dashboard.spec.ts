@@ -8,6 +8,7 @@ import {
 import {
   dashboardComparison,
   dashboardComparisonText,
+  dashboardLabel,
 } from "../src/components/ui/yayaw-table-dashboard/dashboard-model";
 
 const DASHBOARD = "/?example=dashboard";
@@ -626,9 +627,11 @@ test("widgets are added from the picker at a size that suits them", async ({
   await dialog.getByLabel("Value", { exact: true }).selectOption("sum");
   await dialog.getByLabel("Of", { exact: true }).selectOption("revenue");
   await dialog.getByLabel("Date", { exact: true }).selectOption("dueDate");
-  await dialog.getByLabel("Compare with the previous period").check();
+  await dialog
+    .getByRole("checkbox", { name: "Compare with the previous period" })
+    .check();
   await dialog.getByLabel("Period", { exact: true }).selectOption("90");
-  await dialog.getByLabel("Trend line").check();
+  await dialog.getByRole("checkbox", { name: "Trend line" }).check();
   await dialog.getByLabel("Title", { exact: true }).fill("Quarter revenue");
   await dialog.getByRole("button", { name: "Add", exact: true }).click();
   const kpi = widget(page, "widget-12");
@@ -954,3 +957,229 @@ test("flow widgets move up and down in edit mode, and sections are saved", async
     },
   ]);
 });
+
+test("narrow dashboard cards preserve the full KPI value and visible comparison", async ({
+  page,
+}) => {
+  const longTitle =
+    "Revenue across all international projects and customer delivery teams";
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await saveDashboards(page, [
+    {
+      ...projectsOverviewDashboard,
+      widgets: projectsOverviewDashboard.widgets.map((entry) =>
+        entry.id === "revenue" ? { ...entry, title: longTitle } : entry
+      ),
+    },
+  ]);
+  await page.goto(DASHBOARD);
+  await gridReady(page);
+  const revenue = widget(page, "revenue");
+  await expect(figure(page, "revenue")).toHaveText("€157,000");
+  // A host panel leaves about 158px per desktop grid column.
+  await page.locator("[data-dashboard]").evaluate((dashboard) => {
+    const panel = document.createElement("section");
+    Object.assign(panel.style, {
+      boxSizing: "border-box",
+      width: "720px",
+      maxWidth: "100%",
+      margin: "0 auto",
+      padding: "24px",
+      border: "1px solid transparent",
+    });
+    dashboard.parentElement?.insertBefore(panel, dashboard);
+    panel.append(dashboard);
+  });
+  await expect
+    .poll(() =>
+      revenue.evaluate((element) => element.getBoundingClientRect().width)
+    )
+    .toBeLessThan(170);
+  for (const editing of [false, true]) {
+    if (editing) {
+      await toolbar(page)
+        .getByRole("button", { name: "Edit", exact: true })
+        .click();
+    }
+    await expect(figure(page, "revenue")).toHaveText("€157,000");
+    await expect(revenue.locator("[data-kpi-compare]")).toHaveText(
+      "+38% vs previous period"
+    );
+    await expect(revenue.getByRole("img", { name: TREND })).toHaveCount(1);
+    const bounds = await revenue.evaluate((element) => {
+      const card = element.getBoundingClientRect();
+      const value = element.querySelector<HTMLElement>("[data-kpi-value]");
+      const comparison =
+        element.querySelector<HTMLElement>("[data-kpi-compare]");
+      const text = comparison?.querySelector("span");
+      if (!(value && comparison && text?.firstChild)) {
+        throw new Error("The ready KPI value and comparison are required.");
+      }
+      const valueBox = value.getBoundingClientRect();
+      const comparisonBox = comparison.getBoundingClientRect();
+      const textBox = text.getBoundingClientRect();
+      const percent = document.createRange();
+      percent.setStart(text.firstChild, 0);
+      percent.setEnd(text.firstChild, 4);
+      const percentBox = percent.getBoundingClientRect();
+      return {
+        cardWidth: card.width,
+        valueClientWidth: value.clientWidth,
+        valueScrollWidth: value.scrollWidth,
+        valueInside: valueBox.top >= card.top && valueBox.bottom <= card.bottom,
+        comparisonInside:
+          comparisonBox.top >= card.top && comparisonBox.bottom <= card.bottom,
+        percentVisible:
+          percentBox.left >= textBox.left && percentBox.right <= textBox.right,
+      };
+    });
+    expect(bounds.cardWidth).toBeGreaterThan(150);
+    expect(bounds.valueScrollWidth).toBeLessThanOrEqual(
+      bounds.valueClientWidth + 1
+    );
+    expect(bounds.valueInside).toBe(true);
+    expect(bounds.comparisonInside).toBe(true);
+    expect(bounds.percentVisible).toBe(true);
+  }
+});
+
+for (const locale of ["en", "fr"] as const) {
+  test(`widget editor keeps its draft and actions accessible on a narrow screen (${locale})`, async ({
+    page,
+  }) => {
+    const label = (key: Parameters<typeof dashboardLabel>[0]) =>
+      dashboardLabel(key, locale);
+    await page.setViewportSize({ width: 390, height: 640 });
+    await page.goto(`${DASHBOARD}&lang=${locale}`);
+    await expect(figure(page, "projects-count")).toHaveText("32");
+    await toolbar(page)
+      .getByRole("button", { name: label("edit"), exact: true })
+      .click();
+    await toolbar(page)
+      .getByRole("button", { name: label("addWidget"), exact: true })
+      .click();
+    const dialog = page.getByRole("dialog", {
+      name: label("addWidgetTitle"),
+      exact: true,
+    });
+    await dialog
+      .getByRole("button", { name: label("typeKpi"), exact: true })
+      .click();
+    await dialog.getByRole("option", { name: "Projects", exact: true }).click();
+    const body = dialog.locator("[data-dashboard-dialog-body]");
+    const title = dialog.getByRole("textbox", {
+      name: label("widgetTitle"),
+      exact: true,
+    });
+    const longTitle =
+      "Quarter revenue across all international projects and customer delivery teams";
+    await expect(
+      body.locator("input:not([type=hidden]), select, textarea").first()
+    ).toHaveAttribute("id", (await title.getAttribute("id")) as string);
+    await title.fill(longTitle);
+    await expect(
+      dialog.getByRole("group", { name: label("valueSettings"), exact: true })
+    ).toBeVisible();
+    const period = dialog.getByRole("group", {
+      name: label("periodSettings"),
+      exact: true,
+    });
+    const compare = period.getByRole("checkbox", {
+      name: label("compare"),
+      exact: true,
+    });
+    const trend = period.getByRole("checkbox", {
+      name: label("sparkline"),
+      exact: true,
+    });
+    await expect(compare).toBeDisabled();
+    await expect(trend).toBeDisabled();
+    await dialog
+      .getByLabel(label("metric"), { exact: true })
+      .selectOption("sum");
+    await dialog
+      .getByLabel(label("metricColumn"), { exact: true })
+      .selectOption("revenue");
+    await period
+      .getByLabel(label("dateColumn"), { exact: true })
+      .selectOption("dueDate");
+    await compare.check();
+    await period
+      .getByLabel(label("compareDays"), { exact: true })
+      .selectOption("90");
+    await trend.check();
+    const days = await period
+      .getByLabel(label("compareDays"), { exact: true })
+      .boundingBox();
+    const better = await period
+      .getByLabel(label("compareBetter"), { exact: true })
+      .boundingBox();
+    expect(better?.y ?? 0).toBeGreaterThan(
+      (days?.y ?? 0) + (days?.height ?? 0)
+    );
+
+    const heading = dialog.getByRole("heading", {
+      name: label("addWidgetTitle"),
+      exact: true,
+    });
+    const add = dialog.getByRole("button", { name: label("add"), exact: true });
+    const before = {
+      heading: await heading.boundingBox(),
+      add: await add.boundingBox(),
+    };
+    const scroll = await body.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+      return {
+        top: element.scrollTop,
+        width: element.clientWidth,
+        scrollWidth: element.scrollWidth,
+      };
+    });
+    expect(scroll.top).toBeGreaterThan(0);
+    expect(scroll.scrollWidth).toBeLessThanOrEqual(scroll.width);
+    expect((await heading.boundingBox())?.y).toBe(before.heading?.y);
+    expect((await add.boundingBox())?.y).toBe(before.add?.y);
+    expect(before.heading?.y ?? -1).toBeGreaterThanOrEqual(0);
+    expect(
+      (before.add?.y ?? 640) + (before.add?.height ?? 0)
+    ).toBeLessThanOrEqual(640);
+    await expect(title).toHaveValue(longTitle);
+    await expect(compare).toBeChecked();
+    await expect(trend).toBeChecked();
+    await add.click();
+    await expect(dialog).toHaveCount(0);
+    const added = widget(page, "widget-10");
+    await expect(added.locator("[data-widget-title]")).toHaveText(longTitle);
+    const addedBox = await added.boundingBox();
+    expect((addedBox?.x ?? 390) + (addedBox?.width ?? 0)).toBeLessThanOrEqual(
+      390
+    );
+    await page
+      .getByRole("button", {
+        name: dashboardLabel("widgetMenu", locale, undefined, {
+          title: longTitle,
+        }),
+        exact: true,
+      })
+      .click();
+    await page
+      .getByRole("menuitem", { name: label("editWidget"), exact: true })
+      .click();
+    const edit = page.getByRole("dialog", {
+      name: label("editWidgetTitle"),
+      exact: true,
+    });
+    await expect(
+      edit.getByRole("textbox", { name: label("widgetTitle"), exact: true })
+    ).toHaveValue(longTitle);
+    await expect(
+      edit.getByLabel(label("compareDays"), { exact: true })
+    ).toHaveValue("90");
+    await expect(
+      edit.getByRole("checkbox", { name: label("compare"), exact: true })
+    ).toBeChecked();
+    await expect(
+      edit.getByRole("checkbox", { name: label("sparkline"), exact: true })
+    ).toBeChecked();
+  });
+}

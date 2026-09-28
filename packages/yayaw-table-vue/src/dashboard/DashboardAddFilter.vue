@@ -60,34 +60,43 @@ const submit = () => {
   <DialogRoot :open="props.open" @update:open="emit('update:open', $event)">
     <DialogPortal>
       <DialogOverlay class="yayaw-dashboard-dialog-backdrop" />
-      <DialogContent class="yayaw-dashboard-dialog" data-dashboard-dialog="add-filter" :aria-describedby="undefined">
-        <DialogTitle as="h2">{{ props.label("addFilterTitle") }}</DialogTitle>
-        <DialogClose class="yayaw-dashboard-icon-button yayaw-dashboard-dialog-close" aria-label="Close"><X :size="16" aria-hidden="true" /></DialogClose>
-        <form class="yayaw-dashboard-form" @submit.prevent="submit">
-          <div class="yayaw-dashboard-field">
-            <label :for="`${prefix}-type`">{{ props.label("filterType") }}</label>
-            <select :id="`${prefix}-type`" class="yayaw-select" :value="type" @change="chooseType(($event.target as HTMLSelectElement).value)">
-              <option value="dateRange">{{ props.label("filterDateRange") }}</option>
-              <option value="select">{{ props.label("filterSelect") }}</option>
-            </select>
+      <DialogContent class="yayaw-dashboard-dialog yayaw-dashboard-editor-dialog" data-dashboard-dialog="add-filter" :aria-describedby="undefined">
+        <div class="yayaw-dashboard-dialog-heading">
+          <DialogTitle as="h2">{{ props.label("addFilterTitle") }}</DialogTitle>
+        </div>
+        <DialogClose class="yayaw-dashboard-icon-button yayaw-dashboard-dialog-close" :aria-label="props.label('close')"><X :size="16" aria-hidden="true" /></DialogClose>
+        <form class="yayaw-dashboard-dialog-form" @submit.prevent="submit">
+          <div class="yayaw-dashboard-dialog-body" data-dashboard-dialog-body="">
+            <div class="yayaw-dashboard-field">
+              <label :for="`${prefix}-type`">{{ props.label("filterType") }}</label>
+              <select :id="`${prefix}-type`" class="yayaw-select" :value="type" @change="chooseType(($event.target as HTMLSelectElement).value)">
+                <option value="dateRange">{{ props.label("filterDateRange") }}</option>
+                <option value="select">{{ props.label("filterSelect") }}</option>
+              </select>
+            </div>
+            <div class="yayaw-dashboard-field">
+              <label :for="`${prefix}-name`">{{ props.label("filterName") }}</label>
+              <input :id="`${prefix}-name`" v-model="name" class="yayaw-input">
+            </div>
+            <fieldset class="yayaw-dashboard-settings-group">
+              <legend>{{ props.label("filterTargets") }}</legend>
+              <div class="yayaw-dashboard-settings-fields">
+                <div v-for="choice in choices" :key="choice.tableId" class="yayaw-dashboard-field">
+                  <label :for="`${prefix}-${choice.tableId}`">{{ props.label("filterColumn", { table: choice.table.name }) }}</label>
+                  <select
+                    :id="`${prefix}-${choice.tableId}`"
+                    class="yayaw-select"
+                    :value="columnOf(choice.tableId, choice.options)"
+                    @change="columns = { ...columns, [choice.tableId]: ($event.target as HTMLSelectElement).value }"
+                  >
+                    <option value="">{{ props.label("notApplied") }}</option>
+                    <option v-for="column in choice.options" :key="column.id" :value="column.id">{{ column.header ?? column.id }}</option>
+                  </select>
+                </div>
+                <p v-if="!targets.length" class="yayaw-dashboard-muted">{{ props.label("noFilterColumns") }}</p>
+              </div>
+            </fieldset>
           </div>
-          <div class="yayaw-dashboard-field">
-            <label :for="`${prefix}-name`">{{ props.label("filterName") }}</label>
-            <input :id="`${prefix}-name`" v-model="name" class="yayaw-input">
-          </div>
-          <div v-for="choice in choices" :key="choice.tableId" class="yayaw-dashboard-field">
-            <label :for="`${prefix}-${choice.tableId}`">{{ props.label("filterColumn", { table: choice.table.name }) }}</label>
-            <select
-              :id="`${prefix}-${choice.tableId}`"
-              class="yayaw-select"
-              :value="columnOf(choice.tableId, choice.options)"
-              @change="columns = { ...columns, [choice.tableId]: ($event.target as HTMLSelectElement).value }"
-            >
-              <option value="">{{ props.label("notApplied") }}</option>
-              <option v-for="column in choice.options" :key="column.id" :value="column.id">{{ column.header ?? column.id }}</option>
-            </select>
-          </div>
-          <p v-if="!targets.length" class="yayaw-dashboard-muted">{{ props.label("noFilterColumns") }}</p>
           <footer class="yayaw-dashboard-dialog-footer">
             <button type="button" class="yayaw-button yayaw-button-outline" @click="emit('update:open', false)">{{ props.label("cancel") }}</button>
             <button type="submit" class="yayaw-button" :disabled="!targets.length">{{ props.label("add") }}</button>

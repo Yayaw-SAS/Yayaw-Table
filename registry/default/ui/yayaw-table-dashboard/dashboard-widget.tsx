@@ -345,7 +345,7 @@ function PageFrame({
     <section
       aria-label={showHeading ? undefined : title}
       aria-labelledby={showHeading ? titleId : undefined}
-      className="flex min-w-0 flex-col gap-2"
+      className="flex min-w-0 flex-col gap-3"
       data-dashboard-widget={widget.id}
       data-widget-frame="page"
       data-widget-type={widget.type}
@@ -380,7 +380,7 @@ function PageFrame({
       )}
       {showHeading && (
         <Heading
-          className="font-semibold text-base"
+          className="font-medium text-sm"
           data-widget-heading=""
           id={titleId}
         >
@@ -428,12 +428,12 @@ function CardFrame({
   return (
     <section
       aria-labelledby={titleId}
-      className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-xs"
+      className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border bg-card text-card-foreground"
       data-dashboard-widget={widget.id}
       data-widget-type={widget.type}
     >
       <header
-        className="flex min-h-10 items-center gap-1 border-b px-2 py-1"
+        className="flex min-h-10 shrink-0 items-center gap-2 px-3 pt-2"
         data-widget-header=""
       >
         {editing && draggable && (
@@ -447,7 +447,7 @@ function CardFrame({
           </span>
         )}
         <Heading
-          className="min-w-0 flex-1 truncate px-1 font-medium text-sm"
+          className="line-clamp-2 min-w-0 flex-1 break-words font-medium text-sm"
           data-widget-title=""
           id={titleId}
         >
@@ -482,7 +482,7 @@ function CardFrame({
         )}
       </header>
       <div
-        className="flex min-h-0 flex-1 flex-col p-3"
+        className="flex min-h-0 flex-1 flex-col px-3 pt-2 pb-3"
         data-overflow={overflow}
         data-widget-body=""
       >

@@ -540,14 +540,14 @@ function DashboardHeader({
     title = (
       <Input
         aria-label={label("dashboard")}
-        className="h-9 max-w-80 flex-1 font-semibold text-lg"
+        className="h-9 max-w-80 flex-1 basis-64 font-semibold text-lg"
         onChange={(event) => onRename(event.target.value)}
         value={name}
       />
     );
   } else if (showTitle) {
     title = (
-      <h2 className="min-w-0 flex-1 truncate font-semibold text-xl">
+      <h2 className="min-w-0 flex-1 basis-64 break-words font-semibold text-xl">
         {name || label("dashboard")}
       </h2>
     );
@@ -1207,7 +1207,7 @@ function DashboardScreen({
 
   return (
     <div
-      className={cn("yayaw-dashboard flex flex-col gap-4", className)}
+      className={cn("yayaw-dashboard flex flex-col gap-6", className)}
       data-dashboard={dashboard.id}
       data-editing={editing ? "" : undefined}
     >

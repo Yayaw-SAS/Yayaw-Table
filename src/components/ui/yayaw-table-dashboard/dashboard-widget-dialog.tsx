@@ -30,7 +30,12 @@ import type { DisplayModeRenderers } from "@/src/components/ui/yayaw-table/types
 import type { DataTableTranslations } from "@/src/components/ui/yayaw-table/types/translations";
 import { canonicalViewConfig } from "@/src/components/ui/yayaw-table/utils/view-config";
 import type { DashboardBlockRegistry } from "./dashboard-block";
-import { Field, KpiFields, OverflowField } from "./dashboard-dialogs";
+import {
+  Field,
+  KpiFields,
+  OverflowField,
+  SettingsGroup,
+} from "./dashboard-dialogs";
 import {
   type DashboardBlockPropsDraft,
   type DashboardWidgetChoice,
@@ -144,7 +149,9 @@ function KindStep({
   const prefix = useId();
   return (
     <fieldset className="grid gap-3" data-widget-kinds="">
-      <legend className="mb-2 font-medium text-sm">{label("chooseKind")}</legend>
+      <legend className="mb-2 font-medium text-sm">
+        {label("chooseKind")}
+      </legend>
       {groups.map((group) => (
         <div className="grid gap-1.5" key={group || "-"}>
           {group ? (
@@ -171,7 +178,10 @@ function KindStep({
                     >
                       <span className="font-medium">{choice.label}</span>
                       {choice.description ? (
-                        <span className="text-muted-foreground text-xs" id={hint}>
+                        <span
+                          className="text-muted-foreground text-xs"
+                          id={hint}
+                        >
                           {choice.description}
                         </span>
                       ) : null}
@@ -228,7 +238,9 @@ function ViewChoice({
           onChange={(event) => choose(event.target.value)}
           value={draft.view ? CUSTOM_VIEW : draft.viewId}
         >
-          <NativeSelectOption value="">{label("defaultView")}</NativeSelectOption>
+          <NativeSelectOption value="">
+            {label("defaultView")}
+          </NativeSelectOption>
           {views?.length ? (
             <NativeSelectOptGroup label={label("savedViews")}>
               {views.map((view) => (
@@ -330,7 +342,11 @@ function BlockPropsField({
         </Field>
       )}
       {check && !check.json ? (
-        <p className="m-0 text-destructive text-sm" data-props-error="" role="alert">
+        <p
+          className="m-0 text-destructive text-sm"
+          data-props-error=""
+          role="alert"
+        >
           {label("invalidJson")}
         </p>
       ) : null}
@@ -457,23 +473,36 @@ function SettingsStep({
 }: SettingsStepProps) {
   const reads = dashboardKindReadsSource(draft.type);
   return (
-    <div className="grid gap-4">
-      {reads ? (
-        <p className="m-0 text-muted-foreground text-sm" data-widget-source="">
-          {label("stepSource")}:{" "}
-          <span className="text-foreground">{sourceName}</span>
-        </p>
-      ) : null}
-      {reads ? (
-        <ViewChoice
-          canEditView={Boolean(source)}
-          draft={draft}
-          id={ids.view ?? ""}
-          label={label}
-          onEditView={onEditView}
-          setDraft={setDraft}
-          views={views}
+    <div className="grid gap-5">
+      <Field htmlFor={ids.title ?? ""} label={label("widgetTitle")}>
+        <Input
+          id={ids.title}
+          maxLength={120}
+          onChange={(event) =>
+            setDraft({ ...draft, title: event.target.value })
+          }
+          value={draft.title}
         />
+      </Field>
+
+      {reads ? (
+        <SettingsGroup label={label("stepSource")}>
+          <p
+            className="m-0 text-muted-foreground text-sm"
+            data-widget-source=""
+          >
+            <span className="text-foreground">{sourceName}</span>
+          </p>
+          <ViewChoice
+            canEditView={Boolean(source)}
+            draft={draft}
+            id={ids.view ?? ""}
+            label={label}
+            onEditView={onEditView}
+            setDraft={setDraft}
+            views={views}
+          />
+        </SettingsGroup>
       ) : null}
       {draft.type === "view" ? (
         <OverflowField
@@ -494,20 +523,14 @@ function SettingsStep({
           translate={translate}
         />
       ) : null}
-      <Field htmlFor={ids.title ?? ""} label={label("widgetTitle")}>
-        <Input
-          id={ids.title}
-          maxLength={120}
-          onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-          value={draft.title}
-        />
-      </Field>
       {draft.type === "note" ? (
         <Field htmlFor={ids.text ?? ""} label={label("noteText")}>
           <Textarea
             id={ids.text}
             maxLength={20_000}
-            onChange={(event) => setDraft({ ...draft, text: event.target.value })}
+            onChange={(event) =>
+              setDraft({ ...draft, text: event.target.value })
+            }
             rows={5}
             value={draft.text}
           />
@@ -594,7 +617,7 @@ function DialogButtons({
   step: Step;
 }) {
   return (
-    <DialogFooter>
+    <DialogFooter className="shrink-0 border-t px-6 py-4">
       {onBack ? (
         <Button
           className="sm:me-auto"
@@ -716,7 +739,10 @@ function WidgetDialogSession({
       next = { ...draft, props: checked.props };
     }
     onSubmit(
-      dashboardWidgetFromDraft(next, edited ? { widget: edited, locale } : undefined),
+      dashboardWidgetFromDraft(
+        next,
+        edited ? { widget: edited, locale } : undefined
+      ),
       views
     );
     onOpenChange(false);
@@ -782,12 +808,12 @@ function WidgetDialogSession({
   }
   return (
     <DialogContent
-      className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-2xl"
+      className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl"
       data-dashboard-dialog="widget"
       data-widget-step={step}
     >
-      <DialogHeader>
-        <DialogTitle>
+      <DialogHeader className="shrink-0 border-b px-6 py-5 pe-14">
+        <DialogTitle className="text-base">
           {label(edited ? "editWidgetTitle" : "addWidgetTitle")}
         </DialogTitle>
         <DialogDescription data-widget-step-label="">
@@ -795,8 +821,13 @@ function WidgetDialogSession({
           {label(STEP_LABELS[step])}
         </DialogDescription>
       </DialogHeader>
-      <form className="grid gap-4" onSubmit={submit}>
-        {body}
+      <form className="flex min-h-0 flex-col" onSubmit={submit}>
+        <div
+          className="min-h-0 overflow-y-auto px-6 py-5"
+          data-dashboard-dialog-body=""
+        >
+          {body}
+        </div>
         <DialogButtons
           canSubmit={!reads || Boolean(draft.tableId)}
           editing={Boolean(edited)}

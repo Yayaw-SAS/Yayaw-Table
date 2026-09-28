@@ -2,6 +2,7 @@
 
 import { type FormEvent, type ReactNode, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -40,11 +41,27 @@ export function Field({
 }) {
   return (
     <div className="grid gap-1.5">
-      <label className="font-medium text-sm" htmlFor={htmlFor}>
+      <label className="text-muted-foreground text-sm" htmlFor={htmlFor}>
         {label}
       </label>
       {children}
     </div>
+  );
+}
+
+/** Settings use the same heading and label hierarchy as the table panels. */
+export function SettingsGroup({
+  children,
+  label,
+}: {
+  children: ReactNode;
+  label: string;
+}) {
+  return (
+    <fieldset className="min-w-0 border-0 p-0">
+      <legend className="mb-3 font-medium text-sm">{label}</legend>
+      <div className="grid min-w-0 gap-3">{children}</div>
+    </fieldset>
   );
 }
 
@@ -63,16 +80,21 @@ export function CheckField({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <div className="flex items-center gap-2">
-      <input
+    <div
+      className="flex items-center gap-2"
+      data-disabled={disabled || undefined}
+    >
+      <Checkbox
+        aria-label={label}
         checked={checked}
-        className="size-4 accent-primary"
         disabled={disabled}
         id={id}
-        onChange={(event) => onChange(event.target.checked)}
-        type="checkbox"
+        onCheckedChange={(value) => onChange(value === true)}
       />
-      <label className="text-sm" htmlFor={id}>
+      <label
+        className={disabled ? "text-muted-foreground text-sm" : "text-sm"}
+        htmlFor={id}
+      >
         {label}
       </label>
     </div>
@@ -142,7 +164,7 @@ function KpiPeriodFields({
     return null;
   }
   return (
-    <>
+    <SettingsGroup label={label("periodSettings")}>
       <Field htmlFor={ids.date} label={label("dateColumn")}>
         <NativeSelect
           className="w-full"
@@ -170,7 +192,7 @@ function KpiPeriodFields({
         onChange={(compare) => setDraft({ ...draft, compare })}
       />
       {draft.compare && draft.dateColumn ? (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-3 sm:grid-cols-2">
           <Field htmlFor={ids.days} label={label("compareDays")}>
             <NativeSelect
               className="w-full"
@@ -219,7 +241,7 @@ function KpiPeriodFields({
         label={label("sparkline")}
         onChange={(sparkline) => setDraft({ ...draft, sparkline })}
       />
-    </>
+    </SettingsGroup>
   );
 }
 
@@ -245,45 +267,47 @@ export function KpiFields({
   );
   return (
     <>
-      <Field htmlFor={ids.metric} label={label("metric")}>
-        <NativeSelect
-          className="w-full"
-          id={ids.metric}
-          onChange={(event) =>
-            setDraft({
-              ...draft,
-              metric: event.target.value as DashboardKpiMetric,
-              metricColumn:
-                draft.metricColumn || (numberColumns.at(0)?.id ?? ""),
-            })
-          }
-          value={draft.metric}
-        >
-          {dashboardMetricOptions(locale, translate).map((option) => (
-            <NativeSelectOption key={option.value} value={option.value}>
-              {option.label}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-      </Field>
-      {draft.metric !== "count" && (
-        <Field htmlFor={ids.column} label={label("metricColumn")}>
+      <SettingsGroup label={label("valueSettings")}>
+        <Field htmlFor={ids.metric} label={label("metric")}>
           <NativeSelect
             className="w-full"
-            id={ids.column}
+            id={ids.metric}
             onChange={(event) =>
-              setDraft({ ...draft, metricColumn: event.target.value })
+              setDraft({
+                ...draft,
+                metric: event.target.value as DashboardKpiMetric,
+                metricColumn:
+                  draft.metricColumn || (numberColumns.at(0)?.id ?? ""),
+              })
             }
-            value={draft.metricColumn}
+            value={draft.metric}
           >
-            {numberColumns.map((column) => (
-              <NativeSelectOption key={column.id} value={column.id}>
-                {column.header ?? column.id}
+            {dashboardMetricOptions(locale, translate).map((option) => (
+              <NativeSelectOption key={option.value} value={option.value}>
+                {option.label}
               </NativeSelectOption>
             ))}
           </NativeSelect>
         </Field>
-      )}
+        {draft.metric !== "count" && (
+          <Field htmlFor={ids.column} label={label("metricColumn")}>
+            <NativeSelect
+              className="w-full"
+              id={ids.column}
+              onChange={(event) =>
+                setDraft({ ...draft, metricColumn: event.target.value })
+              }
+              value={draft.metricColumn}
+            >
+              {numberColumns.map((column) => (
+                <NativeSelectOption key={column.id} value={column.id}>
+                  {column.header ?? column.id}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </Field>
+        )}
+      </SettingsGroup>
       <KpiPeriodFields
         draft={draft}
         ids={ids}
@@ -345,69 +369,78 @@ export function AddFilterDialog({
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent
-        className="max-h-[calc(100dvh-2rem)] overflow-y-auto"
+        className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0"
         data-dashboard-dialog="add-filter"
       >
-        <DialogHeader>
-          <DialogTitle>{label("addFilterTitle")}</DialogTitle>
+        <DialogHeader className="shrink-0 border-b px-6 py-5 pe-14">
+          <DialogTitle className="text-base">
+            {label("addFilterTitle")}
+          </DialogTitle>
         </DialogHeader>
-        <form className="grid gap-4" onSubmit={submit}>
-          <Field htmlFor={`${prefix}-type`} label={label("filterType")}>
-            <NativeSelect
-              className="w-full"
-              id={`${prefix}-type`}
-              onChange={(event) => {
-                setType(event.target.value as DashboardFilterType);
-                setColumns({});
-              }}
-              value={type}
-            >
-              <NativeSelectOption value="dateRange">
-                {label("filterDateRange")}
-              </NativeSelectOption>
-              <NativeSelectOption value="select">
-                {label("filterSelect")}
-              </NativeSelectOption>
-            </NativeSelect>
-          </Field>
-          <Field htmlFor={`${prefix}-name`} label={label("filterName")}>
-            <Input
-              id={`${prefix}-name`}
-              onChange={(event) => setName(event.target.value)}
-              value={name}
-            />
-          </Field>
-          {choices.map(({ tableId, table, columns: options }) => (
-            <Field
-              htmlFor={`${prefix}-${tableId}`}
-              key={tableId}
-              label={label("filterColumn", { table: table.name })}
-            >
+        <form className="flex min-h-0 flex-col" onSubmit={submit}>
+          <div
+            className="grid min-h-0 gap-5 overflow-y-auto px-6 py-5"
+            data-dashboard-dialog-body=""
+          >
+            <Field htmlFor={`${prefix}-type`} label={label("filterType")}>
               <NativeSelect
                 className="w-full"
-                id={`${prefix}-${tableId}`}
-                onChange={(event) =>
-                  setColumns({ ...columns, [tableId]: event.target.value })
-                }
-                value={columns[tableId] ?? options.at(0)?.id ?? ""}
+                id={`${prefix}-type`}
+                onChange={(event) => {
+                  setType(event.target.value as DashboardFilterType);
+                  setColumns({});
+                }}
+                value={type}
               >
-                <NativeSelectOption value="">
-                  {label("notApplied")}
+                <NativeSelectOption value="dateRange">
+                  {label("filterDateRange")}
                 </NativeSelectOption>
-                {options.map((column) => (
-                  <NativeSelectOption key={column.id} value={column.id}>
-                    {column.header ?? column.id}
-                  </NativeSelectOption>
-                ))}
+                <NativeSelectOption value="select">
+                  {label("filterSelect")}
+                </NativeSelectOption>
               </NativeSelect>
             </Field>
-          ))}
-          {targets.length === 0 && (
-            <p className="text-muted-foreground text-sm">
-              {label("noFilterColumns")}
-            </p>
-          )}
-          <DialogFooter>
+            <Field htmlFor={`${prefix}-name`} label={label("filterName")}>
+              <Input
+                id={`${prefix}-name`}
+                onChange={(event) => setName(event.target.value)}
+                value={name}
+              />
+            </Field>
+            <SettingsGroup label={label("filterTargets")}>
+              {choices.map(({ tableId, table, columns: options }) => (
+                <Field
+                  htmlFor={`${prefix}-${tableId}`}
+                  key={tableId}
+                  label={label("filterColumn", { table: table.name })}
+                >
+                  <NativeSelect
+                    className="w-full"
+                    id={`${prefix}-${tableId}`}
+                    onChange={(event) =>
+                      setColumns({ ...columns, [tableId]: event.target.value })
+                    }
+                    value={columns[tableId] ?? options.at(0)?.id ?? ""}
+                  >
+                    <NativeSelectOption value="">
+                      {label("notApplied")}
+                    </NativeSelectOption>
+                    {options.map((column) => (
+                      <NativeSelectOption key={column.id} value={column.id}>
+                        {column.header ?? column.id}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </Field>
+              ))}
+              {targets.length === 0 && (
+                <p className="text-muted-foreground text-sm">
+                  {label("noFilterColumns")}
+                </p>
+              )}
+            </SettingsGroup>
+          </div>
+          <DialogFooter className="shrink-0 border-t px-6 py-4">
             <Button
               onClick={() => onOpenChange(false)}
               type="button"

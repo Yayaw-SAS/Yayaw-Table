@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import TableCheckbox from "../components/controls/TableCheckbox.vue";
 import {
   type DashboardColumn,
   type DashboardKpiMetric,
@@ -36,65 +37,73 @@ const chooseMetric = (value: string) =>
 </script>
 
 <template>
-  <div class="yayaw-dashboard-field">
-    <label :for="`${props.prefix}-metric`">{{ props.label("metric") }}</label>
-    <select :id="`${props.prefix}-metric`" class="yayaw-select" :value="props.draft.metric" @change="chooseMetric(($event.target as HTMLSelectElement).value)">
-      <option v-for="option in metricOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-    </select>
-  </div>
-  <div v-if="props.draft.metric !== 'count'" class="yayaw-dashboard-field">
-    <label :for="`${props.prefix}-column`">{{ props.label("metricColumn") }}</label>
-    <select :id="`${props.prefix}-column`" class="yayaw-select" :value="props.draft.metricColumn" @change="set({ metricColumn: ($event.target as HTMLSelectElement).value })">
-      <option v-for="column in numberColumns" :key="column.id" :value="column.id">{{ column.header ?? column.id }}</option>
-    </select>
-  </div>
-  <template v-if="dateColumns.length">
-    <div class="yayaw-dashboard-field">
-      <label :for="`${props.prefix}-date`">{{ props.label("dateColumn") }}</label>
-      <select :id="`${props.prefix}-date`" class="yayaw-select" :value="props.draft.dateColumn" @change="set({ dateColumn: ($event.target as HTMLSelectElement).value })">
-        <option value="">{{ props.label("noDateColumn") }}</option>
-        <option v-for="column in dateColumns" :key="column.id" :value="column.id">{{ column.header ?? column.id }}</option>
-      </select>
-    </div>
-    <div class="yayaw-dashboard-check">
-      <input
-        :id="`${props.prefix}-compare`"
-        type="checkbox"
-        :checked="props.draft.compare"
-        :disabled="!props.draft.dateColumn"
-        @change="set({ compare: ($event.target as HTMLInputElement).checked })"
-      >
-      <label :for="`${props.prefix}-compare`">{{ props.label("compare") }}</label>
-    </div>
-    <div v-if="props.draft.compare && props.draft.dateColumn" class="yayaw-dashboard-field-row">
+  <fieldset class="yayaw-dashboard-settings-group">
+    <legend>{{ props.label("valueSettings") }}</legend>
+    <div class="yayaw-dashboard-settings-fields">
       <div class="yayaw-dashboard-field">
-        <label :for="`${props.prefix}-days`">{{ props.label("compareDays") }}</label>
-        <select :id="`${props.prefix}-days`" class="yayaw-select" :value="String(props.draft.compareDays)" @change="set({ compareDays: Number(($event.target as HTMLSelectElement).value) })">
-          <option v-for="option in dayOptions" :key="option.value" :value="String(option.value)">{{ option.label }}</option>
+        <label :for="`${props.prefix}-metric`">{{ props.label("metric") }}</label>
+        <select :id="`${props.prefix}-metric`" class="yayaw-select" :value="props.draft.metric" @change="chooseMetric(($event.target as HTMLSelectElement).value)">
+          <option v-for="option in metricOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
         </select>
       </div>
-      <div class="yayaw-dashboard-field">
-        <label :for="`${props.prefix}-better`">{{ props.label("compareBetter") }}</label>
-        <select
-          :id="`${props.prefix}-better`"
-          class="yayaw-select"
-          :value="props.draft.compareBetter"
-          @change="set({ compareBetter: ($event.target as HTMLSelectElement).value === 'down' ? 'down' : 'up' })"
-        >
-          <option value="up">{{ props.label("compareUp") }}</option>
-          <option value="down">{{ props.label("compareDown") }}</option>
+      <div v-if="props.draft.metric !== 'count'" class="yayaw-dashboard-field">
+        <label :for="`${props.prefix}-column`">{{ props.label("metricColumn") }}</label>
+        <select :id="`${props.prefix}-column`" class="yayaw-select" :value="props.draft.metricColumn" @change="set({ metricColumn: ($event.target as HTMLSelectElement).value })">
+          <option v-for="column in numberColumns" :key="column.id" :value="column.id">{{ column.header ?? column.id }}</option>
         </select>
       </div>
     </div>
-    <div class="yayaw-dashboard-check">
-      <input
-        :id="`${props.prefix}-sparkline`"
-        type="checkbox"
-        :checked="props.draft.sparkline"
-        :disabled="!props.draft.dateColumn"
-        @change="set({ sparkline: ($event.target as HTMLInputElement).checked })"
-      >
-      <label :for="`${props.prefix}-sparkline`">{{ props.label("sparkline") }}</label>
+  </fieldset>
+  <fieldset v-if="dateColumns.length" class="yayaw-dashboard-settings-group">
+    <legend>{{ props.label("periodSettings") }}</legend>
+    <div class="yayaw-dashboard-settings-fields">
+        <div class="yayaw-dashboard-field">
+          <label :for="`${props.prefix}-date`">{{ props.label("dateColumn") }}</label>
+          <select :id="`${props.prefix}-date`" class="yayaw-select" :value="props.draft.dateColumn" @change="set({ dateColumn: ($event.target as HTMLSelectElement).value })">
+            <option value="">{{ props.label("noDateColumn") }}</option>
+            <option v-for="column in dateColumns" :key="column.id" :value="column.id">{{ column.header ?? column.id }}</option>
+          </select>
+        </div>
+        <div class="yayaw-dashboard-check" :data-disabled="!props.draft.dateColumn || undefined">
+          <TableCheckbox
+            :id="`${props.prefix}-compare`"
+            :model-value="props.draft.compare"
+            :label="props.label('compare')"
+            :disabled="!props.draft.dateColumn"
+            @update:model-value="set({ compare: $event })"
+          />
+          <label :for="`${props.prefix}-compare`">{{ props.label("compare") }}</label>
+        </div>
+        <div v-if="props.draft.compare && props.draft.dateColumn" class="yayaw-dashboard-field-row">
+          <div class="yayaw-dashboard-field">
+            <label :for="`${props.prefix}-days`">{{ props.label("compareDays") }}</label>
+            <select :id="`${props.prefix}-days`" class="yayaw-select" :value="String(props.draft.compareDays)" @change="set({ compareDays: Number(($event.target as HTMLSelectElement).value) })">
+              <option v-for="option in dayOptions" :key="option.value" :value="String(option.value)">{{ option.label }}</option>
+            </select>
+          </div>
+          <div class="yayaw-dashboard-field">
+            <label :for="`${props.prefix}-better`">{{ props.label("compareBetter") }}</label>
+            <select
+              :id="`${props.prefix}-better`"
+              class="yayaw-select"
+              :value="props.draft.compareBetter"
+              @change="set({ compareBetter: ($event.target as HTMLSelectElement).value === 'down' ? 'down' : 'up' })"
+            >
+              <option value="up">{{ props.label("compareUp") }}</option>
+              <option value="down">{{ props.label("compareDown") }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="yayaw-dashboard-check" :data-disabled="!props.draft.dateColumn || undefined">
+          <TableCheckbox
+            :id="`${props.prefix}-sparkline`"
+            :model-value="props.draft.sparkline"
+            :label="props.label('sparkline')"
+            :disabled="!props.draft.dateColumn"
+            @update:model-value="set({ sparkline: $event })"
+          />
+          <label :for="`${props.prefix}-sparkline`">{{ props.label("sparkline") }}</label>
+        </div>
     </div>
-  </template>
+  </fieldset>
 </template>
