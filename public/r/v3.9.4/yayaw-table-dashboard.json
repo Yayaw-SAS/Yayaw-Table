@@ -16,7 +16,7 @@
     "native-select",
     "popover",
     "textarea",
-    "https://table.yayaw.app/r/yayaw-table.json"
+    "https://table.yayaw.app/r/v3.9.4/yayaw-table.json"
   ],
   "files": [
     {
