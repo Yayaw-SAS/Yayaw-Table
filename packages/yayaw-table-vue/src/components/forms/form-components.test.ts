@@ -85,6 +85,66 @@ const mountForm = (
 };
 
 describe("catalogue form", () => {
+  it("rejects invalid and incomplete location drafts before accepting corrected coordinates", async () => {
+    const { wrapper, update } = mountForm(
+      {
+        id: "item-form",
+        fields: [{ name: "site", label: "Site", type: "location" }],
+      },
+      { site: { lat: 48.8566, lng: 2.3522 } }
+    );
+    await flushPromises();
+    const latitude = wrapper.get<HTMLInputElement>('input[id$="-lat"]');
+    await latitude.setValue("91");
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    expect(update).not.toHaveBeenCalled();
+    expect(latitude.element.value).toBe("91");
+    await latitude.setValue("");
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    expect(update).not.toHaveBeenCalled();
+    await latitude.setValue("49");
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    expect(update).toHaveBeenCalledWith(
+      "1",
+      { site: { lat: 49, lng: 2.3522 } },
+      expect.anything()
+    );
+  });
+
+  it.each([
+    false,
+    true,
+  ])("clears optional locations and rejects required empty locations (%s)", async (required) => {
+    const { wrapper, update } = mountForm(
+      {
+        id: "item-form",
+        fields: [{ name: "site", label: "Site", type: "location", required }],
+      },
+      { site: { lat: 48.8566, lng: 2.3522 } }
+    );
+    await flushPromises();
+    await wrapper.get('input[id$="-lat"]').setValue("91");
+    const clear = wrapper
+      .findAll("button")
+      .find((item) => item.text() === "Effacer");
+    expect(clear).toBeDefined();
+    await clear?.trigger("click");
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    if (required) {
+      expect(update).not.toHaveBeenCalled();
+    } else {
+      expect(update).toHaveBeenCalledWith(
+        "1",
+        { site: null },
+        expect.anything()
+      );
+    }
+  });
+
   it("uses transformed values and blocks duplicate submissions during async validation", async () => {
     const gate = deferred<string>();
     const config: FormConfig = {

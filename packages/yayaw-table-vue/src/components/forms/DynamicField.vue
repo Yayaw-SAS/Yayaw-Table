@@ -552,6 +552,7 @@ watch(valueType, (next, previous) => {
       :invalid="Boolean(errorMessage)"
       :described-by="errorMessage ? `${fieldId}-error` : field.description ? `${fieldId}-help` : undefined"
       @change="update($event)"
+      @invalid-draft="update($event)"
     />
     <CollectionField
       v-else-if="field.type === 'collection'"

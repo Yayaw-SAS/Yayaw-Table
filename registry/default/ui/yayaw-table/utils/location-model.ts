@@ -468,13 +468,54 @@ export interface LocationDraft {
 }
 
 export function locationDraftFrom(value: unknown): LocationDraft {
+  if (typeof value === "string" && value.trim().startsWith("{")) {
+    try {
+      return locationDraftFrom(JSON.parse(value));
+    } catch {
+      // An invalid serialized value has no editable coordinates yet.
+    }
+  }
+  // Form navigation preserves incomplete drafts until they can be corrected.
+  if (
+    isRecord(value) &&
+    typeof value.label === "string" &&
+    typeof value.address === "string" &&
+    typeof value.lat === "string" &&
+    typeof value.lng === "string"
+  ) {
+    return {
+      label: value.label,
+      address: parseCoordinates(value.address) ? "" : value.address,
+      lat: value.lat,
+      lng: value.lng,
+    };
+  }
   const location = parseLocation(value);
   return {
     label: location?.label ?? "",
-    address: location?.address ?? "",
+    address:
+      location?.address && !parseCoordinates(location.address)
+        ? location.address
+        : "",
     lat: location ? String(location.lat) : "",
     lng: location ? String(location.lng) : "",
   };
+}
+
+/** Mirror typed coordinates without interrupting the next character in the address. */
+export function locationDraftWithAddress(
+  draft: LocationDraft,
+  address: string
+): LocationDraft {
+  const coordinates = parseCoordinates(address);
+  return coordinates
+    ? {
+        ...draft,
+        address,
+        lat: String(coordinates.lat),
+        lng: String(coordinates.lng),
+      }
+    : { ...draft, address };
 }
 
 /**
@@ -487,7 +528,9 @@ export function locationFromDraft(
 ): { value: LocationValue | null } | { error: "invalidCoordinates" } {
   const label = draft.label.trim();
   const address = draft.address.trim();
-  const typed = parseCoordinates(address);
+  const coordinateAddress = parseCoordinates(address);
+  const typed =
+    draft.lat.trim() || draft.lng.trim() ? undefined : coordinateAddress;
   const empty = !(label || address || draft.lat.trim() || draft.lng.trim());
   if (empty) {
     return { value: null };
@@ -502,7 +545,7 @@ export function locationFromDraft(
       lat,
       lng,
       ...(label ? { label } : {}),
-      ...(address && !typed ? { address } : {}),
+      ...(address && !coordinateAddress ? { address } : {}),
     },
   };
 }

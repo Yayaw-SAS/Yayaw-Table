@@ -29,7 +29,6 @@ import {
   type ResolvedFormConsent,
   type ResolvedFormQuestion,
 } from "../utils/form-view";
-import { parseLocation } from "../utils/location-model";
 import { tagAppearance } from "../utils/tag-colors";
 import "../utils/tag-colors.css";
 import { FormDateField } from "./form-date-field";
@@ -249,7 +248,8 @@ function Control(props: ControlProps) {
           label={question.label}
           locale={locale}
           onChange={(place) => onChange(place ? JSON.stringify(place) : "")}
-          value={parseLocation(text(value))}
+          onInvalidDraft={(draft) => onChange(JSON.stringify(draft))}
+          value={value}
         />
       );
     case "date":
