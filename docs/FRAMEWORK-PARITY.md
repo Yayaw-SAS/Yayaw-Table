@@ -3270,6 +3270,9 @@ Narrow KPI cards prioritize the figure over the optional sparkline while keeping
 its accessible description. The comparison percentage remains visible; its
 contextual suffix may ellipsize. Header actions move below the name
 when the available width requires it, including embedded narrow panels.
+KPI bodies up to 160px wide use a 24px value, retaining 28px on wider cards
+and a 32px line height throughout. The narrow-card regression checks both the
+inherited platform font and Verdana to cover wider host font metrics.
 
 The widget editor starts with its title, then groups source, value, and period
 and comparison settings. Field labels are secondary to group headings; checkbox

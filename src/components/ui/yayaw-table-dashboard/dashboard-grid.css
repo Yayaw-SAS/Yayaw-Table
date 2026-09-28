@@ -273,6 +273,12 @@
     clip-path: inset(50%);
   }
 }
+/* Wider host fonts still fit the figure in a small desktop grid column. */
+@container (max-width: 10rem) {
+  [data-kpi-value] {
+    font-size: 1.5rem;
+  }
+}
 [data-kpi-trend] polyline {
   fill: none;
   stroke: currentColor;

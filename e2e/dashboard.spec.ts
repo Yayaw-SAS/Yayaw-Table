@@ -1004,45 +1004,54 @@ test("narrow dashboard cards preserve the full KPI value and visible comparison"
         .getByRole("button", { name: "Edit", exact: true })
         .click();
     }
-    await expect(figure(page, "revenue")).toHaveText("€157,000");
-    await expect(revenue.locator("[data-kpi-compare]")).toHaveText(
-      "+38% vs previous period"
-    );
-    await expect(revenue.getByRole("img", { name: TREND })).toHaveCount(1);
-    const bounds = await revenue.evaluate((element) => {
-      const card = element.getBoundingClientRect();
-      const value = element.querySelector<HTMLElement>("[data-kpi-value]");
-      const comparison =
-        element.querySelector<HTMLElement>("[data-kpi-compare]");
-      const text = comparison?.querySelector("span");
-      if (!(value && comparison && text?.firstChild)) {
-        throw new Error("The ready KPI value and comparison are required.");
-      }
-      const valueBox = value.getBoundingClientRect();
-      const comparisonBox = comparison.getBoundingClientRect();
-      const textBox = text.getBoundingClientRect();
-      const percent = document.createRange();
-      percent.setStart(text.firstChild, 0);
-      percent.setEnd(text.firstChild, 4);
-      const percentBox = percent.getBoundingClientRect();
-      return {
-        cardWidth: card.width,
-        valueClientWidth: value.clientWidth,
-        valueScrollWidth: value.scrollWidth,
-        valueInside: valueBox.top >= card.top && valueBox.bottom <= card.bottom,
-        comparisonInside:
-          comparisonBox.top >= card.top && comparisonBox.bottom <= card.bottom,
-        percentVisible:
-          percentBox.left >= textBox.left && percentBox.right <= textBox.right,
-      };
-    });
-    expect(bounds.cardWidth).toBeGreaterThan(150);
-    expect(bounds.valueScrollWidth).toBeLessThanOrEqual(
-      bounds.valueClientWidth + 1
-    );
-    expect(bounds.valueInside).toBe(true);
-    expect(bounds.comparisonInside).toBe(true);
-    expect(bounds.percentVisible).toBe(true);
+    // Exercise the inherited platform font and a wider host font when available.
+    for (const font of ["inherit", "Verdana, sans-serif"]) {
+      await revenue.evaluate((element, family) => {
+        element.style.fontFamily = family;
+      }, font);
+      await expect(figure(page, "revenue")).toHaveText("€157,000");
+      await expect(revenue.locator("[data-kpi-compare]")).toHaveText(
+        "+38% vs previous period"
+      );
+      await expect(revenue.getByRole("img", { name: TREND })).toHaveCount(1);
+      const bounds = await revenue.evaluate((element) => {
+        const card = element.getBoundingClientRect();
+        const value = element.querySelector<HTMLElement>("[data-kpi-value]");
+        const comparison =
+          element.querySelector<HTMLElement>("[data-kpi-compare]");
+        const text = comparison?.querySelector("span");
+        if (!(value && comparison && text?.firstChild)) {
+          throw new Error("The ready KPI value and comparison are required.");
+        }
+        const valueBox = value.getBoundingClientRect();
+        const comparisonBox = comparison.getBoundingClientRect();
+        const textBox = text.getBoundingClientRect();
+        const percent = document.createRange();
+        percent.setStart(text.firstChild, 0);
+        percent.setEnd(text.firstChild, 4);
+        const percentBox = percent.getBoundingClientRect();
+        return {
+          cardWidth: card.width,
+          valueClientWidth: value.clientWidth,
+          valueScrollWidth: value.scrollWidth,
+          valueInside:
+            valueBox.top >= card.top && valueBox.bottom <= card.bottom,
+          comparisonInside:
+            comparisonBox.top >= card.top &&
+            comparisonBox.bottom <= card.bottom,
+          percentVisible:
+            percentBox.left >= textBox.left &&
+            percentBox.right <= textBox.right,
+        };
+      });
+      expect(bounds.cardWidth).toBeGreaterThan(150);
+      expect(bounds.valueScrollWidth).toBeLessThanOrEqual(
+        bounds.valueClientWidth + 1
+      );
+      expect(bounds.valueInside).toBe(true);
+      expect(bounds.comparisonInside).toBe(true);
+      expect(bounds.percentVisible).toBe(true);
+    }
   }
 });
 

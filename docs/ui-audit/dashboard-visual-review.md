@@ -31,6 +31,8 @@ Before: `/tmp/yayaw-dashboard-visual-before` (64 PNGs).
 After: `/tmp/yayaw-dashboard-visual-after` (72 PNGs, including the lower mobile
 settings fields). Coverage includes React/Vue, 1440px/390px, light/dark, reading
 and editing, grid/flow sections, and long titles within an embedded host panel.
+The final typography correction has eight updated narrow-panel and desktop-card
+captures in `/tmp/yayaw-dashboard-visual-font-fix` (four scenarios, both frameworks).
 
 The 18 capture scenarios passed. No page or dialog exceeded its viewport.
 A 158px card previously gave the 129px revenue figure only 65px; narrow cards
@@ -38,6 +40,12 @@ now reserve that width for the figure and visually compact the optional trend
 while retaining its accessible description. The comparison percentage fits;
 its contextual suffix may ellipsize in this smallest card. Values and comparison
 rows remain inside the 108px card height, including with a two-line title.
+Bodies up to 160px wide use a 24px KPI figure; wider bodies retain 28px. Both
+keep the 32px line height. This also accommodates wider platform and host fonts:
+Linux CI measured the figure at 143px in 133px of available space. A local
+Verdana reproduction measured 145px at 28px and 124px at 24px. The regression
+keeps both the inherited platform font and Verdana, without requiring Verdana
+on the test host or relaxing the overflow checks.
 The lower settings controls and Apply action were inspected together on mobile.
 
 ## Regression checks
