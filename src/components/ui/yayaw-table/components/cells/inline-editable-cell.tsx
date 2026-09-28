@@ -561,6 +561,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
           }
           onCancel={cancelEditing}
           onChange={(value) => updateDraftValue(value, { disableAutoSave: true })}
+          onInvalidDraft={(draft) => updateDraftValue(draft, { disableAutoSave: true })}
           onDone={() => {
             commitAndClose().catch(() => undefined);
           }}

@@ -76,6 +76,43 @@ const createCell = (
 };
 
 describe("catalogue-backed inline editing", () => {
+  it("keeps an invalid location open through blur and Done, then saves the corrected draft", async () => {
+    const { wrapper, row, update } = createCell({
+      row: { id: "1", site: { lat: 48.8566, lng: 2.3522 } },
+      column: { id: "site", header: "Site", type: "location" },
+    });
+    await wrapper.trigger("dblclick");
+    await flushPromises();
+    const element = document.querySelector<HTMLElement>(
+      "[data-location-editor]"
+    );
+    expect(element).not.toBeNull();
+    if (!element) {
+      throw new Error("The location editor did not open");
+    }
+    const editor = new DOMWrapper(element);
+    const latitude = editor.get<HTMLInputElement>('input[id$="-lat"]');
+    await latitude.setValue("91");
+    await latitude.trigger("focusout", { relatedTarget: document.body });
+    await latitude.trigger("keydown", { key: "Enter" });
+    await editor
+      .findAll("button")
+      .find((item) => item.text() === "Done")
+      ?.trigger("click");
+    await flushPromises();
+    expect(update).not.toHaveBeenCalled();
+    expect(row.site).toEqual({ lat: 48.8566, lng: 2.3522 });
+    expect(document.querySelector("[data-location-editor]")).not.toBeNull();
+    await latitude.setValue("49");
+    await latitude.trigger("keydown", { key: "Enter" });
+    await flushPromises();
+    expect(update).toHaveBeenCalledWith(
+      "1",
+      { site: { lat: 49, lng: 2.3522 } },
+      expect.anything()
+    );
+  });
+
   it("uses the mapped field schema, form type and transformed value", async () => {
     const { wrapper, row, update, context } = createCell({
       row: { id: "1", amount: "10", kind: "invoice" },

@@ -1478,6 +1478,20 @@ most), and validates stored values (`dataTypeValueError`).
   record forms, the Form view); Vue through the table context.
   The Form view keeps a place as JSON text in its draft; its conditions see
   that text (use "is empty"/"is not empty"); fixed values do not accept places.
+  Invalid or incomplete input remains in the host's draft and blocks record
+  submission, public form submission and step advancement, including optional
+  locations. It never falls back to a previously valid value. The editor emits
+  `onInvalidDraft` in React / `invalid-draft` in Vue, separately from valid
+  changes. Invalid inline drafts show the same localized error and remain open
+  after Done, Enter or blur. Clear emits `null`; required field validation still
+  applies. Typed or pasted coordinate text fills the coordinate inputs while
+  remaining editable in the address until blur or a direct coordinate edit;
+  old coordinate-looking addresses cannot override edited inputs.
+  Controlled resets replace the draft, while value echoes preserve numeric
+  typing such as `2.`. Invalid serialized drafts survive navigation.
+  Coverage: React `tests/location-editor.test.tsx`, Vue location, catalogue form
+  and inline tests, shared `tests/map-model-suite.ts`, and Chromium
+  `e2e/location-validation.spec.ts` against both runnable examples.
 - Filters: `isEmpty`, `isNotEmpty`, `withinDistance` (`values: [lat, lng, km]`,
   haversine) and `withinBounds` (`values: [west, south, east, north]`,
   `west > east` crossing the antimeridian), in `matchesContractFilter` (both

@@ -37,6 +37,7 @@ export function LocationField<TFieldValues extends Record<string, unknown>>({
         invalid={!fieldApi.state.meta.isValid}
         label={typeof label === "string" ? label : undefined}
         onChange={(value) => fieldApi.handleChange(value)}
+        onInvalidDraft={(draft) => fieldApi.handleChange(draft)}
         value={fieldApi.state.value}
       />
       {field.description != null && (

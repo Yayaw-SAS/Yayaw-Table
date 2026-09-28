@@ -12,6 +12,7 @@ import {
   type LocationLabelKey,
   type LocationValue,
   locationDraftFrom,
+  locationDraftWithAddress,
   locationFromDraft,
   locationFromGeocode,
   locationLabel,
@@ -45,6 +46,8 @@ const props = withDefaults(
 const emit = defineEmits<{
   /** Each valid value (null once every field is empty). */
   change: [value: LocationValue | null];
+  /** Keep invalid text in the host draft so form validation rejects it. */
+  "invalid-draft": [draft: LocationDraft];
   done: [];
   cancel: [];
   /** Focus left the editor (inline editing saves, as other editors do on blur). */
@@ -63,9 +66,20 @@ const generatedId = useId();
 const id = props.inputId ?? generatedId;
 const addressId = props.inputId ?? `${id}-address`;
 const draft = ref<LocationDraft>(locationDraftFrom(props.value));
+let emittedDraftKey = JSON.stringify(draft.value);
 const IDLE: GeocodeSearchState = { status: "idle", query: "", results: [] };
 const search = ref<GeocodeSearchState>(IDLE);
-const error = ref<string>();
+const initialResult = locationFromDraft(draft.value);
+const error = ref<string | undefined>("error" in initialResult ? label(initialResult.error) : undefined);
+watch(() => JSON.stringify(locationDraftFrom(props.value)), (valueKey) => {
+  // A host echo must not remove unfinished number text such as "2.".
+  if (valueKey === emittedDraftKey) return;
+  emittedDraftKey = valueKey;
+  const next = locationDraftFrom(props.value);
+  draft.value = next;
+  const result = locationFromDraft(next);
+  error.value = "error" in result ? label(result.error) : undefined;
+});
 const suggestions = useTemplateRef<HTMLUListElement>("suggestions");
 let searcher = createGeocodeSearch({ geocode: geocode.value, locale: locale.value, onChange: (state) => { search.value = state; } });
 watch([geocode, locale], () => {
@@ -107,15 +121,30 @@ onBeforeUnmount(() => {
   window.removeEventListener("resize", place);
 });
 const onFocusout = (event: FocusEvent): void => {
-  if (!container.value?.contains(event.relatedTarget as Node | null)) emit("leave");
+  const normalized = locationDraftFrom(draft.value);
+  if (normalized.address !== draft.value.address) draft.value = normalized;
+  if (!container.value?.contains(event.relatedTarget as Node | null) && validateDraft()) emit("leave");
 };
 
+const publish = (value: LocationValue | null): void => {
+  emittedDraftKey = JSON.stringify(locationDraftFrom(value));
+  emit("change", value);
+};
+const validateDraft = (): boolean => {
+  const result = locationFromDraft(draft.value);
+  error.value = "error" in result ? label(result.error) : undefined;
+  return "value" in result;
+};
 const apply = (next: LocationDraft): void => {
   draft.value = next;
   const result = locationFromDraft(next);
   if ("value" in result) {
     error.value = undefined;
-    emit("change", result.value);
+    publish(result.value);
+  } else {
+    error.value = label(result.error);
+    emittedDraftKey = JSON.stringify(next);
+    emit("invalid-draft", next);
   }
 };
 const choose = (suggestion: GeocodeResult): void => {
@@ -126,15 +155,10 @@ const choose = (suggestion: GeocodeResult): void => {
   const chosen = locationFromGeocode(suggestion);
   draft.value = locationDraftFrom(chosen);
   error.value = undefined;
-  emit("change", chosen);
+  publish(chosen);
 };
 const done = (): void => {
-  const result = locationFromDraft(draft.value);
-  if ("error" in result) {
-    error.value = label(result.error);
-    return;
-  }
-  emit("done");
+  if (validateDraft()) emit("done");
 };
 const onKeydown = (event: KeyboardEvent): void => {
   if (event.key === "Escape" && props.actions) {
@@ -171,7 +195,7 @@ const onSuggestionKeydown = (event: KeyboardEvent): void => {
 };
 const onAddress = (event: Event): void => {
   const text = (event.target as HTMLInputElement).value;
-  apply({ ...draft.value, address: text });
+  apply(locationDraftWithAddress(draft.value, text));
   searcher.search(text);
 };
 const statusText = computed(() => {
@@ -235,11 +259,11 @@ const statusText = computed(() => {
     <div class="yayaw-location-coordinates">
       <label class="yayaw-location-field" :for="`${id}-lat`">
         <span>{{ label("latitude") }}</span>
-        <input :id="`${id}-lat`" class="yayaw-input" inputmode="decimal" :aria-invalid="error ? 'true' : undefined" :value="draft.lat" @input="apply({ ...draft, lat: ($event.target as HTMLInputElement).value })" />
+        <input :id="`${id}-lat`" class="yayaw-input" inputmode="decimal" :aria-invalid="error ? 'true' : undefined" :value="draft.lat" @input="apply({ ...locationDraftFrom(draft), lat: ($event.target as HTMLInputElement).value })" />
       </label>
       <label class="yayaw-location-field" :for="`${id}-lng`">
         <span>{{ label("longitude") }}</span>
-        <input :id="`${id}-lng`" class="yayaw-input" inputmode="decimal" :aria-invalid="error ? 'true' : undefined" :value="draft.lng" @input="apply({ ...draft, lng: ($event.target as HTMLInputElement).value })" />
+        <input :id="`${id}-lng`" class="yayaw-input" inputmode="decimal" :aria-invalid="error ? 'true' : undefined" :value="draft.lng" @input="apply({ ...locationDraftFrom(draft), lng: ($event.target as HTMLInputElement).value })" />
       </label>
     </div>
     <p v-if="error" class="yayaw-location-error" role="alert">{{ error }}</p>

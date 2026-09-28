@@ -29,7 +29,6 @@ import { tagAppearance } from "../tag-colors";
 import "../tag-colors.css";
 import FormDateField from "./FormDateField.vue";
 import LocationEditor from "../components/location/LocationEditor.vue";
-import { parseLocation } from "../location-model";
 
 type Answer = FormDraft[string];
 
@@ -76,7 +75,6 @@ const selected = computed(() => (Array.isArray(props.value) ? props.value : []))
 const optionId = (index: number): string =>
   index === 0 ? props.inputId : `${props.inputId}-${index}`;
 // The draft keeps a place as JSON text; the answer is the parsed place.
-const place = computed(() => parseLocation(text.value));
 const onPlace = (value: unknown): void =>
   emit("change", value ? JSON.stringify(value) : "");
 const onText = (event: Event): void =>
@@ -292,13 +290,14 @@ const tag = (option: FormOption) =>
     <LocationEditor
       v-else-if="question.editor === 'location'"
       :input-id="inputId"
-      :value="place"
+      :value="text"
       :label="question.label"
       :locale="locale"
       :disabled="disabled"
       :invalid="Boolean(error)"
       :described-by="describedBy"
       @change="onPlace"
+      @invalid-draft="onPlace"
     />
     <input
       v-else-if="question.editor === 'number'"

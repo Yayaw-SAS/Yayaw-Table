@@ -483,6 +483,7 @@ const tagChip = (value: unknown) => {
           autofocus
           :label="formField?.label ?? column.header"
           @change="draft = $event"
+          @invalid-draft="draft = $event"
           @done="save()"
           @cancel="cancel"
           @leave="save()"

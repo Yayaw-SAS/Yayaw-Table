@@ -569,6 +569,9 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
           onFocusLeave={() => {
             commitAndClose().catch(() => undefined);
           }}
+          onInvalidDraft={(draft) =>
+            updateDraftValue(draft, { disableAutoSave: true })
+          }
           value={editorValue}
         />
       ) : null}

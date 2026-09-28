@@ -21,7 +21,6 @@ import { Switch } from "@/src/components/ui/switch";
 import { Textarea } from "@/src/components/ui/textarea";
 import { FormSelectContent } from "../components/forms/fields/form-select-content";
 import { LocationEditor } from "../components/location/location-editor";
-import { parseLocation } from "../utils/location-model";
 import {
   type FormDraft,
   type FormOption,
@@ -252,7 +251,8 @@ function Control(props: ControlProps) {
           label={question.label}
           locale={locale}
           onChange={(place) => onChange(place ? JSON.stringify(place) : "")}
-          value={parseLocation(text(value))}
+          onInvalidDraft={(draft) => onChange(JSON.stringify(draft))}
+          value={value}
         />
       );
     case "date":

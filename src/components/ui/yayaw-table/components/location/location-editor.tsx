@@ -25,6 +25,7 @@ import {
   type LocationDraft,
   type LocationValue,
   locationDraftFrom,
+  locationDraftWithAddress,
   locationFromDraft,
   locationFromGeocode,
 } from "../../utils/location-model";
@@ -34,6 +35,8 @@ export interface LocationEditorProps {
   value: unknown;
   /** Called with each valid value (null once every field is empty). */
   onChange: (value: LocationValue | null) => void;
+  /** Keeps invalid input in the host's validation state instead of its last valid value. */
+  onInvalidDraft?: (draft: LocationDraft) => void;
   /** Inline editing: Enter or Done saves and closes. */
   onDone?: () => void;
   /** Inline editing: Escape or Cancel leaves without saving. */
@@ -95,6 +98,7 @@ function useFloatingStyle(
 export function LocationEditor({
   value,
   onChange,
+  onInvalidDraft,
   onDone,
   onCancel,
   label,
@@ -116,14 +120,42 @@ export function LocationEditor({
     locationDraftFrom(value)
   );
   const [search, setSearch] = useState<GeocodeSearchState>(IDLE);
-  const [error, setError] = useState<string>();
+  const [error, setError] = useState<string | undefined>(() => {
+    const result = locationFromDraft(draft);
+    return "error" in result ? location.label(result.error) : undefined;
+  });
+  const valueKey = JSON.stringify(locationDraftFrom(value));
+  const lastEmittedKey = useRef(valueKey);
+  const previousValueKey = useRef(valueKey);
+  useEffect(() => {
+    if (valueKey === previousValueKey.current) {
+      return;
+    }
+    previousValueKey.current = valueKey;
+    if (valueKey !== lastEmittedKey.current) {
+      lastEmittedKey.current = valueKey;
+      const next = locationDraftFrom(value);
+      setDraft(next);
+      const result = locationFromDraft(next);
+      setError("error" in result ? location.label(result.error) : undefined);
+    }
+  }, [location, value, valueKey]);
   const suggestionsRef = useRef<HTMLUListElement>(null);
   const containerRef = useRef<HTMLFieldSetElement>(null);
   const floatingStyle = useFloatingStyle(floating ? anchor : undefined, containerRef);
   const onBlur = (event: FocusEvent<HTMLElement>) => {
+    const normalized = locationDraftFrom(draft);
+    if (normalized.address !== draft.address) {
+      setDraft(normalized);
+    }
     const next = event.relatedTarget as Node | null;
     if (onFocusLeave && !containerRef.current?.contains(next)) {
-      onFocusLeave();
+      const result = locationFromDraft(draft);
+      if ("error" in result) {
+        setError(location.label(result.error));
+      } else {
+        onFocusLeave();
+      }
     }
   };
   const searcher = useMemo(
@@ -142,7 +174,12 @@ export function LocationEditor({
     const result = locationFromDraft(next);
     if ("value" in result) {
       setError(undefined);
+      lastEmittedKey.current = JSON.stringify(locationDraftFrom(result.value));
       onChange(result.value);
+    } else {
+      setError(location.label(result.error));
+      lastEmittedKey.current = JSON.stringify(next);
+      onInvalidDraft?.(next);
     }
   };
   const choose = (suggestion: GeocodeResult) => {
@@ -153,6 +190,7 @@ export function LocationEditor({
     const chosen = locationFromGeocode(suggestion);
     setDraft(locationDraftFrom(chosen));
     setError(undefined);
+    lastEmittedKey.current = JSON.stringify(locationDraftFrom(chosen));
     onChange(chosen);
   };
   const done = () => {
@@ -254,7 +292,7 @@ export function LocationEditor({
             id={addressId}
             onBlur={onBlur}
             onChange={(event) => {
-              apply({ ...draft, address: event.target.value });
+              apply(locationDraftWithAddress(draft, event.target.value));
               searcher.search(event.target.value);
             }}
             onKeyDown={onAddressKeyDown}
@@ -330,7 +368,7 @@ export function LocationEditor({
             id={`${id}-lat`}
             inputMode="decimal"
             onBlur={onBlur}
-            onChange={(event) => apply({ ...draft, lat: event.target.value })}
+            onChange={(event) => apply({ ...locationDraftFrom(draft), lat: event.target.value })}
             onKeyDown={onKeyDown}
             value={draft.lat}
           />
@@ -345,7 +383,7 @@ export function LocationEditor({
             id={`${id}-lng`}
             inputMode="decimal"
             onBlur={onBlur}
-            onChange={(event) => apply({ ...draft, lng: event.target.value })}
+            onChange={(event) => apply({ ...locationDraftFrom(draft), lng: event.target.value })}
             onKeyDown={onKeyDown}
             value={draft.lng}
           />

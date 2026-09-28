@@ -26,6 +26,7 @@ export interface MapModelModules {
     | "hasLocation"
     | "locationDetail"
     | "locationDraftFrom"
+    | "locationDraftWithAddress"
     | "locationFilterHasValue"
     | "locationFromDraft"
     | "locationFromGeocode"
@@ -426,6 +427,62 @@ function locationEditorTests(
       }),
       { error: "invalidCoordinates" }
     );
+  });
+
+  test("invalid location drafts survive navigation and coordinate pastes cannot mask later edits", () => {
+    const draft = { label: "Office", address: "", lat: "91", lng: "2" };
+    assert.deepEqual(location.locationDraftFrom(draft), draft);
+    assert.deepEqual(location.locationDraftFrom(JSON.stringify(draft)), draft);
+    assert.equal(
+      contracts.dataTypeValueError("location", draft),
+      "Expected a location (lat, lng)"
+    );
+    assert.deepEqual(
+      location.locationDraftFrom({ ...PARIS, address: "48.8566, 2.3522" }),
+      {
+        label: PARIS.label,
+        address: "",
+        lat: "48.8566",
+        lng: "2.3522",
+      }
+    );
+    assert.deepEqual(
+      location.locationFromDraft({ ...draft, address: "48.8566, 2.3522" }),
+      { error: "invalidCoordinates" }
+    );
+    const pasted = location.locationDraftWithAddress(draft, "48.8566, 2.3522");
+    assert.deepEqual(pasted, {
+      label: "Office",
+      address: "48.8566, 2.3522",
+      lat: "48.8566",
+      lng: "2.3522",
+    });
+    assert.deepEqual(location.locationFromDraft({ ...pasted, lat: "91" }), {
+      error: "invalidCoordinates",
+    });
+    assert.deepEqual(location.locationFromDraft({ ...pasted, lng: "" }), {
+      error: "invalidCoordinates",
+    });
+  });
+
+  test("coordinate text can be typed one character at a time without truncating longitude", () => {
+    let draft = { label: "", address: "", lat: "", lng: "" };
+    for (const character of "48.8566, 2.3522") {
+      draft = location.locationDraftWithAddress(
+        draft,
+        draft.address + character
+      );
+    }
+    assert.equal(draft.address, "48.8566, 2.3522");
+    assert.deepEqual(location.locationFromDraft(draft), {
+      value: { lat: 48.8566, lng: 2.3522 },
+    });
+    assert.deepEqual(location.locationDraftFrom(draft), {
+      label: "",
+      address: "",
+      lat: "48.8566",
+      lng: "2.3522",
+    });
   });
 
   test("geocoder suggestions are validated, capped and searched after a pause", async () => {
