@@ -24,6 +24,11 @@ import {
   normalizeFormText,
   resolveFormText,
 } from "../form-text";
+import {
+  METRIC_FORMAT_SCHEMA,
+  type MetricDisplayFormat,
+  normalizeMetricFormat,
+} from "../metric-format";
 import { TABLE_DENSITY_OPTIONS } from "../table-contracts";
 import {
   copyJson,
@@ -304,6 +309,8 @@ export interface DashboardKpiSparkline {
 export interface DashboardKpiSettings {
   metric: DashboardKpiMetric;
   metricColumn?: string;
+  /** Display conversion only, shared with chart metric formatting. */
+  valueFormat?: MetricDisplayFormat;
   label?: string;
   /** The date column periods and trend buckets read; required by both. */
   dateColumn?: string;
@@ -396,6 +403,7 @@ export function dashboardKpiSettings(
   const sparkline = dateColumn
     ? normalizeSparkline(settings.sparkline)
     : undefined;
+  const valueFormat = normalizeMetricFormat(settings.valueFormat);
   return {
     metric: reads ? metric : "count",
     ...(reads ? { metricColumn } : {}),
@@ -403,6 +411,7 @@ export function dashboardKpiSettings(
     ...(dateColumn ? { dateColumn } : {}),
     ...(compare ? { compare } : {}),
     ...(sparkline ? { sparkline } : {}),
+    ...(valueFormat ? { valueFormat } : {}),
   };
 }
 
@@ -913,6 +922,7 @@ const SETTING_KEYS: Readonly<Record<DashboardWidgetType, readonly string[]>> = {
   view: ["overflow"],
   kpi: [
     "metric",
+    "valueFormat",
     "metricColumn",
     "label",
     "dateColumn",
@@ -952,6 +962,16 @@ function kpiIssues(
   path: string,
   context: Context
 ) {
+  if (
+    value.valueFormat !== undefined &&
+    !normalizeMetricFormat(value.valueFormat)
+  ) {
+    context.issue(
+      "invalidValue",
+      "Invalid metric display format: positive finite scale, finite offset, 0–12 decimals and a unit of at most 32 characters; no unknown keys or expressions.",
+      jsonPath(path, "valueFormat")
+    );
+  }
   if (
     value.metric !== undefined &&
     !oneOf(DASHBOARD_KPI_METRICS, value.metric)
@@ -2473,6 +2493,14 @@ function viewSchema(rules: number): Schema {
         type: "object",
         description: `Settings of the ${mode} display mode.`,
         propertyNames: { enum: [...keys] },
+        ...(mode === "chart"
+          ? {
+              properties: {
+                valueFormat: METRIC_FORMAT_SCHEMA,
+                lineValueFormat: METRIC_FORMAT_SCHEMA,
+              },
+            }
+          : {}),
       },
     ])
   );
@@ -2666,6 +2694,7 @@ function widgetSchemas(
         additionalProperties: false,
         properties: {
           metric: { enum: [...DASHBOARD_KPI_METRICS] },
+          valueFormat: METRIC_FORMAT_SCHEMA,
           metricColumn: {
             type: "string",
             description: "Number column; required unless metric is count.",

@@ -7,6 +7,12 @@
  * implemented it, or tables without an aggregate action, are aggregated here
  * over every row matching the query (capped, with a `truncated` signal).
  */
+
+import {
+  type MetricDisplayFormat,
+  metricValueFormatter,
+  normalizeMetricFormat,
+} from "./metric-format";
 import { loadScopedRows, type ScopedRowsRequest } from "./scoped-rows";
 import {
   dataTypeFilter,
@@ -63,6 +69,8 @@ export interface ChartViewSettings {
   metric?: ChartMetricFn;
   /** Column the metric reads; required by every metric but `count`. */
   metricColumn?: string;
+  /** Display conversion of the primary metric; raw aggregates are unchanged. */
+  valueFormat?: MetricDisplayFormat;
   /** Optional second grouping: stacked or grouped bars, one line per value. */
   seriesColumn?: string;
   /** Stack the series of a bar chart (default) or show them side by side. */
@@ -88,6 +96,8 @@ export interface ChartViewSettings {
   lineMetric?: ChartMetricFn;
   /** Column the line metric reads; required by every line metric but `count`. */
   lineMetricColumn?: string;
+  /** Independent display conversion for the line of a combo chart. */
+  lineValueFormat?: MetricDisplayFormat;
   /**
    * Funnel stages in order, as option values. Options left out follow in the
    * column's option order; without it the stages follow the option order.
@@ -291,6 +301,8 @@ export function normalizeChartViewConfig(
     curve: oneOf(CHART_CURVES, input.curve),
     lineMetric: oneOf(CHART_METRICS, input.lineMetric),
     stageOrder: normalizedStageOrder(input.stageOrder),
+    valueFormat: normalizeMetricFormat(input.valueFormat),
+    lineValueFormat: normalizeMetricFormat(input.lineValueFormat),
   };
   for (const [key, item] of Object.entries(enums)) {
     if (item !== undefined) {
@@ -1317,7 +1329,7 @@ function groupKeyLabel(
 
 /** Formats metric values: counts as integers, other metrics in the column's number format. */
 export function chartValueFormatter(
-  settings: Pick<ChartViewSettings, "metric" | "metricColumn">,
+  settings: Pick<ChartViewSettings, "metric" | "metricColumn" | "valueFormat">,
   columns: readonly ChartColumn[],
   locale: string
 ): (value: number) => string {
@@ -1326,6 +1338,13 @@ export function chartValueFormatter(
     !settings.metric ||
     settings.metric === "count" ||
     settings.metric === "countDistinct";
+  if (settings.valueFormat) {
+    return metricValueFormatter(
+      settings.valueFormat,
+      counting ? { maximumFractionDigits: 0 } : column?.numberFormat,
+      locale
+    );
+  }
   if (counting || !column) {
     const formatter = new Intl.NumberFormat(locale, {
       maximumFractionDigits: 0,
@@ -1344,9 +1363,25 @@ const isCounting = (metric: ChartMetricFn | undefined) =>
  * Combo charts give the line its own axis when it differs from the bars'.
  */
 export function chartMetricUnit(
-  settings: Pick<ChartViewSettings, "metric" | "metricColumn">,
+  settings: Pick<ChartViewSettings, "metric" | "metricColumn" | "valueFormat">,
   columns: readonly ChartColumn[]
 ): string {
+  const display = normalizeMetricFormat(settings.valueFormat);
+  if (
+    display &&
+    (display.unit ||
+      display.scale !== undefined ||
+      display.offset !== undefined)
+  ) {
+    // Different display transforms need separate axes even when both source columns are numbers.
+    const base =
+      display.unit ??
+      chartMetricUnit(
+        { metric: settings.metric, metricColumn: settings.metricColumn },
+        columns
+      );
+    return JSON.stringify([base, display.scale ?? 1, display.offset ?? 0]);
+  }
   const column = columnById(columns, settings.metricColumn);
   if (isCounting(settings.metric) || !column) {
     return "count";
@@ -2045,10 +2080,15 @@ function tabulateMetrics(
 function buildComboModel(input: ChartModelInput, base: ModelBase): ChartModel {
   const { settings, columns, locale, translate, palette, otherColor } = input;
   const x = columnById(columns, settings.xColumn);
-  const bars = { metric: settings.metric, metricColumn: settings.metricColumn };
+  const bars = {
+    metric: settings.metric,
+    metricColumn: settings.metricColumn,
+    valueFormat: settings.valueFormat,
+  };
   const line = {
     metric: settings.lineMetric,
     metricColumn: settings.lineMetricColumn,
+    valueFormat: settings.lineValueFormat,
   };
   const dual =
     chartMetricUnit(bars, columns) !== chartMetricUnit(line, columns);

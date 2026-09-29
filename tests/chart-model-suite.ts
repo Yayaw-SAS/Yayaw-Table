@@ -195,6 +195,57 @@ export function chartModelSuite(
   const totals = (built: Chart.ChartModel) =>
     built.categories.map((category) => [category.label, category.total]);
 
+  test("metric display formats leave chart aggregates, filters, ordering and shares raw", () => {
+    const view: Chart.ChartViewSettings = {
+      type: "bar",
+      xColumn: "category",
+      metric: "sum",
+      metricColumn: "price",
+    };
+    const valueFormat = { scale: 0.001, offset: 2, unit: "kEUR", decimals: 3 };
+    const raw = model(view);
+    const converted = model({ ...view, valueFormat });
+    assert.equal(converted.format(6250), "8.250 kEUR");
+    assert.deepEqual(converted.categories, raw.categories);
+    assert.deepEqual(converted.valueTicks, raw.valueTicks);
+    assert.equal(converted.total, raw.total);
+    assert.deepEqual(
+      chart.chartAggregateRequest(settings({ ...view, valueFormat }), COLUMNS),
+      chart.chartAggregateRequest(settings(view), COLUMNS)
+    );
+    for (const type of ["line", "area", "donut", "number", "funnel"] as const) {
+      const built = model({ ...view, type, valueFormat });
+      assert.equal(built.format(6250), "8.250 kEUR");
+      assert.equal(built.total, model({ ...view, type }).total);
+    }
+  });
+
+  test("combo metrics have independent display formats and axis identities", () => {
+    const built = combo({
+      valueFormat: { scale: 0.001, unit: "kEUR", decimals: 2 },
+      lineValueFormat: { scale: 100, unit: "%", decimals: 1 },
+    });
+    assert.equal(built.series[0]?.format?.(6250), "6.25 kEUR");
+    assert.equal(built.series[1]?.format?.(0.25), "25.0 %");
+    assert.deepEqual(built.categories, combo().categories);
+    assert.notEqual(
+      chart.chartMetricUnit(
+        { metric: "avg", metricColumn: "units", valueFormat: { scale: 0.001 } },
+        MARGIN_COLUMNS
+      ),
+      chart.chartMetricUnit(
+        { metric: "avg", metricColumn: "units" },
+        MARGIN_COLUMNS
+      )
+    );
+    assert.equal(
+      combo({
+        valueFormat: { scale: 0.001, unit: "kEUR" },
+      }).series[1]?.format?.(0.25),
+      "25%"
+    );
+  });
+
   test("keeps only valid chart settings", () => {
     assert.deepEqual(
       chart.normalizeChartViewConfig({

@@ -298,11 +298,23 @@ export const formatsDashboard: DashboardV1 = {
       tableId: "formats",
       settings: { metric: "count", label: "Records" },
     },
+    {
+      id: "amount-thousands",
+      type: "kpi",
+      tableId: "formats",
+      settings: {
+        metric: "sum",
+        metricColumn: "amount",
+        label: "Amount in thousands",
+        valueFormat: { scale: 0.001, unit: "kEUR", decimals: 2 },
+      },
+    },
   ],
   layout: [
     { widgetId: "amount-total", x: 0, y: 0, w: 1, h: 1 },
     { widgetId: "progress-average", x: 1, y: 0, w: 1, h: 1 },
     { widgetId: "records", x: 2, y: 0, w: 1, h: 1 },
+    { widgetId: "amount-thousands", x: 3, y: 0, w: 1, h: 1 },
   ],
   filters: [
     {
