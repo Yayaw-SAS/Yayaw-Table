@@ -311,8 +311,11 @@ function kpiDraftSettings(
       : text(previous.label);
   const reads = draft.metric !== "count" && Boolean(draft.metricColumn);
   const dateColumn = draft.dateColumn.trim();
+  // The dialog does not edit display conversions; preserve an existing one.
+  const valueFormat = dashboardKpiSettings({ settings: previous }).valueFormat;
   return {
     metric: draft.metric,
+    ...(valueFormat ? { valueFormat } : {}),
     ...(reads ? { metricColumn: draft.metricColumn } : {}),
     ...(label ? { label } : {}),
     ...(dateColumn && (draft.compare || draft.sparkline) ? { dateColumn } : {}),
@@ -478,6 +481,7 @@ export function kpiViewConfig(
     ? (widget.settings.metric as DashboardKpiMetric)
     : "count";
   const metricColumn = text(widget.settings.metricColumn);
+  const valueFormat = dashboardKpiSettings(widget).valueFormat;
   return {
     ...base,
     displayMode: "chart",
@@ -485,6 +489,7 @@ export function kpiViewConfig(
       type: "number",
       metric: metric !== "count" && metricColumn ? metric : "count",
       ...(metric !== "count" && metricColumn ? { metricColumn } : {}),
+      ...(valueFormat ? { valueFormat } : {}),
     },
   };
 }

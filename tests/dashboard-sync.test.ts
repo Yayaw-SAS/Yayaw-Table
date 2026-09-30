@@ -13,6 +13,11 @@ const SYNCED: [
   vue: string,
   rewrite: (content: string) => string,
 ][] = [
+  [
+    "src/components/ui/yayaw-table/utils/metric-format.ts",
+    `${VUE}/metric-format.ts`,
+    (content) => content,
+  ],
   ...[
     "dashboard-schema.ts",
     "dashboard-sources.ts",

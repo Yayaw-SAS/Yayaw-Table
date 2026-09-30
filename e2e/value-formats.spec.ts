@@ -84,6 +84,32 @@ const state = (key: string, value: unknown) =>
   )}`;
 
 for (const [name, formats] of Object.entries(LOCALES)) {
+  test(`${name}: metric conversions format chart labels and survive a reload`, async ({
+    page,
+  }) => {
+    await page.goto(
+      url(
+        formats.query,
+        state("display", "chart") +
+          state("chart", {
+            type: "bar",
+            xColumn: "status",
+            metric: "sum",
+            metricColumn: "amount",
+            showDataLabels: true,
+            valueFormat: { scale: 0.001, unit: "kEUR", decimals: 2 },
+          })
+      )
+    );
+    const amount = name === "fr" ? "2,85 kEUR" : "2.85 kEUR";
+    const chart = page.locator("section[data-chart-type]");
+    await expect(chart.getByText(spaced(amount))).toBeVisible();
+    await page.reload();
+    await expect(chart.getByText(spaced(amount))).toBeVisible();
+    await page.getByRole("button", { name: SHOW_TABLE }).click();
+    await expect(page.locator("[data-chart-table]")).toContainText(amount);
+  });
+
   test(`${name}: cells and footer calculations use each column's format`, async ({
     page,
   }) => {
@@ -267,6 +293,9 @@ for (const [name, formats] of Object.entries(LOCALES)) {
     );
     // Counts stay plain numbers.
     await expect(figure("records")).toHaveText("3");
+    await expect(figure("amount-thousands")).toHaveText(
+      name === "fr" ? "4,05 kEUR" : "4.05 kEUR"
+    );
     await expect(
       page.locator('[data-dashboard-filter="due"] [data-filter-value]')
     ).toHaveText(spaced("01/09/2026 – 30/09/2026"));

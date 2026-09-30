@@ -253,6 +253,69 @@ function migrationSuite(test: Test, api: DashboardSchemaApi) {
 }
 
 function repairSuite(test: Test, api: DashboardSchemaApi) {
+  test("dashboard metric formats round-trip and invalid nested formats are blocking errors", () => {
+    const valueFormat = { scale: 0.000_001, unit: "Mbit/s", decimals: 2 };
+    const document = {
+      ...SCREEN,
+      sections: [],
+      widgets: [
+        {
+          id: "rate",
+          type: "kpi",
+          tableId: "metrics",
+          settings: { metric: "avg", metricColumn: "rate", valueFormat },
+        },
+        {
+          id: "trend",
+          type: "view",
+          tableId: "metrics",
+          settings: {},
+          view: {
+            displayMode: "chart",
+            chart: {
+              type: "combo",
+              metric: "avg",
+              metricColumn: "rate",
+              valueFormat,
+              lineValueFormat: { unit: "samples", decimals: 0 },
+            },
+          },
+        },
+      ],
+    };
+    const result = api.validateDashboard(document);
+    assert.deepEqual(
+      result.issues.filter((issue) => issue.severity === "error"),
+      []
+    );
+    assert.deepEqual(
+      result.dashboard?.widgets[0]?.settings.valueFormat,
+      valueFormat
+    );
+    assert.deepEqual(
+      result.dashboard?.widgets[1]?.view?.chart,
+      document.widgets[1]?.view?.chart
+    );
+    const invalid = structuredClone(document);
+    const invalidKpi = invalid.widgets[0];
+    const invalidView = invalid.widgets[1]?.view;
+    assert.ok(invalidKpi && invalidView);
+    invalidKpi.settings.valueFormat = { ...valueFormat, scale: 0 };
+    invalidView.chart.lineValueFormat.unit = "";
+    const rejected = api.validateDashboard(invalid);
+    assert.deepEqual(
+      codes(rejected.issues).filter(([code]) => code === "invalidValue"),
+      [
+        ["invalidValue", "widgets[0].settings.valueFormat"],
+        ["invalidValue", "widgets[1].view.chart.lineValueFormat"],
+      ]
+    );
+    const schema = JSON.stringify(api.dashboardJsonSchema());
+    assert.ok(schema.includes('"valueFormat":{"type":"object"'));
+    assert.ok(schema.includes('"lineValueFormat":{"type":"object"'));
+    assert.ok(schema.includes('"exclusiveMinimum":0'));
+  });
+
   test("unknown keys are removed at every level, as warnings", () => {
     const result = api.validateDashboard({
       ...SCREEN,

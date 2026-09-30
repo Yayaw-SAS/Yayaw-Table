@@ -1,5 +1,35 @@
 # React and Vue parity
 
+## Metric display conversions
+
+Charts accept `valueFormat`; combo charts accept a separate `lineValueFormat`.
+KPI widgets accept `settings.valueFormat`. Both editions share `metric-format.ts`
+and render `raw aggregate * scale + offset` with an optional literal `unit` and
+fixed `decimals` (0–12). Scale must be finite and positive; offset must be finite.
+Unit labels are trimmed, at most 32 characters and contain no control characters.
+Invalid formats are rejected as a whole. There are no executable expressions.
+
+For example, `{ scale: 0.000001, unit: "Mbit/s", decimals: 2 }` displays a
+6,250,000 bit/s aggregate as 6.25 Mbit/s. Milliseconds to seconds use 0.001;
+bytes to MiB use 1/1048576; Celsius to Fahrenheit uses scale 1.8 and offset 32.
+An explicit unit replaces the column's currency/percent/unit style. Without one,
+the column's number formatting is inherited. Missing settings retain old behavior.
+
+Conversions affect metric ticks, labels, tooltips, KPI values and sparkline titles,
+not stored rows, aggregate requests, chart geometry, sorting, filters, shares or
+comparison percentages. Offsets apply once to each displayed aggregate, not each
+record; do not use them to sum converted records or redefine share denominators.
+Combo axes distinguish their display transforms. Widget and view editors preserve
+these API-configured fields; they do not yet offer controls to edit them.
+
+Verification: shared `metric-format-suite.ts`, `chart-model-suite.ts`,
+`dashboard-model-suite.ts` and `dashboard-schema-suite.ts` exercise both editions,
+including fractional/binary/affine conversions, French formatting, invalid values,
+overflow, unchanged raw queries and comparisons, editor preservation and schemas.
+The shared Formats dashboard adds a converted KPI; `e2e/value-formats.spec.ts`
+checks the rendered KPI and chart labels, values table and reload in both languages
+and frameworks. `tests/dashboard-sync.test.ts` guards the shared formatter copy.
+
 The two registries remain independently installable. Their shared adapter lives in `src/components/ui/yayaw-table/utils/table-contracts.ts`; `bun run contracts:sync` copies it to the Vue source before registry generation. `tests/fixtures/parity.json` exercises both filtering implementations and both list contracts.
 
 ## Mutation row context

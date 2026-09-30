@@ -1718,6 +1718,11 @@
           "target": "components/ui/yayaw-table/utils/media-viewer.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/metric-format.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/metric-format.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/number-format.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/number-format.ts"

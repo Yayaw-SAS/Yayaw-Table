@@ -58,6 +58,7 @@ export type DashboardModelApi = Pick<
   | "dashboardTranslate"
   | "dashboardViewParams"
   | "dashboardWidgetFromDraft"
+  | "dashboardWidgetDraft"
   | "dashboardWidgetSize"
   | "dashboardWidgetTitle"
   | "dashboardWidgetViewId"
@@ -878,6 +879,59 @@ const requiredRows = (params: Record<string, unknown>) => {
 };
 
 function kpiSuite(test: Test, api: DashboardModelApi) {
+  test("KPI display conversion survives editing and leaves comparisons and query plans raw", () => {
+    const valueFormat = { scale: 0.001, unit: "kEUR", decimals: 2 };
+    const widget = {
+      ...REVENUE,
+      settings: { ...REVENUE.settings, valueFormat },
+    };
+    const rawPlan = api.dashboardKpiPlan(
+      { filters: [] },
+      REVENUE,
+      TODAY,
+      KPI_COLUMNS
+    );
+    const plan = api.dashboardKpiPlan(
+      { filters: [] },
+      widget,
+      TODAY,
+      KPI_COLUMNS
+    );
+    assert.deepEqual({ ...plan, settings: rawPlan.settings }, rawPlan);
+    const result = { value: 230, previous: 150, trend: [100, 50, 230] };
+    const raw = api.dashboardKpiDisplay({
+      plan: rawPlan,
+      result,
+      columns: KPI_COLUMNS,
+      locale: "en",
+    });
+    const display = api.dashboardKpiDisplay({
+      plan,
+      result,
+      columns: KPI_COLUMNS,
+      locale: "en",
+    });
+    assert.equal(display.value, "0.23 kEUR");
+    assert.deepEqual(display.comparison, raw.comparison);
+    assert.equal(display.trend?.points, raw.trend?.points);
+    assert.equal(
+      display.trend?.title,
+      "Trend: Jul 2026 0.10 kEUR, Aug 2026 0.05 kEUR, Sep 2026 0.23 kEUR"
+    );
+    assert.deepEqual(api.kpiViewConfig(widget).chart, {
+      type: "number",
+      metric: "sum",
+      metricColumn: "revenue",
+      valueFormat,
+    });
+    const draft = api.dashboardWidgetDraft(widget, "en");
+    const edited = api.dashboardWidgetFromDraft(
+      { ...draft, title: "Changed title" },
+      { widget, locale: "en" }
+    );
+    assert.deepEqual(edited.settings.valueFormat, valueFormat);
+  });
+
   test("KPI settings ask for a date column before comparing or drawing a trend", () => {
     assert.deepEqual(
       api.dashboardKpiSettings({

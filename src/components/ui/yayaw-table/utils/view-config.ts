@@ -1138,6 +1138,8 @@ export const VIEW_MODE_SETTING_KEYS: Readonly<
     "metricColumn",
     "seriesColumn",
     "lineMetricColumn",
+    "valueFormat",
+    "lineValueFormat",
     "stacked",
     "cumulative",
     "hideEmpty",
