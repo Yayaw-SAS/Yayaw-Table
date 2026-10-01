@@ -178,6 +178,7 @@ it("rolls a failed Kanban move back and shares the toolbar grouping", async () =
     },
   });
   await flushPromises();
+  await wrapper.get("article .yayaw-kanban-drag-handle").trigger("pointerdown");
   await wrapper.get("article").trigger("dragstart");
   const closed = wrapper
     .findAll(".yayaw-kanban-lane")
@@ -205,6 +206,53 @@ it("rolls a failed Kanban move back and shares the toolbar grouping", async () =
       .findAll(".yayaw-kanban-lane")
       .map((lane) => lane.find("header strong").text())
   ).toEqual(["Alpha", "Beta"]);
+});
+
+it("drags a Kanban card only from its handle by default", async () => {
+  const update = vi.fn(async () => ({ success: true }));
+  const wrapper = create({ mode: "kanban", actions: { update } });
+  await flushPromises();
+  const card = wrapper.get("article");
+  const closed = wrapper
+    .findAll(".yayaw-kanban-lane")
+    .find((lane) => lane.text().includes("Closed"));
+  expect(card.classes()).not.toContain("drag-from-card");
+  await card.get("strong").trigger("pointerdown");
+  expect(card.attributes("draggable")).toBe("false");
+  // A drag from inside the card, e.g. of a link, does not move the record.
+  await card.trigger("dragstart");
+  await closed?.trigger("drop");
+  expect(update).not.toHaveBeenCalled();
+  await card.get(".yayaw-kanban-drag-handle").trigger("pointerdown");
+  expect(card.attributes("draggable")).toBe("true");
+  await card.trigger("dragstart");
+  await closed?.trigger("drop");
+  await flushPromises();
+  expect(update).toHaveBeenCalledWith(
+    "one",
+    { status: "Closed" },
+    expect.anything()
+  );
+});
+
+it("drags a Kanban card from anywhere with dragFromCard", async () => {
+  const wrapper = create({
+    mode: "kanban",
+    actions: { update: async () => ({ success: true }) },
+    config: defineTableConfig({
+      ...config,
+      table: {
+        ...config.table,
+        kanban: { ...config.table.kanban, dragFromCard: true },
+      },
+    }),
+  });
+  await flushPromises();
+  const card = wrapper.get("article");
+  expect(card.attributes("draggable")).toBe("true");
+  expect(card.classes()).toContain("drag-from-card");
+  await card.get("strong").trigger("pointerdown");
+  expect(card.attributes("draggable")).toBe("true");
 });
 
 it("moves Kanban cards without a pointer", async () => {

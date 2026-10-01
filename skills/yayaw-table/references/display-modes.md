@@ -53,9 +53,12 @@ view's own order. Records are never modified by a reorder.
 
 `table.kanban`: `groupBy` (a select or tag column; the view's grouping wins),
 `titleColumn`, `cardColumnIds`, `showCardLabels`, `groups` (fixed lane order,
-`{ value, label }[]`), `allowDragUpdate`. A move calls
+`{ value, label }[]`), `allowDragUpdate`, `dragFromCard` (default `false`:
+cards drag from their grip handle; `true`: a mouse or touch press anywhere on
+the card, a short click still opens it). A move calls
 `actions.update(id, { [groupBy]: value })` optimistically and rolls back on
-failure; cards also move with the keyboard. `table.kanban.server` turns the
+failure; cards also move with the keyboard (React: the handle; Vue: the move
+buttons). `table.kanban.server` turns the
 board into a remote, read-only board: `{ queryKey, groups(signal),
 rows(group, cursor, signal), getRowId?, onActivate?, labels? }`, with global
 lane counts and cursor paging per lane; change `queryKey` whenever the query

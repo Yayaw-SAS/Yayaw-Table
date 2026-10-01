@@ -71,6 +71,8 @@ interface DataTableKanbanViewProps<TData extends Record<string, unknown>> {
 interface KanbanCardProps<TData extends Record<string, unknown>> {
   canDragUpdate: boolean;
   columnId: string;
+  /** Mouse and touch drags start anywhere on the card, not only on its handle. */
+  dragFromCard: boolean;
   columnDefinitionsById: Map<string, TableCatalogueColumnConfig>;
   isActive: boolean;
   isClickable: boolean;
@@ -371,6 +373,7 @@ function DataTableKanbanCard<TData extends Record<string, unknown>>({
   canDragUpdate,
   columnId,
   columnDefinitionsById,
+  dragFromCard,
   isActive,
   isClickable,
   onRowClick,
@@ -418,8 +421,8 @@ function DataTableKanbanCard<TData extends Record<string, unknown>>({
     <div
       className={cn(
         "min-w-0 outline-none",
-        isClickable &&
-          "cursor-pointer focus-visible:ring-2 focus-visible:ring-ring"
+        isClickable && "focus-visible:ring-2 focus-visible:ring-ring",
+        isClickable && !dragFromCard && "cursor-pointer"
       )}
       data-active={isActive ? "true" : undefined}
       {...cardInteractionProps}
@@ -460,6 +463,7 @@ function DataTableKanbanCard<TData extends Record<string, unknown>>({
       className={cardClassName}
       column={columnId}
       disabled={!canDragUpdate}
+      dragFromCard={dragFromCard}
       dragHandle={
         canDragUpdate
           ? ({ attributes, listeners, setActivatorNodeRef }) => (
@@ -573,6 +577,7 @@ function LocalDataTableKanbanView<TData extends Record<string, unknown>>({
     );
   }, [columnDefinitions]);
   const showCardLabels = shouldShowKanbanCardLabels(config);
+  const dragFromCard = canDragUpdate && config?.dragFromCard === true;
   const rowCountByColumnId = useMemo(() => {
     const next = new Map<string, number>();
     for (const column of kanbanColumns) {
@@ -669,6 +674,7 @@ function LocalDataTableKanbanView<TData extends Record<string, unknown>>({
                     canDragUpdate={canDragUpdate}
                     columnDefinitionsById={columnDefinitionsById}
                     columnId={item.column}
+                    dragFromCard={dragFromCard}
                     isActive={isRowActive?.(row) ?? false}
                     isClickable={isRowClickable?.(row) ?? false}
                     key={row.id}
