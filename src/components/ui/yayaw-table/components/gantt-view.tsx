@@ -29,7 +29,8 @@ import {
   TIMELINE_HEADER_HEIGHT,
   TIMELINE_ROW_HEIGHT,
   type TimelineGeometry,
-  type TimelineRow,
+  type TimelineGroupRow,
+  type TimelineTaskRow,
   timelineBar,
   timelineCanEdit,
   timelineCanResize,
@@ -83,6 +84,10 @@ export interface DataTableGanttViewProps<
   emptyState: ReactNode;
   error?: string;
   getRowId?: (row: TData) => string;
+  /** Column grouping the root tasks: the table's first grouping level. */
+  groupBy?: string;
+  /** Its header, before each group's value. */
+  groupLabel?: string;
   isRowActive?: (row: Row<TData>) => boolean;
   isRowClickable?: (row: Row<TData>) => boolean;
   labels: PlanningSurfaceLabels;
@@ -113,7 +118,10 @@ function useRowsByTaskId<TData extends Record<string, unknown>>(
   table: TanStackTable<TData>,
   getRowId?: (row: TData) => string
 ): Map<string, Row<TData>> {
-  const rows = table.getRowModel().rows;
+  // Table grouping nests the row model; tasks need the records themselves.
+  const rows = table.store.state.grouping.length
+    ? table.getPreGroupedRowModel().rows
+    : table.getRowModel().rows;
   return useMemo(() => {
     const index = new Map<string, Row<TData>>();
     for (const row of rows) {
@@ -401,7 +409,7 @@ function GanttTrack({
   ) => void;
   onKeyAdjust: (operation: DragOperation, days: number) => void;
   onOpen: () => void;
-  row: TimelineRow;
+  row: TimelineTaskRow;
   session: PlanningSession;
   snapshot: PlanningSnapshot;
 }) {
@@ -453,6 +461,75 @@ function GanttTrack({
   );
 }
 
+/** A group heading: only its chevron reacts; the bar spans the group's dates. */
+function GanttGroupRow({
+  collapsed,
+  formatters,
+  geometry,
+  groupBy = "",
+  heading = groupBy,
+  labels,
+  onToggle,
+  row,
+  top,
+}: {
+  collapsed: boolean;
+  formatters: PlanningFormatters;
+  geometry: TimelineGeometry;
+  groupBy?: string;
+  /** The grouped column's header. */
+  heading?: string;
+  labels: PlanningSurfaceLabels;
+  onToggle: () => void;
+  row: TimelineGroupRow;
+  top: number;
+}) {
+  const span = timelineBar(row, geometry);
+  const label = formatters.group(groupBy, row.value);
+  const name = `${heading}: ${label}`;
+  return (
+    <div
+      className="absolute inset-x-0 border-border border-b bg-muted/40"
+      style={{ top, height: TIMELINE_ROW_HEIGHT }}
+    >
+      <div
+        className="sticky left-0 z-10 flex h-full items-center gap-1 border-border border-r bg-muted pr-2"
+        style={{ width: geometry.labelWidth, paddingLeft: LABEL_PADDING }}
+      >
+        <Button
+          aria-expanded={!collapsed}
+          aria-label={`${collapsed ? labels.expand : labels.collapse} ${name}`}
+          className="size-5 shrink-0 text-muted-foreground"
+          onClick={onToggle}
+          size="icon"
+          type="button"
+          variant="ghost"
+        >
+          {collapsed ? (
+            <ChevronRight aria-hidden="true" className="size-4" />
+          ) : (
+            <ChevronDown aria-hidden="true" className="size-4" />
+          )}
+        </Button>
+        <span className="min-w-0 flex-1 truncate font-medium text-sm" title={name}>
+          <span className="text-muted-foreground">{heading}: </span>
+          {label}
+        </span>
+        <span className="shrink-0 rounded-full bg-background px-2 py-0.5 text-muted-foreground text-xs">
+          {row.count}
+        </span>
+      </div>
+      {span ? (
+        <span
+          aria-hidden="true"
+          className="absolute top-3 bottom-3 rounded-sm bg-muted-foreground/25"
+          style={{ left: geometry.labelWidth + span.left, width: span.width }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
 export function DataTableGanttView<TData extends Record<string, unknown>>({
   busy,
   className,
@@ -461,6 +538,8 @@ export function DataTableGanttView<TData extends Record<string, unknown>>({
   emptyState,
   error,
   getRowId,
+  groupBy,
+  groupLabel,
   isRowActive,
   isRowClickable,
   labels,
@@ -510,9 +589,10 @@ export function DataTableGanttView<TData extends Record<string, unknown>>({
             visible,
             compare,
             collapsed: new Set(collapsed),
+            groupBy,
           })
         : [],
-    [snapshot, session.config.hierarchy, visible, compare, collapsed]
+    [snapshot, session.config.hierarchy, visible, compare, collapsed, groupBy]
   );
 
   const geometry = useMemo(
@@ -674,6 +754,22 @@ export function DataTableGanttView<TData extends Record<string, unknown>>({
           />
           {rows.slice(geometry.firstRow, geometry.lastRow).map((row, index) => {
             const position = geometry.firstRow + index;
+            if ("group" in row) {
+              return (
+                <GanttGroupRow
+                  collapsed={collapsed.has(row.group)}
+                  formatters={formatters}
+                  geometry={geometry}
+                  groupBy={groupBy}
+                  heading={groupLabel}
+                  key={row.group}
+                  labels={labels}
+                  onToggle={() => toggleCollapsed(row.group)}
+                  row={row}
+                  top={TIMELINE_HEADER_HEIGHT + position * TIMELINE_ROW_HEIGHT}
+                />
+              );
+            }
             const key = planningKey(row.task.ref);
             const tableRow =
               row.task.ref.source === session.config.sourceId
@@ -804,7 +900,8 @@ export function DataTableGanttView<TData extends Record<string, unknown>>({
           onMove={moveDrag}
           onRelease={() => {
             const target = rows.find(
-              (row) => planningKey(row.task.ref) === drag.key
+              (row): row is TimelineTaskRow =>
+                "task" in row && planningKey(row.task.ref) === drag.key
             );
             if (target && drag.moved && drag.deltaDays) {
               requestDates(

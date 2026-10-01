@@ -27,6 +27,17 @@ export interface TableDataResult<TData extends TableRecord> {
   error: Ref<Error | undefined>;
   isServer: ComputedRef<boolean>;
   refresh: () => Promise<void>;
+  /**
+   * Server rendering (`serverPrefetch`): loads the starting page unless
+   * current rows already stand for it. A failure leaves the loading state,
+   * so the browser loads the page again.
+   */
+  prefetch: () => Promise<void>;
+}
+
+interface ListResult<TData> {
+  data: TData[];
+  meta?: { pageCount?: number; totalCount?: number };
 }
 
 export const useTableData = <TData extends TableRecord>({
@@ -88,11 +99,11 @@ export const useTableData = <TData extends TableRecord>({
     requestId += 1;
   });
 
-  const listParams = () =>
+  const listParams = (page = pagination.value) =>
     withManualOrderView(
       {
-        page: pagination.value.pageIndex + 1,
-        pageSize: pagination.value.pageSize,
+        page: page.pageIndex + 1,
+        pageSize: page.pageSize,
         search: search.value,
         filters: Object.fromEntries(
           filters.value.map((filter) => [filter.id, filter.value])
@@ -110,6 +121,13 @@ export const useTableData = <TData extends TableRecord>({
     tableId,
     params,
   ];
+
+  const showCounts = (result: ListResult<TData>): void => {
+    rowCount.value = result.meta?.totalCount ?? result.data.length;
+    pageCount.value =
+      result.meta?.pageCount ??
+      Math.ceil(rowCount.value / pagination.value.pageSize);
+  };
 
   const loadRows = async (): Promise<void> => {
     cancelSearch();
@@ -135,10 +153,7 @@ export const useTableData = <TData extends TableRecord>({
       if (currentRequest !== requestId) {
         return;
       }
-      rowCount.value = result.meta?.totalCount ?? result.data.length;
-      pageCount.value =
-        result.meta?.pageCount ??
-        Math.ceil(rowCount.value / pagination.value.pageSize);
+      showCounts(result);
       const lastPage = Math.max(0, pageCount.value - 1);
       if (pagination.value.pageIndex > lastPage) {
         // A deletion can remove the last page. Let the pagination watcher load its predecessor.
@@ -184,15 +199,44 @@ export const useTableData = <TData extends TableRecord>({
   // Current rows stand for the starting state's first page, cached as its
   // response so an invalidation still reloads them, until the state or the
   // actions change (reading the URL on mount may set equal values again).
+  // They are the host's rows (`initialRowsCurrent`), or the starting page the
+  // query client holds fresh, e.g. dehydrated from the server rendering.
   let currentRowsKey = "";
-  if (initialRowsCurrent && isServer.value) {
-    const params = listParams();
-    currentRowsKey = JSON.stringify(listQueryKey(params));
+  const keepCurrent = (key: unknown[]): void => {
+    currentRowsKey = JSON.stringify(key);
     activeQueryKey = currentRowsKey;
-    queryClient.setQueryData(listQueryKey(params), {
-      data: [...inputData.value],
-      meta: { pageCount: pageCount.value, totalCount: rowCount.value },
-    });
+  };
+  /** A response the query client holds fresh by its `staleTime` (0 by default: none). */
+  const freshResult = (key: unknown[]): ListResult<TData> | undefined => {
+    const query = queryClient
+      .getQueryCache()
+      .find<ListResult<TData>>({ queryKey: key, exact: true });
+    const { staleTime } = queryClient.defaultQueryOptions({ queryKey: key });
+    if (
+      !query ||
+      query.isStaleByTime(
+        typeof staleTime === "function" ? staleTime(query as never) : staleTime
+      )
+    ) {
+      return;
+    }
+    return query.state.data;
+  };
+  if (isServer.value) {
+    const key = listQueryKey(listParams());
+    const cached = initialRowsCurrent ? undefined : freshResult(key);
+    if (initialRowsCurrent) {
+      queryClient.setQueryData(key, {
+        data: [...inputData.value],
+        meta: { pageCount: pageCount.value, totalCount: rowCount.value },
+      });
+    } else if (cached) {
+      showCounts(cached);
+      rows.value = cached.data;
+    }
+    if (initialRowsCurrent || cached) {
+      keepCurrent(key);
+    }
   }
   const keepsCurrentRows = (
     current: unknown[],
@@ -210,6 +254,49 @@ export const useTableData = <TData extends TableRecord>({
     }
     currentRowsKey = "";
     return false;
+  };
+  // A smaller page size on the first page (automatic page size measuring
+  // fewer rows than the server rendered) shows the first rows already loaded.
+  const trimsFirstPage = (current: unknown[], previous: unknown[]): boolean => {
+    const shown = previous[6] as PaginationState | undefined;
+    const { pageIndex, pageSize } = pagination.value;
+    if (
+      !shown ||
+      current[0] !== previous[0] ||
+      !isServer.value ||
+      isLoading.value ||
+      error.value ||
+      pageIndex !== 0 ||
+      shown.pageIndex !== 0 ||
+      pageSize >= shown.pageSize ||
+      JSON.stringify(listQueryKey(listParams(shown))) !== activeQueryKey
+    ) {
+      return false;
+    }
+    rows.value = rows.value.slice(0, pageSize);
+    pageCount.value = Math.ceil(rowCount.value / pageSize);
+    const key = listQueryKey(listParams());
+    queryClient.setQueryData(key, {
+      data: rows.value,
+      meta: { pageCount: pageCount.value, totalCount: rowCount.value },
+    });
+    keepCurrent(key);
+    return true;
+  };
+  const prefetch = async (): Promise<void> => {
+    if (!isServer.value || currentRowsKey) {
+      return;
+    }
+    await loadRows();
+    // What the server could not show (an error, a page past the last one)
+    // loads again in the browser.
+    if (
+      error.value ||
+      JSON.stringify(listQueryKey(listParams())) !== activeQueryKey
+    ) {
+      error.value = undefined;
+      isLoading.value = true;
+    }
   };
 
   watch(
@@ -233,7 +320,16 @@ export const useTableData = <TData extends TableRecord>({
       () => viewId?.value,
     ],
     async (current, previous) => {
-      if (keepsCurrentRows(current, previous)) {
+      if (
+        keepsCurrentRows(current, previous) ||
+        trimsFirstPage(current, previous)
+      ) {
+        return;
+      }
+      if (typeof window === "undefined") {
+        // Server rendering requests nothing on its own (see `prefetch`): it
+        // shows the loading state the browser starts with.
+        isLoading.value = isServer.value;
         return;
       }
       cancelSearch();
@@ -254,5 +350,14 @@ export const useTableData = <TData extends TableRecord>({
     { deep: true, immediate: true }
   );
 
-  return { rows, rowCount, pageCount, isLoading, error, isServer, refresh };
+  return {
+    rows,
+    rowCount,
+    pageCount,
+    isLoading,
+    error,
+    isServer,
+    refresh,
+    prefetch,
+  };
 };

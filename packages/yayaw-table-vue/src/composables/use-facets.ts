@@ -184,6 +184,11 @@ export function useFacetPanel() {
       () => (context.data.isServer.value ? undefined : context.data.rows.value),
     ],
     () => {
+      // The server renders the loading state the browser starts with.
+      if (typeof window === "undefined") {
+        loading.value = Boolean(base.facets.value);
+        return;
+      }
       load().catch(() => undefined);
     },
     { immediate: true }

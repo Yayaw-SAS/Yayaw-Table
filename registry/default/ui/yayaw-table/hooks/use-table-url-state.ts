@@ -1576,7 +1576,7 @@ type JotaiStore = ReturnType<typeof useStore>;
 export function seedTableViewState(
   store: JotaiStore,
   tableId: string,
-  view: { id?: null | string; config: TableViewConfig },
+  view: { id?: null | string; config: TableViewConfig; pageIndex?: number },
   defaults: {
     density?: TableViewConfig["density"];
     displayMode?: TableDisplayMode;
@@ -1604,10 +1604,11 @@ export function seedTableViewState(
   if (config.footerCalculationsVisible === false) {
     store.set(footerVisibleAtom(tableId), false);
   }
-  store.set(
-    localTableStateAtom(tableId),
-    viewStateChannels(config, view.id ?? null, defaultDisplayMode)
-  );
+  const pageIndex = Math.max(0, Math.trunc(view.pageIndex ?? 0) || 0);
+  store.set(localTableStateAtom(tableId), {
+    ...viewStateChannels(config, view.id ?? null, defaultDisplayMode),
+    page: String(pageIndex),
+  });
 }
 
 /** What selecting a view writes in the state channels of a table without URL sync. */

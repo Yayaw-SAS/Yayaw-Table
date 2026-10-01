@@ -213,27 +213,35 @@ export function resolveTableDisplayMode({
 
 const DATE_PRESET_CACHE = new WeakMap<
   readonly unknown[],
-  Map<DateDisplayPreset, unknown[]>
+  Map<string, unknown[]>
 >();
 
 /**
- * Date columns without a preset of their own take the table's, as in Vue, so
- * every surface (cards, charts, exports…) reads one declaration.
+ * Date columns without a preset or a zone of their own take the table's
+ * (`dateDisplayPreset`, `timeZone`), as in Vue, so every surface (cards,
+ * charts, exports…) reads one declaration.
  */
 export function withTableDatePreset<
   T extends {
     type?: string;
     dateDisplayPreset?: DateDisplayPreset;
+    timeZone?: string;
     meta?: unknown;
   },
->(definitions: T[], preset: DateDisplayPreset | undefined): T[] {
+>(
+  definitions: T[],
+  preset: DateDisplayPreset | undefined,
+  timeZone?: string
+): T[] {
   const missing = (column: T) =>
-    column.type === "date" && !column.dateDisplayPreset;
-  if (!(preset && definitions.some(missing))) {
+    column.type === "date" &&
+    ((preset && !column.dateDisplayPreset) || (timeZone && !column.timeZone));
+  if (!definitions.some(missing)) {
     return definitions;
   }
   // The same definitions give the same array: hooks keyed on it stay stable.
-  const cached = DATE_PRESET_CACHE.get(definitions)?.get(preset);
+  const cacheKey = `${preset ?? ""}|${timeZone ?? ""}`;
+  const cached = DATE_PRESET_CACHE.get(definitions)?.get(cacheKey);
   if (cached) {
     return cached as T[];
   }
@@ -243,11 +251,15 @@ export function withTableDatePreset<
     }
     const legacy = (column.meta as { dateDisplayPreset?: DateDisplayPreset })
       ?.dateDisplayPreset;
-    return { ...column, dateDisplayPreset: legacy ?? preset };
+    return {
+      ...column,
+      dateDisplayPreset: column.dateDisplayPreset ?? legacy ?? preset,
+      timeZone: column.timeZone ?? timeZone,
+    };
   });
-  const byPreset = DATE_PRESET_CACHE.get(definitions) ?? new Map();
-  byPreset.set(preset, filled);
-  DATE_PRESET_CACHE.set(definitions, byPreset);
+  const byKey = DATE_PRESET_CACHE.get(definitions) ?? new Map();
+  byKey.set(cacheKey, filled);
+  DATE_PRESET_CACHE.set(definitions, byKey);
   return filled;
 }
 
@@ -687,6 +699,13 @@ export interface TableBehaviorConfig extends GenericModeTableConfigs {
   dateDisplayPreset?: DateDisplayPreset;
 
   /**
+   * IANA zone such as `"Europe/Paris"` for the dates of date columns without
+   * a `timeZone` of their own, e.g. so a server rendering shows the viewer's
+   * times. The runtime's zone when omitted.
+   */
+  timeZone?: string;
+
+  /**
    * Inline edit behavior configuration.
    */
   inlineEdit?: TableInlineEditConfig;
@@ -862,7 +881,8 @@ export function defineTableConfig(config: {
     columns: {
       definitions: withTableDatePreset(
         config.columns.definitions,
-        tableDefaults.dateDisplayPreset
+        tableDefaults.dateDisplayPreset,
+        tableDefaults.timeZone
       ),
       mandatory: config.columns.mandatory,
       order: config.columns.order,

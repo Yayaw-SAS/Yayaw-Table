@@ -104,7 +104,10 @@ export function useSavedViews(
     )
   );
   const busy = ref(false);
-  const loading = ref(true);
+  // The host's views and favorite are complete (`initialViewsLoaded`): the
+  // manager starts loaded, as the server rendered it.
+  const loaded = context.initialViewsLoaded === true;
+  const loading = ref(!loaded);
   const loadError = ref("");
   const error = ref("");
   const dialogError = ref("");
@@ -113,7 +116,9 @@ export function useSavedViews(
   const shared = ref(false);
   /** Layout of the view being created; a tab's "+" may pick another one. */
   const newViewMode = ref<TableDisplayMode>();
-  const favoriteViewId = ref<string | null>(null);
+  const favoriteViewId = ref<string | null>(
+    context.initialFavoriteViewId ?? null
+  );
   const effectiveFavoriteViewId = computed(
     () =>
       views.value.find((view) => view.id === favoriteViewId.value)?.id ?? null
@@ -160,6 +165,12 @@ export function useSavedViews(
       context.state.reset();
     }
   };
+  const shows = (view: TableView): boolean =>
+    context.state.activeViewId.value === view.id &&
+    areViewSettingsEqual(
+      context.state.resolveView(context.state.snapshot.value),
+      context.state.resolveView(view.config)
+    );
   const initialize = (): void => {
     if (
       !(hasInitialized || context.state.hasInitialTableUrlState) &&
@@ -171,7 +182,9 @@ export function useSavedViews(
         context.state.initialViewId,
         favoriteViewId.value
       );
-      if (initial) {
+      // A view the table already shows (the host's `initialView`) stays:
+      // selecting it again would load its rows again.
+      if (initial && !shows(initial)) {
         select(initial);
       }
     }
@@ -505,7 +518,18 @@ export function useSavedViews(
       failure
     );
   };
-  onMounted(load);
+  /** With the host's views (`initialViewsLoaded`): no request, the arrival view applies. */
+  const start = async (): Promise<void> => {
+    if (!enabled()) {
+      return;
+    }
+    loadLocalOrder();
+    await nextTick();
+    initialSnapshot ??= cloneFormValue(context.state.snapshot.value);
+    initialize();
+    hasInitialized = true;
+  };
+  onMounted(loaded ? start : load);
   watch(enabled, (isEnabled) => {
     if (isEnabled) {
       load();

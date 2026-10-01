@@ -1,3 +1,4 @@
+import { groupValueKey } from "../table-contracts";
 import { dateDay, dayDate, isWorkingDay, taskCalendar } from "./calendar";
 import { planningTree } from "./engine";
 import type { PlanningSession } from "./session";
@@ -35,11 +36,26 @@ const LINK_ELBOW = 12;
 /** Sunday is day 4 of the UTC epoch week; this realigns a day number to a weekday. */
 const EPOCH_WEEKDAY_OFFSET = 4;
 
-export interface TimelineRow {
+export interface TimelineTaskRow {
   task: PlanningTask;
   depth: number;
   hasChildren: boolean;
 }
+
+/** A group heading: never a task, so it is not dragged, edited or linked. */
+export interface TimelineGroupRow {
+  /** Collapse key. Planning keys are JSON arrays, so one collapsed set holds both. */
+  group: string;
+  /** The grouped value of the group's first task; empty for the group without one. */
+  value: unknown;
+  /** Tasks the group holds at every depth, collapsed or not. */
+  count: number;
+  /** Earliest start and latest end of its scheduled tasks. */
+  start: PlanningDate | null;
+  end: PlanningDate | null;
+}
+
+export type TimelineRow = TimelineTaskRow | TimelineGroupRow;
 
 export interface TimelineGeometry {
   /** Day number of the leftmost rendered column. */
@@ -109,6 +125,8 @@ export function timelineRows(
     visible?: (task: PlanningTask) => boolean;
     compare?: (a: PlanningTask, b: PlanningTask) => number;
     collapsed?: Set<string>;
+    /** Record field heading a group of root tasks; descendants follow their root. */
+    groupBy?: string;
   }
 ): TimelineRow[] {
   const ordered = options.compare
@@ -121,12 +139,59 @@ export function timelineRows(
           .map((task) => planningKey(task.ref))
       )
     : undefined;
-  if (options.hierarchy === false) {
-    return ordered.tasks
-      .filter((task) => !visible || visible.has(planningKey(task.ref)))
-      .map((task) => ({ task, depth: 0, hasChildren: false }));
+  const collapsed = options.collapsed ?? new Set<string>();
+  const tree = (closed: Set<string>): TimelineTaskRow[] =>
+    options.hierarchy === false
+      ? ordered.tasks
+          .filter((task) => !visible || visible.has(planningKey(task.ref)))
+          .map((task) => ({ task, depth: 0, hasChildren: false }))
+      : planningTree(ordered, visible, closed);
+  return options.groupBy
+    ? groupedRows(tree(new Set()), options.groupBy, collapsed)
+    : tree(collapsed);
+}
+
+/** Groups in order of first appearance, like List and Gallery sections. */
+function groupedRows(
+  rows: TimelineTaskRow[],
+  groupBy: string,
+  collapsed: Set<string>
+): TimelineRow[] {
+  const groups = new Map<
+    string,
+    { head: TimelineGroupRow; rows: TimelineTaskRow[] }
+  >();
+  let current: { head: TimelineGroupRow; rows: TimelineTaskRow[] } | undefined;
+  let hiddenBelow = Number.POSITIVE_INFINITY;
+  for (const row of rows) {
+    if (row.depth === 0 || !current) {
+      const value = row.task.record?.[groupBy];
+      const group = `group:${groupValueKey(value)}`;
+      current = groups.get(group) ?? {
+        head: { group, value, count: 0, start: null, end: null },
+        rows: [],
+      };
+      groups.set(group, current);
+    }
+    const { head } = current;
+    head.count += 1;
+    const { start, end } = row.task;
+    if (start && end) {
+      head.start = !head.start || start < head.start ? start : head.start;
+      head.end = !head.end || end > head.end ? end : head.end;
+    }
+    // A collapsed task hides its descendants, which follow it in tree order.
+    if (row.depth > hiddenBelow) {
+      continue;
+    }
+    hiddenBelow = collapsed.has(planningKey(row.task.ref))
+      ? row.depth
+      : Number.POSITIVE_INFINITY;
+    current.rows.push(row);
   }
-  return planningTree(ordered, visible, options.collapsed ?? new Set());
+  return [...groups.values()].flatMap(({ head, rows: tasks }) =>
+    collapsed.has(head.group) ? [head] : [head, ...tasks]
+  );
 }
 
 export function timelineGeometry(input: {
@@ -232,7 +297,7 @@ export function timelineMonths(geometry: TimelineGeometry): TimelineMonth[] {
 
 /** Undefined when the task is unscheduled or outside the rendered window. */
 export function timelineBar(
-  task: PlanningTask,
+  task: Pick<PlanningTask, "start" | "end">,
   geometry: TimelineGeometry
 ): TimelineSpan | undefined {
   if (!(task.start && task.end)) {
@@ -307,8 +372,13 @@ export function timelineLinks(
   snapshot: PlanningSnapshot,
   geometry: TimelineGeometry
 ): TimelineLink[] {
+  // Group headings keep their place in the index but are never endpoints.
   const positions = new Map(
-    rows.map((row, i) => [planningKey(row.task.ref), { task: row.task, i }])
+    rows.flatMap((row, i) =>
+      "task" in row
+        ? [[planningKey(row.task.ref), { task: row.task, i }] as const]
+        : []
+    )
   );
   const links: TimelineLink[] = [];
   for (const edge of snapshot.dependencies) {

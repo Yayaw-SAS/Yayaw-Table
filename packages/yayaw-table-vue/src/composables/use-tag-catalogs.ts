@@ -53,6 +53,11 @@ export interface TagCatalogRuntime {
   status: (columnId: string) => TagCatalogStatus;
   error: (columnId: string) => string | undefined;
   reload: (columnId: string) => Promise<void>;
+  /**
+   * Server rendering (`serverPrefetch`): loads every catalog the query
+   * client does not hold yet. The browser loads them on its own.
+   */
+  prefetch: () => Promise<void>;
   /** Whether the column shows colored tags (`coloredTags`, column then table). */
   coloredTags: (columnId: string) => boolean;
   columnLabel: (columnId: string) => string;
@@ -163,8 +168,23 @@ export function useTagCatalogs<TData extends TableRecord>(input: {
       errors[columnId] = errorText(cause);
     }
   };
+  // Catalogs the query client holds (another instance, a server rendering)
+  // show at once, so the browser hydrates the cells the server rendered.
   for (const column of columns) {
-    load(column.columnId).catch(() => undefined);
+    const cached = input.queryClient.getQueryData<TableTag[]>(
+      tagCatalogQueryKey(scopeOf(column.columnId))
+    );
+    if (Array.isArray(cached)) {
+      setCatalog(column.columnId, cached);
+      statuses[column.columnId] = "ready";
+    }
+  }
+  const loadAll = async (): Promise<void> => {
+    await Promise.all(columns.map((column) => load(column.columnId)));
+  };
+  // The server requests nothing on its own (see `prefetch`).
+  if (typeof window !== "undefined") {
+    loadAll().catch(() => undefined);
   }
   // Another instance sharing the query client keeps this one current.
   const unsubscribe = input.queryClient.getQueryCache().subscribe((event) => {
@@ -223,6 +243,7 @@ export function useTagCatalogs<TData extends TableRecord>(input: {
     status: (columnId) => statuses[columnId] ?? "loading",
     error: (columnId) => errors[columnId],
     reload: (columnId) => load(columnId, true),
+    prefetch: loadAll,
     coloredTags: (columnId) =>
       (base.get(columnId)?.coloredTags ?? input.config.table.coloredTags) !==
       false,

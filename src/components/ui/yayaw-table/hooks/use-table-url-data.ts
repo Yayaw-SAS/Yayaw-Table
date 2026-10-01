@@ -6,7 +6,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAtom } from "jotai";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { rowSelectionAtom } from "../atoms/table-atoms";
 import {
@@ -27,6 +27,73 @@ const _DEBUG = false;
 
 /** The rows while nothing is loaded: one array, so renders keep the same rows. */
 const EMPTY_ROWS: never[] = [];
+
+interface PageQueryResult<TData> {
+  data: TData[];
+  pageCount: number;
+  rowCount: number;
+}
+
+/** The page the table shows, with the query it answers. */
+interface ShownPage<TData> {
+  identity: string;
+  pagination: { pageIndex: number; pageSize: number };
+  result: PageQueryResult<TData>;
+  updatedAt: number;
+}
+
+/** The query of a page, without its pagination. */
+function pageQueryIdentity([
+  tableId,
+  sortParam,
+  viewParam,
+  ...filters
+]: unknown[]): string {
+  // A manual order is the view's own, so another view is another result.
+  const view = isManualOrder(sortParam) ? (viewParam ?? "") : "";
+  return JSON.stringify([tableId, sortParam, view, ...filters]);
+}
+
+/**
+ * A smaller page size on the first page (automatic page size measuring fewer
+ * rows than the server rendered) starts from the first rows of the page
+ * shown, as fresh as it is, without a request, as in Vue.
+ */
+function firstRowsOfShownPage<TData>(
+  shown: ShownPage<TData> | undefined,
+  identity: string,
+  pagination: { pageIndex: number; pageSize: number }
+): PageQueryResult<TData> | undefined {
+  if (
+    !shown ||
+    shown.identity !== identity ||
+    shown.pagination.pageIndex !== 0 ||
+    pagination.pageIndex !== 0 ||
+    pagination.pageSize >= shown.pagination.pageSize
+  ) {
+    return;
+  }
+  return {
+    data: shown.result.data.slice(0, pagination.pageSize),
+    pageCount: Math.ceil(shown.result.rowCount / pagination.pageSize),
+    rowCount: shown.result.rowCount,
+  };
+}
+
+/** Keeps the page shown once it renders (see `firstRowsOfShownPage`). */
+function useShownPage<TData>(
+  shownPage: { current: ShownPage<TData> | undefined },
+  page: Omit<ShownPage<TData>, "result"> & {
+    result: PageQueryResult<TData> | undefined;
+  }
+): void {
+  const { identity, pagination, result, updatedAt } = page;
+  useEffect(() => {
+    if (result) {
+      shownPage.current = { identity, pagination, result, updatedAt };
+    }
+  }, [identity, pagination, result, shownPage, updatedAt]);
+}
 
 interface UseTableUrlDataOptions<TData> {
   defaultPageSize?: number;
@@ -338,9 +405,21 @@ export function useTableUrlData<TData>({
       })
     : undefined;
 
+  const queryIdentity = pageQueryIdentity([
+    tableId,
+    sortParam,
+    viewParam,
+    filtersParam,
+    advancedFiltersParam,
+    globalSearchParam,
+    serverFilters,
+  ]);
+  const shownPage = useRef<ShownPage<TData>>(undefined);
+
   // Query for fetching data
   const {
     data: queryResult,
+    dataUpdatedAt,
     error,
     isError,
     isLoading,
@@ -348,10 +427,16 @@ export function useTableUrlData<TData>({
     status,
   } = useQuery({
     enabled: Boolean(tableId) && enabled,
-    initialData: initialQueryData,
+    initialData:
+      initialQueryData ??
+      (() => firstRowsOfShownPage(shownPage.current, queryIdentity, pagination)),
     // Rows shown until the starting sort loads are stale at once: the first
-    // page loads again on mount in that sort, as in Vue.
-    ...(initialRowsUse === "placeholder" ? { initialDataUpdatedAt: 0 } : {}),
+    // page loads again on mount in that sort, as in Vue. The first rows of
+    // the page shown are as fresh as it is.
+    initialDataUpdatedAt:
+      initialRowsUse === "placeholder"
+        ? 0
+        : () => shownPage.current?.updatedAt,
     queryFn: async () => {
       // Convert serverFilters to columnFilters format for compatibility
       const columnFilters = Object.entries(serverFilters).map(
@@ -411,6 +496,12 @@ export function useTableUrlData<TData>({
       setPageParam(String(lastPageIndex));
     }
   }, [isPastLastPage, lastPageIndex, setPageParam]);
+  useShownPage(shownPage, {
+    identity: queryIdentity,
+    pagination,
+    result: isPastLastPage ? undefined : queryResult,
+    updatedAt: dataUpdatedAt,
+  });
 
   // The rows in the order the query returned them (none past the last page),
   // the same array until the data changes: renderers reload on each new array

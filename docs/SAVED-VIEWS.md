@@ -27,6 +27,13 @@ replace table edits made during loading, and manually selecting the default view
 does not immediately reapply the favorite. Removing a favorite leaves the current
 view selected; the next arrival uses the normal fallback order.
 
+A host that already loaded the views and the favorite (a server rendering)
+passes them as `initialViews` and `initialFavoriteViewId` with
+`initialViewsLoaded`: the manager starts with them and asks neither `list` nor
+`getFavorite` on mount, in both editions. With URL synchronization off, pass
+the arrival view as `initialView` too, so the first request is already that
+view's; the manager does not select a view the table already shows.
+
 ## Persistence
 
 Without preference handlers, the favorite is stored in the current browser's

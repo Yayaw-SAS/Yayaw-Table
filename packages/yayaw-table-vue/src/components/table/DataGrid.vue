@@ -570,6 +570,10 @@ const calculationText = (
     : String(value ?? "—");
 let calculationRequest = 0;
 const refreshCalculations = async (): Promise<void> => {
+  // Footers load in the browser: the server renders them empty, as it starts.
+  if (typeof window === "undefined") {
+    return;
+  }
   if (!(context.data.isServer.value && calculations.value.length)) {
     aggregateResults.value = {};
     return;
@@ -786,7 +790,8 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
                   <ArrowUp v-if="header.column.getIsSorted() === 'asc'" :size="16" aria-hidden="true" />
                   <ArrowDown v-else-if="header.column.getIsSorted() === 'desc'" :size="16" aria-hidden="true" />
                 </button>
-                <FlexRender v-else-if="!header.isPlaceholder" :render="header.column.columnDef.header" :props="header.getContext()" />
+                <!-- An empty header renders no node: hydration would take the next fragment for its own. -->
+                <FlexRender v-else-if="!header.isPlaceholder && header.column.columnDef.header !== ''" :render="header.column.columnDef.header" :props="header.getContext()" />
                 <ColumnMenu v-if="!header.isPlaceholder" :column="header.column" />
                 <div
                   v-if="header.column.getCanResize()"

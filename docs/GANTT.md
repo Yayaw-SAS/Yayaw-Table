@@ -114,6 +114,11 @@ calendars, task dates and relationships never enter the saved-view snapshot.
 - Choose Gantt in the existing view menu. Saved views can switch between Table, Gantt, Kanban and Gallery.
 - Expand/collapse parents in the Gantt or Table tree. Filters retain ancestor context while hiding
   nonmatching siblings. Sorting orders siblings without breaking the hierarchy.
+- Group the timeline from View → Group, like List: one level, the first of the view's grouping. Each
+  group heads its tasks with "Column: value" (the value as the table shows it, "No value" when empty),
+  a task count and a read-only bar from its earliest start to its latest end. Groups appear in the
+  sorted task order and collapse on their own. With `planning.hierarchy`, root tasks are grouped and
+  their descendants stay under them; a task from another source falls in the empty group.
 - Click a task or the planning action in a Table row to edit dates, hierarchy and relationships.
   The common record detail header exposes the same Planning action from Table, Kanban and Gallery.
 - Drag a bar to move it. Drag either handle to resize a leaf. Focus the bar/handle and press Left/Right
