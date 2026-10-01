@@ -1,4 +1,8 @@
-import { type FieldTextColumn, fieldText } from "../table-contracts";
+import {
+  emptyGroupLabel,
+  type FieldTextColumn,
+  fieldText,
+} from "../table-contracts";
 import { formatColumnDay } from "../value-format";
 import type { PlanningTask, TableGanttConfig } from "./types";
 
@@ -13,6 +17,8 @@ export interface PlanningFormatters {
   day: (day: string | null | undefined, side?: "start" | "end") => string;
   /** A changed record field, as "Header: value". */
   field: (key: string, value: unknown) => string;
+  /** A group heading's value, "No value" for the group without one. */
+  group: (key: string, value: unknown) => string;
 }
 
 type PlanningColumn = FieldTextColumn & { id: string; header?: string };
@@ -43,5 +49,7 @@ export function planningFormatters(
       const column = byId.get(key);
       return `${column?.header ?? key}: ${fieldText(value, column, locale) || "—"}`;
     },
+    group: (key, value) =>
+      fieldText(value, byId.get(key), locale) || emptyGroupLabel(locale),
   };
 }

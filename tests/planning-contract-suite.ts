@@ -117,6 +117,7 @@ export interface PlanningTimelineApi {
   timelineDayCells: typeof import("../src/components/ui/yayaw-table/planning/timeline").timelineDayCells;
   timelineFirstDate: typeof import("../src/components/ui/yayaw-table/planning/timeline").timelineFirstDate;
   timelineGeometry: typeof import("../src/components/ui/yayaw-table/planning/timeline").timelineGeometry;
+  timelineLinks: typeof import("../src/components/ui/yayaw-table/planning/timeline").timelineLinks;
   timelinePeriodStep: typeof import("../src/components/ui/yayaw-table/planning/timeline").timelinePeriodStep;
   timelineRows: typeof import("../src/components/ui/yayaw-table/planning/timeline").timelineRows;
   timelineTodayOffset: typeof import("../src/components/ui/yayaw-table/planning/timeline").timelineTodayOffset;
@@ -772,6 +773,7 @@ function timelineModelCases({
   const {
     timelineRows,
     timelineGeometry,
+    timelineLinks,
     timelineBar,
     timelineDayCells,
     timelineTodayOffset,
@@ -870,6 +872,82 @@ function timelineModelCases({
       }).length,
       1
     );
+  });
+
+  // a and c are on the Design team; b has no team and falls in the empty group.
+  const teamFixture = (): PlanningSnapshot => {
+    const snapshot = planningFixture();
+    snapshot.tasks.push({
+      ...structuredClone(at(snapshot.tasks, 1)),
+      ref: { source: "tasks", id: "c" },
+      start: "2026-09-21",
+      end: "2026-09-22",
+    });
+    for (const index of [0, 2]) {
+      const task = at(snapshot.tasks, index);
+      task.record = { ...task.record, team: "Design" };
+    }
+    return snapshot;
+  };
+  const shape = (rows: ReturnType<typeof timelineRows>) =>
+    rows.map((row) =>
+      "group" in row ? `${row.group} (${row.count})` : row.task.ref.id
+    );
+
+  test("groups head each value in order of first appearance", () => {
+    const rows = timelineRows(teamFixture(), {
+      hierarchy: false,
+      groupBy: "team",
+    });
+    equal(shape(rows), ["group:Design (2)", "a", "c", "group: (1)", "b"]);
+    // The heading spans the group's earliest start to its latest end.
+    const head = at(rows, 0);
+    equal("group" in head && [head.start, head.end], [
+      "2026-09-14",
+      "2026-09-22",
+    ]);
+  });
+
+  test("grouped children stay under their root and collapse with it", () => {
+    const snapshot = teamFixture();
+    at(snapshot.tasks, 1).parent = { source: "tasks", id: "c" };
+    equal(shape(timelineRows(snapshot, { groupBy: "team" })), [
+      "group:Design (3)",
+      "a",
+      "c",
+      "b",
+    ]);
+    const collapse = (key: string) =>
+      shape(
+        timelineRows(snapshot, { groupBy: "team", collapsed: new Set([key]) })
+      );
+    equal(collapse(JSON.stringify(["tasks", "c"])), [
+      "group:Design (3)",
+      "a",
+      "c",
+    ]);
+    equal(collapse("group:Design"), ["group:Design (3)"]);
+  });
+
+  test("links skip group headings and tasks hidden in a collapsed group", () => {
+    const snapshot = teamFixture();
+    snapshot.dependencies = [edge()];
+    const geometry = geometryFor({}, 5);
+    const rows = timelineRows(snapshot, { hierarchy: false, groupBy: "team" });
+    // a is row 1, under its heading; b is row 4, under the empty group's heading.
+    const path = at(timelineLinks(rows, snapshot, geometry), 0).d.split(" ");
+    equal(
+      [path[2], path[6]],
+      [1.5, 4.5].map((band) =>
+        String(TIMELINE_HEADER_HEIGHT + band * TIMELINE_ROW_HEIGHT)
+      )
+    );
+    const collapsed = timelineRows(snapshot, {
+      hierarchy: false,
+      groupBy: "team",
+      collapsed: new Set(["group:"]),
+    });
+    equal(timelineLinks(collapsed, snapshot, geometry), []);
   });
 
   test("a disabled date flag removes both moving and resizing", async () => {

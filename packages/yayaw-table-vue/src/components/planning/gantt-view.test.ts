@@ -160,3 +160,85 @@ it("titles bars with the first visible data column by default", async () => {
     wrapper.unmount();
   }
 });
+
+it("groups the timeline by the first grouping level and collapses a group", async () => {
+  // A second level is ignored, as in List.
+  window.history.replaceState(
+    {},
+    "",
+    `/?gantt-group-grouping=${encodeURIComponent(JSON.stringify(["team", "name"]))}`
+  );
+  const teams = ["Product", null, "Product"];
+  const data = [
+    ...rows,
+    {
+      id: "c",
+      name: "Ship",
+      start: "2026-09-22",
+      end: "2026-09-23",
+      parentId: null,
+    },
+  ].map((row, index) => ({ ...row, team: teams[index] }));
+  const wrapper = mount(YayawDataTable, {
+    props: {
+      tableType: "gantt-group",
+      getTableActions: () => ({
+        list: () =>
+          Promise.resolve({
+            data,
+            meta: { pageCount: 1, totalCount: data.length },
+          }),
+      }),
+      getTableConfig: () =>
+        defineTableConfig({
+          ...config,
+          id: "gantt-group",
+          columns: {
+            ...config.columns,
+            definitions: [
+              ...config.columns.definitions,
+              { id: "team", header: "Team", type: "text" },
+            ],
+          },
+          table: {
+            ...config.table,
+            enableGrouping: true,
+            planning: {
+              enabled: true,
+              scopeId: "gantt-group",
+              sourceId: "tasks",
+            },
+          },
+          translations: { namespace: "gantt-group", keys: {} },
+        }),
+    },
+    attachTo: document.body,
+  });
+  await flushPromises();
+  await new Promise((resolve) => setTimeout(resolve, 40));
+  await flushPromises();
+  const headings = () =>
+    wrapper
+      .findAll('button[aria-label*="Team: "]')
+      .map(
+        (button) =>
+          `${button.attributes("aria-label")} ${button.attributes("aria-expanded")}`
+      );
+  try {
+    expect(headings()).toEqual([
+      "Collapse Team: Product true",
+      "Collapse Team: No value true",
+    ]);
+    expect(wrapper.findAll(".yayaw-gantt-bar")).toHaveLength(3);
+    await wrapper
+      .get('button[aria-label="Collapse Team: Product"]')
+      .trigger("click");
+    expect(headings()[0]).toBe("Expand Team: Product false");
+    // The heading keeps its count while its tasks are hidden.
+    expect(wrapper.get(".yayaw-gantt-row.group .yayaw-count").text()).toBe("2");
+    expect(wrapper.findAll(".yayaw-gantt-bar")).toHaveLength(1);
+  } finally {
+    wrapper.unmount();
+    window.history.replaceState({}, "", "/");
+  }
+});

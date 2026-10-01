@@ -659,6 +659,13 @@ and theme tokens. The planning dialog stays a single shared surface, since it is
 table state. A task from another source renders without cells rather than disappearing.
 Without `table.gantt.titleColumn`, both editions title tasks with the first visible data column in
 the current column order (never `select` or `actions`), so a hidden first definition is skipped.
+Gantt groups its timeline by the first grouping level (`maxGroups: 1`, like List): `timelineRows`
+(`groupBy`) returns heading rows between the tasks, grouping root tasks by their record value with
+descendants under their root, and both editions head them "Column: value" (`formatters.group`, "No
+value" when empty) with a count, a read-only span bar and a chevron whose `aria-expanded` and
+"Collapse/Expand Column: value" label match. Dependency paths skip headings and tasks of collapsed
+groups. Covered by the shared timeline suite, React `tests/gantt-grouping.test.tsx` and Vue
+`components/planning/gantt-view.test.ts`.
 
 Equivalent shared fixtures cover the four dependency types, signed/calendar offsets, summaries,
 source identity collisions, invalid/cyclic/incomplete graphs, flags, permissions, stale previews,
