@@ -180,6 +180,11 @@ export interface TableKanbanConfig {
   showCardLabels?: boolean;
   groups?: TableKanbanGroupConfig[];
   allowDragUpdate?: boolean;
+  /**
+   * With allowDragUpdate, drag a card from anywhere on it instead of only its
+   * grip handle. The move buttons stay the keyboard path. Defaults to false.
+   */
+  dragFromCard?: boolean;
 }
 
 /** Rows as single lines: a title followed by compact properties. */

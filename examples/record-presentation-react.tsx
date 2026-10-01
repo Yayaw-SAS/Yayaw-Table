@@ -46,7 +46,12 @@ export function RecordPresentationExample() {
           defaultDisplayMode: "gallery",
           rowClickMode: "activate",
           displayModes: ["table", "gallery", "kanban"],
-          kanban: { groupBy: "status" },
+          // Cards move between lanes when pressed anywhere, not only by the grip.
+          kanban: {
+            groupBy: "status",
+            allowDragUpdate: true,
+            dragFromCard: true,
+          },
         },
         translations: { namespace: "records", keys: { title: "Products" } },
       }),

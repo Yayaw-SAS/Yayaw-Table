@@ -1745,6 +1745,20 @@
   display: inline-flex;
   gap: 2px;
 }
+.yayaw-kanban-drag-handle {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 4px;
+  border-radius: 4px;
+  color: var(--yayaw-muted-foreground);
+  cursor: grab;
+}
+.yayaw-kanban-drag-handle:hover {
+  background: var(--yayaw-muted);
+}
+.yayaw-kanban-card.drag-from-card {
+  cursor: grab;
+}
 .yayaw-card-select {
   display: inline-flex;
   align-items: center;

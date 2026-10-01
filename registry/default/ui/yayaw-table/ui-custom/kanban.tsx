@@ -26,6 +26,7 @@ import {
   createContext,
   type HTMLAttributes,
   type ReactNode,
+  type SyntheticEvent,
   useContext,
   useState,
 } from "react";
@@ -100,6 +101,34 @@ export const KanbanBoard = ({
   );
 };
 
+// Presses on a card's own controls keep their behavior instead of starting a drag.
+const CARD_CONTROL_SELECTOR =
+  "a, button, input, label, select, textarea, [role=checkbox], [role=menuitem], [role=option]";
+
+/**
+ * Mouse and touch activators for a card dragged from anywhere on it. The
+ * keyboard activator and the drag attributes stay on the handle.
+ */
+const cardPointerListeners = (listeners: DraggableSyntheticListeners) => {
+  const fromCard =
+    (eventName: "onMouseDown" | "onTouchStart") =>
+    (event: SyntheticEvent<HTMLElement>) => {
+      const { currentTarget, target } = event;
+      // Events from portals (menus, popovers) bubble through React but not the DOM.
+      if (
+        target instanceof Element &&
+        currentTarget.contains(target) &&
+        !target.closest(CARD_CONTROL_SELECTOR)
+      ) {
+        listeners?.[eventName]?.(event);
+      }
+    };
+  return {
+    onMouseDown: fromCard("onMouseDown"),
+    onTouchStart: fromCard("onTouchStart"),
+  };
+};
+
 export interface KanbanDragHandleProps {
   attributes: DraggableAttributes;
   disabled: boolean;
@@ -111,6 +140,11 @@ export type KanbanCardProps<T extends KanbanItemProps = KanbanItemProps> = T & {
   children?: ReactNode;
   className?: string;
   disabled?: boolean;
+  /**
+   * With a `dragHandle`, a mouse or touch press anywhere on the card also
+   * starts a drag. Keyboard dragging stays on the handle.
+   */
+  dragFromCard?: boolean;
   dragHandle?: (props: KanbanDragHandleProps) => ReactNode;
   /** Attributes of the card's outer element, e.g. `data-row-id`. */
   itemAttributes?: Record<string, string | undefined>;
@@ -120,6 +154,7 @@ export const KanbanCard = <T extends KanbanItemProps = KanbanItemProps>({
   children,
   className,
   disabled = false,
+  dragFromCard = false,
   dragHandle,
   id,
   itemAttributes,
@@ -140,12 +175,18 @@ export const KanbanCard = <T extends KanbanItemProps = KanbanItemProps>({
     transition,
     transform: CSS.Transform.toString(transform),
   };
+  const dragFromCardProps =
+    dragFromCard && !disabled ? cardPointerListeners(listeners) : {};
   const dragProps =
-    disabled || hasDragHandle ? {} : { ...listeners, ...attributes };
+    disabled || hasDragHandle
+      ? dragFromCardProps
+      : { ...listeners, ...attributes };
   const content = children ?? <p className="m-0 font-medium text-sm">{name}</p>;
   const cardClassName = cn(
     "gap-4 rounded-md p-3 shadow-sm",
-    disabled || hasDragHandle ? "cursor-default" : "cursor-grab",
+    disabled || (hasDragHandle && !dragFromCard)
+      ? "cursor-default"
+      : "cursor-grab",
     isDragging && "pointer-events-none cursor-grabbing opacity-30",
     className
   );

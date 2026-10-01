@@ -61,6 +61,13 @@ export interface TableKanbanConfig {
    * Allow drag-and-drop updates between lanes when actions.update is available.
    */
   allowDragUpdate?: boolean;
+
+  /**
+   * With allowDragUpdate, start a mouse or touch drag from anywhere on a card
+   * instead of only its grip handle. A short click or tap still opens the
+   * record; keyboard dragging stays on the handle. Defaults to false.
+   */
+  dragFromCard?: boolean;
 }
 
 export interface TableKanbanViewConfig {

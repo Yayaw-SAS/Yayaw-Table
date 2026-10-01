@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import ServerKanbanView from "./ServerKanbanView.vue";
-import { ArrowLeft, ArrowRight } from "lucide-vue-next";
+import { ArrowLeft, ArrowRight, GripVertical } from "lucide-vue-next";
 import TableEmptyState from "../table/TableEmptyState.vue";
 import { computed, ref } from "vue";
 import { useKanbanSettings } from "../../composables/use-kanban-settings";
@@ -67,6 +67,30 @@ const canDrag = computed(
 );
 const canEditRow = (row: TableRecord): boolean =>
   context.config.table.canEditRow?.(row) !== false;
+const canDragRow = (row: TableRecord): boolean =>
+  Boolean(canDrag.value) && canEditRow(row);
+const dragFromCard = computed(
+  () => context.config.table.kanban?.dragFromCard === true
+);
+/** Row whose grip handle the current press started on. */
+const pressedHandle = ref<string>();
+// A native drag moves the whole card, so without dragFromCard the card is
+// draggable only when the press started on its handle.
+const isDraggable = (row: TableRecord): boolean =>
+  canDragRow(row) &&
+  (dragFromCard.value || pressedHandle.value === context.getRowId(row));
+const press = (row: TableRecord, event: PointerEvent): void => {
+  pressedHandle.value =
+    event.target instanceof Element &&
+    event.target.closest(".yayaw-kanban-drag-handle")
+      ? context.getRowId(row)
+      : undefined;
+};
+const startDrag = (row: TableRecord): void => {
+  if (isDraggable(row)) {
+    dragged.value = row;
+  }
+};
 const moveRow = async (
   row: TableRecord | undefined,
   target: string
@@ -155,11 +179,12 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
             v-for="row in rowsFor(group.value)"
             :key="context.getRowId(row)"
             class="yayaw-card yayaw-kanban-card"
-            :class="{ pending: pending === context.getRowId(row) }"
+            :class="{ pending: pending === context.getRowId(row), 'drag-from-card': dragFromCard && canDragRow(row) }"
             :data-row-id="context.getRowId(row)"
-            :draggable="canDrag && canEditRow(row)"
+            :draggable="isDraggable(row)"
             tabindex="0"
-            @dragstart="dragged = row"
+            @pointerdown="press(row, $event)"
+            @dragstart="startDrag(row)"
             @click="activate(row, $event)"
             @keydown="activate(row, $event)"
           >
@@ -168,7 +193,7 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
                 <TableCheckbox :label="translate('selectRow', 'Select') + ' ' + titleText(row)" :model-value="Boolean(context.selection.value[context.getRowId(row)])" :disabled="context.config.table.canSelectRow?.(row) === false" @update:model-value="toggleSelection(row, $event)" />
               </span>
               <strong>{{ displayCellValue(value(row, titleColumn), column(titleColumn) ?? { id: titleColumn, header: titleColumn }, context.locale) }}</strong>
-              <div v-if="canDrag && canEditRow(row)" class="yayaw-kanban-move-actions">
+              <div v-if="canDragRow(row)" class="yayaw-kanban-move-actions">
                 <button
                   v-if="adjacentGroup(row, -1)"
                   type="button"
@@ -191,6 +216,10 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
                 </button>
               </div>
               <RowActions :row="row" />
+              <!-- Pointer-only affordance: the move buttons are the keyboard path. -->
+              <span v-if="canDragRow(row)" class="yayaw-kanban-drag-handle" aria-hidden="true" @click.stop>
+                <GripVertical :size="16" />
+              </span>
             </div>
             <dl class="yayaw-card-properties" :class="{ labeled: showLabels }">
               <template v-for="id in propertyIds.filter((item) => item !== titleColumn && item !== groupBy && (showLabels || !isBlankCardValue(value(row, item))))" :key="id">
