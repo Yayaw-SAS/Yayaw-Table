@@ -1855,8 +1855,8 @@
       ],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/yayaw-table.json",
-        "version": "3.9.4",
-        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.9.4/yayaw-table.json"
+        "version": "3.10.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.10.0/yayaw-table.json"
       }
     },
     {
@@ -1888,8 +1888,8 @@
       ],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/yayaw-table-calendar.json",
-        "version": "3.9.4",
-        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.9.4/yayaw-table-calendar.json"
+        "version": "3.10.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.10.0/yayaw-table-calendar.json"
       }
     },
     {
@@ -1927,8 +1927,8 @@
       ],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/yayaw-table-chart.json",
-        "version": "3.9.4",
-        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.9.4/yayaw-table-chart.json"
+        "version": "3.10.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.10.0/yayaw-table-chart.json"
       }
     },
     {
@@ -2085,8 +2085,8 @@
       ],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/yayaw-table-dashboard.json",
-        "version": "3.9.4",
-        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.9.4/yayaw-table-dashboard.json"
+        "version": "3.10.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.10.0/yayaw-table-dashboard.json"
       }
     },
     {
@@ -2102,8 +2102,8 @@
       "dependencies": ["maplibre-gl"],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/yayaw-table-map.json",
-        "version": "3.9.4",
-        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.9.4/yayaw-table-map.json"
+        "version": "3.10.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.10.0/yayaw-table-map.json"
       },
       "files": [
         {
@@ -2152,8 +2152,8 @@
       ],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/yayaw-table-connector-notion.json",
-        "version": "3.9.4",
-        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.9.4/yayaw-table-connector-notion.json"
+        "version": "3.10.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.10.0/yayaw-table-connector-notion.json"
       }
     },
     {
@@ -2180,8 +2180,8 @@
       ],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/yayaw-table-connector-google-sheets.json",
-        "version": "3.9.4",
-        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.9.4/yayaw-table-connector-google-sheets.json"
+        "version": "3.10.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.10.0/yayaw-table-connector-google-sheets.json"
       }
     },
     {
@@ -2201,8 +2201,8 @@
       "categories": ["font", "theme", "yayaw-table"],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/font-yayaw-sans.json",
-        "version": "3.9.4",
-        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.9.4/font-yayaw-sans.json"
+        "version": "3.10.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.10.0/font-yayaw-sans.json"
       }
     },
     {
@@ -2263,8 +2263,8 @@
       "categories": ["base", "theme", "yayaw-table"],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/yayaw-table-base.json",
-        "version": "3.9.4",
-        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.9.4/yayaw-table-base.json"
+        "version": "3.10.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.10.0/yayaw-table-base.json"
       }
     }
   ]
