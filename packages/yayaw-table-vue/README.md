@@ -188,7 +188,7 @@ const getTableActions = () => ({
 });
 ```
 
-`DataTable` creates a local Vue Query client by default. Pass `:query-client="queryClient"` to share the application's cache.
+`DataTable` creates a local Vue Query client by default. Pass `:query-client="queryClient"` to share the application's cache. A starting page that client holds fresh (its `staleTime`, 0 by default) shows without a request; see [Server rendering](#server-rendering).
 
 ## Bulk actions
 
@@ -297,10 +297,10 @@ The selection column stays visible at the far left and row actions stay visible 
 
 ## Nuxt
 
-The component is SSR-safe: browser APIs are accessed only after mount. Register it in a client plugin when the table should be globally available:
+The component is SSR-safe: browser APIs (URL, localStorage, layout) are read only after mount, and the server sends no request it does not await. Register it in a plugin when the table should be globally available:
 
 ```ts
-// plugins/yayaw-table.client.ts
+// plugins/yayaw-table.ts
 import { YayawTablePlugin } from "@yayaw/table-vue";
 import "@yayaw/table-vue/style.css";
 
@@ -308,6 +308,81 @@ export default defineNuxtPlugin((nuxtApp) => {
   nuxtApp.vueApp.use(YayawTablePlugin);
 });
 ```
+
+### Server rendering
+
+Without `server-prefetch`, the server renders the table's loading state and the browser loads the first page. With it, the table loads its first page during the server rendering (`onServerPrefetch`), in the state it starts from, renders the rows in the HTML and hydrates without loading them again:
+
+1. **One `QueryClient` per request**, passed as `:query-client`, dehydrated into the Nuxt payload and hydrated before the app mounts. Give it a `staleTime`: the browser reuses the page while it is fresh, then loads it again as usual (with the default `staleTime: 0` it loads it again at once).
+2. **The starting state on the server**: the default view, or `initial-view` (`{ id?, config, pageIndex? }`) with `table.syncUrl: false`, e.g. the user's favorite view or default filters. With URL sync on, the server renders the state without the URL; a link's state applies on mount.
+3. **Saved views the host already loaded**: `initial-views`, `initial-favorite-view-id` and `initial-views-loaded`. The view manager then starts loaded, with the favorite, and asks neither `views.list` nor `views.getFavorite` on mount.
+4. **`table.timeZone`** (an IANA zone) so the server formats dates in the viewer's zone, not its own.
+
+Tag catalogs load with the rows. Footer calculations, facet counts, folders, server boards and the display modes from renderers (Feed, Calendar, Chart, Map, File tree, Form) load in the browser; the column drag preference and the browser-kept view order are read on mount. With automatic page size, the server renders `defaultPageSize` (or the view's); once measured, a smaller first page keeps its first rows without a request, a larger one loads.
+
+```ts
+// plugins/vue-query.ts: one client per request, serialized in the payload
+import type { DehydratedState } from "@tanstack/vue-query";
+import { dehydrate, hydrate, QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
+
+export default defineNuxtPlugin((nuxtApp) => {
+  const state = useState<DehydratedState | null>("vue-query");
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { staleTime: 30_000 } },
+  });
+  nuxtApp.vueApp.use(VueQueryPlugin, { queryClient });
+  if (import.meta.server) {
+    nuxtApp.hooks.hook("app:rendered", () => {
+      state.value = dehydrate(queryClient);
+    });
+  }
+  if (import.meta.client) {
+    nuxtApp.hooks.hook("app:created", () => {
+      hydrate(queryClient, state.value);
+    });
+  }
+});
+```
+
+```vue
+<script setup lang="ts">
+import { useQueryClient } from "@tanstack/vue-query";
+
+const queryClient = useQueryClient();
+// The host's own endpoints: the user's views and favorite, on the server.
+const { data: views } = await useAsyncData("orders-views", () =>
+  $fetch("/api/orders/views")
+);
+// The arrival order: the favorite, an `isDefault` view, else default filters.
+const arrival = computed(
+  () =>
+    views.value?.data.find((view) => view.id === views.value?.favoriteId) ??
+    views.value?.data.find((view) => view.isDefault)
+);
+const initialView = computed(() =>
+  arrival.value
+    ? { id: arrival.value.id, config: arrival.value.config }
+    : { config: { columnFilters: [{ id: "owner", value: ["me"] }] } }
+);
+</script>
+
+<template>
+  <YayawDataTable
+    table-type="orders"
+    :get-table-config="getTableConfig"
+    :get-table-actions="getTableActions"
+    :query-client="queryClient"
+    server-prefetch
+    :initial-view="initialView"
+    :initial-views="views?.data ?? []"
+    :initial-active-view-id="arrival?.id"
+    :initial-favorite-view-id="views?.favoriteId ?? null"
+    initial-views-loaded
+  />
+</template>
+```
+
+The catalogue sets `table: { syncUrl: false, timeZone: "Europe/Paris" }`. The `list` action runs on the server too: give it the request's credentials (`useRequestFetch()`), and keep each request's `QueryClient` to that request.
 
 ## Registry
 

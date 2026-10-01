@@ -351,6 +351,8 @@ function DataTableHeaderControls({
   initialActiveViewId,
   listConfig,
   initialViews,
+  initialFavoriteViewId,
+  initialViewsLoaded,
   kanbanConfig,
   kanbanControlColumns,
   kanbanDefaultGroupBy,
@@ -389,6 +391,8 @@ function DataTableHeaderControls({
   listConfig?: TableListConfig;
   initialActiveViewId?: string;
   initialViews?: TableView[];
+  initialFavoriteViewId?: null | string;
+  initialViewsLoaded?: boolean;
   kanbanConfig?: TableKanbanConfig;
   kanbanControlColumns: KanbanGroupingColumn[];
   kanbanDefaultGroupBy?: string;
@@ -476,6 +480,8 @@ function DataTableHeaderControls({
         defaultDisplayMode,
         initialActiveViewId,
         initialViews,
+        initialFavoriteViewId,
+        initialViewsLoaded,
         displayModes,
       }}
     />
@@ -641,6 +647,8 @@ function DataTableContent({
   initialRowCount,
   initialActiveViewId,
   initialViews,
+  initialFavoriteViewId,
+  initialViewsLoaded,
   details,
   onOpenDetails,
   onRevertActivity,
@@ -759,6 +767,17 @@ function DataTableContent({
    * Initial saved views used before the view action list resolves.
    */
   initialViews?: TableView[];
+  /**
+   * The user's favorite view, known by the host (`views.getFavorite`'s
+   * `viewId`); see `initialViewsLoaded`.
+   */
+  initialFavoriteViewId?: null | string;
+  /**
+   * `initialViews` are the saved views `views.list` returns, and
+   * `initialFavoriteViewId` the favorite: the view manager asks neither on
+   * mount, e.g. after a server rendering.
+   */
+  initialViewsLoaded?: boolean;
 }) {
   const tableId = tableIdProp ?? tableType;
   useAutoPageSizeLifetime(tableId);
@@ -1043,7 +1062,9 @@ function DataTableContent({
                   listConfig={config.table.list}
                   ganttConfig={config.table.gantt}
                   initialActiveViewId={initialActiveViewId}
+                  initialFavoriteViewId={initialFavoriteViewId}
                   initialViews={initialViews}
+                  initialViewsLoaded={initialViewsLoaded}
                   kanbanConfig={config.table.kanban}
                   kanbanControlColumns={galleryColumns}
                   kanbanDefaultGroupBy={config.table.kanban?.groupBy}
@@ -1200,9 +1221,15 @@ export function DataTable(
     /**
      * Settings an instance with URL sync off starts from, applied before its
      * first request: a saved view (its id becomes the active view) or a view
-     * config. For tables embedded without a toolbar, e.g. dashboard widgets.
+     * config. For tables embedded without a toolbar, e.g. dashboard widgets,
+     * and for hosts that start from a favorite view or default filters.
+     * `pageIndex` opens another page than the first (zero-based).
      */
-    initialView?: { id?: null | string; config: TableViewConfig };
+    initialView?: {
+      id?: null | string;
+      config: TableViewConfig;
+      pageIndex?: number;
+    };
   }
 ) {
   const {
@@ -1310,7 +1337,11 @@ function TableInstanceScope({
 }: {
   children: ReactNode;
   defaults: Parameters<typeof seedTableViewState>[3];
-  initialView?: { id?: null | string; config: TableViewConfig };
+  initialView?: {
+    id?: null | string;
+    config: TableViewConfig;
+    pageIndex?: number;
+  };
   instanceId?: string;
   tableId: string;
 }) {

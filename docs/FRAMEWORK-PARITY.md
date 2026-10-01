@@ -405,6 +405,9 @@ is only the initial fallback until rows can be measured.
 Gallery/Kanban do not claim to fit cards using table-row measurements. These
 limitations are identical in React and Vue. Empty/hidden tables wait for usable
 row measurements. Observers and animation frames are released on unmount.
+On the first page, a measured size smaller than the rows loaded (a server
+rendering at `defaultPageSize`) keeps their first rows without a request in
+both editions; see [Server rendering](#server-rendering).
 
 Regression coverage uses the same capacity fixtures in both test runners, with
 framework-specific default-mode/selector tests and real-browser resize/density verification
@@ -811,6 +814,78 @@ and a search that loads it once. Playwright `e2e/filetree.spec.ts` ("lists the
 root and each folder it opens once at load, and the matches once for a
 search") runs in both editions.
 
+## Server rendering
+
+Both editions render on the server and hydrate; the server sends no request
+it does not await, and browser APIs are read after mount. Public contracts
+shared by both:
+
+- `initialView: { id?, config, pageIndex? }` (URL sync off) now takes a
+  zero-based `pageIndex`: the instance starts on that page, before its first
+  request (React writes it in the instance's seeded `page` channel, Vue sets
+  its pagination after `applyView`).
+- `initialFavoriteViewId` and `initialViewsLoaded`: `initialViews` are the
+  whole list `views.list` returns and `initialFavoriteViewId` the favorite.
+  The view manager starts loaded with them and asks neither `views.list` nor
+  `views.getFavorite` on mount (React seeds its view and favorite queries,
+  fresh for 5 s like its seeded views; Vue starts with `loading` false). A
+  view the table already shows (the host's `initialView`) is not selected
+  again, so its rows do not load twice.
+- `table.timeZone`: date columns without a `timeZone` of their own take the
+  table's, at config resolution (Vue `defineTableConfig`, React
+  `withTableDatePreset`), so every surface that formats a column's dates
+  (cells, cards, footers, Feed, record values) uses one zone on the server and
+  in the browser. Without it, the runtime's zone applies, as before.
+- A smaller page size on the first page of the same query (automatic page
+  size measuring fewer rows than were rendered, or a smaller size chosen)
+  shows the first rows already loaded, without a request: Vue as current rows
+  of the new key, React as the new query's `initialData`, as fresh as the page
+  shown (`initialDataUpdatedAt`). A larger size, another page or another query
+  loads as before.
+
+Framework-native differences, by design:
+
+- **Vue `serverPrefetch`** loads the first page during the server rendering
+  (`onServerPrefetch`), with the tag catalogs, in the state the table starts
+  from (the default view or `initialView`), and renders its rows. The page
+  lands in the `queryClient` the host passes; dehydrated into the page and
+  hydrated before mounting, it is current while that client's `staleTime`
+  (0 by default) holds it fresh: the browser hydrates the server's rows and
+  sends no `list`. A server failure (or a page past the last one) renders the
+  loading state and the browser loads the page. Without `serverPrefetch`, the
+  server renders the loading state and requests nothing. React renders
+  synchronously and has no component-level prefetch: its server rendering
+  shows `initialData` (the default state's first page) or its loading state,
+  and its `useQuery` reads a hydrated cache natively (30 s `staleTime`).
+- **What waits for the browser.** Vue: footer calculations, facet counts,
+  folders, server Kanban boards and the display modes from renderers (Feed,
+  Calendar, Chart, Map, File tree, Form, mounted right after hydration), the
+  column drag preference and the browser-kept view order (read on mount).
+  React runs none of its queries or effects on the server.
+- With URL sync on, the server renders the state without the URL in both;
+  a link's state applies on mount.
+
+Vue's `DataGrid` no longer renders an empty column header (the actions
+column): its empty text node took the next fragment for its own during
+hydration.
+
+Verification: `tests/fixtures/server-rendering.ts` (one table started from a
+favorite view) drives both editions. Vue
+`components/server-prefetch.test.ts` (`@vitest-environment node`,
+`renderToString`): the favorite's first page in the HTML with one `list` call
+and no other action (aggregates, tags, views, updates), dates in
+`table.timeZone`, the dehydratable page, no `window` or `localStorage`; tag
+catalogs awaited with the rows; the loading state without `serverPrefetch`
+or after a failure; a server board and a renderer mode left to the browser;
+`initialView.pageIndex`. Vue `components/server-hydration.test.ts` (jsdom):
+hydrating the server's HTML with the dehydrated client gives no hydration
+warning and no second `list`, `views.list` or `views.getFavorite`; with
+`staleTime: 0` the page loads again; the measured first page keeps its first
+rows without a request and a larger one loads. React
+`tests/server-rendering.test.tsx`: dates in `table.timeZone` on the server,
+the view manager started from the host's views and favorite without loading
+them, `initialView.pageIndex`, and the measured first page without a request.
+
 ## Multiple sorts and filter combination
 
 Both editions keep an ordered list of sorts and send every sort to list actions.
@@ -929,8 +1004,9 @@ patterns alike, and date-only strings are local calendar days that no zone
 shifts. `"relative"` uses `Intl.RelativeTimeFormat` in the table locale. Date
 columns without a preset take the table's `dateDisplayPreset` in both
 editions (Vue's `defineTableConfig` did; React now fills it when it resolves
-the config). An unknown zone shows local time and an invalid pattern falls
-back to the preset instead of failing.
+the config). Date columns without a zone take `table.timeZone` the same way
+(see [Server rendering](#server-rendering)). An unknown zone shows local time
+and an invalid pattern falls back to the preset instead of failing.
 
 Known difference kept for compatibility: a number column without
 `numberFormat` shows the raw value in React cells and card properties
@@ -2632,11 +2708,12 @@ Both editions take two additive props for pages with several tables:
   table never share atoms; Vue instances already keep their state in their own
   refs. Config, actions and saved views still resolve by table. Without
   `instanceId`, keys and stores are unchanged.
-- `initialView: { id?, config }` starts an instance whose URL sync is off
-  from a saved view before its first request: React seeds the instance's
-  store with what selecting the view writes (`seedTableViewState`), Vue
-  applies it with `applyView` before loading. With URL sync on it is ignored
-  in both; use `initialActiveViewId`.
+- `initialView: { id?, config, pageIndex? }` starts an instance whose URL
+  sync is off from a saved view before its first request: React seeds the
+  instance's store with what selecting the view writes (`seedTableViewState`),
+  Vue applies it with `applyView` before loading. `pageIndex` (zero-based)
+  opens another page. With URL sync on it is ignored in both; use
+  `initialActiveViewId`. See [Server rendering](#server-rendering).
 
 React embedded instances share the host's single `QueryClient` (required), so
 their `tableId` doubles as the cache key; Vue instances create their own

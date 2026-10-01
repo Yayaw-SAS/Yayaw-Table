@@ -209,6 +209,10 @@ Saved views support a personal favorite that opens on arrival and a personal ord
 
 The React edition supports shared TanStack Query state, typed filters, URL state with Nuqs, saved views, table/Kanban/gallery modes, forms, inline editing, and bulk actions. It can use Next.js Server Actions, regular HTTP APIs, or any backend adapter that implements the action contracts.
 
+### Server rendering
+
+Both editions render on the server and hydrate. Either edition starts from the host's rows with `initialData` (the default state's first page). Vue also loads its own first page during the rendering with `server-prefetch`, in any starting state (`initialView`, a favorite, default filters), and hydrates it from the request's `QueryClient` without loading it again: see [the Vue edition's server rendering](packages/yayaw-table-vue/README.md#server-rendering) for a Nuxt setup. In both, `initialViews` with `initialFavoriteViewId` and `initialViewsLoaded` start the view manager without asking `views.list` or `views.getFavorite`, `initialView.pageIndex` opens another page, and `table.timeZone` formats every date column without a zone of its own in one IANA zone, the same on the server and in the browser. See [React and Vue parity](docs/FRAMEWORK-PARITY.md#server-rendering).
+
 ### Select a row range
 
 In React and Vue table mode, `table.enableRowSelection: true` and

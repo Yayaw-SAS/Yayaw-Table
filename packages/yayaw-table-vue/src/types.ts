@@ -315,6 +315,12 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord>
   defaultAutoPageSize?: boolean;
   pageSizeOptions: number[];
   dateDisplayPreset?: DateDisplayPreset;
+  /**
+   * IANA zone such as `"Europe/Paris"` for the dates of date columns without
+   * a `timeZone` of their own, e.g. so a server rendering shows the viewer's
+   * times. The runtime's zone when omitted.
+   */
+  timeZone?: string;
   inlineEdit?: TableInlineEditConfig;
   enableCalculations?: boolean;
   enableGrouping?: boolean;
@@ -1112,6 +1118,12 @@ export interface YayawTableProps<TData extends TableRecord = TableRecord> {
   initialPageCount?: number;
   initialViews?: TableView[];
   initialActiveViewId?: string;
+  /** The user's favorite view, known by the host; see `initialViewsLoaded`. */
+  initialFavoriteViewId?: string | null;
+  /** `initialViews` and `initialFavoriteViewId` are complete: the view manager loads neither on mount. */
+  initialViewsLoaded?: boolean;
+  /** Load the first page during server rendering (`onServerPrefetch`) and render its rows. */
+  serverPrefetch?: boolean;
   title?: string;
   description?: string;
   locale?: string;

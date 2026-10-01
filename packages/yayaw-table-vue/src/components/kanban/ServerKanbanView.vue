@@ -8,7 +8,7 @@ const props = defineProps<{ source: ServerKanbanSource; titleColumn: string; pro
 const context = useTableContext();
 const state = shallowRef<ServerKanbanState>({ lanes: [], loading: true });
 let session: ReturnType<typeof createServerKanban> | undefined;
-watch(() => props.source.queryKey, () => { session?.dispose(); session = createServerKanban(props.source, value => { state.value = value; }); void session.load(); }, { immediate: true });
+watch(() => props.source.queryKey, () => { session?.dispose(); session = createServerKanban(props.source, value => { state.value = value; }); if (typeof window !== "undefined") void session.load(); }, { immediate: true });
 onBeforeUnmount(() => session?.dispose());
 const column = (id: string) => context.config.columns.definitions.find(item => item.id === id) ?? { id, header: id };
 const value = (row: Record<string, unknown>, id: string) => column(id).accessorFn?.(row) ?? row[column(id).accessorKey ?? id];
