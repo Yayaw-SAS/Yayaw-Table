@@ -13,8 +13,8 @@ planning session.
   its renderer, a file tree without a parent column, a Gantt without a
   planning graph, a form without `create`), and a link or saved view asking
   for it falls back to the default, then the first offered mode, `table` last.
-- Grouping depth: two levels in `table`; one in `list`, `kanban`, `gallery`
-  and `feed`; none elsewhere. Density applies to `table` and `list`;
+- Grouping depth: two levels in `table`; one in `list`, `kanban`, `gallery`,
+  `feed` and `gantt`; none elsewhere. Density applies to `table` and `list`;
   footer calculations and column settings to `table` only.
 - Settings: `table.<mode>` holds the table defaults; each saved view stores
   its own copy (`config.<mode>`) and the URL keeps the current one in
@@ -190,7 +190,10 @@ view settings `zoom`, `weekStartsOn`, `showDependencies`, `anchorDate`).
 Without `actions.planning`, the graph is derived from `list` and saved through
 `update` (`createRowsPlanningAdapter()`): not transactional, no dependencies,
 the whole source loaded. Supply `actions.planning` (`load`, `preview`,
-`apply`) for atomic commits, dependencies and paging. Keep
+`apply`) for atomic commits, dependencies and paging. The first grouping
+level groups the timeline: headed sections of root tasks (record value of the
+grouped column; descendants stay under their root), each with a count and a
+read-only span bar, collapsible on their own. Keep
 `getTableActions` referentially stable: a new identity rebuilds the graph. See
 [Gantt](https://github.com/Yayaw-SAS/Yayaw-Table/blob/main/docs/GANTT.md) and
 [planning adapters](https://github.com/Yayaw-SAS/Yayaw-Table/blob/main/docs/PLANNING-ADAPTERS.md).

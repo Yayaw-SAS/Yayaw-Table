@@ -25,6 +25,7 @@ import {
   timelineRows,
   timelineToday,
   timelineTodayOffset,
+  type TimelineTaskRow,
 } from "../../planning/timeline";
 import { comparePlanningTasks, planningTaskMatches } from "../../planning/query";
 import { planningKey, type PlanningRef, type PlanningTask } from "../../planning/types";
@@ -109,6 +110,13 @@ const order = computed(() => {
   const query = { sorting: context.state.sorting.value, columns: context.config.columns.definitions };
   return (a: PlanningTask, b: PlanningTask) => comparePlanningTasks(a, b, query);
 });
+// Root tasks are grouped by the table's first grouping level, like List.
+const groupBy = computed(() => context.state.grouping.value[0] ?? "");
+const groupHeader = computed(
+  () =>
+    context.config.columns.definitions.find((item) => item.id === groupBy.value)?.header ??
+    groupBy.value
+);
 const timeline = computed(() =>
   snapshot.value
     ? timelineRows(snapshot.value, {
@@ -116,6 +124,7 @@ const timeline = computed(() =>
         visible: matches.value,
         compare: order.value,
         collapsed: collapsed.value,
+        groupBy: groupBy.value,
       })
     : []
 );
@@ -131,6 +140,9 @@ const geometry = computed(() =>
   })
 );
 const visibleRows = computed(() => timeline.value.slice(geometry.value.firstRow, geometry.value.lastRow));
+const rowTop = (index: number): string =>
+  `${TIMELINE_HEADER_HEIGHT + (geometry.value.firstRow + index) * TIMELINE_ROW_HEIGHT}px`;
+const groupName = (value: unknown): string => `${groupHeader.value}: ${formatters.value.group(groupBy.value, value)}`;
 const links = computed(() =>
   view.value.showDependencies === false || !snapshot.value ? [] : timelineLinks(timeline.value, snapshot.value, geometry.value)
 );
@@ -207,7 +219,9 @@ const endDrag = (): void => {
   if (!current) {
     return;
   }
-  const target = timeline.value.find((row) => planningKey(row.task.ref) === current.key);
+  const target = timeline.value.find(
+    (row): row is TimelineTaskRow => "task" in row && planningKey(row.task.ref) === current.key
+  );
   if (!target) {
     return;
   }
@@ -304,93 +318,122 @@ onBeforeUnmount(() => observer?.disconnect());
             <span v-if="cell.number" class="yayaw-gantt-day">{{ cell.number }}</span>
           </div>
         </div>
-        <div
-          v-for="(row, index) in visibleRows"
-          :key="planningKey(row.task.ref)"
-          class="yayaw-gantt-row"
-          :class="{ summary: row.hasChildren }"
-          :style="{ top: `${TIMELINE_HEADER_HEIGHT + (geometry.firstRow + index) * TIMELINE_ROW_HEIGHT}px`, height: `${TIMELINE_ROW_HEIGHT}px` }"
-        >
-          <div class="yayaw-gantt-label" :style="{ width: `${geometry.labelWidth}px`, paddingLeft: `${LABEL_PADDING + row.depth * TREE_INDENT}px` }">
-            <button
-              v-if="row.hasChildren"
-              type="button"
-              class="yayaw-icon-button yayaw-gantt-toggle"
-              :aria-expanded="!collapsed.has(planningKey(row.task.ref))"
-              :aria-label="collapsed.has(planningKey(row.task.ref)) ? labels.expand : labels.collapse"
-              @click="toggle(planningKey(row.task.ref))"
-            >
-              <ChevronRight v-if="collapsed.has(planningKey(row.task.ref))" :size="16" aria-hidden="true" />
-              <ChevronDown v-else :size="16" aria-hidden="true" />
-            </button>
-            <span v-else class="yayaw-gantt-spacer" aria-hidden="true" />
-            <span v-if="context.config.table.enableRowSelection && recordFor(row.task)" class="yayaw-gantt-select" @click.stop>
-              <TableCheckbox
-                :label="`${translate('selectRow')} ${formatters.task(row.task)}`"
-                :model-value="Boolean(context.selection.value[context.getRowId(recordFor(row.task)!)])"
-                :disabled="context.config.table.canSelectRow?.(recordFor(row.task)!) === false"
-                @update:model-value="toggleSelection(recordFor(row.task)!, $event)"
-              />
-            </span>
-            <Layers v-if="row.hasChildren" :size="16" aria-hidden="true" class="yayaw-gantt-kind" />
-            <FileText v-else :size="16" aria-hidden="true" class="yayaw-gantt-kind" />
-            <CellRenderer
-              v-if="recordFor(row.task) && titleColumn"
-              :column="titleColumn"
-              :row="recordFor(row.task)!"
-              :value="recordFor(row.task)![titleColumn.accessorKey ?? titleColumn.id]"
-            />
-            <button v-else type="button" class="yayaw-gantt-title" :title="`${row.task.ref.source} · ${formatters.task(row.task)}`" @click="activate(row.task)">
-              {{ formatters.task(row.task) }}
-            </button>
-          </div>
+        <template v-for="(row, index) in visibleRows" :key="'group' in row ? row.group : planningKey(row.task.ref)">
           <div
-            class="yayaw-gantt-track"
-            :style="{ left: `${geometry.labelWidth}px`, width: `${geometry.count * geometry.width}px`, backgroundSize: `${geometry.width}px 100%` }"
+            v-if="'group' in row"
+            class="yayaw-gantt-row group"
+            :style="{ top: rowTop(index), height: `${TIMELINE_ROW_HEIGHT}px` }"
           >
-            <span
-              v-for="off in timelineOffDays(row.task, snapshot, geometry)"
-              :key="off.left"
-              class="yayaw-gantt-off"
-              aria-hidden="true"
-              :style="{ left: `${off.left}px`, width: `${off.width}px` }"
-            />
-            <div
-              v-if="timelineBar(row.task, geometry)"
-              class="yayaw-gantt-bar"
-              :class="{ summary: summary(row.hasChildren) }"
-              :style="{
-                left: `${timelineBar(row.task, geometry)!.left + shift(planningKey(row.task.ref), 'move') + shift(planningKey(row.task.ref), 'start')}px`,
-                width: `${Math.max(MIN_BAR_WIDTH, timelineBar(row.task, geometry)!.width - shift(planningKey(row.task.ref), 'start') + shift(planningKey(row.task.ref), 'end'))}px`,
-              }"
-            >
+            <div class="yayaw-gantt-label" :style="{ width: `${geometry.labelWidth}px`, paddingLeft: `${LABEL_PADDING}px` }">
               <button
                 type="button"
-                class="yayaw-gantt-bar-body"
-                :aria-label="`${labels.move} ${formatters.task(row.task)}: ${formatters.day(row.task.start, 'start')} – ${formatters.day(row.task.end, 'end')}`"
-                :title="`${formatters.task(row.task)}: ${formatters.day(row.task.start, 'start')} – ${formatters.day(row.task.end, 'end')}`"
-                @click="open(row.task.ref)"
-                @keydown="editable(row.task, row.hasChildren) && keyAdjust($event, row.task, 'move')"
-                @pointerdown="editable(row.task, row.hasChildren) && startDrag($event, planningKey(row.task.ref), 'move')"
+                class="yayaw-icon-button yayaw-gantt-toggle"
+                :aria-expanded="!collapsed.has(row.group)"
+                :aria-label="`${collapsed.has(row.group) ? labels.expand : labels.collapse} ${groupName(row.value)}`"
+                @click="toggle(row.group)"
               >
+                <ChevronRight v-if="collapsed.has(row.group)" :size="16" aria-hidden="true" />
+                <ChevronDown v-else :size="16" aria-hidden="true" />
+              </button>
+              <span class="yayaw-gantt-group-name" :title="groupName(row.value)">
+                <span class="yayaw-gantt-group-label">{{ groupHeader }}: </span>{{ formatters.group(groupBy, row.value) }}
+              </span>
+              <span class="yayaw-count">{{ row.count }}</span>
+            </div>
+            <span
+              v-if="timelineBar(row, geometry)"
+              class="yayaw-gantt-group-span"
+              aria-hidden="true"
+              :style="{ left: `${geometry.labelWidth + timelineBar(row, geometry)!.left}px`, width: `${timelineBar(row, geometry)!.width}px` }"
+            />
+          </div>
+          <div
+            v-else
+            class="yayaw-gantt-row"
+            :class="{ summary: row.hasChildren }"
+            :style="{ top: rowTop(index), height: `${TIMELINE_ROW_HEIGHT}px` }"
+          >
+            <div class="yayaw-gantt-label" :style="{ width: `${geometry.labelWidth}px`, paddingLeft: `${LABEL_PADDING + row.depth * TREE_INDENT}px` }">
+              <button
+                v-if="row.hasChildren"
+                type="button"
+                class="yayaw-icon-button yayaw-gantt-toggle"
+                :aria-expanded="!collapsed.has(planningKey(row.task.ref))"
+                :aria-label="collapsed.has(planningKey(row.task.ref)) ? labels.expand : labels.collapse"
+                @click="toggle(planningKey(row.task.ref))"
+              >
+                <ChevronRight v-if="collapsed.has(planningKey(row.task.ref))" :size="16" aria-hidden="true" />
+                <ChevronDown v-else :size="16" aria-hidden="true" />
+              </button>
+              <span v-else class="yayaw-gantt-spacer" aria-hidden="true" />
+              <span v-if="context.config.table.enableRowSelection && recordFor(row.task)" class="yayaw-gantt-select" @click.stop>
+                <TableCheckbox
+                  :label="`${translate('selectRow')} ${formatters.task(row.task)}`"
+                  :model-value="Boolean(context.selection.value[context.getRowId(recordFor(row.task)!)])"
+                  :disabled="context.config.table.canSelectRow?.(recordFor(row.task)!) === false"
+                  @update:model-value="toggleSelection(recordFor(row.task)!, $event)"
+                />
+              </span>
+              <Layers v-if="row.hasChildren" :size="16" aria-hidden="true" class="yayaw-gantt-kind" />
+              <FileText v-else :size="16" aria-hidden="true" class="yayaw-gantt-kind" />
+              <CellRenderer
+                v-if="recordFor(row.task) && titleColumn"
+                :column="titleColumn"
+                :row="recordFor(row.task)!"
+                :value="recordFor(row.task)![titleColumn.accessorKey ?? titleColumn.id]"
+              />
+              <button v-else type="button" class="yayaw-gantt-title" :title="`${row.task.ref.source} · ${formatters.task(row.task)}`" @click="activate(row.task)">
                 {{ formatters.task(row.task) }}
               </button>
-              <template v-if="editable(row.task, row.hasChildren) && resizable(row.hasChildren)">
-                <button
-                  v-for="side in (['start', 'end'] as const)"
-                  :key="side"
-                  type="button"
-                  class="yayaw-gantt-handle"
-                  :class="side"
-                  :aria-label="`${side === 'start' ? labels.resizeStart : labels.resizeEnd} ${formatters.task(row.task)}`"
-                  @keydown="keyAdjust($event, row.task, side)"
-                  @pointerdown="startDrag($event, planningKey(row.task.ref), side)"
-                />
-              </template>
             </div>
-            <span v-else class="yayaw-gantt-unscheduled">{{ labels.unscheduled }}</span>
+            <div
+              class="yayaw-gantt-track"
+              :style="{ left: `${geometry.labelWidth}px`, width: `${geometry.count * geometry.width}px`, backgroundSize: `${geometry.width}px 100%` }"
+            >
+              <span
+                v-for="off in timelineOffDays(row.task, snapshot, geometry)"
+                :key="off.left"
+                class="yayaw-gantt-off"
+                aria-hidden="true"
+                :style="{ left: `${off.left}px`, width: `${off.width}px` }"
+              />
+              <div
+                v-if="timelineBar(row.task, geometry)"
+                class="yayaw-gantt-bar"
+                :class="{ summary: summary(row.hasChildren) }"
+                :style="{
+                  left: `${timelineBar(row.task, geometry)!.left + shift(planningKey(row.task.ref), 'move') + shift(planningKey(row.task.ref), 'start')}px`,
+                  width: `${Math.max(MIN_BAR_WIDTH, timelineBar(row.task, geometry)!.width - shift(planningKey(row.task.ref), 'start') + shift(planningKey(row.task.ref), 'end'))}px`,
+                }"
+              >
+                <button
+                  type="button"
+                  class="yayaw-gantt-bar-body"
+                  :aria-label="`${labels.move} ${formatters.task(row.task)}: ${formatters.day(row.task.start, 'start')} – ${formatters.day(row.task.end, 'end')}`"
+                  :title="`${formatters.task(row.task)}: ${formatters.day(row.task.start, 'start')} – ${formatters.day(row.task.end, 'end')}`"
+                  @click="open(row.task.ref)"
+                  @keydown="editable(row.task, row.hasChildren) && keyAdjust($event, row.task, 'move')"
+                  @pointerdown="editable(row.task, row.hasChildren) && startDrag($event, planningKey(row.task.ref), 'move')"
+                >
+                  {{ formatters.task(row.task) }}
+                </button>
+                <template v-if="editable(row.task, row.hasChildren) && resizable(row.hasChildren)">
+                  <button
+                    v-for="side in (['start', 'end'] as const)"
+                    :key="side"
+                    type="button"
+                    class="yayaw-gantt-handle"
+                    :class="side"
+                    :aria-label="`${side === 'start' ? labels.resizeStart : labels.resizeEnd} ${formatters.task(row.task)}`"
+                    @keydown="keyAdjust($event, row.task, side)"
+                    @pointerdown="startDrag($event, planningKey(row.task.ref), side)"
+                  />
+                </template>
+              </div>
+              <span v-else class="yayaw-gantt-unscheduled">{{ labels.unscheduled }}</span>
+            </div>
           </div>
-        </div>
+        </template>
         <svg v-if="links.length" class="yayaw-gantt-links" aria-hidden="true" :width="geometry.totalWidth" :height="geometry.canvasHeight">
           <title>{{ labels.dependencies }}</title>
           <path v-for="link in links" :key="link.id" :d="link.d" fill="none" stroke="currentColor" />

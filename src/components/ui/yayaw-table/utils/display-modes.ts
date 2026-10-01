@@ -131,7 +131,7 @@ export const DISPLAY_MODES = {
   gantt: {
     capabilities: NO_TABLE_CONTROLS,
     configKey: "gantt",
-    maxGroups: 0,
+    maxGroups: 1,
     requiresPlanning: true,
   },
 } as const satisfies Record<string, DisplayModeDefinition>;

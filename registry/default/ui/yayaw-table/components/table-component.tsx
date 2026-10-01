@@ -2940,6 +2940,8 @@ function ModernDataTable<
           emptyState={emptyStateContent}
           error={planningState.error}
           getRowId={getRowId}
+          groupBy={primaryGrouping}
+          groupLabel={primaryGroupingLabel}
           isRowActive={(row) =>
             isRowIdActive({
               activeRowId,

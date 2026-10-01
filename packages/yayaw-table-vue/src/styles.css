@@ -3033,6 +3033,38 @@
 .yayaw-gantt-row.summary {
   background: color-mix(in srgb, var(--yayaw-muted) 25%, transparent);
 }
+.yayaw-gantt-row.group {
+  background: color-mix(in srgb, var(--yayaw-muted) 40%, transparent);
+}
+.yayaw-gantt-row.group .yayaw-gantt-label {
+  background: var(--yayaw-muted);
+}
+.yayaw-gantt-row.group .yayaw-count {
+  flex: none;
+  background: var(--yayaw-background);
+}
+.yayaw-gantt-group-name {
+  overflow: hidden;
+  flex: 1;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-gantt-group-label {
+  color: var(--yayaw-muted-foreground);
+}
+/* The group's dates, read-only: it is no task. */
+.yayaw-gantt-group-span {
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  border-radius: 2px;
+  background: color-mix(
+    in srgb,
+    var(--yayaw-muted-foreground) 25%,
+    transparent
+  );
+}
 .yayaw-gantt-label {
   position: sticky;
   left: 0;
@@ -3054,6 +3086,13 @@
   flex: none;
   width: 1.25rem;
   height: 1.25rem;
+}
+/* A ghost chevron, like React's: button padding would squeeze the icon out. */
+.yayaw-gantt-toggle {
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--yayaw-muted-foreground);
 }
 .yayaw-gantt-select,
 .yayaw-gantt-kind {
