@@ -114,6 +114,10 @@ export const defineTableConfig = <TData extends TableRecord>(
               input.table?.dateDisplayPreset ??
               defaultTableBehavior.dateDisplayPreset)
             : column.dateDisplayPreset,
+        timeZone:
+          column.type === "date"
+            ? (column.timeZone ?? input.table?.timeZone)
+            : column.timeZone,
       })),
       sort: input.columns.sort ?? [],
       mandatory: input.columns.mandatory ?? [],

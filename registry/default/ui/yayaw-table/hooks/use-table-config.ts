@@ -160,6 +160,8 @@ export interface TableCatalogueTableConfig extends GenericModeTableConfigs {
   defaultAutoPageSize?: boolean;
   pageSizeOptions?: number[];
   dateDisplayPreset?: DateDisplayPreset;
+  /** IANA zone of date columns without their own `timeZone`. */
+  timeZone?: string;
   inlineEdit?: TableInlineEditConfig;
   enableCalculations?: boolean;
   enableAdvancedFilters?: boolean;
@@ -416,6 +418,7 @@ function resolveTableBehaviorConfig(
     dateDisplayPreset:
       mergedConfig.dateDisplayPreset ??
       DEFAULT_TABLE_CONFIG.table.dateDisplayPreset,
+    timeZone: mergedConfig.timeZone,
     inlineEdit: resolveInlineEditConfig(mergedConfig.inlineEdit),
     enableCalculations: mergedConfig.enableCalculations ?? false,
     preserveSelectionOnQuery: mergedConfig.preserveSelectionOnQuery ?? false,
@@ -426,11 +429,15 @@ function resolveTableBehaviorConfig(
 
 function resolveColumnsConfig(
   providerConfig: Pick<ProviderTableConfig, "columns"> &
-    Pick<TableCatalogueTableConfig, "dateDisplayPreset" | "enableRowSelection">
+    Pick<
+      TableCatalogueTableConfig,
+      "dateDisplayPreset" | "enableRowSelection" | "timeZone"
+    >
 ): TableCatalogueConfig["columns"] {
   const definitions = withTableDatePreset(
     providerConfig?.columns?.definitions || [],
-    providerConfig.dateDisplayPreset
+    providerConfig.dateDisplayPreset,
+    providerConfig.timeZone
   );
   const order = providerConfig?.columns?.order || [];
   const hasExplicitVisibleConfig = Array.isArray(
@@ -480,6 +487,7 @@ export function resolveTableCatalogueConfig(
     columns: resolveColumnsConfig({
       columns,
       dateDisplayPreset: table.dateDisplayPreset,
+      timeZone: table.timeZone,
       enableRowSelection: tableOptions.enableRowSelection ?? true,
     }),
     translations: translations ?? {

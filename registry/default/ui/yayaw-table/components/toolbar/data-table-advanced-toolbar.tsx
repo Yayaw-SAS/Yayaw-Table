@@ -162,6 +162,8 @@ interface DataTableAdvancedToolbarProps<_TData = Record<string, unknown>> {
       | "defaultDensity"
       | "defaultDisplayMode"
       | "initialViews"
+      | "initialViewsLoaded"
+      | "initialFavoriteViewId"
       | "initialActiveViewId"
       | "displayModes"
       | "tabs"

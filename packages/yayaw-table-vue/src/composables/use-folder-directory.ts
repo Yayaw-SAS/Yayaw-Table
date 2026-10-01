@@ -88,7 +88,8 @@ export function createFolderDirectoryStore<TData extends TableRecord>({
     directory,
     loading,
     use: () => {
-      if (!used) {
+      // Folders load in the browser only.
+      if (!used && typeof window !== "undefined") {
         used = true;
         load().catch(() => undefined);
       }

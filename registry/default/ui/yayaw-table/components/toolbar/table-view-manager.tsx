@@ -182,12 +182,37 @@ interface DataTableViewManagerProps {
   defaultDisplayMode?: TableDisplayMode;
   initialActiveViewId?: string;
   initialViews?: TableView[];
+  /** The user's favorite view, known by the host; see `initialViewsLoaded`. */
+  initialFavoriteViewId?: null | string;
+  /**
+   * `initialViews` are the saved views `list` returns, and
+   * `initialFavoriteViewId` the favorite: neither loads on mount.
+   */
+  initialViewsLoaded?: boolean;
   tableId: string;
   tableType: string;
   /** Saved views as tabs on wide screens; see `table.viewTabs`. */
   tabs?: ViewTabsConfig;
   /** Layouts offered when creating a view from a tab. */
   displayModes?: TableDisplayMode[];
+}
+
+/** The host's views; empty ones only when they are the whole list. */
+function seededViews(
+  views: TableView[],
+  loaded: boolean
+): TableView[] | undefined {
+  return loaded || views.length > 0 ? views : undefined;
+}
+
+/** The host's favorite is current, like its views (`initialViewsLoaded`). */
+function seededFavorite(
+  viewId: null | string | undefined,
+  loaded: boolean
+): { initialData?: { viewId: null | string }; staleTime?: number } {
+  return loaded
+    ? { initialData: { viewId: viewId ?? null }, staleTime: 5000 }
+    : {};
 }
 
 function getViewErrorMessage(error: unknown, fallback: string): string {
@@ -880,6 +905,8 @@ export function DataTableViewManager({
   defaultDisplayMode,
   initialActiveViewId,
   initialViews = [],
+  initialFavoriteViewId,
+  initialViewsLoaded = false,
   tableId,
   tableType,
   tabs,
@@ -935,9 +962,10 @@ export function DataTableViewManager({
     isLoading,
     isFetching,
   } = useQuery({
-    // Empty bootstrap data must still load persisted local or remote views.
+    // Empty bootstrap data must still load persisted local or remote views,
+    // unless the host says they are the whole list.
     enabled,
-    initialData: initialViews.length > 0 ? initialViews : undefined,
+    initialData: seededViews(initialViews, initialViewsLoaded),
     queryFn: async () => {
       const result = await viewActions.list({ tableId, tableType });
       if ("error" in result && typeof result.error === "string") {
@@ -990,6 +1018,7 @@ export function DataTableViewManager({
       return result.data;
     },
     retry: false,
+    ...seededFavorite(initialFavoriteViewId, initialViewsLoaded),
   });
   // An inaccessible favorite has the same UI fallback as an absent preference.
   const favoriteViewId =

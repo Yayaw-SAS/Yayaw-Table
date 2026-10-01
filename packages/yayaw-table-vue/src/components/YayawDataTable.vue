@@ -11,7 +11,7 @@ import { detailUndoMessage, detailLabels } from "../record-details";
 import { registerSelectionShortcuts } from "../selection-shortcuts";
 import { QueryClient } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
-import { type Component, computed, onBeforeUnmount, onMounted, provide, ref, shallowRef, watch } from "vue";
+import { type Component, computed, onBeforeUnmount, onMounted, onServerPrefetch, provide, ref, shallowRef, watch } from "vue";
 import { useTableData } from "../composables/use-table-data";
 import { useTableState } from "../composables/use-table-state";
 import { useTagCatalogs } from "../composables/use-tag-catalogs";
@@ -114,6 +114,26 @@ const props = withDefaults(
     initialViews?: TableView[];
     initialActiveViewId?: string;
     /**
+     * The user's favorite view, known by the host (`views.getFavorite`'s
+     * `viewId`). With `initialViewsLoaded`, the view manager starts with it.
+     */
+    initialFavoriteViewId?: string | null;
+    /**
+     * `initialViews` are the saved views `views.list` returns, and
+     * `initialFavoriteViewId` the favorite: the view manager starts loaded and
+     * asks neither again on mount, e.g. after a server rendering.
+     */
+    initialViewsLoaded?: boolean;
+    /**
+     * Server rendering: the table loads its first page during the rendering
+     * (`onServerPrefetch`), in the state it starts from (`initialView`, the
+     * default view), and renders its rows. Pass the request's `queryClient`
+     * and dehydrate it into the page: the browser then starts from those rows
+     * without loading them again, while the client's `staleTime` holds them
+     * fresh. Without it, the server renders the loading state.
+     */
+    serverPrefetch?: boolean;
+    /**
      * Isolates this instance on a page with other tables: its URL keys are
      * `<instanceId>-view` and `<instanceId>-…` instead of `view` and
      * `<tableId>-…`. Config, actions and views still use the table.
@@ -122,9 +142,11 @@ const props = withDefaults(
     /**
      * Settings an instance with URL sync off starts from, applied before its
      * first request: a saved view (its id becomes the active view) or a view
-     * config. For tables embedded without a toolbar, e.g. dashboard widgets.
+     * config. For tables embedded without a toolbar, e.g. dashboard widgets,
+     * and for hosts that start from a favorite view or default filters.
+     * `pageIndex` opens another page than the first (zero-based).
      */
-    initialView?: { id?: string | null; config: TableViewConfig };
+    initialView?: { id?: string | null; config: TableViewConfig; pageIndex?: number };
     title?: string;
     description?: string;
     locale?: string;
@@ -178,6 +200,9 @@ const props = withDefaults(
     customBulkActions: () => [],
     toolbarActions: undefined,
     initialViews: () => [],
+    initialFavoriteViewId: undefined,
+    initialViewsLoaded: false,
+    serverPrefetch: false,
   }
 );
 
@@ -299,6 +324,10 @@ const state = useTableState({
 // An embedded instance starts from its view before its first request.
 if (props.initialView && !syncUrl) {
   state.applyView(props.initialView.config, props.initialView.id ?? undefined);
+  const pageIndex = Math.trunc(props.initialView.pageIndex ?? 0);
+  if (pageIndex > 0) {
+    state.pagination.value = { ...state.pagination.value, pageIndex };
+  }
 }
 // The host's rows are current when produced in the sort the table starts
 // from, on its first page (see initial-rows.ts); otherwise they load again.
@@ -332,6 +361,17 @@ const tableData = useTableData({
   searchDebounceMs,
   tableId: config.id,
   viewId: state.activeViewId,
+});
+if (props.serverPrefetch) {
+  onServerPrefetch(async () => {
+    await Promise.all([tableData.prefetch(), tagCatalogs?.prefetch()]);
+  });
+}
+// Display modes from renderers load their own records: the server and the
+// hydrating browser leave them out, the browser mounts them right after.
+const mounted = ref(false);
+onMounted(() => {
+  mounted.value = true;
 });
 const selection = ref<Record<string, boolean>>({ ...props.rowSelection });
 const selectedRowCache = ref<Record<string, TableRecord>>({});
@@ -721,6 +761,8 @@ provide(tableContextKey, {
   status,
   queryClient,
   tags: tagCatalogs,
+  initialViewsLoaded: props.initialViewsLoaded,
+  initialFavoriteViewId: props.initialFavoriteViewId,
   locale: props.locale,
   onBulkDelete: props.onBulkDelete,
   get onBulkEdit() { return props.onBulkEdit; },
@@ -780,7 +822,7 @@ defineExpose({ refresh, getViewConfig: () => viewConfig.value });
     </div>
 
     <div class="yayaw-content" :aria-busy="tableData.isLoading.value">
-      <DisplayModeRendererHost v-if="modeRenderers?.[state.displayMode.value]" :renderer="modeRenderers[state.displayMode.value]!" />
+      <template v-if="modeRenderers?.[state.displayMode.value]"><DisplayModeRendererHost v-if="mounted" :renderer="modeRenderers[state.displayMode.value]!" /></template>
       <DataGrid v-else-if="state.displayMode.value === 'table'" />
       <KanbanView v-else-if="state.displayMode.value === 'kanban'" />
       <ListView v-else-if="state.displayMode.value === 'list'" />
