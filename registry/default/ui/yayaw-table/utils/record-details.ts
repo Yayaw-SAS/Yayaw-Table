@@ -78,6 +78,8 @@ export interface DetailActivity {
   action: string;
   /** The original event remains in the log; an undo event references its ID. */
   reverts?: string;
+  /** A redo is a new event too: it re-applies the undo event it references. */
+  redoes?: string;
   /** Entries from one user action are undone together by the table shortcut. */
   transactionId?: string;
   reversible?: boolean;
@@ -129,6 +131,10 @@ export interface DetailLabels {
   undoSuccess: string;
   undoError: string;
   undoUnavailable: string;
+  /** Complete localized sentence; {action} is replaced with the redone activity label. */
+  redoSuccess: string;
+  redoError: string;
+  redoUnavailable: string;
 }
 
 export type DetailRevertHandler = (
@@ -171,6 +177,10 @@ export function detailLabels(
         undoError: "L’annulation a échoué. Veuillez réessayer.",
         undoUnavailable:
           "Cette modification ne peut plus être annulée : les champs ont changé depuis.",
+        redoSuccess: "Action « {action} » rétablie.",
+        redoError: "Le rétablissement a échoué. Veuillez réessayer.",
+        redoUnavailable:
+          "Rien à rétablir : aucune annulation récente, ou ses champs ont changé depuis.",
       }
     : {
         details: "Details",
@@ -200,6 +210,10 @@ export function detailLabels(
         undoError: "Undo failed. Please try again.",
         undoUnavailable:
           "This change can no longer be undone because its fields have changed since.",
+        redoSuccess: "Action “{action}” redone.",
+        redoError: "Redo failed. Please try again.",
+        redoUnavailable:
+          "Nothing to redo: no recent undo, or its fields have changed since.",
       };
   return { ...labels, ...overrides };
 }
@@ -210,6 +224,13 @@ export function detailUndoMessage(
   labels: DetailLabels
 ): string {
   return labels.undoSuccess.replaceAll("{action}", () => entry.action);
+}
+
+export function detailRedoMessage(
+  entry: DetailActivity,
+  labels: DetailLabels
+): string {
+  return labels.redoSuccess.replaceAll("{action}", () => entry.action);
 }
 
 interface DetailColumn extends ColumnValueFormat {
@@ -605,11 +626,40 @@ export function canRevertDetailActivity(
   if (activity.some((item) => item.reverts === entry.id)) {
     return false;
   }
-  const index = activity.findIndex((item) => item.id === entry.id);
-  if (index < 0) {
+  return !changedSince(entry, activity);
+}
+
+/**
+ * Redo re-applies an undo event, once, while no newer change touched its fields. The table shortcut also
+ * stops at the user's newer changes (a new edit clears what could be redone).
+ */
+export function canRedoDetailActivity(
+  entry: DetailActivity,
+  activity: readonly DetailActivity[]
+): boolean {
+  if (!entry.reverts || entry.reversible === false || !entry.changes?.length) {
     return false;
   }
-  const fields = new Set(entry.changes.map((change) => change.field));
+  if (
+    activity.some(
+      (item) => item.redoes === entry.id || item.reverts === entry.id
+    )
+  ) {
+    return false;
+  }
+  return !changedSince(entry, activity);
+}
+
+/** Whether a newer event still in effect touched the entry's fields (an event and its undo cancel out). */
+function changedSince(
+  entry: DetailActivity,
+  activity: readonly DetailActivity[]
+): boolean {
+  const index = activity.findIndex((item) => item.id === entry.id);
+  if (index < 0) {
+    return true;
+  }
+  const fields = new Set(entry.changes?.map((change) => change.field));
   const newer = activity.slice(0, index);
   const cancelled = new Set<string>();
   for (const item of newer) {
@@ -618,7 +668,7 @@ export function canRevertDetailActivity(
       cancelled.add(item.reverts);
     }
   }
-  return !newer.some(
+  return newer.some(
     (item) =>
       !cancelled.has(item.id) &&
       item.changes?.some((change) => fields.has(change.field))

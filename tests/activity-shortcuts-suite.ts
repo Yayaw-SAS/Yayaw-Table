@@ -3,7 +3,10 @@ import type {
   createActivityUndo,
   TableActivityRecord,
 } from "../src/components/ui/yayaw-table/utils/activity-shortcuts";
-import type { DetailRevertHandler } from "../src/components/ui/yayaw-table/utils/record-details";
+import type {
+  DetailActivity,
+  DetailRevertHandler,
+} from "../src/components/ui/yayaw-table/utils/record-details";
 
 export function activityShortcutsSuite(
   test: (name: string, run: () => Promise<void>) => void,
@@ -26,7 +29,8 @@ export function activityShortcutsSuite(
   const setup = (
     records: TableActivityRecord[],
     handler: DetailRevertHandler,
-    canRevert = true
+    canRevert = true,
+    redoHandler?: DetailRevertHandler
   ) => {
     const errors: (string | undefined)[] = [];
     const successes: string[] = [];
@@ -36,6 +40,7 @@ export function activityShortcutsSuite(
       rows: () => [],
       config: () => ({ history: () => records, canRevert: () => canRevert }),
       handler: () => handler,
+      redoHandler: () => redoHandler,
       onReverted: () => {
         refreshed += 1;
         return Promise.resolve();
@@ -189,6 +194,92 @@ export function activityShortcutsSuite(
     finish({ success: true });
     await first;
     assert.equal(calls, 1);
+    assert.equal(f.refreshed, 1);
+  });
+  const edit = (
+    id: string,
+    at: string,
+    extra: Partial<DetailActivity> = {}
+  ): DetailActivity => ({
+    id,
+    at: `2026-09-16T${at}:00Z`,
+    actor: { name: "User" },
+    action: extra.reverts ? "undo" : "update",
+    changes: [{ field: "name", before: "A", after: "B" }],
+    ...extra,
+  });
+  test("redoes the newest undo, then undoes the redo", async () => {
+    const calls: string[] = [];
+    const handler: DetailRevertHandler = (_row, entry) => {
+      calls.push(entry.id);
+      return Promise.resolve({ success: true });
+    };
+    const item: TableActivityRecord = {
+      row: { id: "one" },
+      activity: [
+        edit("undo-first", "13:00", { reverts: "first" }),
+        edit("first", "12:00"),
+      ],
+    };
+    const f = setup([item], handler, true, handler);
+    await f.controller.redo();
+    assert.deepEqual(calls, ["undo-first"]);
+    assert.deepEqual(f.successes, ["first"], "The redone change is reported.");
+    item.activity = [
+      edit("redo-first", "14:00", { redoes: "undo-first" }),
+      ...item.activity,
+    ];
+    await f.controller.redo();
+    assert.equal(f.unavailable, 1, "An undo is redone once.");
+    await f.controller.undo();
+    assert.deepEqual(calls, ["undo-first", "redo-first"]);
+  });
+  test("a newer change clears what could be redone", async () => {
+    let calls = 0;
+    const f = setup(
+      [
+        {
+          row: { id: "one" },
+          activity: [
+            edit("other", "14:00", {
+              changes: [{ field: "title", before: "x", after: "y" }],
+            }),
+            edit("undo-first", "13:00", { reverts: "first" }),
+            edit("first", "12:00"),
+          ],
+        },
+      ],
+      () => Promise.resolve({ success: true }),
+      true,
+      () => {
+        calls += 1;
+        return Promise.resolve({ success: true });
+      }
+    );
+    await f.controller.redo();
+    assert.equal(calls, 0);
+    assert.equal(f.unavailable, 1);
+  });
+  test("redoes an entire bulk undo with one shortcut", async () => {
+    const calls: unknown[] = [];
+    const record = (id: string): TableActivityRecord => ({
+      row: { id },
+      activity: [
+        edit(`undo-${id}`, "13:00", { reverts: id, transactionId: "batch" }),
+        edit(id, "12:00", { transactionId: "batch" }),
+      ],
+    });
+    const f = setup(
+      [record("one"), record("two")],
+      () => Promise.resolve({ success: true }),
+      true,
+      (row) => {
+        calls.push(row.id);
+        return Promise.resolve({ success: true });
+      }
+    );
+    await f.controller.redo();
+    assert.deepEqual(calls, ["one", "two"]);
     assert.equal(f.refreshed, 1);
   });
 }

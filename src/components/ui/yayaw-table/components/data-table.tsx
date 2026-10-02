@@ -652,6 +652,7 @@ function DataTableContent({
   details,
   onOpenDetails,
   onRevertActivity,
+  onRedoActivity,
   onViewConfigChange,
   rowActions,
   displayModeRenderers,
@@ -677,6 +678,11 @@ function DataTableContent({
   /** Open an application-owned record route or drawer instead of the built-in details. */
   onOpenDetails?: (row: Record<string, unknown>) => void;
   onRevertActivity?: DetailRevertHandler;
+  /**
+   * Re-applies an undo event (Ctrl/Cmd+Shift+Z, Ctrl+Y) and appends a new event
+   * with `redoes: undoEvent.id`. Redo is off without it.
+   */
+  onRedoActivity?: DetailRevertHandler;
   className?: string;
   loadingOverlay?: React.ReactNode;
   enableToolbar?: boolean;
@@ -1139,6 +1145,7 @@ function DataTableContent({
                 onBulkEdit={onBulkEdit}
                 onBulkExport={onBulkExport}
                 onOpenDetails={openDetails}
+                onRedoActivity={onRedoActivity}
                 onRevertActivity={onRevertActivity}
                 onRowActivate={rowActivationHandler(openDetails, onRowActivate)}
                 onRowClick={onRowClick}

@@ -1094,6 +1094,8 @@ export interface YayawTableProps<TData extends TableRecord = TableRecord> {
   /** Open an application-owned record route or drawer instead of the built-in details. */
   onOpenDetails?: (row: TData) => void;
   onRevertActivity?: import("./record-details").DetailRevertHandler;
+  /** Re-applies an undo event (Ctrl/Cmd+Shift+Z, Ctrl+Y) and appends a new event with `redoes: undoEvent.id`. */
+  onRedoActivity?: import("./record-details").DetailRevertHandler;
   tableType: string;
   tableId?: string;
   formType?: string;

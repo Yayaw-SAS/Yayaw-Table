@@ -5,6 +5,7 @@ import type {
   RecordDetailsConfig,
 } from "../src/components/ui/yayaw-table/utils/record-details";
 import {
+  canRedoDetailActivity,
   canRevertDetailActivity,
   detailActivity,
 } from "../src/components/ui/yayaw-table/utils/record-details";
@@ -349,5 +350,52 @@ export function revertExampleRecord(
     updatedAt: now,
     updatedBy: "Vous · démo",
     audit: [undo, ...activity],
+  };
+}
+
+/** Re-apply what an undo event restored and append a redo event, as `revertExampleRecord` does. */
+export function redoExampleRecord(
+  row: DetailRecord,
+  requested: DetailActivity
+): DetailRecord {
+  const activity = detailActivity(recordDetailsConfig, row);
+  const undo = activity.find((item) => item.id === requested.id);
+  if (
+    !(
+      undo &&
+      canRedoDetailActivity(undo, activity) &&
+      undo.changes?.every(
+        (change) =>
+          JSON.stringify(row[change.field]) === JSON.stringify(change.after)
+      )
+    )
+  ) {
+    throw new Error(
+      "Cette annulation ne peut plus être rétablie : les champs ont changé depuis."
+    );
+  }
+  const redone = { ...row };
+  const changes = undo.changes.map((change) => {
+    redone[change.field] = change.before;
+    return {
+      field: change.field,
+      before: row[change.field],
+      after: change.before,
+    };
+  });
+  const now = new Date().toISOString();
+  const redo: DetailActivity = {
+    id: crypto.randomUUID(),
+    at: now,
+    actor: { name: "Vous · démo" },
+    action: "avez rétabli une modification annulée",
+    redoes: undo.id,
+    changes,
+  };
+  return {
+    ...redone,
+    updatedAt: now,
+    updatedBy: "Vous · démo",
+    audit: [redo, ...activity],
   };
 }

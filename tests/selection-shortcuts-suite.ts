@@ -10,7 +10,7 @@ export function selectionShortcutsSuite(
   const setup = () => {
     const roots: HTMLElement[] = [];
     const cleanup: (() => void)[] = [];
-    const scope = (enabled = true) => {
+    const scope = (enabled = true, withRedo = true) => {
       const root = document.createElement("section");
       document.body.append(root);
       Object.defineProperty(root, "getClientRects", {
@@ -19,6 +19,7 @@ export function selectionShortcutsSuite(
       });
       let selected = 0;
       let undone = 0;
+      let redone = 0;
       let duplicated = 0;
       cleanup.push(
         register({
@@ -33,6 +34,11 @@ export function selectionShortcutsSuite(
           undo: () => {
             undone += 1;
           },
+          redo: withRedo
+            ? () => {
+                redone += 1;
+              }
+            : undefined,
         })
       );
       roots.push(root);
@@ -46,6 +52,9 @@ export function selectionShortcutsSuite(
         },
         get undone() {
           return undone;
+        },
+        get redone() {
+          return redone;
         },
       };
     };
@@ -186,5 +195,40 @@ export function selectionShortcutsSuite(
       f.destroy();
     }
     assert.equal(f.press(document.body, "d"), false);
+  });
+  test("redoes on Ctrl/Cmd+Shift+Z and Ctrl+Y, never on macOS Cmd+Y", () => {
+    const f = setup();
+    try {
+      const table = f.scope();
+      assert.equal(f.press(document.body, "Z", { shiftKey: true }), true);
+      assert.equal(
+        f.press(document.body, "Z", {
+          ctrlKey: false,
+          metaKey: true,
+          shiftKey: true,
+        }),
+        true
+      );
+      assert.equal(f.press(document.body, "y"), true);
+      assert.equal(
+        f.press(document.body, "y", { ctrlKey: false, metaKey: true }),
+        false
+      );
+      assert.equal(table.redone, 3);
+      assert.equal(table.undone, 0);
+    } finally {
+      f.destroy();
+    }
+  });
+  test("leaves redo keys to the browser without a redo handler", () => {
+    const f = setup();
+    try {
+      const table = f.scope(true, false);
+      assert.equal(f.press(document.body, "Z", { shiftKey: true }), false);
+      assert.equal(f.press(document.body, "y"), false);
+      assert.equal(table.undone, 0);
+    } finally {
+      f.destroy();
+    }
   });
 }

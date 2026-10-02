@@ -7,7 +7,7 @@ import PlanningSurface from "./planning/PlanningSurface.vue";
 import GanttView from "./planning/GanttView.vue";
 import { createSelectionDuplicate, duplicateLabels } from "../duplicate-shortcut";
 import { createActivityUndo } from "../activity-shortcuts";
-import { detailUndoMessage, detailLabels } from "../record-details";
+import { detailRedoMessage, detailUndoMessage, detailLabels } from "../record-details";
 import { registerSelectionShortcuts } from "../selection-shortcuts";
 import { QueryClient } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
@@ -84,6 +84,8 @@ const props = withDefaults(
     details?: RecordDetailsConfig | false;
     onOpenDetails?: (row: TableRecord) => void;
     onRevertActivity?: DetailRevertHandler;
+    /** Re-applies an undo event (Ctrl/Cmd+Shift+Z, Ctrl+Y) and appends a new event with `redoes: undoEvent.id`. */
+    onRedoActivity?: DetailRevertHandler;
     tableId?: string;
     formType?: string;
     className?: string;
@@ -592,10 +594,14 @@ const activityUndo = createActivityUndo({
   rows: () => tableData.rows.value,
   config: () => recordDetails.value,
   handler: () => props.onRevertActivity,
+  redoHandler: () => props.onRedoActivity,
   onReverted: async () => { await refresh(); },
-  onSuccess: entry => { status.value = { type: "success", message: detailUndoMessage(entry, detailLabels(props.locale, recordDetails.value?.labels)) }; },
-  onError: error => { status.value = { type: "error", message: error ?? detailLabels(props.locale).undoError }; },
-  onUnavailable: () => { status.value = { type: "error", message: detailLabels(props.locale).undoUnavailable }; },
+  onSuccess: (entry, kind) => {
+    const labels = detailLabels(props.locale, recordDetails.value?.labels);
+    status.value = { type: "success", message: kind === "undo" ? detailUndoMessage(entry, labels) : detailRedoMessage(entry, labels) };
+  },
+  onError: (error, kind) => { status.value = { type: "error", message: error ?? detailLabels(props.locale)[kind === "undo" ? "undoError" : "redoError"] }; },
+  onUnavailable: kind => { status.value = { type: "error", message: detailLabels(props.locale)[kind === "undo" ? "undoUnavailable" : "redoUnavailable"] }; },
 });
 const duplicateSelection = createSelectionDuplicate({
   rows: () => selectedRows.value,
@@ -622,6 +628,7 @@ onMounted(() => {
     get selectAll() { return config.table.enableRowSelection !== false && config.table.enableMultiRowSelection !== false ? () => { void selectAllMatching(); } : undefined; },
     get duplicate() { return config.table.allowDuplicate !== false && actions.value?.duplicate ? () => { void duplicateSelection(); } : undefined; },
     get undo() { return props.onRevertActivity ? () => { void activityUndo.undo(); } : undefined; },
+    get redo() { return props.onRedoActivity ? () => { void activityUndo.redo(); } : undefined; },
   });
 });
 onBeforeUnmount(() => removeSelectionShortcuts?.());
