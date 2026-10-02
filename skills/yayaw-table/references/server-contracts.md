@@ -360,7 +360,7 @@ Serving the public page and accepting responses: [forms](forms.md).
 | `destination.kind` | `"connect"` (also `"sync"`, `"export"`) lists it under Connect; `"share"` under Share, after "Copy link". |
 | `destination.icon` | React node or Vue component; a send icon by default. |
 | `destination.hidden`, `destination.requiresSelection` | Hide it, or offer it only while rows are selected. |
-| `destination.run` | `(context)` → `{ message? }`. Context: `tableId`, `tableType`, `viewId`, `query` (the `list` shape), visible `columns`, `selectedRowIds`, `url`, `loadRows`. Prefer sending `query` and `viewId` to your server over `loadRows` rows from the browser. |
+| `destination.run` | `(context)` → `{ message? }`. Context: `tableId`, `tableType`, `viewId`, `query` (the `list` shape), visible `columns` (never `enableExport: false` ones, which connector mappings leave out too), `selectedRowIds`, `url`, `loadRows`. Prefer sending `query` and `viewId` to your server over `loadRows` rows from the browser. |
 | `destination.schedule` | Scheduling for this view (below). |
 | `destination.connector` | Opens the connector screen instead of `run` (below). |
 

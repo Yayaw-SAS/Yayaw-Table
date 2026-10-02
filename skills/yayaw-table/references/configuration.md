@@ -42,7 +42,7 @@ or an `instanceId`.
 | `numberFormat`, `dateDisplayPreset`, `dateFormat`, `timeZone`, `hour12` | Formats, see below. |
 | `inlineEdit` | `true` or `{ enabled, editor, debounceMs, options, readonly }`; editing is opt-in per column or with `table.inlineEdit.enabled`. |
 | `enableSorting`, `enableFiltering`, `enableGrouping`, `enablePinning`, `enableResizing`, `enableCalculation`, `defaultCalculation` | Per-column capabilities and the default footer calculation. |
-| `enableExport` | `false` leaves the column out of every file export: the Export screen's lists, `actions.exportFile` requests and the bulk CSV. |
+| `enableExport` | `false` keeps the column in the table: never in the Export screen's lists, `actions.exportFile` requests, the bulk CSV, Connect destinations' `columns` or connector mappings. |
 | `size`, `minSize`, `maxSize` | Widths in pixels. |
 | `cellRenderer(value, row)` | Custom cell (React node, Vue VNode). |
 | `filterRenderer({ value, onChange })` | Custom control inside the column filter menu; writes the normal filter state. |

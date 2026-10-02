@@ -122,8 +122,9 @@ export interface ColumnDefinition<TData extends TableRecord = TableRecord> {
   enableResizing?: boolean;
   enableHiding?: boolean;
   /**
-   * `false` leaves the column out of every file export: the Export screen's
-   * column lists, `actions.exportFile` requests and the bulk CSV. Default true.
+   * `false` keeps the column in the table: it never leaves through the Export
+   * screen's column lists, `actions.exportFile` requests, the bulk CSV,
+   * Connect destinations (`columns`) or connector mappings. Default true.
    */
   enableExport?: boolean;
   /** Allow the native column menu to change this column's pinned position. */

@@ -80,6 +80,21 @@ test("a connector maps the view's columns to a target, sends and sends again", a
   ).toHaveText(DONT_SEND);
 });
 
+test("a connector never maps `enableExport: false` columns", async ({
+  page,
+}) => {
+  const panel = await openConnector(page);
+  await choose(panel, "Spreadsheet", "Team tracker");
+  // The demo's 14 columns but its Serial number, never exported.
+  await choose(panel, "Columns", "All (13)");
+  await expect(
+    panel.getByRole("combobox", { name: "Details", exact: true })
+  ).toBeVisible();
+  await expect(
+    panel.getByRole("combobox", { name: "Serial number", exact: true })
+  ).toHaveCount(0);
+});
+
 test("a connector sends the selected records only", async ({ page }) => {
   const rows = page.getByRole("checkbox");
   await rows.nth(1).click();

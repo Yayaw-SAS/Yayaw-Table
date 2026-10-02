@@ -264,7 +264,7 @@ Column header menus expose the same outcomes: ascending/descending sort, filter 
 
 Toolbar export retrieves **all matching rows**, respecting the current search, column filters, advanced-filter join, and sort. Vue applies the same query to local data before export. Server export and select-all use the shared page collector; a server page-size cap does not truncate results when `meta.pageCount` or `meta.totalCount` describes the full result. Without metadata, a short page ends the collection. An inconsistent empty page, a failed request, or the 1,000-page limit reports an error instead of handing partial rows to the export callback. An export already in progress keeps the query and column order captured when it started; its button stays disabled until completion.
 
-CSV export includes visible data columns in display order. Bulk export includes only selected rows. Columns defined with `enableExport: false` never appear in a file export, in either edition. The `onExport` and `onBulkExport` callbacks retain their existing signatures and take precedence over the built-in download.
+CSV export includes visible data columns in display order. Bulk export includes only selected rows. Columns defined with `enableExport: false` never leave the table, in either edition: not in a file export, a Connect destination's `columns` or a connector mapping. The `onExport` and `onBulkExport` callbacks retain their existing signatures and take precedence over the built-in download.
 
 Both editions retain selected records across page and page-size changes. Deselecting one row keeps the other selected rows, including rows outside the current page. Returning to a page replaces cached selected records with the freshly loaded versions. Changing search, filters, sort, or grouping clears the selection by default; set `preserveSelectionOnQuery: true` to retain it in either edition. Both tables accept controlled row-selection state. A delayed select-all result cannot replace a newer selection or query, and select-all respects row selection permissions. Provide stable row IDs (or `getRowId`) for server pagination; positional indexes cannot identify records across pages. Off-page selected rows retain their last loaded values until fetched again.
 
@@ -1813,7 +1813,11 @@ checked); the export writes exactly the checked columns in that order
 well as the `exportFile` request. `isExportableColumn` leaves out the
 selection and actions columns and `enableExport: false` ones from every list,
 the request and the bulk CSV (React `createCsvContent` through
-`table-component.tsx`, Vue `rowsToCsv`). The checklist uses each edition's
+`table-component.tsx`, Vue `rowsToCsv`), and from the `columns` of
+`DataDestinationContext` and the connector screen's Visible and All mapping
+lists (React through `csvExportColumns` and `connectorColumns`, Vue through
+`destinationContext` and `connectorColumns`; both export-screen tests and
+`e2e/connectors.spec.ts`). The checklist uses each edition's
 checkbox (Base UI, Reka) with a label per column and a screen-reader-only
 legend. The default file name is `defaultExportFileName(title, view)` with
 the active saved view's name in both editions (React reads the saved views

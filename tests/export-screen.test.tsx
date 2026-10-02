@@ -9,6 +9,7 @@ import { DataTable } from "../src/components/ui/yayaw-table/components/data-tabl
 import { defineTableConfig } from "../src/components/ui/yayaw-table/config/helpers";
 import type { TableActions } from "../src/components/ui/yayaw-table/providers/table-provider";
 import type { TableView } from "../src/components/ui/yayaw-table/types/view-types";
+import type { DataDestinationContext } from "../src/components/ui/yayaw-table/utils/data-destinations";
 import type { ExportFileRequest } from "../src/components/ui/yayaw-table/utils/export-model";
 
 // The Export screen and the bulk CSV, as `packages/yayaw-table-vue/src/
@@ -81,6 +82,7 @@ async function openTable({
   table?: Record<string, unknown>;
 } = {}) {
   const requests: ExportFileRequest[] = [];
+  const sent: DataDestinationContext[] = [];
   const actions: TableActions = {
     list: () =>
       Promise.resolve({ data: rows, meta: { pageCount: 1, totalCount: 2 } }),
@@ -88,6 +90,17 @@ async function openTable({
       requests.push(request);
       return Promise.resolve(undefined);
     },
+    destinations: [
+      {
+        id: "webhook",
+        label: "Webhook",
+        kind: "connect",
+        run: (context: DataDestinationContext) => {
+          sent.push(context);
+          return { message: "Sent" };
+        },
+      },
+    ],
   };
   const config = configFor(table);
   const container = document.createElement("div");
@@ -117,7 +130,7 @@ async function openTable({
     )
   );
   await settle();
-  return { container, requests };
+  return { container, requests, sent };
 }
 
 const control = (name: string, selector = "button") => {
@@ -205,6 +218,17 @@ it("names the file after the view and never exports `enableExport: false` column
     "name",
     "amount",
     "paid",
+  ]);
+});
+
+it("sends Connect destinations the view's columns without `enableExport: false` ones", async () => {
+  const { sent } = await openTable();
+  await click("Data");
+  await click("Connect", '[data-menu-section="data"] button');
+  await click("Webhook");
+  expect(sent.at(-1)?.columns).toEqual([
+    { id: "amount", header: "Amount" },
+    { id: "name", header: "Name" },
   ]);
 });
 

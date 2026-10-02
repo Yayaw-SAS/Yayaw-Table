@@ -62,8 +62,9 @@ export interface ExportColumnChoice {
 }
 
 /**
- * Whether a column may appear in an export: not the selection or actions
- * column, nor a column defined with `enableExport: false`.
+ * Whether a column may leave the table (exports, Connect destinations,
+ * connector mappings): not the selection or actions column, nor a column
+ * defined with `enableExport: false`.
  */
 export function isExportableColumn(column: {
   id: string;

@@ -7,6 +7,7 @@ import {
 import { afterEach, expect, it, vi } from "vitest";
 import { inlineTestPortals } from "../../tests/menu-helpers";
 import { defineTableConfig } from "../config";
+import type { DataDestinationContext } from "../data-destinations";
 import type { ExportFileRequest } from "../export-model";
 import type { TableBehaviorConfig, TableView } from "../types";
 import YayawDataTable from "./YayawDataTable.vue";
@@ -41,6 +42,7 @@ const mountTable = ({
   table?: Partial<TableBehaviorConfig>;
 } = {}) => {
   const requests: ExportFileRequest[] = [];
+  const sent: DataDestinationContext[] = [];
   const config = defineTableConfig({
     id: TABLE_ID,
     columns: {
@@ -79,6 +81,17 @@ const mountTable = ({
           requests.push(request);
           return Promise.resolve(undefined);
         },
+        destinations: [
+          {
+            id: "webhook",
+            label: "Webhook",
+            kind: "connect" as const,
+            run: (context: DataDestinationContext) => {
+              sent.push(context);
+              return { message: "Sent" };
+            },
+          },
+        ],
       }),
     },
     // Keep Reka selection/focus behavior; jsdom cannot measure popper layout.
@@ -89,7 +102,7 @@ const mountTable = ({
       },
     },
   });
-  return { wrapper, requests };
+  return { wrapper, requests, sent };
 };
 type Wrapper = ReturnType<typeof mountTable>["wrapper"];
 
@@ -170,6 +183,27 @@ it("names the file after the view and never exports `enableExport: false` column
     "name",
     "amount",
     "paid",
+  ]);
+});
+
+it("sends Connect destinations the view's columns without `enableExport: false` ones", async () => {
+  const { wrapper, sent } = mountTable();
+  await flushPromises();
+  await wrapper.get(".yayaw-data-trigger").trigger("click");
+  await flushPromises();
+  const connect = wrapper
+    .findAll('[data-menu-section="data"] .yayaw-options-item')
+    .find((item) => item.text().startsWith("Connect"));
+  await connect?.trigger("click");
+  await flushPromises();
+  const webhook = wrapper
+    .findAll("button")
+    .find((item) => item.text() === "Webhook");
+  await webhook?.trigger("click");
+  await flushPromises();
+  expect(sent.at(-1)?.columns).toEqual([
+    { id: "amount", header: "Amount" },
+    { id: "name", header: "Name" },
   ]);
 });
 

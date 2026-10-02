@@ -1219,12 +1219,16 @@ export function DataTableAdvancedToolbar<TData>({
     );
   }, [visibilityParam, state?.columnVisibility]);
 
+  // The view's visible columns that may leave the table (`enableExport`): the
+  // Export screen, Connect destinations and connector mappings.
   const csvExportColumns = useMemo(() => {
     return buildCsvExportColumns({
-      columnDefinitions: tableConfig.columns.definitions.map((definition) => ({
-        header: definition.header,
-        id: definition.id,
-      })),
+      columnDefinitions: tableConfig.columns.definitions
+        .filter(isExportableColumn)
+        .map((definition) => ({
+          header: definition.header,
+          id: definition.id,
+        })),
       columnOrder: normalizedColumnOrder,
       defaultVisibleColumns: tableConfig.columns.visible || [],
       visibility: normalizedVisibility,
@@ -1616,12 +1620,14 @@ export function DataTableAdvancedToolbar<TData>({
     readSavedViews
   );
   const activeViewName = savedViews?.find((view) => view.id === viewParam)?.name;
-  // The view's columns for connector mappings: visible ones in display order, then the others.
+  // The view's columns for connector mappings: visible ones in display order,
+  // then the others, never `enableExport: false` ones.
   const connectorColumns = useMemo((): ConnectorViewColumn[] => {
     const visible = new Set(csvExportColumns.map((column) => column.id));
     const ordered = [
       ...visible,
       ...tableConfig.columns.definitions
+        .filter(isExportableColumn)
         .map((column) => column.id)
         .filter((id) => !visible.has(id)),
     ];

@@ -571,13 +571,12 @@ const scheduleSuffix = (destination: DataDestination<Component>) => {
       syncEnabled: syncEnabled.value,
     });
 };
-// The view's columns for connector mappings: visible ones in display order, then the others.
+// The view's columns for connector mappings: visible ones in display order,
+// then the others, never `enableExport: false` ones.
 const connectorColumns = (): ConnectorViewColumn[] => {
-  const visible = exportColumns(context.config.columns.definitions, context.state.visibility.value, context.state.order.value);
+  const visible = exportColumns(exportableDefinitions.value, context.state.visibility.value, context.state.order.value);
   const visibleIds = new Set(visible.map((column) => column.id));
-  const hidden = context.config.columns.definitions.filter(
-    (column) => column.id !== "select" && column.type !== "actions" && !visibleIds.has(column.id)
-  );
+  const hidden = exportableDefinitions.value.filter((column) => !visibleIds.has(column.id));
   return [...visible, ...hidden].map((column) => {
     // Static options let the target check spot options the target lacks.
     const options = connectorColumnOptions((column as { options?: unknown }).options);
@@ -687,7 +686,8 @@ const destinationContext = (): DataDestinationContext => ({
     advancedFilters: context.state.advancedFilters.value,
     sorting: context.state.sorting.value,
   }),
-  columns: exportColumns(context.config.columns.definitions, context.state.visibility.value, context.state.order.value)
+  // Never `enableExport: false` columns, as in the Export screen.
+  columns: exportColumns(exportableDefinitions.value, context.state.visibility.value, context.state.order.value)
     .map((column) => ({ id: column.id, header: column.header })),
   selectedRowIds: context.selectedRows.value.map((row) => context.getRowId(row)),
   url: window.location.href,
