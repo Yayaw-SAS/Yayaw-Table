@@ -139,6 +139,42 @@ export function activityShortcutsSuite(
     assert.deepEqual(f.successes, []);
     assert.deepEqual(denied.successes, []);
   });
+  test("walks back repeated changes of the same field", async () => {
+    const change = (
+      id: string,
+      at: string,
+      before: string,
+      after: string,
+      reverts?: string
+    ) => ({
+      id,
+      at,
+      actor: { name: "User" },
+      action: reverts ? "undo" : "update",
+      reverts,
+      changes: [{ field: "name", before, after }],
+    });
+    const calls: string[] = [];
+    const f = setup(
+      [
+        {
+          row: { id: "one" },
+          activity: [
+            change("undo-second", "2026-09-16T14:00:00Z", "C", "B", "second"),
+            change("second", "2026-09-16T13:00:00Z", "B", "C"),
+            change("first", "2026-09-16T12:00:00Z", "A", "B"),
+          ],
+        },
+      ],
+      (_row, entry) => {
+        calls.push(entry.id);
+        return Promise.resolve({ success: true });
+      }
+    );
+    await f.controller.undo();
+    assert.deepEqual(calls, ["first"]);
+    assert.equal(f.unavailable, 0);
+  });
   test("does not run concurrent undo requests", async () => {
     let finish: (result: { success: boolean }) => void = () => undefined;
     let calls = 0;

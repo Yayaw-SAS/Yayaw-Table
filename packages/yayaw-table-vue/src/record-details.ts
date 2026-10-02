@@ -591,7 +591,10 @@ export function detailActivity(
   ].sort((a, b) => (Date.parse(b.at) || 0) - (Date.parse(a.at) || 0));
 }
 
-/** An undo is a new event. Never offer a second undo or overwrite newer field changes. */
+/**
+ * An undo is a new event. Never offer a second undo or overwrite newer field changes. A newer change that was
+ * undone since cancels out with its undo, so repeated undos walk back the same field one change at a time.
+ */
 export function canRevertDetailActivity(
   entry: DetailActivity,
   activity: readonly DetailActivity[]
@@ -607,7 +610,17 @@ export function canRevertDetailActivity(
     return false;
   }
   const fields = new Set(entry.changes.map((change) => change.field));
-  return !activity
-    .slice(0, index)
-    .some((item) => item.changes?.some((change) => fields.has(change.field)));
+  const newer = activity.slice(0, index);
+  const cancelled = new Set<string>();
+  for (const item of newer) {
+    if (item.reverts && newer.some((other) => other.id === item.reverts)) {
+      cancelled.add(item.id);
+      cancelled.add(item.reverts);
+    }
+  }
+  return !newer.some(
+    (item) =>
+      !cancelled.has(item.id) &&
+      item.changes?.some((change) => fields.has(change.field))
+  );
 }
