@@ -77,6 +77,8 @@ const focusName = (event: Event): void => {
   event.preventDefault();
   nameInput.value?.focus();
 };
+// The active saved view names export files.
+defineExpose({ activeName: computed(() => active.value?.name) });
 </script>
 
 <template>

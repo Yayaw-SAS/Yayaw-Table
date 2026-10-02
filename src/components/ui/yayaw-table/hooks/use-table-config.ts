@@ -120,6 +120,8 @@ export interface TableCatalogueTableConfig
   export?: boolean;
   /** Formats the Export screen offers (default CSV and PDF, Excel with `actions.exportFile`). */
   exportFormats?: import("../utils/export-model").ExportFormat[];
+  /** Separator of CSV files written in the browser: ",", ";" (French Excel) or tab; default ",". */
+  exportCsvSeparator?: import("../utils/export-model").CsvSeparator;
   /** Offer "Share" (copy the link to the view); default true. */
   share?: boolean;
   /** Offer scheduling settings for Connect destinations that declare `schedule`; default true. */
@@ -374,6 +376,7 @@ function resolveTableBehaviorConfig(
     sync: mergedConfig.sync,
     import: mergedConfig.import,
     exportFormats: mergedConfig.exportFormats,
+    exportCsvSeparator: mergedConfig.exportCsvSeparator,
     bulkExport: mergedConfig.bulkExport ?? true,
     actionsAsIcons: mergedConfig.actionsAsIcons ?? false,
     coloredTags: mergedConfig.coloredTags !== false,

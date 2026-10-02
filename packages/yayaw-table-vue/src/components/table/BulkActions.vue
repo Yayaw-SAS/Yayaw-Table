@@ -435,7 +435,8 @@ const bulkExport = async (): Promise<void> => {
     downloadCsv(
       context.selectedRows.value,
       exportColumns(context.config.columns.definitions, context.state.visibility.value, context.state.order.value),
-      `${context.config.id}-selection`
+      `${context.config.id}-selection`,
+      context.config.table.exportCsvSeparator
     );
     applyResult(
       { success: true, clearSelection: false, closeMenu: true },

@@ -320,9 +320,15 @@ column is `{ id, header }` plus what the table shows it with, when set:
 Load the rows yourself from `query` with the user's permissions (limit to
 `selectedRowIds` for a selection), write `formatted` values with each
 column's format in `locale`, or the stored values otherwise.
-Excel is offered only with `exportFile`; `table.exportFormats` narrows the
-formats. Without it, the browser writes a UTF-8 CSV or prints a PDF from rows
-loaded through `list`, and `onExport` can replace the CSV file.
+`columns` are the user's choice (visible, all, or the ones checked under
+"Choose columns", in that order) and never include `enableExport: false`
+columns. Excel is offered only with `exportFile`; `table.exportFormats`
+narrows the formats. Without it, the browser writes a UTF-8 CSV (with a BOM,
+separated by `table.exportCsvSeparator`) or prints a PDF from rows loaded
+through `list`, and `onExport` can replace the CSV file. Browser CSV files
+prefix text starting with `=`, `+`, `-`, `@`, a tab or a carriage return with
+an apostrophe, so spreadsheets do not run it as a formula; numbers, as stored
+or as displayed, are written as they are. Do the same in server CSV files.
 
 ## Geocoding
 

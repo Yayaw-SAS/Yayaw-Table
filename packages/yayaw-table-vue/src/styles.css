@@ -2365,6 +2365,24 @@
 .yayaw-export-panel .yayaw-export-run {
   width: 100%;
 }
+/* "Choose columns": select all or none, then the checklist. */
+.yayaw-export-columns-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 4px;
+}
+.yayaw-export-columns-actions .yayaw-button {
+  min-height: 32px;
+  padding: 5px 10px;
+}
+.yayaw-export-hint {
+  display: block;
+  margin: 0;
+  padding: 0 8px;
+  color: var(--yayaw-muted-foreground);
+  font-size: 14px;
+}
 .yayaw-choice-list {
   display: grid;
   gap: 4px;

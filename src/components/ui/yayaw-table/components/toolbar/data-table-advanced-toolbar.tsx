@@ -6,6 +6,7 @@
  */
 
 import type { TableDisplayMode } from "../../types/display-types";
+import type { TableView } from "../../types/view-types";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAtomValue, useSetAtom } from "jotai";
 import {
@@ -28,6 +29,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { toast } from "sonner";
 import type {
@@ -108,8 +110,11 @@ import {
   defaultExportFileName,
   downloadExportFile,
   type ExportColumn,
+  type ExportColumnChoice,
   type ExportSettings,
   availableExportFormats,
+  exportLabels,
+  isExportableColumn,
   printExportPage,
   runExport,
 } from "../../utils/export-model";
@@ -136,7 +141,7 @@ import { importScreen } from "./import-screen";
 import { SearchBar } from "./sections/search-bar";
 import { TableDensityMenu } from "./table-density-menu";
 import { TableMenu } from "./table-menu";
-import { DataTableViewManager } from "./table-view-manager";
+import { DataTableViewManager, tableViewsQueryKey } from "./table-view-manager";
 import {
   partitionToolbarActions,
   resolveToolbarActionState,
@@ -1576,6 +1581,41 @@ export function DataTableAdvancedToolbar<TData>({
     },
     [tableConfig.columns.definitions]
   );
+  // The Export screen's columns: the exportable ones in display order.
+  const exportChoices = useMemo((): ExportColumnChoice[] => {
+    const visible = new Set(csvExportColumns.map((column) => column.id));
+    return buildCsvExportColumns({
+      columnDefinitions: tableConfig.columns.definitions
+        .filter(isExportableColumn)
+        .map((definition) => ({ header: definition.header, id: definition.id })),
+      columnOrder: normalizedColumnOrder,
+    }).map((column) => ({
+      id: column.id,
+      header: column.label,
+      visible: visible.has(column.id),
+    }));
+  }, [csvExportColumns, normalizedColumnOrder, tableConfig.columns.definitions]);
+  // Built-in English or French labels, which `exportScreen.<key>` overrides.
+  const exportT = useMemo(
+    () =>
+      exportLabels(locale, (key, fallback) => {
+        const translated = t(`exportScreen.${key}`);
+        return translated === `exportScreen.${key}` ? fallback : translated;
+      }),
+    [locale, t]
+  );
+  // The active saved view names the file, as in Vue.
+  const viewsKey = tableViewsQueryKey(tableId, tableType);
+  const readSavedViews = () => queryClient.getQueryData<TableView[]>(viewsKey);
+  const savedViews = useSyncExternalStore(
+    useCallback(
+      (notify: () => void) => queryClient.getQueryCache().subscribe(notify),
+      [queryClient]
+    ),
+    readSavedViews,
+    readSavedViews
+  );
+  const activeViewName = savedViews?.find((view) => view.id === viewParam)?.name;
   // The view's columns for connector mappings: visible ones in display order, then the others.
   const connectorColumns = useMemo((): ConnectorViewColumn[] => {
     const visible = new Set(csvExportColumns.map((column) => column.id));
@@ -1622,14 +1662,22 @@ export function DataTableAdvancedToolbar<TData>({
             advancedFilters: advancedFiltersParam,
             sorting: sortParam as { id: string; desc?: boolean }[],
           }),
-          allColumns: exportColumnsFor(),
+          allColumns: exportColumnsFor(
+            tableConfig.columns.definitions
+              .filter(isExportableColumn)
+              .map((column) => column.id)
+          ),
           visibleColumns: exportColumnsFor(
-            csvExportColumns.map((column) => column.id)
+            exportChoices
+              .filter((column) => column.visible)
+              .map((column) => column.id)
           ),
           selectedRowIds: toolbarActionContext.selectedRowIds,
           selectedRows: toolbarActionContext.selectedOriginalRows,
           loadRows: loadMatchingRows,
           locale,
+          labels: exportT,
+          csvSeparator: tableConfig.table.exportCsvSeparator,
           title: tableTitle,
           exportFile: tableActions?.exportFile,
           onRows: onExport,
@@ -1646,8 +1694,9 @@ export function DataTableAdvancedToolbar<TData>({
     },
     [
       advancedFiltersParam,
-      csvExportColumns,
+      exportChoices,
       exportColumnsFor,
+      exportT,
       filtersParam,
       globalSearchParam,
       isExporting,
@@ -1656,6 +1705,8 @@ export function DataTableAdvancedToolbar<TData>({
       onExport,
       sortParam,
       tableActions?.exportFile,
+      tableConfig.columns.definitions,
+      tableConfig.table.exportCsvSeparator,
       tableTitle,
       toolbarActionContext.selectedOriginalRows,
       toolbarActionContext.selectedRowIds,
@@ -1818,17 +1869,16 @@ export function DataTableAdvancedToolbar<TData>({
                 content: (
                   <ExportPanel
                     busy={isExporting}
-                    defaultFileName={defaultExportFileName(tableTitle)}
+                    columns={exportChoices}
+                    defaultFileName={defaultExportFileName(
+                      tableTitle,
+                      activeViewName
+                    )}
                     formats={availableExportFormats(
                       tableConfig.table.exportFormats,
                       Boolean(tableActions?.exportFile)
                     )}
-                    label={(key, fallback) => {
-                      const translated = t(`exportScreen.${key}`);
-                      return translated === `exportScreen.${key}`
-                        ? fallback
-                        : translated;
-                    }}
+                    label={exportT}
                     onExport={handleExport}
                     selectedCount={toolbarActionContext.selectedRowIds.length}
                   />

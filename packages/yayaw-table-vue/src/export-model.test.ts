@@ -5,7 +5,10 @@ import {
   csvFromMatrix,
   defaultExportFileName,
   exportFileName,
+  exportLabels,
   exportMatrix,
+  exportRecordCount,
+  isExportableColumn,
   printableHtml,
   runExport,
 } from "./export-model";
@@ -15,7 +18,10 @@ exportModelSuite(it, {
   csvFromMatrix,
   defaultExportFileName,
   exportFileName,
+  exportLabels,
   exportMatrix,
+  exportRecordCount,
+  isExportableColumn,
   printableHtml,
   runExport,
 });
