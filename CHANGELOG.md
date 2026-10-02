@@ -1,5 +1,35 @@
 # Changelog
 
+## 3.11.0
+
+### Minor Changes
+
+- 9154b61: Export improvements, in React and Vue alike.
+
+  - **`enableExport: false` (column)** keeps a column in the table: it never appears in the Export screen's Visible, All and "Choose columns" lists, the `actions.exportFile` request, the bulk CSV, the `columns` a Connect destination receives, or the connector screen's Visible and All mapping lists. It used to be ignored.
+  - **Choose columns**: the Export screen's Columns setting offers a third choice, a checklist of the exportable columns in display order, checked for the visible ones, with "Select all" and "Select none". The CSV, the printed PDF and the `exportFile` request write exactly the checked columns in that order (`ExportSettings.columns: "custom"` with `columnIds`). Export stays disabled, with an announced hint, while no column is checked.
+  - **French labels**: every Export screen label (`exportScreen.*`, now with `columnsCustom`, `columnsChoice`, `columnsSelectAll`, `columnsSelectNone`, `columnsEmpty`, `records`, `recordsOne`, `yes`, `no`) has a built-in French version (`exportLabels`), and the PDF subtitle counts records with the locale's plural rule ("1 record", "0 enregistrement", "12 enregistrements"). Host translations keep overriding them.
+  - **Yes and No**: as displayed (and in the PDF), boolean columns read "Yes"/"No" ("Oui"/"Non"), overridable with `exportScreen.yes` and `exportScreen.no`; a boolean column with `options` keeps their labels, and Raw keeps `true`/`false`.
+  - **Safe CSV**: both browser CSV writers (the Export screen and the bulk CSV) put an apostrophe before text starting with `=`, `+`, `-`, `@`, a tab or a carriage return, so spreadsheets do not run it as a formula. Numbers are left alone: number values, numeric text in `number` columns and their displayed text ("-12", "1 234,5"). The Vue bulk CSV now starts with the UTF-8 BOM, as the other writers do.
+  - **`table.exportCsvSeparator`** (`","` by default, `";"` for French Excel, or `"\t"`) separates the cells of both browser CSV writers.
+  - **The default file name includes the active saved view** in both editions (`projects-active-items-2026-10-02`), as `defaultExportFileName` documented.
+
+  **Migration.** None required. Exported text that starts with `=`, `+`, `-`, `@`, a tab or a carriage return now begins with an apostrophe; hosts parsing the browser CSV should expect it.
+
+- d6367a9: Add the optional Excel items, `yayaw-table-excel` (React) and `yayaw-table-vue-excel` (Vue): a dependency-free `.xlsx` writer, `writeXlsx`, for `table.excelWriter`. With it, the Export screen offers Excel without `actions.exportFile` and writes the file in the browser from the same cells as the CSV (as displayed or raw, the chosen columns): one worksheet named after the table, a bold header row, numbers as numeric cells, other values as text, in a store-only ZIP. `actions.exportFile`, when provided, still builds every format on the server.
+
+  ```ts
+  import { writeXlsx } from "@/components/ui/yayaw-table-excel/xlsx-writer"; // Vue: @/components/ui/yayaw-table-vue/excel/xlsx-writer
+
+  table: {
+    excelWriter: writeXlsx;
+  }
+  ```
+
+- 763a3ba: Record activity undo and redo (React and Vue):
+  - a newer change that was undone since no longer blocks undoing an older change of the same fields, so repeated Ctrl/Cmd+Z walks a field back one change at a time;
+  - Ctrl/Cmd+Shift+Z and Ctrl+Y redo the newest undo through the new opt-in `onRedoActivity(row, undoEvent)` handler. A redo appends an event with `redoes: undoEvent.id` (new optional `DetailActivity.redoes`); new labels `redoSuccess`, `redoError` and `redoUnavailable`.
+
 ## 3.10.0
 
 ### Minor Changes
