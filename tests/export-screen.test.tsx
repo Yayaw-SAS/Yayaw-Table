@@ -77,19 +77,25 @@ const settle = async (frames = 6): Promise<void> => {
 async function openTable({
   locale,
   table,
+  exportFile = true,
 }: {
   locale?: string;
   table?: Record<string, unknown>;
+  exportFile?: boolean;
 } = {}) {
   const requests: ExportFileRequest[] = [];
   const sent: DataDestinationContext[] = [];
   const actions: TableActions = {
     list: () =>
       Promise.resolve({ data: rows, meta: { pageCount: 1, totalCount: 2 } }),
-    exportFile: (request: ExportFileRequest) => {
-      requests.push(request);
-      return Promise.resolve(undefined);
-    },
+    ...(exportFile
+      ? {
+          exportFile: (request: ExportFileRequest) => {
+            requests.push(request);
+            return Promise.resolve(undefined);
+          },
+        }
+      : {}),
     destinations: [
       {
         id: "webhook",
@@ -268,6 +274,41 @@ it("labels the Export screen in French", async () => {
   }
   await choose("Colonnes", "Choisir les colonnes");
   expect(panel().textContent).toContain("Tout cocher");
+});
+
+it("offers Excel without a server once `table.excelWriter` is set", async () => {
+  const written: { headers: string[]; sheetName: string }[] = [];
+  const excelWriter = (
+    matrix: { headers: string[] },
+    { sheetName }: { sheetName: string }
+  ) => {
+    written.push({ headers: matrix.headers, sheetName });
+    return new Blob(["xlsx"]);
+  };
+  const createObjectURL = URL.createObjectURL;
+  URL.createObjectURL = () => "blob:excel";
+  const links = Object.getPrototypeOf(document.createElement("a")) as {
+    click: () => void;
+  };
+  const follow = links.click;
+  links.click = () => undefined;
+  try {
+    // The host has no `exportFile`: the Excel item writes the file here.
+    const { requests } = await openTable({
+      table: { excelWriter },
+      exportFile: false,
+    });
+    await openExport();
+    await choose("Format", "Excel (.xlsx)");
+    await run();
+    expect(requests).toEqual([]);
+    expect(written).toEqual([
+      { headers: ["Amount", "Name"], sheetName: "Projects" },
+    ]);
+  } finally {
+    URL.createObjectURL = createObjectURL;
+    links.click = follow;
+  }
 });
 
 it("writes a safe bulk CSV with the configured separator, without `enableExport: false` columns", async () => {

@@ -7,6 +7,7 @@ const EXPORT_ENTRY = /^Export/;
 const EXPORT_BUTTON = /^export$/i;
 const SELECTED_TWO = /^Selected \(2\)/;
 const PROJECTS_CSV = /^projects-\d{4}-\d{2}-\d{2}\.csv$/;
+const PROJECTS_XLSX = /^projects-\d{4}-\d{2}-\d{2}\.xlsx$/;
 const ACTIVE_PROJECTS_CSV = /^projects-active-projects-\d{4}-\d{2}-\d{2}\.csv$/;
 const SEARCH_BUTTON = /^search/i;
 const CURRENT_VIEW_TRIGGER = /^current view/i;
@@ -347,6 +348,36 @@ test("the Export screen writes the chosen columns, in a file named after the vie
   // In display order, whatever the order of the clicks.
   expect(lines[0]).toBe("\uFEFFName,Price");
   expect(lines).toContain("Bravo audit,€120.00");
+});
+
+test("the Export screen writes Excel files in the browser with the Excel item", async ({
+  page,
+}) => {
+  await page.goto(`${EXAMPLE}&views-q=bravo`);
+  await page.getByRole("button", { name: "Data", exact: true }).click();
+  await page.getByRole("button", { name: EXPORT_ENTRY }).first().click();
+  const panel = page.locator("[data-export-panel]");
+  await panel.getByRole("combobox", { name: "Format" }).click();
+  await page.getByRole("option", { name: "Excel (.xlsx)" }).click();
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    panel.getByRole("button", { name: "Export", exact: true }).click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(PROJECTS_XLSX);
+  const chunks: Buffer[] = [];
+  for await (const chunk of await download.createReadStream()) {
+    chunks.push(chunk as Buffer);
+  }
+  // A stored ZIP: the worksheet's XML reads as is.
+  const file = Buffer.concat(chunks).toString("latin1");
+  expect(file.startsWith("PK")).toBe(true);
+  expect(file).toContain("xl/worksheets/sheet1.xml");
+  expect(file).toContain('<sheet name="Projects"');
+  expect(file).toContain(
+    's="1" t="inlineStr"><is><t xml:space="preserve">Name<'
+  );
+  expect(file).toContain("Bravo audit");
+  expect(file).not.toContain("Alpha launch");
 });
 
 test("bulk export opens the Export screen for the selected records", async ({

@@ -1694,6 +1694,7 @@ export function DataTableAdvancedToolbar<TData>({
           csvSeparator: tableConfig.table.exportCsvSeparator,
           title: tableTitle,
           exportFile: tableActions?.exportFile,
+          writeExcel: tableConfig.table.excelWriter,
           onRows: onExport,
           download: downloadExportFile,
           print: printExportPage,
@@ -1720,6 +1721,7 @@ export function DataTableAdvancedToolbar<TData>({
       sortParam,
       tableActions?.exportFile,
       tableConfig.columns.definitions,
+      tableConfig.table.excelWriter,
       tableConfig.table.exportCsvSeparator,
       tableTitle,
       toolbarActionContext.selectedOriginalRows,
@@ -1890,7 +1892,9 @@ export function DataTableAdvancedToolbar<TData>({
                 )}
                 formats={availableExportFormats(
                   tableConfig.table.exportFormats,
-                  Boolean(tableActions?.exportFile)
+                  Boolean(
+                    tableActions?.exportFile || tableConfig.table.excelWriter
+                  )
                 )}
                 label={exportT}
                 onExport={handleExport}

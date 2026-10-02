@@ -28,7 +28,7 @@ const REPO_ROOT = path.resolve(
 const SKILL_NAME = "yayaw-table";
 const REACT = "src/components/ui/yayaw-table";
 const VUE = "packages/yayaw-table-vue/src";
-const OPTIONAL_REACT_ITEMS = ["calendar", "chart", "dashboard", "map"];
+const OPTIONAL_REACT_ITEMS = ["calendar", "chart", "dashboard", "map", "excel"];
 const GITHUB_PREFIX = "https://github.com/Yayaw-SAS/Yayaw-Table/";
 
 const MAX_SKILL_LINES = 500;

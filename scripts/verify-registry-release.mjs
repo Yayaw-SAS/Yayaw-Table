@@ -21,6 +21,7 @@ const standaloneRegistryItems = [
   "yayaw-table-vue-chart",
   "yayaw-table-vue-dashboard",
   "yayaw-table-vue-map",
+  "yayaw-table-vue-excel",
   "yayaw-table-vue-connector-notion",
   "yayaw-table-vue-connector-google-sheets",
 ];

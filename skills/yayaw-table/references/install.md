@@ -21,6 +21,8 @@ shadcn dependencies. The host root is not an install target: always use a
 | `yayaw-table-vue-map` | Vue | Map mode, `mapRenderer` | `maplibre-gl` |
 | `yayaw-table-dashboard` | React | `YayawDashboard` | `gridstack`; shadcn `calendar`, `dialog`, `dropdown-menu`, `input`, `native-select`, `popover`, `textarea` |
 | `yayaw-table-vue-dashboard` | Vue | `YayawDashboard.vue` | `gridstack` |
+| `yayaw-table-excel` | React | `writeXlsx` for `table.excelWriter`: Excel files written in the browser | none |
+| `yayaw-table-vue-excel` | Vue | the same writer | none |
 | `yayaw-table-connector-notion` | server, React folder | `connector-model.ts`, `sync-engine.ts`, `notion.ts` | none (uses `fetch` and Web Crypto) |
 | `yayaw-table-connector-google-sheets` | server, React folder | `connector-model.ts`, `sync-engine.ts`, `google-sheets.ts` | none |
 | `yayaw-table-vue-connector-notion` | server, Vue folder | the same files | none |
@@ -32,10 +34,11 @@ Where the files land (registry targets, under your components alias):
 
 - React: `components/ui/yayaw-table/` (core), `components/ui/yayaw-table-calendar/`,
   `components/ui/yayaw-table-chart/`, `components/ui/yayaw-table-map/`,
-  `components/ui/yayaw-table-dashboard/`, and the connectors in
-  `components/ui/yayaw-table/connectors/`.
+  `components/ui/yayaw-table-dashboard/`, `components/ui/yayaw-table-excel/`,
+  and the connectors in `components/ui/yayaw-table/connectors/`.
 - Vue: everything under `components/ui/yayaw-table-vue/`, optional items in
-  its `calendar/`, `chart/`, `map/`, `dashboard/` and `connectors/` folders.
+  its `calendar/`, `chart/`, `map/`, `dashboard/`, `excel/` and `connectors/`
+  folders.
 
 An app installs the edition of its framework; the editions do not depend on
 each other. Connector items are server code; never import them in client

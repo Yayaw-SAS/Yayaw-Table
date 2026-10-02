@@ -37,9 +37,11 @@ const activeItems: TableView = {
 const mountTable = ({
   locale,
   table,
+  exportFile = true,
 }: {
   locale?: string;
   table?: Partial<TableBehaviorConfig>;
+  exportFile?: boolean;
 } = {}) => {
   const requests: ExportFileRequest[] = [];
   const sent: DataDestinationContext[] = [];
@@ -77,10 +79,14 @@ const mountTable = ({
       initialViewsLoaded: true,
       syncUrl: false,
       getTableActions: () => ({
-        exportFile: (request: ExportFileRequest) => {
-          requests.push(request);
-          return Promise.resolve(undefined);
-        },
+        ...(exportFile
+          ? {
+              exportFile: (request: ExportFileRequest) => {
+                requests.push(request);
+                return Promise.resolve(undefined);
+              },
+            }
+          : {}),
         destinations: [
           {
             id: "webhook",
@@ -244,6 +250,33 @@ it("labels the Export screen in French", async () => {
   }
   await choose(wrapper, "Colonnes", "Choisir les colonnes");
   expect(panel(wrapper).text()).toContain("Tout cocher");
+});
+
+it("offers Excel without a server once `table.excelWriter` is set", async () => {
+  const written: { headers: string[]; sheetName: string }[] = [];
+  const excelWriter = vi.fn(
+    (matrix: { headers: string[] }, { sheetName }: { sheetName: string }) => {
+      written.push({ headers: matrix.headers, sheetName });
+      return new Blob(["xlsx"]);
+    }
+  );
+  URL.createObjectURL = vi.fn(() => "blob:excel");
+  URL.revokeObjectURL = vi.fn();
+  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(
+    () => undefined
+  );
+  // The host has no `exportFile`: the Excel item writes the file here.
+  const { wrapper, requests } = mountTable({
+    table: { excelWriter },
+    exportFile: false,
+  });
+  await openExport(wrapper);
+  await choose(wrapper, "Format", "Excel (.xlsx)");
+  await run(wrapper);
+  expect(requests).toEqual([]);
+  expect(written).toEqual([
+    { headers: ["Amount", "Name"], sheetName: "Projects" },
+  ]);
 });
 
 it("writes a safe bulk CSV with the configured separator, without `enableExport: false` columns", async () => {
