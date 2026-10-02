@@ -304,6 +304,14 @@ export interface ColumnDefinition {
   enableResizing?: boolean;
 
   /**
+   * `false` keeps the column in the table: it never leaves through the Export
+   * screen's column lists, `actions.exportFile` requests, the bulk CSV,
+   * Connect destinations (`columns`) or connector mappings.
+   * @default true
+   */
+  enableExport?: boolean;
+
+  /**
    * Translation key for the column header
    */
   header: string;
@@ -556,6 +564,8 @@ export interface TableBehaviorConfig extends GenericModeTableConfigs {
 
   /** Formats the Export screen offers (default CSV and PDF, Excel with `actions.exportFile`). */
   exportFormats?: import("../utils/export-model").ExportFormat[];
+  /** Separator of CSV files written in the browser: ",", ";" (French Excel) or tab; default ",". */
+  exportCsvSeparator?: import("../utils/export-model").CsvSeparator;
   /** Offer "Share" (copy the link to the view); default true. */
   share?: boolean;
   /** Offer scheduling settings for Connect destinations that declare `schedule`; default true. */

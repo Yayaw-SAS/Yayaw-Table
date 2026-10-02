@@ -121,6 +121,12 @@ export interface ColumnDefinition<TData extends TableRecord = TableRecord> {
   /** Allow the user to resize this column. */
   enableResizing?: boolean;
   enableHiding?: boolean;
+  /**
+   * `false` keeps the column in the table: it never leaves through the Export
+   * screen's column lists, `actions.exportFile` requests, the bulk CSV,
+   * Connect destinations (`columns`) or connector mappings. Default true.
+   */
+  enableExport?: boolean;
   /** Allow the native column menu to change this column's pinned position. */
   enablePinning?: boolean;
   enableCalculation?: boolean;
@@ -272,6 +278,8 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord>
   export: boolean;
   /** Formats the Export screen offers (default CSV and PDF, Excel with `actions.exportFile`). */
   exportFormats?: import("./export-model").ExportFormat[];
+  /** Separator of CSV files written in the browser: ",", ";" (French Excel) or tab; default ",". */
+  exportCsvSeparator?: import("./export-model").CsvSeparator;
   /** Offer "Share" (copy the link to the view); default true. */
   share?: boolean;
   /** Offer scheduling settings for Connect destinations that declare `schedule`; default true. */

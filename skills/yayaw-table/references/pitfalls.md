@@ -108,6 +108,11 @@ Each entry: what you see, why, what to do.
 - **Feed bodies show HTML or markdown as text.** By design; render them with
   `table.feed.renderBody` and sanitize.
 - **Excel is missing from Export.** Only offered with `actions.exportFile`.
+- **A CSV opens in one column in French Excel.** Set
+  `table.exportCsvSeparator: ";"`.
+- **Exported text starts with an apostrophe.** Text starting with `=`, `+`,
+  `-`, `@`, a tab or a carriage return is neutralized against formula
+  injection; numbers of `number` columns are not.
 - **Addresses fail to import into a `location` column.** Without
   `actions.geocode` only coordinates import; addresses become errors.
 - **React's bulk Copy puts JSON on the clipboard.** Without `onBulkCopy` or

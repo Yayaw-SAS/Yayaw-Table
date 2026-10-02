@@ -4,17 +4,22 @@
  * page built from them. Excel files come from an optional registry item.
  */
 import { locationToText } from "./location-model";
-import { fieldText } from "./table-contracts";
+import { fieldText, resolveDataType } from "./table-contracts";
 import type { ColumnDateFormat, NumberFormatConfig } from "./value-format";
 
 export type ExportFormat = "csv" | "xlsx" | "pdf";
 export type ExportScope = "view" | "selection";
+/** `table.exportCsvSeparator`: French Excel expects ";". */
+export type CsvSeparator = "," | ";" | "\t";
 
 export interface ExportSettings {
   format: ExportFormat;
   /** The records matching the view, or only the selected ones. */
   scope: ExportScope;
-  columns: "visible" | "all";
+  /** The visible columns, every exportable one, or those in `columnIds`. */
+  columns: "visible" | "all" | "custom";
+  /** With `columns: "custom"`: the columns to write, in this order. */
+  columnIds?: string[];
   /** As displayed (currency, dates, option labels) or as stored. */
   values: "formatted" | "raw";
   /** Without extension. */
@@ -41,6 +46,127 @@ export type ExportCell = string | number | boolean | null;
 export interface ExportMatrix {
   headers: string[];
   rows: ExportCell[][];
+  /**
+   * Per row and column, whether the cell was written from a number (even as
+   * displayed): CSV leaves such cells as they are.
+   */
+  numeric?: boolean[][];
+}
+
+/** A column of the Export screen's "Choose columns" list. */
+export interface ExportColumnChoice {
+  id: string;
+  header: string;
+  /** Shown in the table: checked at first. */
+  visible: boolean;
+}
+
+/**
+ * Whether a column may leave the table (exports, Connect destinations,
+ * connector mappings): not the selection or actions column, nor a column
+ * defined with `enableExport: false`.
+ */
+export function isExportableColumn(column: {
+  id: string;
+  type?: unknown;
+  enableExport?: boolean;
+}): boolean {
+  return (
+    column.enableExport !== false &&
+    column.id !== "select" &&
+    column.id !== "actions" &&
+    column.type !== "actions"
+  );
+}
+
+const ENGLISH_LABELS = {
+  format: "Format",
+  pdf: "PDF (print)",
+  scope: "Records",
+  scopeView: "All in this view",
+  scopeSelection: "Selected ({count})",
+  columns: "Columns",
+  columnsVisible: "Visible",
+  columnsAll: "All",
+  columnsCustom: "Choose columns",
+  columnsChoice: "Columns to export",
+  columnsSelectAll: "Select all",
+  columnsSelectNone: "Select none",
+  columnsEmpty: "Choose at least one column.",
+  values: "Values",
+  valuesFormatted: "As displayed",
+  valuesRaw: "Raw",
+  fileName: "File name",
+  run: "Export",
+  records: "{count} records",
+  recordsOne: "{count} record",
+  yes: "Yes",
+  no: "No",
+};
+
+export type ExportLabelKey = keyof typeof ENGLISH_LABELS;
+
+const FRENCH_LABELS: Record<ExportLabelKey, string> = {
+  format: "Format",
+  pdf: "PDF (impression)",
+  scope: "Enregistrements",
+  scopeView: "Tous ceux de la vue",
+  scopeSelection: "Sélectionnés ({count})",
+  columns: "Colonnes",
+  columnsVisible: "Visibles",
+  columnsAll: "Toutes",
+  columnsCustom: "Choisir les colonnes",
+  columnsChoice: "Colonnes à exporter",
+  columnsSelectAll: "Tout cocher",
+  columnsSelectNone: "Tout décocher",
+  columnsEmpty: "Choisissez au moins une colonne.",
+  values: "Valeurs",
+  valuesFormatted: "Telles qu’affichées",
+  valuesRaw: "Brutes",
+  fileName: "Nom du fichier",
+  run: "Exporter",
+  records: "{count} enregistrements",
+  recordsOne: "{count} enregistrement",
+  yes: "Oui",
+  no: "Non",
+};
+
+/** Host override for a label (`exportScreen.<key>`), or the built-in one. */
+export type ExportTranslate = (key: ExportLabelKey, fallback: string) => string;
+
+/** A label with its `{name}` parameters filled in. */
+export type ExportT = (
+  key: ExportLabelKey,
+  params?: Record<string, string | number>
+) => string;
+
+/** Built-in English or French labels, overridable per key by the host. */
+export function exportLabels(
+  locale = "en",
+  translate?: ExportTranslate
+): ExportT {
+  const labels = locale.toLowerCase().startsWith("fr")
+    ? FRENCH_LABELS
+    : ENGLISH_LABELS;
+  return (key, params = {}) => {
+    const template = translate ? translate(key, labels[key]) : labels[key];
+    return Object.entries(params).reduce(
+      (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
+      template
+    );
+  };
+}
+
+/** "1 record", "12 records", "0 enregistrement": the locale's plural rule. */
+export function exportRecordCount(
+  count: number,
+  t: ExportT,
+  locale?: string
+): string {
+  const one = new Intl.PluralRules(locale).select(count) === "one";
+  return t(one ? "recordsOne" : "records", {
+    count: new Intl.NumberFormat(locale).format(count),
+  });
 }
 
 const DIACRITICS = /\p{M}/gu;
@@ -55,6 +181,8 @@ const HTML_ESCAPES: Record<string, string> = {
 };
 const HTML_UNSAFE = /[&<>"']/g;
 const CSV_QUOTED = /[",\n\r;]/;
+/** Text spreadsheet apps would run as a formula. */
+const FORMULA_START = /^[=+\-@\t\r]/;
 const UTF8_BOM = "\uFEFF";
 
 function slug(value: string): string {
@@ -90,21 +218,66 @@ export function exportFileName(settings: ExportSettings): string {
     : `${name}.${extension}`;
 }
 
+const hasOptions = (column: ExportColumn): boolean =>
+  Array.isArray(column.options) && column.options.length > 0;
+
+const BOOLEAN_LABELS = new Map<unknown, ExportLabelKey>([
+  [true, "yes"],
+  ["true", "yes"],
+  [false, "no"],
+  ["false", "no"],
+]);
+
 /**
  * As displayed: option labels, numbers and dates in the column's format
- * (time zone and clock included), places by name, in the table locale.
+ * (time zone and clock included), yes or no, places by name, in the table
+ * locale.
  */
 function formattedCell(
   value: unknown,
   column: ExportColumn,
-  locale: string | undefined,
+  { locale, t }: { locale?: string; t: ExportT },
   row: Record<string, unknown>
 ) {
   if (value === null || value === undefined || value === "") {
     return "";
   }
+  // A yes/no column with options keeps their labels.
+  const yesNo = BOOLEAN_LABELS.get(value);
+  if (
+    yesNo &&
+    !hasOptions(column) &&
+    resolveDataType(column.type, row, column.typeKey) === "boolean"
+  ) {
+    return t(yesNo);
+  }
   return fieldText(value, column, locale, row);
 }
+
+/**
+ * Whether a stored value is a number: a number, or numeric text in a number
+ * column. Its cells are never treated as formulas.
+ */
+export function isNumericExportValue(value: unknown, type?: string): boolean {
+  if (typeof value === "number" || typeof value === "bigint") {
+    return true;
+  }
+  return (
+    type === "number" &&
+    typeof value === "string" &&
+    value.trim() !== "" &&
+    Number.isFinite(Number(value))
+  );
+}
+
+const numericCell = (
+  row: Record<string, unknown>,
+  column: ExportColumn
+): boolean =>
+  isNumericExportValue(
+    row[column.id],
+    resolveDataType(column.type, row, column.typeKey)
+  );
 
 /** Places are written "lat,lng", which imports read back. */
 function rawCell(value: unknown, column: ExportColumn): ExportCell {
@@ -127,37 +300,78 @@ function rawCell(value: unknown, column: ExportColumn): ExportCell {
   return Array.isArray(value) ? value.join(", ") : JSON.stringify(value);
 }
 
-/** Header and values, in column order, as displayed or as stored. */
+/**
+ * Header and values, in column order, as displayed or as stored. Yes/no
+ * values read with `labels` (the locale's built-in ones by default).
+ */
 export function exportMatrix(
   rows: readonly Record<string, unknown>[],
   columns: readonly ExportColumn[],
-  { formatted, locale }: { formatted: boolean; locale?: string }
+  {
+    formatted,
+    locale,
+    labels = exportLabels(locale),
+  }: { formatted: boolean; locale?: string; labels?: ExportT }
 ): ExportMatrix {
+  const format = { locale, t: labels };
   return {
     headers: columns.map((column) => column.header),
     rows: rows.map((row) =>
       columns.map((column) =>
         formatted
-          ? formattedCell(row[column.id], column, locale, row)
+          ? formattedCell(row[column.id], column, format, row)
           : rawCell(row[column.id], column)
+      )
+    ),
+    // Option labels are text, even for numbers; raw places are coordinates.
+    numeric: rows.map((row) =>
+      columns.map((column) =>
+        formatted
+          ? !hasOptions(column) && numericCell(row, column)
+          : column.type === "location" || numericCell(row, column)
       )
     ),
   };
 }
 
-function csvCell(value: ExportCell, separator: string): string {
-  const text = value === null ? "" : String(value);
-  return CSV_QUOTED.test(text) || text.includes(separator)
-    ? `"${text.replaceAll('"', '""')}"`
-    : text;
+/**
+ * One CSV field. Spreadsheet apps run text starting with =, +, -, @, a tab
+ * or a carriage return as a formula: such text gets a leading apostrophe,
+ * unless it was written from a number (`numeric`). Quoted when it holds the
+ * separator, a quote, a comma, a semicolon or a line break.
+ */
+export function csvField(
+  text: string,
+  separator: string,
+  numeric = false
+): string {
+  const safe = !numeric && FORMULA_START.test(text) ? `'${text}` : text;
+  return CSV_QUOTED.test(safe) || safe.includes(separator)
+    ? `"${safe.replaceAll('"', '""')}"`
+    : safe;
 }
 
 /** CSV with a BOM so spreadsheet apps read UTF-8 accents. */
-export function csvFromMatrix(matrix: ExportMatrix, separator = ","): string {
-  const lines = [matrix.headers, ...matrix.rows].map((line) =>
-    line.map((cell) => csvCell(cell, separator)).join(separator)
+export function csvFromMatrix(
+  matrix: ExportMatrix,
+  separator: CsvSeparator = ","
+): string {
+  const header = matrix.headers
+    .map((cell) => csvField(cell, separator))
+    .join(separator);
+  const lines = matrix.rows.map((row, rowIndex) =>
+    row
+      .map((cell, columnIndex) =>
+        csvField(
+          cell === null ? "" : String(cell),
+          separator,
+          typeof cell === "number" ||
+            matrix.numeric?.[rowIndex]?.[columnIndex] === true
+        )
+      )
+      .join(separator)
   );
-  return `${UTF8_BOM}${lines.join("\n")}`;
+  return `${UTF8_BOM}${[header, ...lines].join("\n")}`;
 }
 
 function escapeHtml(value: ExportCell): string {
@@ -272,13 +486,20 @@ export interface ExportRuntime {
   settings: ExportSettings;
   viewId: string | null;
   query: import("./data-destinations").DataDestinationQuery;
-  /** Every column the table defines, and the visible ones in order. */
+  /**
+   * Every exportable column the table defines, and the visible ones in
+   * order (see `isExportableColumn`).
+   */
   allColumns: ExportColumn[];
   visibleColumns: ExportColumn[];
   selectedRowIds: string[];
   selectedRows: Record<string, unknown>[];
   loadRows: () => Promise<Record<string, unknown>[]>;
   locale?: string;
+  /** Labels with the host's overrides (`exportLabels`); built-in by default. */
+  labels?: ExportT;
+  /** `table.exportCsvSeparator`, "," by default. */
+  csvSeparator?: CsvSeparator;
   title: string;
   exportFile?: (request: ExportFileRequest) => Promise<ExportFileResult>;
   /** Replaces the built-in CSV file, as the `onExport` prop always did. */
@@ -299,15 +520,33 @@ export function availableExportFormats(
   return offered.filter((format) => !allowed || allowed.has(format));
 }
 
+/** The columns an export writes: visible, all, or the chosen ones in order. */
+export function exportedColumns(
+  settings: Pick<ExportSettings, "columns" | "columnIds">,
+  {
+    allColumns,
+    visibleColumns,
+  }: Pick<ExportRuntime, "allColumns" | "visibleColumns">
+): ExportColumn[] {
+  if (settings.columns === "all") {
+    return allColumns;
+  }
+  if (settings.columns !== "custom") {
+    return visibleColumns;
+  }
+  const byId = new Map(allColumns.map((column) => [column.id, column]));
+  return (settings.columnIds ?? []).flatMap((id) => byId.get(id) ?? []);
+}
+
 /**
  * Run an export: the server builds the file when it can, otherwise the
  * browser writes the CSV or opens a printable page for PDF.
  */
 export async function runExport(runtime: ExportRuntime): Promise<void> {
   const { settings } = runtime;
-  const columns =
-    settings.columns === "all" ? runtime.allColumns : runtime.visibleColumns;
+  const columns = exportedColumns(settings, runtime);
   const fileName = exportFileName(settings);
+  const labels = runtime.labels ?? exportLabels(runtime.locale);
   if (runtime.exportFile) {
     const result = await runtime.exportFile({
       format: settings.format,
@@ -339,12 +578,13 @@ export async function runExport(runtime: ExportRuntime): Promise<void> {
   const matrix = exportMatrix(rows, columns, {
     formatted: settings.values === "formatted",
     locale: runtime.locale,
+    labels,
   });
   if (settings.format === "pdf") {
     runtime.print(
       printableHtml({
         title: runtime.title,
-        subtitle: `${rows.length} ${rows.length === 1 ? "record" : "records"}`,
+        subtitle: exportRecordCount(rows.length, labels, runtime.locale),
         matrix,
         lang: runtime.locale?.split("-")[0],
       })
@@ -357,7 +597,9 @@ export async function runExport(runtime: ExportRuntime): Promise<void> {
     );
   }
   runtime.download(
-    new Blob([csvFromMatrix(matrix)], { type: "text/csv;charset=utf-8" }),
+    new Blob([csvFromMatrix(matrix, runtime.csvSeparator)], {
+      type: "text/csv;charset=utf-8",
+    }),
     fileName
   );
 }

@@ -339,6 +339,6 @@ describe("table actions parity", () => {
       { secret: false },
       ["id", "select", "name", "menu"]
     );
-    expect(rowsToCsv(rows.slice(0, 1), columns)).toBe("ID,Name\n1,Alpha");
+    expect(rowsToCsv(rows.slice(0, 1), columns)).toBe("\uFEFFID,Name\n1,Alpha");
   });
 });

@@ -12,6 +12,7 @@ import type { BulkEditTarget } from "../components/forms/catalogue-bulk-editor";
 import { cloneFormValue } from "../components/forms/form-runtime";
 import type { Row, RowSelectionState, Table } from "../tanstack";
 import { type CsvExportColumn, exportRowsAsCsv } from "../utils/csv-export";
+import type { CsvSeparator } from "../utils/export-model";
 import {
   fetchAllFilteredRows,
   type TableListAction,
@@ -115,6 +116,9 @@ interface BulkActionsConfig<TData> {
    * CSV columns for export
    */
   csvExportColumns?: CsvExportColumn[];
+
+  /** `table.exportCsvSeparator` of the CSV file, "," by default. */
+  csvSeparator?: CsvSeparator;
 
   /**
    * Table instance from TanStack Table
@@ -1213,7 +1217,8 @@ export function useBulkActions<TData>({
   bulkExportEnabled = true,
   exportScreenEnabled = false,
   closeOnError = false,
-  csvExportColumns = [],
+  csvExportColumns,
+  csvSeparator,
   rowCount,
   table,
   onBulkEdit,
@@ -1727,15 +1732,17 @@ export function useBulkActions<TData>({
         (row) => row.original as Record<string, unknown>
       );
 
+      // Without columns from the table, every field of the first row;
+      // an empty list means no column may be exported.
       const fallbackColumns =
         rowsToExport.length > 0
           ? Object.keys(rowsToExport[0]).map((id) => ({ id, label: id }))
           : [];
 
       exportRowsAsCsv({
-        columns:
-          csvExportColumns.length > 0 ? csvExportColumns : fallbackColumns,
+        columns: csvExportColumns ?? fallbackColumns,
         rows: rowsToExport,
+        separator: csvSeparator,
         tableId: tableId ?? tableType ?? "table",
       });
       return successResult;
@@ -1755,6 +1762,7 @@ export function useBulkActions<TData>({
     selectedRows,
     onBulkExport,
     csvExportColumns,
+    csvSeparator,
     tableId,
     tableType,
     exportScreenEnabled,

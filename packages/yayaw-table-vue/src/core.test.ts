@@ -345,7 +345,7 @@ describe("format and export", () => {
         { id: "note", header: "Note" },
       ]
     );
-    expect(csv).toBe('Name,Note\n"A, B","a""b"');
+    expect(csv).toBe('\uFEFFName,Note\n"A, B","a""b"');
   });
 
   it("allows only http image and link URLs", () => {

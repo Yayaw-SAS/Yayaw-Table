@@ -320,9 +320,15 @@ column is `{ id, header }` plus what the table shows it with, when set:
 Load the rows yourself from `query` with the user's permissions (limit to
 `selectedRowIds` for a selection), write `formatted` values with each
 column's format in `locale`, or the stored values otherwise.
-Excel is offered only with `exportFile`; `table.exportFormats` narrows the
-formats. Without it, the browser writes a UTF-8 CSV or prints a PDF from rows
-loaded through `list`, and `onExport` can replace the CSV file.
+`columns` are the user's choice (visible, all, or the ones checked under
+"Choose columns", in that order) and never include `enableExport: false`
+columns. Excel is offered only with `exportFile`; `table.exportFormats`
+narrows the formats. Without it, the browser writes a UTF-8 CSV (with a BOM,
+separated by `table.exportCsvSeparator`) or prints a PDF from rows loaded
+through `list`, and `onExport` can replace the CSV file. Browser CSV files
+prefix text starting with `=`, `+`, `-`, `@`, a tab or a carriage return with
+an apostrophe, so spreadsheets do not run it as a formula; numbers, as stored
+or as displayed, are written as they are. Do the same in server CSV files.
 
 ## Geocoding
 
@@ -354,7 +360,7 @@ Serving the public page and accepting responses: [forms](forms.md).
 | `destination.kind` | `"connect"` (also `"sync"`, `"export"`) lists it under Connect; `"share"` under Share, after "Copy link". |
 | `destination.icon` | React node or Vue component; a send icon by default. |
 | `destination.hidden`, `destination.requiresSelection` | Hide it, or offer it only while rows are selected. |
-| `destination.run` | `(context)` → `{ message? }`. Context: `tableId`, `tableType`, `viewId`, `query` (the `list` shape), visible `columns`, `selectedRowIds`, `url`, `loadRows`. Prefer sending `query` and `viewId` to your server over `loadRows` rows from the browser. |
+| `destination.run` | `(context)` → `{ message? }`. Context: `tableId`, `tableType`, `viewId`, `query` (the `list` shape), visible `columns` (never `enableExport: false` ones, which connector mappings leave out too), `selectedRowIds`, `url`, `loadRows`. Prefer sending `query` and `viewId` to your server over `loadRows` rows from the browser. |
 | `destination.schedule` | Scheduling for this view (below). |
 | `destination.connector` | Opens the connector screen instead of `run` (below). |
 

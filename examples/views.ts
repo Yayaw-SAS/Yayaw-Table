@@ -219,8 +219,14 @@ export const viewsColumns = [
   { id: "dueDate", header: "Due", type: "date" as const },
   // Double-click a site to edit it: address suggestions come from `geocode`.
   { id: "site", header: "Site", type: "location" as const, inlineEdit: true },
-  // Asked by the Request form's rules; hidden in the table by default.
-  { id: "serialNumber", header: "Serial number", type: "text" as const },
+  // Asked by the Request form's rules; hidden in the table by default and
+  // never exported.
+  {
+    id: "serialNumber",
+    header: "Serial number",
+    type: "text" as const,
+    enableExport: false,
+  },
   { id: "details", header: "Details", type: "text" as const },
   // Read by the "Updates" feed view; hidden in the table by default.
   { id: "update", header: "Update", type: "text" as const },

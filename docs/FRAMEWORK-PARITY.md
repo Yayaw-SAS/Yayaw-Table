@@ -264,7 +264,7 @@ Column header menus expose the same outcomes: ascending/descending sort, filter 
 
 Toolbar export retrieves **all matching rows**, respecting the current search, column filters, advanced-filter join, and sort. Vue applies the same query to local data before export. Server export and select-all use the shared page collector; a server page-size cap does not truncate results when `meta.pageCount` or `meta.totalCount` describes the full result. Without metadata, a short page ends the collection. An inconsistent empty page, a failed request, or the 1,000-page limit reports an error instead of handing partial rows to the export callback. An export already in progress keeps the query and column order captured when it started; its button stays disabled until completion.
 
-CSV export includes visible data columns in display order. Bulk export includes only selected rows. The `onExport` and `onBulkExport` callbacks retain their existing signatures and take precedence over the built-in download.
+CSV export includes visible data columns in display order. Bulk export includes only selected rows. Columns defined with `enableExport: false` never leave the table, in either edition: not in a file export, a Connect destination's `columns` or a connector mapping. The `onExport` and `onBulkExport` callbacks retain their existing signatures and take precedence over the built-in download.
 
 Both editions retain selected records across page and page-size changes. Deselecting one row keeps the other selected rows, including rows outside the current page. Returning to a page replaces cached selected records with the freshly loaded versions. Changing search, filters, sort, or grouping clears the selection by default; set `preserveSelectionOnQuery: true` to retain it in either edition. Both tables accept controlled row-selection state. A delayed select-all result cannot replace a newer selection or query, and select-all respects row selection permissions. Provide stable row IDs (or `getRowId`) for server pagination; positional indexes cannot identify records across pages. Off-page selected rows retain their last loaded values until fetched again.
 
@@ -339,6 +339,7 @@ The parity contract covers user-visible behavior and serializable catalogue/acti
 | Bulk actions | Permissions, catalogue editing, frozen targets, partial failure retry, callback precedence | Shared bulk fixtures; React form/bulk suites; Vue bulk suites |
 | Inline editing | Catalogue validation, debounce, cancellation, permissions, optimistic rollback | React inline-form suites; Vue inline-edit suites |
 | Export and refresh | All matching pages, current query/order, partial-result protection, mutation refresh/clamping | Shared paginated fixtures; both action suites |
+| Export screen and CSV | `enableExport`, "Choose columns", view file name, French labels, yes/no, safe CSV, `exportCsvSeparator` | `tests/export-model-suite.ts`; React `tests/export-screen.test.tsx`, Vue `export-screen.test.ts`; `e2e/view-tabs.spec.ts` |
 | Accessibility and i18n | Translated controls, menu/dialog focus, row activation, column/Kanban keyboard alternatives | Vue keyboard suites; React mounted interaction suites |
 | URL state | Compatible query keys when enabled; a link's page kept on arrival and on back/forward; a new search, filter or sort on the first page, a repeated one on its page; a page past the last one moved to the last; back/forward sets only what changed, so the same query loads nothing again; isolated in-memory state when disabled | React `url-sync-parity.test.tsx` and `url-page-parity.test.tsx`; Vue `use-table-state.test.ts`, `yayaw-data-table.test.ts`, `table-actions-parity.test.ts` and state/catalogue-control suites; `queries` fixtures of `parity.json` in both contract suites; Playwright `e2e/views.spec.ts` and `e2e/filetree.spec.ts` |
 | Distribution | TanStack Table 9.2.4 with matched explicit features, generated React and Vue registries, and the repository Vue example | Adapter compatibility tests, type checks, full tests, Vue builds, registry sync/pages build |
@@ -1803,6 +1804,41 @@ each column's type, options and formats and the table `locale`, so a server
 file "as displayed" can match the table. `availableExportFormats`
 offers Excel only with a writer and honours `table.exportFormats`.
 `tests/export-model-suite.ts` runs in both editions.
+
+Columns. The screen offers Visible, All and "Choose columns": a checklist of
+the exportable columns in display order (visible ones checked, "Select all"
+and "Select none", Export disabled with an announced hint while none is
+checked); the export writes exactly the checked columns in that order
+(`ExportSettings.columns: "custom"` with `columnIds`), client CSV and PDF as
+well as the `exportFile` request. `isExportableColumn` leaves out the
+selection and actions columns and `enableExport: false` ones from every list,
+the request and the bulk CSV (React `createCsvContent` through
+`table-component.tsx`, Vue `rowsToCsv`), and from the `columns` of
+`DataDestinationContext` and the connector screen's Visible and All mapping
+lists (React through `csvExportColumns` and `connectorColumns`, Vue through
+`destinationContext` and `connectorColumns`; both export-screen tests and
+`e2e/connectors.spec.ts`). The checklist uses each edition's
+checkbox (Base UI, Reka) with a label per column and a screen-reader-only
+legend. The default file name is `defaultExportFileName(title, view)` with
+the active saved view's name in both editions (React reads the saved views
+from the query cache, Vue from `SavedViews`).
+
+Labels. `exportLabels(locale, translate)` gives every Export screen label in
+English or French, overridable with `exportScreen.<key>` translations, and
+`exportRecordCount` the PDF subtitle with the locale's plural rule ("0
+enregistrement", "2 records"). As displayed, yes/no values read
+`exportScreen.yes`/`no` ("Yes"/"No", "Oui"/"Non"); a boolean column with
+`options` keeps their labels, and Raw keeps `true`/`false`.
+
+Safe CSV. Both browser writers (`csvFromMatrix` and the bulk CSV) start
+with a UTF-8 BOM, separate cells with `table.exportCsvSeparator` (`","`,
+`";"` or tab) and prefix text starting with `=`, `+`, `-`, `@`, a tab or a
+carriage return with an apostrophe (`csvField`). Numbers are left alone: a
+number value, numeric text in a `number` column, the displayed text of either
+("-12", "1 234,5"), and raw places ("lat,lng"). Option labels and headers are
+text. React `tests/export-screen.test.tsx` and Vue
+`src/components/export-screen.test.ts` cover the screen, the file name, the
+French labels and the bulk CSV alike.
 
 The bulk bar's Export opens this screen with the selection chosen, in both
 editions (React through the menu open-to-view atom, Vue through

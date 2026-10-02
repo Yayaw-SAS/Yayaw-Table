@@ -91,6 +91,10 @@ import {
 import { resolveViewTabs, type ViewTabsConfig } from "../../utils/view-tabs";
 import { TableViewTabs } from "./table-view-tabs";
 
+/** The saved views of a table in the query cache (the toolbar reads names). */
+export const tableViewsQueryKey = (tableId: string, tableType: string) =>
+  ["tableViews", tableId, tableType] as const;
+
 export interface ViewMenuParts {
   trigger: ReactElement;
   selection: ReactNode;
@@ -949,7 +953,7 @@ export function DataTableViewManager({
       tableId,
     });
   const viewQueryKey = useMemo(
-    () => ["tableViews", tableId, tableType],
+    () => tableViewsQueryKey(tableId, tableType),
     [tableId, tableType]
   );
   // The host keeps the user's order with `setOrder` (and `list` answers

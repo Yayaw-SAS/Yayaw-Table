@@ -42,6 +42,7 @@ or an `instanceId`.
 | `numberFormat`, `dateDisplayPreset`, `dateFormat`, `timeZone`, `hour12` | Formats, see below. |
 | `inlineEdit` | `true` or `{ enabled, editor, debounceMs, options, readonly }`; editing is opt-in per column or with `table.inlineEdit.enabled`. |
 | `enableSorting`, `enableFiltering`, `enableGrouping`, `enablePinning`, `enableResizing`, `enableCalculation`, `defaultCalculation` | Per-column capabilities and the default footer calculation. |
+| `enableExport` | `false` keeps the column in the table: never in the Export screen's lists, `actions.exportFile` requests, the bulk CSV, Connect destinations' `columns` or connector mappings. |
 | `size`, `minSize`, `maxSize` | Widths in pixels. |
 | `cellRenderer(value, row)` | Custom cell (React node, Vue VNode). |
 | `filterRenderer({ value, onChange })` | Custom control inside the column filter menu; writes the normal filter state. |
@@ -121,7 +122,8 @@ Defaults in brackets. Flags only shape the interface; the server decides.
 - Toolbar and data: `showToolbar`, `showToolbarHeader` [true],
   `actionsAsIcons` [false], `showClearFilters` [false; alias
   `showResetFilters`], `filterBarColumns` and `showFilterBar` [false],
-  `export`, `bulkExport` [true], `exportFormats`, `import`, `share`,
+  `export`, `bulkExport` [true], `exportFormats`, `exportCsvSeparator`
+  [`","`; `";"` for French Excel, `"\t"`], `import`, `share`,
   `connectors`, `sync`, `schedule` [true], `emptyState` (`title`,
   `description`, `show`).
 - Query: `enableSorting`, `enableColumnFilters`, `enableGrouping` [true],

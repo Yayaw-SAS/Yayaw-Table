@@ -70,7 +70,10 @@ import {
   defaultExportFileName,
   downloadExportFile,
   type ExportColumn,
+  type ExportColumnChoice,
   type ExportSettings,
+  exportLabels,
+  isExportableColumn,
   printExportPage,
   runExport,
 } from "../../export-model";
@@ -113,6 +116,7 @@ const capabilities = computed(() => getViewModeCapabilities(context.state.displa
 
 const optionsRoot = ref<HTMLElement>();
 const advancedFiltersPanel = ref<InstanceType<typeof AdvancedFilters>>();
+const savedViews = ref<InstanceType<typeof SavedViews>>();
 const optionsOpen = ref(false);
 const optionsView = ref<OptionsView>("main");
 const densityLabel = computed(() => String(context.translations.value.density ?? "Table density"));
@@ -447,7 +451,18 @@ const exportColumn = (column: ColumnDefinition): ExportColumn => ({
   timeZone: column.timeZone,
   hour12: column.hour12,
 });
-const exportLabel = (key: string, fallback: string): string => translate(`exportScreen.${key}`, fallback);
+// Built-in English or French labels, which `exportScreen.<key>` overrides.
+const exportT = computed(() => exportLabels(context.locale, (key, fallback) => translate(`exportScreen.${key}`, fallback)));
+const exportableDefinitions = computed(() => context.config.columns.definitions.filter(isExportableColumn));
+// The Export screen's columns: the exportable ones in display order.
+const exportChoices = computed((): ExportColumnChoice[] => {
+  const visible = new Set(exportColumns(exportableDefinitions.value, context.state.visibility.value, context.state.order.value).map((column) => column.id));
+  return exportColumns(exportableDefinitions.value, {}, context.state.order.value)
+    .map((column) => ({ id: column.id, header: column.header, visible: visible.has(column.id) }));
+});
+// The active saved view names the file, as in React.
+const exportDefaultName = (): string =>
+  defaultExportFileName(String(context.translations.value.title ?? context.config.id), savedViews.value?.activeName);
 const exportFormats = computed(() =>
   availableExportFormats(context.config.table.exportFormats, Boolean(context.actions.value?.exportFile))
 );
@@ -465,12 +480,14 @@ const exportRows = async (settings: ExportSettings): Promise<void> => {
         advancedFilters: context.state.advancedFilters.value,
         sorting: context.state.sorting.value,
       }),
-      allColumns: context.config.columns.definitions.filter((column) => column.id !== "select" && column.type !== "actions").map(exportColumn),
-      visibleColumns: exportColumns(context.config.columns.definitions, context.state.visibility.value, context.state.order.value).map(exportColumn),
+      allColumns: exportableDefinitions.value.map(exportColumn),
+      visibleColumns: exportColumns(exportableDefinitions.value, context.state.visibility.value, context.state.order.value).map(exportColumn),
       selectedRowIds: context.selectedRows.value.map((row) => context.getRowId(row)),
       selectedRows: context.selectedRows.value,
       loadRows: () => context.loadAllMatchingRows(),
       locale: context.locale,
+      labels: exportT.value,
+      csvSeparator: context.config.table.exportCsvSeparator,
       title: String(context.translations.value.title ?? context.config.id),
       exportFile: context.actions.value?.exportFile,
       onRows: context.onExport,
@@ -554,13 +571,12 @@ const scheduleSuffix = (destination: DataDestination<Component>) => {
       syncEnabled: syncEnabled.value,
     });
 };
-// The view's columns for connector mappings: visible ones in display order, then the others.
+// The view's columns for connector mappings: visible ones in display order,
+// then the others, never `enableExport: false` ones.
 const connectorColumns = (): ConnectorViewColumn[] => {
-  const visible = exportColumns(context.config.columns.definitions, context.state.visibility.value, context.state.order.value);
+  const visible = exportColumns(exportableDefinitions.value, context.state.visibility.value, context.state.order.value);
   const visibleIds = new Set(visible.map((column) => column.id));
-  const hidden = context.config.columns.definitions.filter(
-    (column) => column.id !== "select" && column.type !== "actions" && !visibleIds.has(column.id)
-  );
+  const hidden = exportableDefinitions.value.filter((column) => !visibleIds.has(column.id));
   return [...visible, ...hidden].map((column) => {
     // Static options let the target check spot options the target lacks.
     const options = connectorColumnOptions((column as { options?: unknown }).options);
@@ -670,7 +686,8 @@ const destinationContext = (): DataDestinationContext => ({
     advancedFilters: context.state.advancedFilters.value,
     sorting: context.state.sorting.value,
   }),
-  columns: exportColumns(context.config.columns.definitions, context.state.visibility.value, context.state.order.value)
+  // Never `enableExport: false` columns, as in the Export screen.
+  columns: exportColumns(exportableDefinitions.value, context.state.visibility.value, context.state.order.value)
     .map((column) => ({ id: column.id, header: column.header })),
   selectedRowIds: context.selectedRows.value.map((row) => context.getRowId(row)),
   url: window.location.href,
@@ -700,7 +717,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
 
 <template>
   <div ref="toolbarRoot" class="yayaw-toolbar" :data-compact="compact" data-table-toolbar>
-    <SavedViews :initial-views="initialViews" :enabled="context.config.table.enableViews" :compact="compact" />
+    <SavedViews ref="savedViews" :initial-views="initialViews" :enabled="context.config.table.enableViews" :compact="compact" />
     <div class="yayaw-toolbar-end">
     <ToolbarSearch v-if="context.config.table.enableColumnFilters !== false" v-model="search" :label="translate('search', 'Search…')" :clear-label="translate('reset', 'Reset')" :compact="compact" />
     <ToolbarDataActions v-if="!compact && actionItems.length" :show-search="false" :show-share="false" :items="actionItems" :actions-as-icons="actionsAsIcons" :compact="compact" v-model:search="search"
@@ -1079,8 +1096,8 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
         :sources="importSources" :connector-sources="connectorSources" :load-source="loadImportSource" :find-existing="findExisting" :batch-size="importConfig?.batchSize"
         :allow-new-options="importConfig?.allowNewOptions" :geocode="context.actions.value?.geocode" @done="dataView = 'main'" @imported="context.refresh()"
         @connector="(id) => (dataView = `connector-pull:${id}`)" />
-      <ExportPanel v-else-if="dataView === 'export'" :busy="isExporting" :formats="exportFormats" :label="exportLabel"
-              :default-file-name="defaultExportFileName(String(context.translations.value.title ?? context.config.id))"
+      <ExportPanel v-else-if="dataView === 'export'" :busy="isExporting" :formats="exportFormats" :label="exportT"
+              :columns="exportChoices" :default-file-name="exportDefaultName()"
               :selected-count="context.selectedRows.value.length" @export="exportRows" />
     </ToolbarMenu>
     <NewFolderButton :compact="compact" :actions-as-icons="actionsAsIcons" />
