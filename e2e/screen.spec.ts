@@ -950,10 +950,15 @@ test("a saved view becomes a copy of its own", async ({ page }) => {
     widget(page, "review").locator("[data-row-id]").first()
   ).toBeVisible();
   await openWidgetMenu(page, "review");
+  // Wait for the open menu: its absence check alone passes before it renders, and
+  // a menu opening after Escape then blocks the Done button.
+  const menu = page.getByRole("menu");
+  await expect(menu).toBeVisible();
   await expect(
-    page.getByRole("menuitem", { name: "Use a copy of this view" })
+    menu.getByRole("menuitem", { name: "Use a copy of this view" })
   ).toHaveCount(0);
   await page.keyboard.press("Escape");
+  await expect(menu).toHaveCount(0);
   const saved = await done(page);
   const review = saved.widgets.find((entry) => entry.id === "review");
   expect(review).toEqual({
