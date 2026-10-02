@@ -152,6 +152,14 @@ their `yayaw-table-vue-connector-*` copies). The host provides credential
 storage, sync state storage, authorization and workers; see
 [docs/connectors.md](docs/connectors.md).
 
+Excel files without a server come from the optional Excel item
+(`https://table.yayaw.app/r/yayaw-table-excel.json` for React,
+`https://table.yayaw.app/r/yayaw-table-vue-excel.json` for Vue): a
+dependency-free `.xlsx` writer. Pass its `writeXlsx` as `table.excelWriter`
+and the Export screen offers Excel, written in the browser from the same
+cells as the CSV. `actions.exportFile`, when provided, still builds every
+format on the server.
+
 Both editions use TanStack Table 9.2.4 and require an ESM build targeting
 ES2022 or newer. The Vue edition continues to require Vue `^3.5.0`; this
 migration does not widen framework compatibility.

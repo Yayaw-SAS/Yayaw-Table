@@ -1,18 +1,26 @@
 /**
  * CSV export utilities shared by toolbar export and bulk export.
  */
+import {
+  type CsvSeparator,
+  csvField,
+  isNumericExportValue,
+} from "./export-model";
 
-const DEFAULT_SEPARATOR = ",";
+const DEFAULT_SEPARATOR: CsvSeparator = ",";
 const UTF8_BOM = "\uFEFF";
 
 interface ExportColumnDefinition {
   header?: string;
   id: string;
+  type?: string;
 }
 
 export interface CsvExportColumn {
   id: string;
   label: string;
+  /** Numeric text of a `number` column is never treated as a formula. */
+  type?: string;
 }
 
 interface BuildCsvExportColumnsOptions {
@@ -26,14 +34,14 @@ interface BuildCsvExportColumnsOptions {
 interface CreateCsvContentOptions {
   columns: CsvExportColumn[];
   rows: Record<string, unknown>[];
-  separator?: string;
+  separator?: CsvSeparator;
 }
 
 interface ExportRowsAsCsvOptions {
   columns: CsvExportColumn[];
   fileName?: string;
   rows: Record<string, unknown>[];
-  separator?: string;
+  separator?: CsvSeparator;
   tableId: string;
 }
 
@@ -59,17 +67,6 @@ const normalizeValueForCsv = (value: unknown): string => {
   return String(value);
 };
 
-const escapeCsvCell = (value: string, separator: string): string => {
-  const needsQuotes =
-    value.includes(separator) ||
-    value.includes('"') ||
-    value.includes("\n") ||
-    value.includes("\r");
-
-  const escaped = value.replaceAll('"', '""');
-  return needsQuotes ? `"${escaped}"` : escaped;
-};
-
 const padTwoDigits = (value: number): string => {
   return String(value).padStart(2, "0");
 };
@@ -84,6 +81,7 @@ export const getDefaultCsvFileName = (tableId: string): string => {
 
 /**
  * Build export columns from config order + visibility, while excluding system columns.
+ * Pass only exportable definitions (`isExportableColumn`) for a file export.
  */
 export const buildCsvExportColumns = ({
   columnDefinitions,
@@ -135,6 +133,7 @@ export const buildCsvExportColumns = ({
     columns.push({
       id,
       label: definition?.header ?? id,
+      ...(definition?.type ? { type: definition.type } : {}),
     });
   }
 
@@ -147,15 +146,19 @@ export const createCsvContent = ({
   separator = DEFAULT_SEPARATOR,
 }: CreateCsvContentOptions): string => {
   const headerLine = columns
-    .map((column) => escapeCsvCell(column.label, separator))
+    .map((column) => csvField(column.label, separator))
     .join(separator);
 
+  // Text that would run as a formula gets an apostrophe; numbers do not.
   const dataLines = rows.map((row) => {
     return columns
       .map((column) => {
         const rawValue = row[column.id];
-        const normalizedValue = normalizeValueForCsv(rawValue);
-        return escapeCsvCell(normalizedValue, separator);
+        return csvField(
+          normalizeValueForCsv(rawValue),
+          separator,
+          isNumericExportValue(rawValue, column.type)
+        );
       })
       .join(separator);
   });

@@ -83,6 +83,7 @@ import type { TableDensity, TableDisplayMode } from "../types/display-types";
 
 import { ColumnIcon } from "../utils/column-icons";
 import { buildCsvExportColumns } from "../utils/csv-export";
+import { isExportableColumn } from "../utils/export-model";
 import {
   canAddChartFilters,
   type ChartFilterRule,
@@ -1463,12 +1464,16 @@ function ModernDataTable<
     [dataTableResult.actions.edit, queryClient, t, tableId]
   );
 
+  // The bulk CSV writes the visible exportable columns (`enableExport`).
   const csvExportColumns = useMemo(() => {
     return buildCsvExportColumns({
-      columnDefinitions: tableConfig.columns.definitions.map((definition) => ({
-        header: definition.header,
-        id: definition.id,
-      })),
+      columnDefinitions: tableConfig.columns.definitions
+        .filter(isExportableColumn)
+        .map((definition) => ({
+          header: definition.header,
+          id: definition.id,
+          type: definition.type,
+        })),
       // Without a URL order, the table shows its configured one.
       columnOrder:
         state.columnOrder.length > 0
@@ -1724,6 +1729,7 @@ function ModernDataTable<
     exportScreenEnabled: tableConfig.table.export !== false,
     closeOnError,
     csvExportColumns,
+    csvSeparator: tableConfig.table.exportCsvSeparator,
     onBulkExport,
     table,
     tableId,

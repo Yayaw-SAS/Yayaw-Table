@@ -7,6 +7,8 @@ const EXPORT_ENTRY = /^Export/;
 const EXPORT_BUTTON = /^export$/i;
 const SELECTED_TWO = /^Selected \(2\)/;
 const PROJECTS_CSV = /^projects-\d{4}-\d{2}-\d{2}\.csv$/;
+const PROJECTS_XLSX = /^projects-\d{4}-\d{2}-\d{2}\.xlsx$/;
+const ACTIVE_PROJECTS_CSV = /^projects-active-projects-\d{4}-\d{2}-\d{2}\.csv$/;
 const SEARCH_BUTTON = /^search/i;
 const CURRENT_VIEW_TRIGGER = /^current view/i;
 const SEARCH_TAB = /Search/;
@@ -305,6 +307,77 @@ test("the Export screen writes the view's records as displayed or raw", async ({
   await page.getByRole("option", { name: "Raw" }).click();
   const raw = await read(panel);
   expect(raw.text).toContain("Bravo audit,Service,Draft,120,0.2,2026-09-05");
+});
+
+test("the Export screen writes the chosen columns, in a file named after the view", async ({
+  page,
+}) => {
+  await page.getByRole("button", { name: "View actions" }).click();
+  await page.getByRole("button", { name: "Save this view…" }).click();
+  await saveView(page, "Active projects");
+  await page.getByRole("button", { name: "Data", exact: true }).click();
+  await page.getByRole("button", { name: EXPORT_ENTRY }).first().click();
+  const panel = page.locator("[data-export-panel]");
+  await panel.getByRole("combobox", { name: "Columns" }).click();
+  await page.getByRole("option", { name: "Choose columns" }).click();
+  const columns = panel.getByRole("group", { name: "Columns to export" });
+  // Visible columns start checked; `enableExport: false` keeps one out.
+  await expect(columns.getByRole("checkbox", { name: "Name" })).toBeChecked();
+  await expect(
+    columns.getByRole("checkbox", { name: "Details" })
+  ).not.toBeChecked();
+  await expect(
+    columns.getByRole("checkbox", { name: "Serial number" })
+  ).toHaveCount(0);
+  await columns.getByRole("button", { name: "Select none" }).click();
+  await expect(
+    panel.getByRole("button", { name: "Export", exact: true })
+  ).toBeDisabled();
+  await columns.getByRole("checkbox", { name: "Price" }).click();
+  await columns.getByRole("checkbox", { name: "Name" }).click();
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    panel.getByRole("button", { name: "Export", exact: true }).click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(ACTIVE_PROJECTS_CSV);
+  const chunks: Buffer[] = [];
+  for await (const chunk of await download.createReadStream()) {
+    chunks.push(chunk as Buffer);
+  }
+  const lines = Buffer.concat(chunks).toString("utf8").split("\n");
+  // In display order, whatever the order of the clicks.
+  expect(lines[0]).toBe("\uFEFFName,Price");
+  expect(lines).toContain("Bravo audit,€120.00");
+});
+
+test("the Export screen writes Excel files in the browser with the Excel item", async ({
+  page,
+}) => {
+  await page.goto(`${EXAMPLE}&views-q=bravo`);
+  await page.getByRole("button", { name: "Data", exact: true }).click();
+  await page.getByRole("button", { name: EXPORT_ENTRY }).first().click();
+  const panel = page.locator("[data-export-panel]");
+  await panel.getByRole("combobox", { name: "Format" }).click();
+  await page.getByRole("option", { name: "Excel (.xlsx)" }).click();
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    panel.getByRole("button", { name: "Export", exact: true }).click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(PROJECTS_XLSX);
+  const chunks: Buffer[] = [];
+  for await (const chunk of await download.createReadStream()) {
+    chunks.push(chunk as Buffer);
+  }
+  // A stored ZIP: the worksheet's XML reads as is.
+  const file = Buffer.concat(chunks).toString("latin1");
+  expect(file.startsWith("PK")).toBe(true);
+  expect(file).toContain("xl/worksheets/sheet1.xml");
+  expect(file).toContain('<sheet name="Projects"');
+  expect(file).toContain(
+    's="1" t="inlineStr"><is><t xml:space="preserve">Name<'
+  );
+  expect(file).toContain("Bravo audit");
+  expect(file).not.toContain("Alpha launch");
 });
 
 test("bulk export opens the Export screen for the selected records", async ({

@@ -148,6 +148,22 @@ await copyFile(
   new URL("../packages/yayaw-table-vue/src/bulk-editor.ts", import.meta.url)
 );
 
+// The optional Excel writer is framework-agnostic: the Vue item ships the same file.
+await mkdir(
+  new URL("../packages/yayaw-table-vue/src/excel/", import.meta.url),
+  { recursive: true }
+);
+await copyFile(
+  new URL(
+    "../src/components/ui/yayaw-table-excel/xlsx-writer.ts",
+    import.meta.url
+  ),
+  new URL(
+    "../packages/yayaw-table-vue/src/excel/xlsx-writer.ts",
+    import.meta.url
+  )
+);
+
 // Saved-view settings are sanitized alike in both editions; the planning
 // engine sits one folder up in React and beside the file in Vue.
 {

@@ -284,7 +284,7 @@ runs where you implement it (fetch, server action, RPC), so authorize there.
 | `actions.tree` | File tree path, moves, new folders | Parent-column walk, `update`, `create` |
 | `actions.planning` | Transactional Gantt (preview, apply, dependencies) | Derived from `list` and `update`, no dependencies |
 | `actions.import` | Import sources, server bulk writes, key lookup | CSV through `create` and `update`, keys through `list` |
-| `actions.exportFile` | Server-built CSV, Excel and PDF | Browser CSV and printed PDF, no Excel |
+| `actions.exportFile` | Server-built CSV, Excel and PDF | Browser CSV and printed PDF; Excel with `table.excelWriter` (Excel item) |
 | `actions.geocode` | Address suggestions for `location` columns and imports | Coordinates only; addresses cannot import |
 | `actions.formLinks` | Publishing Form views on public links | No "Share form" |
 | `actions.destinations` | Data › Connect and Share rows, connector screens, schedules | Only the built-in export and link |

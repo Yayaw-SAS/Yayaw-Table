@@ -107,7 +107,13 @@ Each entry: what you see, why, what to do.
   `maplibre-gl-worker.mjs` with `maplibre-gl-shared.mjs` in the same folder.
 - **Feed bodies show HTML or markdown as text.** By design; render them with
   `table.feed.renderBody` and sanitize.
-- **Excel is missing from Export.** Only offered with `actions.exportFile`.
+- **Excel is missing from Export.** Only offered with `actions.exportFile` or
+  `table.excelWriter` (install the Excel item and pass its `writeXlsx`).
+- **A CSV opens in one column in French Excel.** Set
+  `table.exportCsvSeparator: ";"`.
+- **Exported text starts with an apostrophe.** Text starting with `=`, `+`,
+  `-`, `@`, a tab or a carriage return is neutralized against formula
+  injection; numbers of `number` columns are not.
 - **Addresses fail to import into a `location` column.** Without
   `actions.geocode` only coordinates import; addresses become errors.
 - **React's bulk Copy puts JSON on the clipboard.** Without `onBulkCopy` or

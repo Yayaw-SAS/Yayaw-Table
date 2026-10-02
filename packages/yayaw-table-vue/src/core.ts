@@ -1,4 +1,10 @@
 import { normalizeGenericModeConfigs } from "./display-modes";
+import {
+  type CsvSeparator,
+  csvField,
+  isExportableColumn,
+  isNumericExportValue,
+} from "./export-model";
 import { normalizeGalleryViewConfig } from "./gallery-view-state";
 import { formatLocation } from "./location-model";
 import {
@@ -37,7 +43,7 @@ import {
   type ViewOrderStorage,
 } from "./view-order";
 
-const CSV_ESCAPE_PATTERN = /[",\n\r]/;
+const UTF8_BOM = "\uFEFF";
 const VIEW_STORAGE_KEY_PATTERN = /^yayaw-table:(.+):views$/;
 const NATURAL_SORT_COLLATOR = new Intl.Collator(undefined, {
   numeric: true,
@@ -411,14 +417,17 @@ export const calculateColumn = (
   return countResult ?? calculateNumeric(numbers, calculation);
 };
 
-const csvEscape = (value: unknown): string => {
+// Text that would run as a formula gets an apostrophe; numbers do not.
+const csvEscape = (
+  value: unknown,
+  separator: CsvSeparator,
+  type?: string
+): string => {
   let text = "";
   if (value !== null && value !== undefined) {
     text = typeof value === "object" ? JSON.stringify(value) : String(value);
   }
-  return CSV_ESCAPE_PATTERN.test(text)
-    ? `"${text.replaceAll('"', '""')}"`
-    : text;
+  return csvField(text, separator, isNumericExportValue(value, type));
 };
 
 export const exportColumns = (
@@ -433,38 +442,44 @@ export const exportColumns = (
   });
 };
 
+/** The bulk CSV: exportable columns only (`enableExport`), with a BOM. */
 export const rowsToCsv = (
   rows: TableRecord[],
-  columns: ColumnDefinition[]
+  columns: ColumnDefinition[],
+  separator: CsvSeparator = ","
 ): string => {
-  const exportColumns = columns.filter(
-    (column) => column.type !== "actions" && column.id !== "select"
-  );
-  return [
-    exportColumns.map((column) => csvEscape(column.header)).join(","),
+  const exportColumns = columns.filter(isExportableColumn);
+  const lines = [
+    exportColumns
+      .map((column) => csvEscape(column.header, separator))
+      .join(separator),
     ...rows.map((row) =>
       exportColumns
         .map((column) =>
           csvEscape(
             column.accessorFn
               ? column.accessorFn(row)
-              : row[column.accessorKey ?? column.id]
+              : row[column.accessorKey ?? column.id],
+            separator,
+            column.type
           )
         )
-        .join(",")
+        .join(separator)
     ),
-  ].join("\n");
+  ];
+  return `${UTF8_BOM}${lines.join("\n")}`;
 };
 
 export const downloadCsv = (
   rows: TableRecord[],
   columns: ColumnDefinition[],
-  filename: string
+  filename: string,
+  separator?: CsvSeparator
 ): void => {
   if (typeof document === "undefined") {
     return;
   }
-  const blob = new Blob([rowsToCsv(rows, columns)], {
+  const blob = new Blob([rowsToCsv(rows, columns, separator)], {
     type: "text/csv;charset=utf-8",
   });
   const url = URL.createObjectURL(blob);

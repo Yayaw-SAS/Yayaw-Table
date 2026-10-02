@@ -16,6 +16,7 @@ import {
   compatibleListParams,
   matchesContractFilter,
 } from "../src/components/ui/yayaw-table/utils/table-contracts";
+import { writeXlsx } from "../src/components/ui/yayaw-table-excel/xlsx-writer";
 import { createDemoFormLinks, demoFormResponses } from "./form-links";
 import { createNotionConnector } from "./views-notion";
 import { createSpreadsheetConnector } from "./views-spreadsheet";
@@ -219,8 +220,14 @@ export const viewsColumns = [
   { id: "dueDate", header: "Due", type: "date" as const },
   // Double-click a site to edit it: address suggestions come from `geocode`.
   { id: "site", header: "Site", type: "location" as const, inlineEdit: true },
-  // Asked by the Request form's rules; hidden in the table by default.
-  { id: "serialNumber", header: "Serial number", type: "text" as const },
+  // Asked by the Request form's rules; hidden in the table by default and
+  // never exported.
+  {
+    id: "serialNumber",
+    header: "Serial number",
+    type: "text" as const,
+    enableExport: false,
+  },
   { id: "details", header: "Details", type: "text" as const },
   // Read by the "Updates" feed view; hidden in the table by default.
   { id: "update", header: "Update", type: "text" as const },
@@ -284,6 +291,8 @@ export const DEMO_MAP: MapTableConfig = {
 };
 
 export const viewsTableOptions = {
+  // The optional Excel item: the Export screen offers .xlsx without a server.
+  excelWriter: writeXlsx,
   syncUrl: true,
   enableAdvancedFilters: true,
   manualOrder: true,

@@ -4,7 +4,10 @@ import {
   csvFromMatrix,
   defaultExportFileName,
   exportFileName,
+  exportLabels,
   exportMatrix,
+  exportRecordCount,
+  isExportableColumn,
   printableHtml,
   runExport,
 } from "../src/components/ui/yayaw-table/utils/export-model";
@@ -15,7 +18,10 @@ exportModelSuite(test, {
   csvFromMatrix,
   defaultExportFileName,
   exportFileName,
+  exportLabels,
   exportMatrix,
+  exportRecordCount,
+  isExportableColumn,
   printableHtml,
   runExport,
 });
