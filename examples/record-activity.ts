@@ -43,12 +43,19 @@ export function createRecordActivity(
     refresh();
     return Promise.resolve({ success: true });
   };
-  const revert: DetailRevertHandler = (row, entry) => {
+  // An undo (`reverts`) or a redo (`redoes`) inverts an event once, on unchanged values, in its transaction.
+  const invert = (
+    row: DetailRecord,
+    entry: DetailActivity,
+    link: "reverts" | "redoes"
+  ) => {
     const record = history.find((item) => item.row.id === row.id);
     const changes = entry.changes ?? [];
     if (
       !record ||
-      record.activity.some((item) => item.reverts === entry.id) ||
+      record.activity.some(
+        (item) => item.reverts === entry.id || item.redoes === entry.id
+      ) ||
       changes.some((change) => record.row[change.field] !== change.after)
     ) {
       return {
@@ -67,9 +74,10 @@ export function createRecordActivity(
         id: crypto.randomUUID(),
         actor: { name: "Demo user" },
         at: new Date().toISOString(),
-        action: "Undo",
-        reverts: entry.id,
-        reversible: false,
+        action: link === "reverts" ? "Undo" : "Redo",
+        [link]: entry.id,
+        reversible: true,
+        transactionId: entry.transactionId,
         changes: changes.map((change) => ({
           ...change,
           before: change.after,
@@ -81,9 +89,14 @@ export function createRecordActivity(
     refresh();
     return { success: true };
   };
+  const revert: DetailRevertHandler = (row, entry) =>
+    invert(row, entry, "reverts");
+  const redo: DetailRevertHandler = (row, entry) =>
+    invert(row, entry, "redoes");
   return {
     history: () => history,
     revert,
+    redo,
     update: (id: string, values: DetailRecord) => update(id, values),
     duplicate: (id: string) => {
       const source = history.find(

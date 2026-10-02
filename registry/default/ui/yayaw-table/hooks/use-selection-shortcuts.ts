@@ -9,6 +9,7 @@ import {
   type DetailRecord,
   type DetailRevertHandler,
   detailLabels,
+  detailRedoMessage,
   detailUndoMessage,
   type RecordDetailsConfig,
 } from "../utils/record-details";
@@ -19,10 +20,11 @@ export function useSelectionShortcuts(
   enabled: boolean,
   selectAll: (() => Promise<void>) | undefined,
   undo?: () => Promise<void>,
-  duplicate?: () => Promise<void>
+  duplicate?: () => Promise<void>,
+  redo?: () => Promise<void>
 ): void {
-  const latest = useRef({ enabled, selectAll, undo, duplicate });
-  latest.current = { enabled, selectAll, undo, duplicate };
+  const latest = useRef({ enabled, selectAll, undo, duplicate, redo });
+  latest.current = { enabled, selectAll, undo, duplicate, redo };
   useEffect(() => {
     if (!root.current) {
       return;
@@ -51,6 +53,13 @@ export function useSelectionShortcuts(
             }
           : undefined;
       },
+      get redo() {
+        return latest.current.redo
+          ? () => {
+              return latest.current.redo?.();
+            }
+          : undefined;
+      },
     });
   }, [root]);
 }
@@ -60,6 +69,7 @@ export function useTableActivityShortcuts(
   state: {
     details?: RecordDetailsConfig;
     onRevertActivity?: DetailRevertHandler;
+    onRedoActivity?: DetailRevertHandler;
     rows: readonly DetailRecord[];
     refetch: () => Promise<unknown>;
     locale: string;
@@ -80,26 +90,34 @@ export function useTableActivityShortcuts(
       createActivityUndo({
         config: () => undoState.current.details,
         handler: () => undoState.current.onRevertActivity,
+        redoHandler: () => undoState.current.onRedoActivity,
         rows: () => undoState.current.rows,
         onReverted: async () => {
           await undoState.current.refetch();
         },
-        onSuccess: (entry) =>
+        onSuccess: (entry, kind) => {
+          const labels = detailLabels(
+            undoState.current.locale,
+            undoState.current.details?.labels
+          );
           toast.success(
-            detailUndoMessage(
-              entry,
-              detailLabels(
-                undoState.current.locale,
-                undoState.current.details?.labels
-              )
-            )
-          ),
-        onError: (error) =>
+            kind === "undo"
+              ? detailUndoMessage(entry, labels)
+              : detailRedoMessage(entry, labels)
+          );
+        },
+        onError: (error, kind) => {
+          const labels = detailLabels(undoState.current.locale);
           toast.error(
-            error ?? detailLabels(undoState.current.locale).undoError
-          ),
-        onUnavailable: () =>
-          toast.info(detailLabels(undoState.current.locale).undoUnavailable),
+            error ?? (kind === "undo" ? labels.undoError : labels.redoError)
+          );
+        },
+        onUnavailable: (kind) => {
+          const labels = detailLabels(undoState.current.locale);
+          toast.info(
+            kind === "undo" ? labels.undoUnavailable : labels.redoUnavailable
+          );
+        },
       }),
     []
   );
@@ -132,6 +150,7 @@ export function useTableActivityShortcuts(
       ? state.selectAll
       : undefined,
     state.onRevertActivity ? activityUndo.undo : undefined,
-    state.duplicateEnabled && state.duplicate?.action() ? duplicate : undefined
+    state.duplicateEnabled && state.duplicate?.action() ? duplicate : undefined,
+    state.onRedoActivity ? activityUndo.redo : undefined
   );
 }

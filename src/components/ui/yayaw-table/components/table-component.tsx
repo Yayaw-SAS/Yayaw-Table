@@ -960,6 +960,7 @@ type ModernDataTableProps<
   onOpenDetails?: (row: TData) => void;
   details?: RecordDetailsConfig;
   onRevertActivity?: DetailRevertHandler;
+  onRedoActivity?: DetailRevertHandler;
   displayModeRenderers?: DisplayModeRenderers;
   onRowSelectionChange?: (rows: Row<TData>[]) => void;
   onRowSelectionStateChange?: (selection: Record<string, boolean>) => void;
@@ -1147,6 +1148,7 @@ function ModernDataTable<
   onOpenDetails,
   details,
   onRevertActivity,
+  onRedoActivity,
   displayModeRenderers,
   showDefaultToastsForCustomHandlers,
   queryFn: _queryFn,
@@ -1758,6 +1760,7 @@ function ModernDataTable<
   useTableActivityShortcuts(selectionRootRef, {
     details,
     onRevertActivity,
+    onRedoActivity,
     rows: dataTableResult.data,
     refetch,
     locale,

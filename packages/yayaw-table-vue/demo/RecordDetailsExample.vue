@@ -4,7 +4,7 @@ import { PanelRight, Square, LayoutTemplate, RotateCcw } from "lucide-vue-next";
 import { DataTable, defineTableConfig } from "../src";
 import type { TableActions, TableRecord } from "../src/types";
 import type { DetailPresentation } from "../src/record-details";
-import { detailExampleRow, recordDetailsConfig, recordExampleColumns, recordSections, updateExampleRecord, revertExampleRecord } from "../../../examples/record-details";
+import { detailExampleRow, recordDetailsConfig, recordExampleColumns, recordSections, updateExampleRecord, revertExampleRecord, redoExampleRecord } from "../../../examples/record-details";
 import type { DetailRevertHandler } from "../src/record-details";
 
 const rows = ref<TableRecord[]>([structuredClone(detailExampleRow)]);
@@ -29,6 +29,14 @@ const revertActivity: DetailRevertHandler = (row, entry) => {
   feedback.value = "Modification annulée. L’événement d’origine et son annulation restent dans l’historique.";
   return { success: true };
 };
+const redoActivity: DetailRevertHandler = (row, entry) => {
+  const current = rows.value.find(item => item.id === row.id);
+  if (!current) return { success: false, error: "Cette entrée n’existe plus." };
+  const redone = redoExampleRecord(current, entry);
+  rows.value = rows.value.map(item => item.id === row.id ? redone : item);
+  feedback.value = "Modification rétablie. L’annulation et son rétablissement restent dans l’historique.";
+  return { success: true };
+};
 const modes = [{ id: "drawer", label: "Panneau latéral", icon: PanelRight }, { id: "modal", label: "Modale", icon: Square }, { id: "inline", label: "Dans la page", icon: LayoutTemplate }] as const;
 </script>
 
@@ -38,7 +46,7 @@ const modes = [{ id: "drawer", label: "Panneau latéral", icon: PanelRight }, { 
     <header class="record-demo-intro"><p class="record-demo-kicker">LA FICHE DE CONSULTATION</p><h1>Chaque détail.<br><span>Tout le contexte.</span></h1><p>Une entrée lisible, son équipe et son histoire.<br>Consultez les informations, puis modifiez ou supprimez si nécessaire.</p></header>
     <section class="record-demo-workspace">
       <header class="record-demo-controls"><div><h2>Campagnes</h2><p>Cliquez sur l’entrée ou choisissez « Consulter » dans ses actions.</p></div><fieldset><legend>Présentation de la fiche</legend><label v-for="mode in modes" :key="mode.id" :class="{ selected: presentation === mode.id }"><input v-model="presentation" type="radio" name="presentation" :value="mode.id"><component :is="mode.icon" :size="15" aria-hidden="true" />{{ mode.label }}</label></fieldset></header>
-      <DataTable :key="presentation" table-type="record-details-demo" :config="config" :details="detailConfig" :data="rows" :get-table-actions="() => actions" :on-revert-activity="revertActivity" locale="fr">
+      <DataTable :key="presentation" table-type="record-details-demo" :config="config" :details="detailConfig" :data="rows" :get-table-actions="() => actions" :on-revert-activity="revertActivity" :on-redo-activity="redoActivity" locale="fr">
         <template #detail-score="{ value }"><span class="record-demo-score"><progress :value="Number(value)" max="100" aria-label="Préparation de la campagne" />{{ value }} %</span></template>
       </DataTable>
       <div class="record-demo-footer"><span role="status">{{ feedback || 'Données et historique fictifs · Les modifications restent dans cette démo.' }}</span><button type="button" @click="reset"><RotateCcw :size="13" aria-hidden="true" />Réinitialiser</button></div>
