@@ -118,10 +118,12 @@ export interface TableCatalogueTableConfig
   /** Backwards-compatible alias for `showClearFilters`. */
   showResetFilters?: boolean;
   export?: boolean;
-  /** Formats the Export screen offers (default CSV and PDF, Excel with `actions.exportFile`). */
+  /** Formats the Export screen offers (default CSV and PDF, Excel with `actions.exportFile` or `excelWriter`). */
   exportFormats?: import("../utils/export-model").ExportFormat[];
   /** Separator of CSV files written in the browser: ",", ";" (French Excel) or tab; default ",". */
   exportCsvSeparator?: import("../utils/export-model").CsvSeparator;
+  /** Writes Excel files in the browser (`writeXlsx` from the Excel item). */
+  excelWriter?: import("../utils/export-model").ExcelWriter;
   /** Offer "Share" (copy the link to the view); default true. */
   share?: boolean;
   /** Offer scheduling settings for Connect destinations that declare `schedule`; default true. */
@@ -377,6 +379,7 @@ function resolveTableBehaviorConfig(
     import: mergedConfig.import,
     exportFormats: mergedConfig.exportFormats,
     exportCsvSeparator: mergedConfig.exportCsvSeparator,
+    excelWriter: mergedConfig.excelWriter,
     bulkExport: mergedConfig.bulkExport ?? true,
     actionsAsIcons: mergedConfig.actionsAsIcons ?? false,
     coloredTags: mergedConfig.coloredTags !== false,

@@ -71,6 +71,7 @@ free of them:
 | `yayaw-table-map` / `yayaw-table-vue-map` | Map | MapLibre (mapcn) |
 | `yayaw-table-dashboard` / `yayaw-table-vue-dashboard` | Dashboards and admin screens (views, numbers, notes, full-page tables, host blocks) | gridstack |
 | `yayaw-table-connector-notion`, `yayaw-table-connector-google-sheets` (and Vue) | Server modules for two-way sync | none |
+| `yayaw-table-excel` / `yayaw-table-vue-excel` | Excel files written in the browser (`table.excelWriter`) | none (its own OOXML and ZIP writer) |
 
 ## Shared logic
 
@@ -103,7 +104,7 @@ cannot drift on behavior. The few framework-native differences are listed in
 | Path | Contents |
 | --- | --- |
 | `src/components/ui/yayaw-table/` | React source: components, hooks, atoms, config, providers, types, utils, and the form, feed, file tree, planning and connector modules |
-| `src/components/ui/yayaw-table-{calendar,chart,dashboard,map}/` | Optional React items |
+| `src/components/ui/yayaw-table-{calendar,chart,dashboard,map,excel}/` | Optional React items (the Excel writer is copied into the Vue package) |
 | `src/components/ui/*.tsx` | shadcn components used by the table; hosts install them from shadcn |
 | `packages/yayaw-table-vue/` | Vue edition: source, demo and registry build |
 | `registry/` | React registry source (`registry.json`) and generated files (`registry/default/`) |

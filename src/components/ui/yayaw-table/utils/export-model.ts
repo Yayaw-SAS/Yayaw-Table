@@ -482,6 +482,16 @@ const exportRequestColumn = (column: ExportColumn): ExportRequestColumn => {
 /** A link to download, a file built on the server, or nothing to do. */
 export type ExportFileResult = { url: string } | { blob: Blob } | undefined;
 
+/**
+ * `table.excelWriter`: writes an .xlsx file from the export matrix, such as
+ * `writeXlsx` from the optional Excel item. With it, the Export screen offers
+ * Excel without `actions.exportFile`.
+ */
+export type ExcelWriter = (
+  matrix: ExportMatrix,
+  options: { sheetName: string }
+) => Blob;
+
 export interface ExportRuntime {
   settings: ExportSettings;
   viewId: string | null;
@@ -502,6 +512,8 @@ export interface ExportRuntime {
   csvSeparator?: CsvSeparator;
   title: string;
   exportFile?: (request: ExportFileRequest) => Promise<ExportFileResult>;
+  /** `table.excelWriter`: Excel files written here, without `exportFile`. */
+  writeExcel?: ExcelWriter;
   /** Replaces the built-in CSV file, as the `onExport` prop always did. */
   onRows?: (rows: Record<string, unknown>[]) => Promise<void> | void;
   download: (file: Blob | string, fileName: string) => void;
@@ -592,9 +604,17 @@ export async function runExport(runtime: ExportRuntime): Promise<void> {
     return;
   }
   if (settings.format === "xlsx") {
-    throw new Error(
-      "Excel export needs `actions.exportFile` or the Excel item."
+    if (!runtime.writeExcel) {
+      throw new Error(
+        "Excel export needs `actions.exportFile` or the Excel item (`table.excelWriter`)."
+      );
+    }
+    // The worksheet is named after the table.
+    runtime.download(
+      runtime.writeExcel(matrix, { sheetName: runtime.title }),
+      fileName
     );
+    return;
   }
   runtime.download(
     new Blob([csvFromMatrix(matrix, runtime.csvSeparator)], {

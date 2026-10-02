@@ -123,7 +123,8 @@ Defaults in brackets. Flags only shape the interface; the server decides.
   `actionsAsIcons` [false], `showClearFilters` [false; alias
   `showResetFilters`], `filterBarColumns` and `showFilterBar` [false],
   `export`, `bulkExport` [true], `exportFormats`, `exportCsvSeparator`
-  [`","`; `";"` for French Excel, `"\t"`], `import`, `share`,
+  [`","`; `";"` for French Excel, `"\t"`], `excelWriter` (`writeXlsx` from
+  the Excel item: Excel without `actions.exportFile`), `import`, `share`,
   `connectors`, `sync`, `schedule` [true], `emptyState` (`title`,
   `description`, `show`).
 - Query: `enableSorting`, `enableColumnFilters`, `enableGrouping` [true],

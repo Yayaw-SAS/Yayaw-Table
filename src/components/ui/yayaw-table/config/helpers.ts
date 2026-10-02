@@ -561,10 +561,16 @@ export interface TableBehaviorConfig
    */
   export: boolean;
 
-  /** Formats the Export screen offers (default CSV and PDF, Excel with `actions.exportFile`). */
+  /** Formats the Export screen offers (default CSV and PDF, Excel with `actions.exportFile` or `excelWriter`). */
   exportFormats?: import("../utils/export-model").ExportFormat[];
   /** Separator of CSV files written in the browser: ",", ";" (French Excel) or tab; default ",". */
   exportCsvSeparator?: import("../utils/export-model").CsvSeparator;
+  /**
+   * Writes Excel files in the browser: pass `writeXlsx` from the optional
+   * Excel item (`yayaw-table-excel`). The Export screen then offers Excel
+   * without `actions.exportFile`; with it, the server still builds the files.
+   */
+  excelWriter?: import("../utils/export-model").ExcelWriter;
   /** Offer "Share" (copy the link to the view); default true. */
   share?: boolean;
   /** Offer scheduling settings for Connect destinations that declare `schedule`; default true. */

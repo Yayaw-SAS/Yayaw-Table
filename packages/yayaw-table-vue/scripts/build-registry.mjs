@@ -29,6 +29,8 @@ const dashboardRoot = join(sourceRoot, "dashboard");
 const isDashboardFile = (path) => path.startsWith(`${dashboardRoot}/`);
 const mapRoot = join(sourceRoot, "map");
 const isMapFile = (path) => path.startsWith(`${mapRoot}/`);
+const excelRoot = join(sourceRoot, "excel");
+const isExcelFile = (path) => path.startsWith(`${excelRoot}/`);
 const allSourceFiles = (await walk(sourceRoot)).filter((path) => {
   if (!includedExtensions.has(extname(path))) {
     return false;
@@ -52,6 +54,7 @@ const sourceFiles = allSourceFiles.filter(
       isChartFile(path) ||
       isDashboardFile(path) ||
       isMapFile(path) ||
+      isExcelFile(path) ||
       isConnectorFile(path)
     )
 );
@@ -146,6 +149,21 @@ const mapItem = {
   files: await toRegistryFiles(allSourceFiles.filter(isMapFile)),
 };
 
+const excelItem = {
+  $schema: "https://shadcn-vue.com/schema/registry-item.json",
+  name: "yayaw-table-vue-excel",
+  type: "registry:lib",
+  title: "YaYaw Table Vue Excel",
+  description:
+    "Optional, dependency-free Excel writer for YaYaw Table Vue: `writeXlsx` turns the Export screen's matrix (the same headers and cells as the CSV) into an .xlsx file in the browser, one worksheet named after the table with a bold header row, numbers as numeric cells and other values as text. Pass it as `table.excelWriter` and the Export screen offers Excel without `actions.exportFile`.",
+  dependencies: [],
+  registryDependencies: [],
+  files: await toRegistryFiles(
+    allSourceFiles.filter(isExcelFile),
+    "registry:lib"
+  ),
+};
+
 const connectorFiles = (name) =>
   toRegistryFiles(
     ["connector-model.ts", "sync-engine.ts", name].map((file) =>
@@ -186,6 +204,7 @@ for (const registryItem of [
   chartItem,
   dashboardItem,
   mapItem,
+  excelItem,
   ...connectorItems,
 ]) {
   await writeFile(
@@ -200,5 +219,5 @@ execSync(`bun x ultracite fix ${relative(repositoryRoot, outputRoot)}`, {
   stdio: "inherit",
 });
 console.log(
-  `Built ${files.length} Vue registry files, ${calendarItem.files.length} calendar files, ${chartItem.files.length} chart files, ${dashboardItem.files.length} dashboard files, ${mapItem.files.length} map files and ${connectorItems.length} connector items.`
+  `Built ${files.length} Vue registry files, ${calendarItem.files.length} calendar files, ${chartItem.files.length} chart files, ${dashboardItem.files.length} dashboard files, ${mapItem.files.length} map files, ${excelItem.files.length} Excel file and ${connectorItems.length} connector items.`
 );

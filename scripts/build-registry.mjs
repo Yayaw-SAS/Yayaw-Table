@@ -56,6 +56,8 @@ const OPTIONAL_ITEMS = [
   { name: "yayaw-table-chart", dir: "yayaw-table-chart" },
   { name: "yayaw-table-dashboard", dir: "yayaw-table-dashboard" },
   { name: "yayaw-table-map", dir: "yayaw-table-map" },
+  // A dependency-free .xlsx writer for `table.excelWriter`.
+  { name: "yayaw-table-excel", dir: "yayaw-table-excel", type: "registry:lib" },
 ];
 /**
  * Optional server modules living in the table source (`connectors/`). They
@@ -445,7 +447,7 @@ for (const optional of OPTIONAL_ITEMS) {
     const relNorm = rel.replace(/\\/g, "/");
     return {
       path: ["registry", "default", "ui", optional.dir, relNorm].join("/"),
-      type: getFileType(`/${relNorm}`),
+      type: optional.type ?? getFileType(`/${relNorm}`),
       target: `components/ui/${optional.dir}/${relNorm}`,
     };
   });

@@ -322,8 +322,10 @@ Load the rows yourself from `query` with the user's permissions (limit to
 column's format in `locale`, or the stored values otherwise.
 `columns` are the user's choice (visible, all, or the ones checked under
 "Choose columns", in that order) and never include `enableExport: false`
-columns. Excel is offered only with `exportFile`; `table.exportFormats`
-narrows the formats. Without it, the browser writes a UTF-8 CSV (with a BOM,
+columns. Excel is offered with `exportFile`, or without a server when
+`table.excelWriter` is set (`writeXlsx` from the `yayaw-table-excel` or
+`yayaw-table-vue-excel` item, which writes the same cells as the CSV);
+`table.exportFormats` narrows the formats. Without it, the browser writes a UTF-8 CSV (with a BOM,
 separated by `table.exportCsvSeparator`) or prints a PDF from rows loaded
 through `list`, and `onExport` can replace the CSV file. Browser CSV files
 prefix text starting with `=`, `+`, `-`, `@`, a tab or a carriage return with

@@ -1802,7 +1802,16 @@ records, columns, values, file name) and hand the choice to the shared
 and downloads a CSV or prints a page from a hidden frame. The request carries
 each column's type, options and formats and the table `locale`, so a server
 file "as displayed" can match the table. `availableExportFormats`
-offers Excel only with a writer and honours `table.exportFormats`.
+offers Excel only with a writer and honours `table.exportFormats`. The
+writer is the server (`exportFile`) or `table.excelWriter`: the optional
+Excel item (`yayaw-table-excel`, `yayaw-table-vue-excel`) ships one
+framework-agnostic file, `xlsx-writer.ts`, copied into the Vue package by
+`contracts:sync`. `writeXlsx` turns the export matrix into a store-only ZIP
+of a minimal SpreadsheetML workbook (one worksheet named after the table, a
+bold header, numbers as numeric cells, other values as inline strings, column
+widths from the content); `tests/xlsx-writer-suite.ts` runs in both editions,
+the export-screen tests choose Excel without `exportFile` in both, and
+`e2e/view-tabs.spec.ts` downloads the views demo's `.xlsx` in both.
 `tests/export-model-suite.ts` runs in both editions.
 
 Columns. The screen offers Visible, All and "Choose columns": a checklist of

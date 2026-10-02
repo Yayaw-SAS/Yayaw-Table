@@ -26,6 +26,7 @@ const settings = {
 };
 // Any space but line breaks, the narrow no-break ones of French numbers included.
 const SPACES = /[^\S\n]/gu;
+const EXCEL_NEEDS_A_WRITER = /Excel export needs/;
 const query = {
   search: "",
   filters: {},
@@ -393,5 +394,48 @@ export function exportModelSuite(
       },
     });
     assert.ok(printed.includes("<p>2 enregistrements</p>"));
+  });
+
+  test("writes Excel here with the Excel item, the worksheet named after the table", async () => {
+    const written: [Model.ExportMatrix, { sheetName: string }][] = [];
+    const downloads: [unknown, string][] = [];
+    const excel = new Blob(["xlsx"]);
+    await model.runExport({
+      settings: { ...settings, format: "xlsx", values: "raw" },
+      viewId: null,
+      query,
+      allColumns: columns,
+      visibleColumns: columns.slice(0, 2),
+      selectedRowIds: [],
+      selectedRows: [],
+      loadRows: () => Promise.resolve(rows),
+      title: "Projects",
+      writeExcel: (matrix, options) => {
+        written.push([matrix, options]);
+        return excel;
+      },
+      download: (file, name) => downloads.push([file, name]),
+      print: () => undefined,
+    });
+    assert.deepEqual(written[0]?.[0].headers, ["Name", "Status"]);
+    assert.deepEqual(written[0]?.[0].rows, [['Say "hi", <b>', "a"]]);
+    assert.deepEqual(written[0]?.[1], { sheetName: "Projects" });
+    assert.deepEqual(downloads, [[excel, "projects.xlsx"]]);
+    await assert.rejects(
+      model.runExport({
+        settings: { ...settings, format: "xlsx" },
+        viewId: null,
+        query,
+        allColumns: columns,
+        visibleColumns: columns,
+        selectedRowIds: [],
+        selectedRows: [],
+        loadRows: () => Promise.resolve(rows),
+        title: "Projects",
+        download: () => undefined,
+        print: () => undefined,
+      }),
+      EXCEL_NEEDS_A_WRITER
+    );
   });
 }

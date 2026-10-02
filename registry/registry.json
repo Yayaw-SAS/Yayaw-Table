@@ -2129,6 +2129,24 @@
       ]
     },
     {
+      "name": "yayaw-table-excel",
+      "type": "registry:lib",
+      "title": "YaYaw Table Excel",
+      "description": "Optional, dependency-free Excel writer for YaYaw Table: `writeXlsx` turns the Export screen's matrix (the same headers and cells as the CSV) into an .xlsx file in the browser, one worksheet named after the table with a bold header row, numbers as numeric cells and other values as text. Pass it as `table.excelWriter` and the Export screen offers Excel without `actions.exportFile`.",
+      "files": [
+        {
+          "path": "registry/default/ui/yayaw-table-excel/xlsx-writer.ts",
+          "type": "registry:lib",
+          "target": "components/ui/yayaw-table-excel/xlsx-writer.ts"
+        }
+      ],
+      "meta": {
+        "registryUrl": "https://table.yayaw.app/r/yayaw-table-excel.json",
+        "version": "3.10.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.10.0/yayaw-table-excel.json"
+      }
+    },
+    {
       "name": "yayaw-table-connector-notion",
       "type": "registry:lib",
       "title": "YaYaw Table Notion Connector",

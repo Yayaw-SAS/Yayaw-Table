@@ -16,6 +16,7 @@ import {
   compatibleListParams,
   matchesContractFilter,
 } from "../src/components/ui/yayaw-table/utils/table-contracts";
+import { writeXlsx } from "../src/components/ui/yayaw-table-excel/xlsx-writer";
 import { createDemoFormLinks, demoFormResponses } from "./form-links";
 import { createNotionConnector } from "./views-notion";
 import { createSpreadsheetConnector } from "./views-spreadsheet";
@@ -290,6 +291,8 @@ export const DEMO_MAP: MapTableConfig = {
 };
 
 export const viewsTableOptions = {
+  // The optional Excel item: the Export screen offers .xlsx without a server.
+  excelWriter: writeXlsx,
   syncUrl: true,
   enableAdvancedFilters: true,
   manualOrder: true,

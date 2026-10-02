@@ -464,7 +464,10 @@ const exportChoices = computed((): ExportColumnChoice[] => {
 const exportDefaultName = (): string =>
   defaultExportFileName(String(context.translations.value.title ?? context.config.id), savedViews.value?.activeName);
 const exportFormats = computed(() =>
-  availableExportFormats(context.config.table.exportFormats, Boolean(context.actions.value?.exportFile))
+  availableExportFormats(
+    context.config.table.exportFormats,
+    Boolean(context.actions.value?.exportFile || context.config.table.excelWriter)
+  )
 );
 // Server first through `actions.exportFile`; otherwise CSV or print here.
 const exportRows = async (settings: ExportSettings): Promise<void> => {
@@ -490,6 +493,7 @@ const exportRows = async (settings: ExportSettings): Promise<void> => {
       csvSeparator: context.config.table.exportCsvSeparator,
       title: String(context.translations.value.title ?? context.config.id),
       exportFile: context.actions.value?.exportFile,
+      writeExcel: context.config.table.excelWriter,
       onRows: context.onExport,
       download: downloadExportFile,
       print: printExportPage,
