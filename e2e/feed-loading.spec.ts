@@ -306,19 +306,17 @@ test("with reduced motion, the loading states do not animate", async ({
   await page.emulateMedia({ reducedMotion: "reduce" });
   // A slow host, so the skeleton and the spinner stay long enough to check.
   await page.goto(`${EXAMPLE}&delay=1500`);
+  // The lazy view's loading state gives way to the view's own skeleton:
+  // `toHaveCSS` reads the one shown, not a replaced element.
   const line = page.locator("[data-feed-skeleton] > * > *").first();
   await expect(line).toBeVisible();
-  expect(
-    await line.evaluate((item) => getComputedStyle(item).animationName)
-  ).toBe("none");
+  await expect(line).toHaveCSS("animation-name", "none");
   await expect(cards(page).first()).toBeVisible({ timeout: 10_000 });
   await scrollToEnd(page);
   const spinner = loadMore(page).locator("svg");
   await expect(spinner).toBeVisible();
   await expect(loadMore(page)).toHaveText("Loading more…");
-  expect(
-    await spinner.evaluate((item) => getComputedStyle(item).animationName)
-  ).toBe("none");
+  await expect(spinner).toHaveCSS("animation-name", "none");
 });
 
 test("the feed's code loads with the first feed shown", async ({ page }) => {
