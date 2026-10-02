@@ -6,6 +6,7 @@ interface SelectionScope {
   enabled: () => boolean;
   selectAll?: () => void;
   undo?: () => void;
+  redo?: () => void;
   duplicate?: () => void;
 }
 
@@ -65,6 +66,25 @@ function resolveScope(
   return candidates.length === 1 ? candidates[0] : undefined;
 }
 
+type ShortcutName = "selectAll" | "undo" | "redo" | "duplicate";
+
+/** Ctrl/Cmd+A, Z and D; redo is Ctrl/Cmd+Shift+Z, or Ctrl+Y (Cmd+Y stays the browser's on macOS). */
+function shortcutName(event: KeyboardEvent): ShortcutName | undefined {
+  const key = event.key.toLowerCase();
+  if (event.shiftKey) {
+    return key === "z" ? "redo" : undefined;
+  }
+  if (key === "y") {
+    return event.ctrlKey ? "redo" : undefined;
+  }
+  const names: Record<string, ShortcutName> = {
+    a: "selectAll",
+    z: "undo",
+    d: "duplicate",
+  };
+  return names[key];
+}
+
 function createManager(document: Document): SelectionManager {
   const manager: SelectionManager = {
     scopes: new Set(),
@@ -76,13 +96,13 @@ function createManager(document: Document): SelectionManager {
     }
   };
   const onKeyDown = (event: KeyboardEvent): void => {
-    if (
+    const name =
       event.defaultPrevented ||
       !(event.ctrlKey || event.metaKey) ||
-      event.altKey ||
-      event.shiftKey ||
-      !["a", "z", "d"].includes(event.key.toLowerCase())
-    ) {
+      event.altKey
+        ? undefined
+        : shortcutName(event);
+    if (!name) {
       return;
     }
     const target = event.target;
@@ -107,12 +127,7 @@ function createManager(document: Document): SelectionManager {
     if (!(scope?.enabled() && isVisible(scope))) {
       return;
     }
-    const commands: Record<string, (() => void) | undefined> = {
-      a: scope.selectAll,
-      z: scope.undo,
-      d: scope.duplicate,
-    };
-    const command = commands[event.key.toLowerCase()];
+    const command = scope[name];
     if (!command) {
       return;
     }

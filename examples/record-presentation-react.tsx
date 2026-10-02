@@ -138,6 +138,7 @@ export function RecordPresentationExample() {
         initialData={rows}
         initialPageCount={1}
         initialRowCount={rows.length}
+        onRedoActivity={activity.redo}
         onRevertActivity={activity.revert}
         tableType={config.id}
       />

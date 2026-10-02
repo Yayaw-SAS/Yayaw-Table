@@ -13,6 +13,7 @@ import {
   detailExampleRow,
   recordDetailsConfig,
   recordExampleColumns,
+  redoExampleRecord,
   revertExampleRecord,
   updateExampleRecord,
 } from "./record-details";
@@ -82,6 +83,17 @@ export function RecordDetailsExample() {
     );
     return { success: true };
   };
+  const redo: DetailRevertHandler = (row, event) => {
+    const latest = current.current.find((item) => item.id === row.id);
+    if (!latest) {
+      return { success: false, error: "Cette entrée n’existe plus." };
+    }
+    const redone = redoExampleRecord(latest, event);
+    replaceRows(
+      current.current.map((item) => (item.id === row.id ? redone : item))
+    );
+    return { success: true };
+  };
   return (
     <main className="mx-auto max-w-6xl space-y-8 p-8">
       <header>
@@ -122,6 +134,7 @@ export function RecordDetailsExample() {
         initialRowCount={rows.length}
         key={`${presentation}-${revision}`}
         locale="fr"
+        onRedoActivity={redo}
         onRevertActivity={revert}
         tableType="record-details-react"
       />

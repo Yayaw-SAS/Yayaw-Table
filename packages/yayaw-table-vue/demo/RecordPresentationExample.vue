@@ -24,7 +24,7 @@ const details = { ...presentationDetails, history: activity.history, labels: { d
       <label>Desktop <select v-model="desktop" aria-label="Desktop presentation"><option value="drawer">Drawer</option><option value="modal">Modal</option><option value="inline">Inline</option></select></label>
       <label>Mobile <select v-model="mobile" aria-label="Mobile presentation"><option value="drawer">Drawer</option><option value="modal">Modal</option><option value="inline">Inline</option></select></label>
     </div>
-    <DataTable :table-type="config.id" :config="config" :data="rows" :get-form-config="() => presentationForm" :get-table-actions="() => actions" :details="details" :on-revert-activity="activity.revert" :translations="{ deleteRowDescription: details.labels.deleteDescription }" />
+    <DataTable :table-type="config.id" :config="config" :data="rows" :get-form-config="() => presentationForm" :get-table-actions="() => actions" :details="details" :on-revert-activity="activity.revert" :on-redo-activity="activity.redo" :translations="{ deleteRowDescription: details.labels.deleteDescription }" />
   </main>
 </template>
 <style scoped>
