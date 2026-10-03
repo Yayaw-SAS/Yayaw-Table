@@ -343,6 +343,11 @@
           "target": "components/ui/yayaw-table/components/details/detail-value.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/details/record-activity.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/details/record-activity.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/details/record-details.css",
           "type": "registry:style",
           "target": "components/ui/yayaw-table/components/details/record-details.css"

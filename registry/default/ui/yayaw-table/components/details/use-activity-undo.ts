@@ -19,6 +19,7 @@ export function useActivityUndo({
   labels,
   handler,
   onReverted,
+  onPendingChange,
 }: {
   activity: DetailActivity[];
   row: DetailRecord;
@@ -26,6 +27,7 @@ export function useActivityUndo({
   labels: DetailLabels;
   handler?: DetailRevertHandler;
   onReverted?: (entry: DetailActivity) => void;
+  onPendingChange?: (pending: boolean) => void;
 }) {
   const [pending, setPending] = useState<string>();
   const pendingRef = useRef(false);
@@ -45,6 +47,7 @@ export function useActivityUndo({
     }
     pendingRef.current = true;
     setPending(entry.id);
+    onPendingChange?.(true);
     setError(undefined);
     try {
       const result = await handler(row, entry);
@@ -60,6 +63,7 @@ export function useActivityUndo({
     } finally {
       pendingRef.current = false;
       setPending(undefined);
+      onPendingChange?.(false);
     }
     setCompleted((items) => [...items, entry.id]);
     onReverted?.(entry);
