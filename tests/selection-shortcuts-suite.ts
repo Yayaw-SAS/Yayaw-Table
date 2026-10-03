@@ -155,6 +155,31 @@ export function selectionShortcutsSuite(
       f.destroy();
     }
   });
+  test("handles a table hosted by a dialog, not the overlays above it", () => {
+    const f = setup();
+    const host = document.createElement("div");
+    const menu = document.createElement("div");
+    try {
+      const table = f.scope();
+      host.setAttribute("role", "dialog");
+      menu.setAttribute("role", "menu");
+      for (const overlay of [host, menu]) {
+        Object.defineProperty(overlay, "getClientRects", { value: () => [{}] });
+      }
+      document.body.append(host);
+      host.append(table.root);
+      assert.equal(f.press(table.root, "z"), true);
+      assert.equal(f.press(document.body, "z"), true);
+      assert.equal(table.undone, 2);
+      document.body.append(menu);
+      assert.equal(f.press(table.root, "z"), false);
+      assert.equal(table.undone, 2);
+    } finally {
+      host.remove();
+      menu.remove();
+      f.destroy();
+    }
+  });
   test("ignores disabled or hidden tables and unregisters cleanly", () => {
     const f = setup();
     try {
