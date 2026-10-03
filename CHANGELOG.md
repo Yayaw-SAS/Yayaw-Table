@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.12.0
+
+### Minor Changes
+
+- b51ccad: The record's activity in the edit form (React and Vue). When `details` supplies `activity` or `history`, editing a record shows the record view's **Details | Activity** tabs. The fields and footer sit on the first tab and stay mounted while the activity shows. The timeline on the second tab has the same undo buttons as the record view. After a successful undo, the table refreshes and the fields reload from the refreshed row. Creating, bulk editing and tables without an activity log keep the plain form.
+
+  The timeline is now one shared component (`RecordActivity`) used by both the record view and the form. A tab panel kept mounted while hidden stays hidden whatever its own display.
+
+### Patch Changes
+
+- ccc3a25: Keyboard shortcuts (React and Vue): a table rendered inside a dialog now handles Ctrl/Cmd+A, Z, Shift+Z, Y and D. The dialog that hosts the table counts as its page. Any other overlay still keeps its own shortcuts: an edit form, a menu or a listbox, whether inside the table or portaled above it.
+
 ## 3.11.0
 
 ### Minor Changes
