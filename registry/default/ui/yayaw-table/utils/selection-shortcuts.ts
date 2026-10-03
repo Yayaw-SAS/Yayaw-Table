@@ -1,5 +1,7 @@
-const EDITOR_OR_OVERLAY =
-  'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], dialog, [role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]';
+const EDITOR =
+  'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"]';
+const OVERLAY =
+  'dialog, [role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]';
 
 interface SelectionScope {
   root: HTMLElement;
@@ -106,11 +108,19 @@ function createManager(document: Document): SelectionManager {
       return;
     }
     const target = event.target;
-    if (!(target instanceof Element) || target.closest(EDITOR_OR_OVERLAY)) {
+    if (!(target instanceof Element) || target.closest(EDITOR)) {
       return;
     }
-    // An open portal must keep its shortcuts even when its focus briefly returns to body.
+    const scope = resolveScope(manager, document, target);
+    if (!(scope?.enabled() && isVisible(scope))) {
+      return;
+    }
+    // A dialog hosting the table is its page; any other overlay keeps its shortcuts, an open portal
+    // included, even when its focus briefly returns to body.
+    const above = (overlay: Element | null) =>
+      overlay !== null && !overlay.contains(scope.root);
     if (
+      above(target.closest(OVERLAY)) ||
       [
         ...document.querySelectorAll(
           'dialog[open], [role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]'
@@ -118,13 +128,10 @@ function createManager(document: Document): SelectionManager {
       ].some(
         (element) =>
           element.getClientRects().length > 0 &&
-          !element.closest('[hidden], [aria-hidden="true"]')
+          !element.closest('[hidden], [aria-hidden="true"]') &&
+          above(element)
       )
     ) {
-      return;
-    }
-    const scope = resolveScope(manager, document, target);
-    if (!(scope?.enabled() && isVisible(scope))) {
       return;
     }
     const command = scope[name];
