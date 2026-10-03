@@ -760,6 +760,8 @@ provide(tableContextKey, {
   displayModeRenderers: modeRenderers,
   openEdit,
   get openDetails() { return props.onOpenDetails || recordDetails.value ? openDetails : undefined; },
+  recordDetails,
+  get onRevertActivity() { return props.onRevertActivity; },
   activateRow,
   emitSelection,
   clearSelection,
