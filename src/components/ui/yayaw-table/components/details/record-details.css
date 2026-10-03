@@ -123,6 +123,10 @@
   padding: 28px;
   outline-offset: -3px;
 }
+/* A panel kept mounted on another tab (the edit form's fields) stays hidden over its own display. */
+.yayaw-detail-tabs > [role="tabpanel"][hidden] {
+  display: none;
+}
 .yayaw-detail-section + .yayaw-detail-section {
   margin-top: 32px;
 }

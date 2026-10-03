@@ -5,6 +5,10 @@ import type { TableStateRefs } from "./composables/use-table-state";
 import type { TagCatalogRuntime } from "./composables/use-tag-catalogs";
 import type { DisplayModeRenderers } from "./display-mode-renderer";
 import type {
+  DetailRevertHandler,
+  RecordDetailsConfig,
+} from "./record-details";
+import type {
   BulkAction,
   BulkActionHandlerResult,
   DataTableTranslations,
@@ -86,6 +90,9 @@ export interface TableContextValue<TData extends TableRecord = TableRecord> {
   displayModeRenderers?: DisplayModeRenderers;
   openEdit: (row: TData) => void;
   openDetails?: (row: TData) => void;
+  /** The record view: the edit form shows its activity next to the fields when the host keeps one. */
+  recordDetails?: ComputedRef<RecordDetailsConfig | undefined>;
+  onRevertActivity?: DetailRevertHandler;
   activateRow: (row: TData, event: MouseEvent) => void;
   emitSelection: () => void;
   clearSelection: () => void;

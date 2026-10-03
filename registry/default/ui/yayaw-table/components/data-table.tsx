@@ -79,6 +79,7 @@ import { availableDisplayModes } from "../utils/view-menu";
 import type { CustomBulkActionsInput } from "./bulk-actions";
 import type { ActionItem } from "./columns/actions-column";
 import { DataTableSkeleton } from "./data-table-skeleton";
+import { RecordActivityContext } from "./details/record-activity";
 import { TableRecordDetails } from "./details/table-record-details";
 import { TableFacetsLayout } from "./facets/facet-panel";
 // Direct import keeps the toolbar available without a client-only dynamic wrapper.
@@ -1172,30 +1173,40 @@ function DataTableContent({
           </DataTableUIProvider>
         </Suspense>
 
-        {/* Render the CatalogueForm container to handle form operations */}
-        <Suspense fallback={null}>
-          <CatalogueFormContainer tableId={tableId} />
-        </Suspense>
-        <PlanningRecordOverlay
-          formatters={planningFormat}
-          labels={planningLabels}
-          locale={planningLocale}
-          onOpen={openDetails}
-          session={planningSession}
-        />
-        <TableRecordDetails
-          details={recordDetails}
-          formType={defaultFormType}
-          getRowId={getRowId}
-          onClose={() => setViewedRow(undefined)}
-          onRefresh={refetch}
-          onRevertActivity={onRevertActivity}
-          row={viewedRow}
-          rows={finalData}
-          tableConfig={config}
-          tableId={tableId}
-          tableType={tableType}
-        />
+        <RecordActivityContext.Provider
+          value={{
+            details: recordDetails,
+            getRowId,
+            onRevertActivity,
+            refresh: refetch,
+            rows: finalData,
+          }}
+        >
+          {/* Render the CatalogueForm container to handle form operations */}
+          <Suspense fallback={null}>
+            <CatalogueFormContainer tableId={tableId} />
+          </Suspense>
+          <PlanningRecordOverlay
+            formatters={planningFormat}
+            labels={planningLabels}
+            locale={planningLocale}
+            onOpen={openDetails}
+            session={planningSession}
+          />
+          <TableRecordDetails
+            details={recordDetails}
+            formType={defaultFormType}
+            getRowId={getRowId}
+            onClose={() => setViewedRow(undefined)}
+            onRefresh={refetch}
+            onRevertActivity={onRevertActivity}
+            row={viewedRow}
+            rows={finalData}
+            tableConfig={config}
+            tableId={tableId}
+            tableType={tableType}
+          />
+        </RecordActivityContext.Provider>
       </LocationProvider>
     </TableStateSyncProvider>
   );

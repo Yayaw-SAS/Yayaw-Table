@@ -33,7 +33,9 @@ import DynamicField from "./DynamicField.vue";
 import FormDialog from "./FormDialog.vue";
 import FormBlocks from "./FormBlocks.vue";
 import BulkEditorFields from "./BulkEditorFields.vue";
+import FormActivityTabs from "./FormActivityTabs.vue";
 import { bulkEditorMessages } from "../../bulk-editor";
+import { detailActivity, detailLabels, type DetailField, type DetailType } from "../../record-details";
 
 const props = defineProps<{ embedded?: boolean }>();
 const emit = defineEmits<{ busy: [busy: boolean] }>();
@@ -138,6 +140,27 @@ const sections = computed(() => resolveFormSections(config.value));
 const blocks = computed(() => !isBulk.value && config.value.blocks
   ? resolveFormBlocks(config.value.blocks, config.value.fields.map(field => field.name))
   : undefined);
+// An edited record shows its activity next to its fields when the host keeps one (record details' activity or history).
+const activityConfig = computed(() => {
+  const details = context.recordDetails?.value;
+  return !isBulk.value && context.form.value.mode === "edit" && (details?.activity || details?.history) ? details : undefined;
+});
+const activity = computed(() => activityConfig.value && context.form.value.row ? detailActivity(activityConfig.value, context.form.value.row) : []);
+const activityLabels = computed(() => detailLabels(context.locale, activityConfig.value?.labels));
+const activityFields = computed<DetailField[]>(() => config.value.fields.map(field => ({
+  id: field.name, label: field.label, type: field.type as DetailType, options: Array.isArray(field.options) ? field.options : undefined,
+})));
+const activityPending = ref(false);
+// An undo changed the record: the fields reload from it.
+const reverted = async (): Promise<void> => {
+  const selected = context.form.value;
+  try { await context.refresh(); }
+  catch (cause) { context.status.value = { type: "error", message: cause instanceof Error ? cause.message : String(cause) }; }
+  if (context.form.value !== selected) return;
+  const id = context.getRowId(selected.row ?? {});
+  const fresh = context.data.rows.value.find(row => context.getRowId(row) === id);
+  context.form.value = { ...selected, row: { ...(fresh ?? selected.row) } };
+};
 const fieldFor = (name: string): FormFieldDefinition =>
   config.value.fields.find((field) => field.name === name)!;
 const submissionConfig = (): FormConfig =>
@@ -399,11 +422,13 @@ const blockContext = computed<FormBlockContext>(() => ({
     :embedded="props.embedded"
     :bulk="isBulk"
     :width="config.width ?? context.config.form?.width ?? context.config.form?.layout?.width"
-    :busy="submitting"
+    :busy="submitting || activityPending"
     :close-label="isBulk ? messages.close : label('close', 'Close')"
     :return-focus="context.form.value.returnFocus"
     @close="close"
   >
+    <FormActivityTabs :enabled="Boolean(activityConfig)" :row="context.form.value.row" :activity="activity" :fields="activityFields" :labels="activityLabels" :locale="context.locale"
+      :disabled="submitting" :on-revert-activity="context.onRevertActivity" :can-revert="activityConfig?.canRevert" @pending="activityPending = $event" @reverted="reverted">
     <form ref="formElement" class="yayaw-form yayaw-record-content" novalidate :class="{ 'yayaw-bulk-form': isBulk }" @submit.prevent="submit">
       <div class="yayaw-record-body">
       <p v-if="loading" role="status">{{ label("loading", "Loading…") }}</p>
@@ -489,5 +514,6 @@ const blockContext = computed<FormBlockContext>(() => ({
         </button>
       </footer>
     </form>
+    </FormActivityTabs>
   </FormDialog>
 </template>
