@@ -3,6 +3,7 @@
   "extends": ["ultracite/core", "ultracite/biome/core"],
   "files": {
     "includes": [
+      "!!**/.claude",
       "!src/ui/shadcn",
       "!src/components/ui",
       "!packages/yayaw-table-vue/**/*.vue",
