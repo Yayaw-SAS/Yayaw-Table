@@ -36,11 +36,19 @@ const mountTable = (props: Record<string, unknown>) =>
           order: ["name"],
           mandatory: [],
         },
-        table: { allowEdit: true, enableRowClickEdit: true, rowClickMode: "edit", syncUrl: false },
+        table: {
+          allowEdit: true,
+          enableRowClickEdit: true,
+          rowClickMode: "edit",
+          syncUrl: false,
+        },
         translations: { namespace: "test", keys: {} },
       }),
       data: [row],
-      getFormConfig: () => ({ id: "form-activity", fields: [{ name: "name", label: "Name", type: "text" }] }),
+      getFormConfig: () => ({
+        id: "form-activity",
+        fields: [{ name: "name", label: "Name", type: "text" }],
+      }),
       getTableActions: () => ({ update: async () => ({ success: true }) }),
       ...props,
     },
@@ -58,16 +66,22 @@ describe("edit form activity", () => {
     await wrapper.get("tbody tr").trigger("click");
     await flushPromises();
     const form = () => wrapper.get("form.yayaw-form");
-    expect((form().get("input").element as HTMLInputElement).value).toBe("After");
-    await wrapper.get('.yayaw-detail-tablist [role="tab"][data-state="inactive"]').trigger("mousedown", { button: 0 });
+    expect((form().get("input").element as HTMLInputElement).value).toBe(
+      "After"
+    );
+    await wrapper
+      .get('.yayaw-detail-tablist [role="tab"][data-state="inactive"]')
+      .trigger("mousedown", { button: 0 });
     await flushPromises();
     expect(wrapper.text()).toContain("Camille updated");
     // The fields stay mounted (hidden) while the activity tab shows.
-    expect(form().exists()).toBe(true);
+    expect(wrapper.find("form.yayaw-form").exists()).toBe(true);
     await wrapper.get(".yayaw-detail-undo").trigger("click");
     await flushPromises();
     expect(handler).toHaveBeenCalledTimes(1);
-    expect((form().get("input").element as HTMLInputElement).value).toBe("Before");
+    expect((form().get("input").element as HTMLInputElement).value).toBe(
+      "Before"
+    );
   });
 
   it("keeps the plain form without an activity log", async () => {

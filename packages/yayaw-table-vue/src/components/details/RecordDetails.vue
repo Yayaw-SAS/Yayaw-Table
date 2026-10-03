@@ -77,7 +77,7 @@ const confirmDelete = async (): Promise<void> => {
         </div>
       </RecordSurfaceHeader>
       <div v-if="updated" class="yayaw-detail-meta"><Clock3 :size="14" aria-hidden="true" /><span>{{ labels.updated }} <time :datetime="updated instanceof Date ? updated.toISOString() : updated">{{ detailDate(updated, locale, true) }}</time><template v-if="updatedBy"> · {{ labels.by }} <strong>{{ updatedBy }}</strong></template></span></div>
-      <TabsRoot default-value="details" class="yayaw-detail-tabs yayaw-record-content">
+      <TabsRoot default-value="details" :unmount-on-hide="false" class="yayaw-detail-tabs yayaw-record-content">
         <TabsList class="yayaw-detail-tablist" :aria-label="labels.record"><TabsTrigger value="details">{{ labels.details }}</TabsTrigger><TabsTrigger value="activity"><History :size="15" aria-hidden="true" />{{ labels.activity }}<span class="yayaw-detail-count">{{ activity.length }}</span></TabsTrigger></TabsList>
         <TabsContent value="details" class="yayaw-detail-body yayaw-record-body">
           <section v-for="section in sections" :key="section.id" class="yayaw-detail-section"><h3>{{ section.title }}</h3><p v-if="section.description" class="yayaw-detail-description">{{ section.description }}</p><dl><div v-for="field in section.fields" :key="field.id" class="yayaw-detail-field"><dt>{{ field.label }}</dt><dd><slot :name="`detail-${field.id}`" :row="row" :value="detailValue(row, field)" :field="field"><DetailValue :field="field" :value="detailValue(row, field)" :row="row" :locale="locale" :labels="labels" /></slot></dd></div></dl></section>

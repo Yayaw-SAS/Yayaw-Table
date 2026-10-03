@@ -126,6 +126,15 @@ from the client's log. A failed undo leaves the record and event intact and show
 the error beside that event. A successful callback without a refreshed audit log
 cannot show the new event: the application must supply it.
 
+### Activity in the edit form
+
+When the table's `details` supplies `activity` (or `history`), editing a record shows the same
+**Details | Activity** tabs as the record view: the fields and their footer on the first tab, the
+timeline and its undo buttons on the second. The fields stay mounted while the activity shows, so a
+draft survives a tab switch. A successful undo refreshes the table and reloads the fields from the
+refreshed row. Creating, bulk editing and tables without an activity log keep the plain form. The
+timeline names a change by the edited form field of that name.
+
 ## Interactive example
 
 Run `bun run vue:dev` and open `/?example=record-details` (the deployed demo uses

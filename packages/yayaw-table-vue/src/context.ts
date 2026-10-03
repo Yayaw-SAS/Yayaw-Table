@@ -4,7 +4,10 @@ import type { TableDataResult } from "./composables/use-table-data";
 import type { TableStateRefs } from "./composables/use-table-state";
 import type { TagCatalogRuntime } from "./composables/use-tag-catalogs";
 import type { DisplayModeRenderers } from "./display-mode-renderer";
-import type { DetailRevertHandler, RecordDetailsConfig } from "./record-details";
+import type {
+  DetailRevertHandler,
+  RecordDetailsConfig,
+} from "./record-details";
 import type {
   BulkAction,
   BulkActionHandlerResult,
