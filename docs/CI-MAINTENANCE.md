@@ -77,9 +77,11 @@ The publication guard holds the merge to that run, so a release whose CI was
 never approved tags and publishes its GitHub release while Pages refuses the
 merge. **Approve that run before merging the release pull request.**
 
-`Version and publish` reduces the blast radius itself. It runs `release:check`, the Pages
-artifact validator and the snapshot verification on the exact tree it is about
-to push, then preserves the same tarball as `registry-pages-<version branch head
+`Version and publish` reduces the blast radius itself. On the exact tree it is about to
+push it runs the changeset, lint and type checks, the Vue and registry builds, the Pages
+artifact validator and the snapshot verification (not the test suites: `main` passed them,
+every e2e shard included, as an up-to-date pull request, and the version pull request's own
+CI skips its e2e shards for the same reason), then preserves the same tarball as `registry-pages-<version branch head
 SHA>` — no attempt suffix, because the lookup is by name. The provenance guard
 falls back to it **only** when the merged PR head has no `ci-tests.yml`
 `pull_request` run at all, so a red, pending or unapproved PR CI is never
