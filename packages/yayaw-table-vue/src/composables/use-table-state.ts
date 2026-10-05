@@ -92,6 +92,10 @@ const assignChanged = <T>(
   }
 };
 
+export interface ViewHistoryOptions {
+  history?: "push";
+}
+
 export interface TableStateRefs {
   search: Ref<string>;
   filters: Ref<ColumnFiltersState>;
@@ -103,6 +107,8 @@ export interface TableStateRefs {
   grouping: Ref<string[]>;
   pinning: Ref<ColumnPinningState>;
   pagination: Ref<PaginationState>;
+  /** The page size follows the table's height (auto page size): the URL does not pin it. */
+  automaticPageSize: Ref<boolean>;
   displayMode: Ref<TableDisplayMode>;
   /** Modes this table offers (configured, with their renderer or planning session). */
   offeredDisplayModes: readonly TableDisplayMode[];
@@ -120,8 +126,13 @@ export interface TableStateRefs {
   hasInitialTableUrlState: boolean;
   resolveView: (config: TableViewConfig) => TableViewConfig;
   snapshot: Readonly<Ref<TableViewConfig>>;
-  applyView: (config: TableViewConfig, viewId?: string) => void;
-  reset: () => void;
+  /** `history: "push"` for a user's choice: Back then returns to the state it replaced. */
+  applyView: (
+    config: TableViewConfig,
+    viewId?: string,
+    options?: ViewHistoryOptions
+  ) => void;
+  reset: (options?: ViewHistoryOptions) => void;
   resetFilters: () => void;
   shareableUrl: () => string;
 }
@@ -172,10 +183,12 @@ export const useTableState = <TData extends TableRecord>({
   const sizing = ref<Record<string, number>>({});
   const grouping = ref<string[]>([]);
   const pinning = ref<ColumnPinningState>(emptyPinning());
+  const automaticPageSize = ref(false);
   const columnIds = config.columns.definitions.map((column) => column.id);
   const lockVisibility = (value: ColumnVisibilityState) =>
     lockedColumnVisibility(value, config.columns.mandatory);
   const lockOrder = (value: string[]) => lockedColumnOrder(value, columnIds);
+  const lockedColumn = (id: string) => id === "select" || id === "actions";
   const lockPinning = (value: ColumnPinningState) =>
     lockedColumnPinning(value, columnIds, config.table.enableColumnPinning);
   watch(
@@ -253,6 +266,8 @@ export const useTableState = <TData extends TableRecord>({
   const activeViewId = ref<string | undefined>(initialViewId);
   let hydrating = true;
   let urlTimer: ReturnType<typeof setTimeout> | undefined;
+  // Set by a user's view choice until its URL is written.
+  let pushHistory = false;
   const enabledFilters = (value: ColumnFiltersState): ColumnFiltersState =>
     config.table.enableColumnFilters ? value : [];
   const dateColumnIds = new Set(
@@ -413,12 +428,13 @@ export const useTableState = <TData extends TableRecord>({
       sorting,
       parseJson(params.get(`${urlPrefix}-sort`), config.columns.sort ?? [])
     );
+    // A link carries only the columns it shows or hides differently from the defaults.
     assignChanged(
       visibility,
-      parseJson(
-        params.get(`${urlPrefix}-visibility`),
-        defaults.columnVisibility ?? {}
-      ),
+      {
+        ...defaults.columnVisibility,
+        ...parseJson(params.get(`${urlPrefix}-visibility`), {}),
+      },
       lockVisibility
     );
     assignChanged(
@@ -472,6 +488,52 @@ export const useTableState = <TData extends TableRecord>({
   );
   const serializePresent = (value: object): string | undefined =>
     Object.keys(value).length ? serialize(value) : undefined;
+  // A user's view choice adds an entry: Back returns to the state it replaced.
+  const writeHistory = (url: URL): void => {
+    const push = pushHistory && url.href !== window.location.href;
+    pushHistory = false;
+    window.history[push ? "pushState" : "replaceState"](
+      window.history.state,
+      "",
+      url
+    );
+  };
+
+  /**
+   * The column settings a URL carries: only what differs from the defaults, without the locked columns the read adds
+   * back. Links stay short, and no internal id (the `select` column) reaches the Referer of the page's requests.
+   */
+  const urlColumns = (): {
+    visibility?: string;
+    order?: string;
+    pinning?: string;
+  } => {
+    const defaults = resolveView({});
+    const own = (ids: string[] | undefined) =>
+      (ids ?? []).filter((id) => !lockedColumn(id));
+    const visibilityChanges = Object.entries(visibility.value).filter(
+      ([id, shown]) =>
+        !lockedColumn(id) && shown !== defaults.columnVisibility?.[id]
+    );
+    const ownOrder = serialize(own(order.value));
+    const pinned = {
+      left: own(pinning.value.left),
+      right: own(pinning.value.right),
+    };
+    return {
+      visibility: visibilityChanges.length
+        ? serialize(Object.fromEntries(visibilityChanges))
+        : undefined,
+      order:
+        ownOrder === serialize(own(defaults.columnOrder))
+          ? undefined
+          : ownOrder,
+      pinning:
+        pinned.left.length || pinned.right.length
+          ? serializeEncoded(pinned)
+          : undefined,
+    };
+  };
   const commitUrl = (): void => {
     const url = new URL(window.location.href);
     const set = (key: string, value: string | undefined): void =>
@@ -491,14 +553,15 @@ export const useTableState = <TData extends TableRecord>({
       `${urlPrefix}-sort`,
       sorting.value.length ? serialize(sorting.value) : undefined
     );
-    set(`${urlPrefix}-visibility`, serialize(visibility.value));
-    set(`${urlPrefix}-order`, serialize(order.value));
+    const columns = urlColumns();
+    set(`${urlPrefix}-visibility`, columns.visibility);
+    set(`${urlPrefix}-order`, columns.order);
     set(
       `${urlPrefix}-sizing`,
       Object.keys(sizing.value).length ? serialize(sizing.value) : undefined
     );
     set(`${urlPrefix}-grouping`, serializedGrouping.value);
-    set(`${urlPrefix}-pinning`, serializeEncoded(pinning.value));
+    set(`${urlPrefix}-pinning`, columns.pinning);
     set(
       `${urlPrefix}-page`,
       pagination.value.pageIndex
@@ -507,7 +570,8 @@ export const useTableState = <TData extends TableRecord>({
     );
     set(
       `${urlPrefix}-pageSize`,
-      pagination.value.pageSize !== config.table.defaultPageSize
+      !automaticPageSize.value &&
+        pagination.value.pageSize !== config.table.defaultPageSize
         ? String(pagination.value.pageSize)
         : undefined
     );
@@ -527,7 +591,7 @@ export const useTableState = <TData extends TableRecord>({
       );
     }
     set(viewKey, activeViewId.value);
-    window.history.replaceState(window.history.state, "", url);
+    writeHistory(url);
   };
 
   const writeUrl = (): void => {
@@ -618,7 +682,11 @@ export const useTableState = <TData extends TableRecord>({
     );
   };
 
-  const applyView = (input: TableViewConfig, viewId?: string): void => {
+  const applyView = (
+    input: TableViewConfig,
+    viewId?: string,
+    options?: ViewHistoryOptions
+  ): void => {
     const view = resolveView(input);
     densityOverride.value = view.density;
     footerCalculationsVisible.value = view.footerCalculationsVisible ?? true;
@@ -650,6 +718,11 @@ export const useTableState = <TData extends TableRecord>({
       pageSize: view.pageSize ?? config.table.defaultPageSize,
     };
     activeViewId.value = viewId;
+    if (options?.history) {
+      pushHistory = true;
+      // Written even when nothing changed, so the next write does not push.
+      writeUrl();
+    }
   };
 
   const resetFilters = (): void => {
@@ -659,20 +732,24 @@ export const useTableState = <TData extends TableRecord>({
     pagination.value = { ...pagination.value, pageIndex: 0 };
   };
 
-  const reset = (): void => {
-    applyView({
-      sorting: config.columns.sort ?? [],
-      columnVisibility: Object.fromEntries(
-        config.columns.definitions.map((column) => [
-          column.id,
-          config.columns.visible.includes(column.id),
-        ])
-      ),
-      columnOrder: config.columns.order,
-      columnSizing: {},
-      displayMode: config.table.defaultDisplayMode,
-      pageSize: config.table.defaultPageSize,
-    });
+  const reset = (options?: ViewHistoryOptions): void => {
+    applyView(
+      {
+        sorting: config.columns.sort ?? [],
+        columnVisibility: Object.fromEntries(
+          config.columns.definitions.map((column) => [
+            column.id,
+            config.columns.visible.includes(column.id),
+          ])
+        ),
+        columnOrder: config.columns.order,
+        columnSizing: {},
+        displayMode: config.table.defaultDisplayMode,
+        pageSize: config.table.defaultPageSize,
+      },
+      undefined,
+      options
+    );
   };
 
   const shareableUrl = (): string =>
@@ -758,6 +835,7 @@ export const useTableState = <TData extends TableRecord>({
     sorting,
     visibility,
     order,
+    automaticPageSize,
     sizing,
     grouping,
     pinning,

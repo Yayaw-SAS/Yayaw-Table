@@ -218,6 +218,16 @@ export function useTableInstance<TData extends Record<string, unknown>>({
     [orderParam, setOrderFromUI]
   );
 
+  // Selection stays pinned left and actions right; the URL leaves them out.
+  const columnPinning = useMemo(() => {
+    const own = (ids: string[] | undefined) =>
+      (ids ?? []).filter((id) => id !== "select" && id !== "actions");
+    return toInternalColumnPinning({
+      left: ["select", ...own(pinningParam?.left)],
+      right: [...own(pinningParam?.right), "actions"],
+    });
+  }, [pinningParam]);
+
   // Handler for column pinning changes
   const handleColumnPinningChange = useCallback<
     OnChangeFn<InternalColumnPinningState>
@@ -225,12 +235,12 @@ export function useTableInstance<TData extends Record<string, unknown>>({
     (updaterOrValue) => {
       const newValue =
         typeof updaterOrValue === "function"
-          ? updaterOrValue(toInternalColumnPinning(pinningParam))
+          ? updaterOrValue(columnPinning)
           : updaterOrValue;
 
       setPinningFromUI(fromInternalColumnPinning(newValue));
     },
-    [pinningParam, setPinningFromUI]
+    [columnPinning, setPinningFromUI]
   );
 
   const handleColumnVisibilityChange = useCallback<OnChangeFn<VisibilityState>>(
@@ -488,12 +498,7 @@ export function useTableInstance<TData extends Record<string, unknown>>({
         ? (filtersParam as ColumnFiltersState)
         : [],
       columnOrder: resolvedColumnOrder,
-      columnPinning: toInternalColumnPinning(
-        pinningParam || {
-          left: ["select"],
-          right: ["actions"],
-        }
-      ),
+      columnPinning,
       columnSizing: sizingParam as ColumnSizingState,
       columnVisibility: initialColumnVisibility as VisibilityState,
       expanded: {},
@@ -508,7 +513,7 @@ export function useTableInstance<TData extends Record<string, unknown>>({
     [
       filtersParam,
       resolvedColumnOrder,
-      pinningParam,
+      columnPinning,
       sizingParam,
       initialColumnVisibility,
       globalSearchParam,

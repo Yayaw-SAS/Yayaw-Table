@@ -85,11 +85,19 @@ export function areViewSettingsEqual(left: object, right: object): boolean {
     for (const key of VIEW_SETTING_KEYS) {
       settings[key] = aliases[key];
     }
-    // Selection and action columns are positioned by the table, including in legacy views.
-    if (Array.isArray(settings.columnOrder)) {
-      settings.columnOrder = settings.columnOrder.filter(
-        (id) => id !== "select" && id !== "actions"
-      );
+    // Selection and action columns are positioned and pinned by the table,
+    // including in legacy views, and left out of links.
+    const dataColumns = (ids: unknown) =>
+      Array.isArray(ids)
+        ? ids.filter((id) => id !== "select" && id !== "actions")
+        : ids;
+    settings.columnOrder = dataColumns(settings.columnOrder);
+    if (settings.columnPinning && typeof settings.columnPinning === "object") {
+      const { left, right } = settings.columnPinning as Record<string, unknown>;
+      settings.columnPinning = {
+        left: dataColumns(left),
+        right: dataColumns(right),
+      };
     }
     // Filter identities and edit timestamps do not change the saved query's
     // meaning, nor does an older view's instant for the day it names.

@@ -289,5 +289,10 @@ it("moves a dragged column within the order on screen while the URL has none", a
   await settle(2);
   const moved = ["select", "status", "amount", "name", "actions"];
   expect(moves).toEqual([moved]);
-  expect(JSON.parse(page.params.get(ORDER_KEY) ?? "[]")).toEqual(moved);
+  // The URL leaves out the columns the table places itself.
+  expect(JSON.parse(page.params.get(ORDER_KEY) ?? "[]")).toEqual([
+    "status",
+    "amount",
+    "name",
+  ]);
 });

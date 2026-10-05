@@ -148,20 +148,16 @@ test("a link naming only a saved view opens it with its settings", async ({
 
 test("a link's page is kept on arrival, in the table and the URL", async ({
   page,
-}, testInfo) => {
+}) => {
   // The six projects fit one page of ten: five per page gives a second one.
   await page.goto(`${EXAMPLE}&views-page=1&views-pageSize=5`);
   const rows = page.getByRole("row");
   await expect(rows.filter({ hasText: "Foxtrot portal" })).toBeVisible();
   await expect(rows.filter({ hasText: "Alpha launch" })).toHaveCount(0);
-  // Vue writes its state to the URL on arrival and the page outlives it;
-  // React writes nothing, not even its column order, until the user acts.
-  if (testInfo.project.name === "vue") {
-    await expect.poll(() => urlParam(page, ORDER_PARAM)).not.toBeNull();
-  } else {
-    await page.waitForTimeout(300);
-    expect(urlParam(page, ORDER_PARAM)).toBeNull();
-  }
+  // Neither edition writes the default column order: the URL carries only
+  // what differs from the defaults. The link's page outlives the arrival.
+  await page.waitForTimeout(300);
+  expect(urlParam(page, ORDER_PARAM)).toBeNull();
   expect(urlParam(page, "views-page")).toBe("1");
 });
 

@@ -2521,6 +2521,9 @@
 .yayaw-toolbar-menu .yayaw-view-write-actions {
   border-top: 1px solid var(--yayaw-border);
 }
+.yayaw-view-write-actions .yayaw-display-mode-select {
+  margin: 0 0 4px;
+}
 .yayaw-toolbar-menu .yayaw-view-menu-item {
   width: 100%;
   white-space: normal;

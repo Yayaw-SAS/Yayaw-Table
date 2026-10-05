@@ -914,7 +914,7 @@ describe("YayawDataTable", () => {
       JSON.parse(
         new URL(window.location.href).searchParams.get("assets-order") ?? "[]"
       ).slice(0, 4)
-    ).toEqual(["select", "name", "tags", "kind"]);
+    ).toEqual(["name", "tags", "kind", "size"]);
 
     // A search is a new query: the File tree asks for its matches.
     url.searchParams.set("assets-q", "banner");

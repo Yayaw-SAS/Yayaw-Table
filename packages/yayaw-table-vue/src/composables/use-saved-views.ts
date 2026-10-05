@@ -33,6 +33,7 @@ import {
   viewMoves,
   viewPosition,
 } from "../view-order";
+import type { ViewHistoryOptions } from "./use-table-state";
 
 /**
  * The orders this browser keeps (no `setOrder`), shared by the managers of one
@@ -153,16 +154,16 @@ export function useSavedViews(
     }
     return result.data;
   };
-  const select = (view?: TableView): void => {
+  const select = (view?: TableView, options?: ViewHistoryOptions): void => {
     if (busy.value) {
       return;
     }
     error.value = "";
     hasInitialized = true;
     if (view) {
-      context.state.applyView(view.config, view.id);
+      context.state.applyView(view.config, view.id, options);
     } else {
-      context.state.reset();
+      context.state.reset(options);
     }
   };
   const shows = (view: TableView): boolean =>

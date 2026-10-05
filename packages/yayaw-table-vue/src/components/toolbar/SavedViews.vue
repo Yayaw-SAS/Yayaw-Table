@@ -6,9 +6,11 @@ import { areViewSettingsEqual, availableDisplayModes } from "../../view-menu";
 import { resolveViewTabs } from "../../view-tabs";
 import TableSelect from "../controls/TableSelect.vue";
 import ViewTabs from "./ViewTabs.vue";
+import MenuChoiceList from "./MenuChoiceList.vue";
+import { displayModeIcons } from "./display-mode-icons";
 import { computed, ref, useId } from "vue";
 import { useSavedViews } from "../../composables/use-saved-views";
-import type { TableView } from "../../types";
+import type { TableDisplayMode, TableView } from "../../types";
 import FormDialog from "../forms/FormDialog.vue";
 
 const props = defineProps<{ initialViews: TableView[]; enabled?: boolean; compact?: boolean }>();
@@ -25,8 +27,8 @@ const viewEnabled = computed(() => props.enabled !== false);
 const resetDisabled = computed(() => busy.value || (active.value ? !dirty.value : areViewSettingsEqual(context.state.resolveView(context.state.snapshot.value), context.state.resolveView({}))));
 const resetView = () => {
   if (resetDisabled.value) return;
-  if (active.value) context.state.applyView(active.value.config, active.value.id);
-  else context.state.reset();
+  if (active.value) context.state.applyView(active.value.config, active.value.id, { history: "push" });
+  else context.state.reset({ history: "push" });
 };
 const tabSettings = computed(() => resolveViewTabs(context.config.table.viewTabs));
 // Tabs name the views on wide screens; the trigger then only opens the settings.
@@ -54,6 +56,11 @@ const offeredModes = computed(() => availableDisplayModes(context.config.table.d
   renderers: Object.keys(context.displayModeRenderers ?? {}),
 }));
 const layoutOptions = computed(() => offeredModes.value.map((mode) => ({ value: mode, label: label(`views.display.${mode}`, `display.${mode}`) })));
+// The current view's display mode, changed in place like any other setting: "Save changes" keeps it.
+const displayMode = computed({
+  get: () => context.state.displayMode.value,
+  set: (mode: TableDisplayMode) => { context.state.displayMode.value = mode; },
+});
 const selectTab = (id: string | null): void => selectView(views.value.find((view) => view.id === id));
 const nameId = useId();
 const nameErrorId = useId();
@@ -72,7 +79,8 @@ const openDialog = (): void => {
   openSave();
 };
 const menuChanged = (open: boolean): void => { menuOpen.value = open; };
-const selectView = (view?: TableView) => { select(view); menuChanged(false); };
+// A user's choice: Back returns to the state it replaced.
+const selectView = (view?: TableView) => { select(view, { history: "push" }); menuChanged(false); };
 const focusName = (event: Event): void => {
   event.preventDefault();
   nameInput.value?.focus();
@@ -120,6 +128,12 @@ defineExpose({ activeName: computed(() => active.value?.name) });
           </button>
         </div>
         <div class="yayaw-view-write-actions">
+          <div v-if="layoutOptions.length > 1 && !compact" class="yayaw-display-mode-select">
+            <TableSelect v-model="displayMode" :label="label('views.display.title', 'displayMode')" :options="layoutOptions" :disabled="busy" />
+          </div>
+          <MenuChoiceList v-else-if="layoutOptions.length > 1" :label="label('views.display.title', 'displayMode')" :model-value="displayMode"
+            :options="layoutOptions.map((option) => ({ ...option, icon: displayModeIcons[option.value] }))"
+            @update:model-value="(mode) => (displayMode = mode as TableDisplayMode)" />
           <TableTooltip v-if="viewEnabled && active && context.config.table.allowViewSave" :label="!editable ? label('views.readOnly', 'views.readOnly') : !dirty ? label('views.upToDate', 'views.upToDate') : label('views.saveChangesTooltip', 'updateViewTooltip')">
             <button type="button" class="yayaw-view-menu-item" :aria-label="label('views.saveChanges', 'updateView')" :aria-disabled="busy || !editable || !dirty" @click="!busy && editable && dirty && update()">
               <Save :size="16" aria-hidden="true" /><span>{{ label('views.saveChanges', 'updateView') }}

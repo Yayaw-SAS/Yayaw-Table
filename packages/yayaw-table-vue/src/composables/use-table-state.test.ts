@@ -37,6 +37,7 @@ const openLink = (keys: Record<string, string>): TableStateRefs => {
   });
   return state;
 };
+const LOCKED_COLUMN = /select|actions/;
 const urlKey = (key: string): string | null =>
   new URL(window.location.href).searchParams.get(key);
 /** The values the table reads from its URL keys, by name. */
@@ -79,11 +80,50 @@ it("keeps the page a link opens on, with the link's search and sort", async () =
   expect(state.search.value).toBe("beta");
   expect(state.sorting.value).toEqual([{ id: "name", desc: true }]);
   expect(state.pagination.value.pageIndex).toBe(1);
-  // The table's own first URL write keeps the link's page.
+  // The table's own first URL write keeps the link's page, and leaves the default columns out.
   await vi.runOnlyPendingTimersAsync();
-  expect(urlKey("paged-order")).not.toBeNull();
+  expect(urlKey("paged-order")).toBeNull();
   expect(urlKey("paged-page")).toBe("1");
   expect(urlKey("paged-q")).toBe("beta");
+});
+
+it("writes only what differs from the defaults, without the locked columns", async () => {
+  vi.useFakeTimers();
+  onTestFinished(() => {
+    vi.useRealTimers();
+  });
+  const state = openLink({
+    "paged-visibility": JSON.stringify({ status: false }),
+  });
+  await nextTick();
+  // A link that hides one column keeps the other defaults.
+  expect(state.visibility.value).toMatchObject({ name: true, status: false });
+  state.order.value = ["select", "status", "name", "actions"];
+  state.pinning.value = { left: ["select", "status"], right: ["actions"] };
+  state.automaticPageSize.value = true;
+  state.pagination.value = { pageIndex: 0, pageSize: 42 };
+  await vi.runOnlyPendingTimersAsync();
+  expect(JSON.parse(urlKey("paged-visibility") ?? "null")).toEqual({
+    status: false,
+  });
+  expect(JSON.parse(urlKey("paged-order") ?? "null")).toEqual([
+    "status",
+    "name",
+  ]);
+  expect(
+    JSON.parse(decodeURIComponent(urlKey("paged-pinning") ?? "null"))
+  ).toEqual({ left: ["status"], right: [] });
+  // The page size follows the screen: another one fits another number of rows.
+  expect(urlKey("paged-pageSize")).toBeNull();
+  // No internal id reaches the URL (nor the Referer of the page's requests).
+  expect(window.location.search).not.toMatch(LOCKED_COLUMN);
+  state.order.value = ["select", "name", "status", "actions"];
+  state.pinning.value = { left: ["select"], right: ["actions"] };
+  state.visibility.value = { ...state.visibility.value, status: true };
+  await vi.runOnlyPendingTimersAsync();
+  for (const key of ["paged-visibility", "paged-order", "paged-pinning"]) {
+    expect(urlKey(key)).toBeNull();
+  }
 });
 
 it.each([
@@ -193,6 +233,35 @@ it("restores the page of the URL that back or forward returns to", async () => {
   await nextTick();
   expect(state.search.value).toBe("echo");
   expect(state.pagination.value.pageIndex).toBe(2);
+});
+
+it("adds a history entry for a user's view choice, so back returns to the state it replaced", async () => {
+  const written = () => new Promise((resolve) => setTimeout(resolve, 60));
+  const state = openLink({ "paged-q": "echo" });
+  await nextTick();
+  const entries = window.history.length;
+
+  state.applyView({}, "saved", { history: "push" });
+  await written();
+  expect(window.history.length).toBe(entries + 1);
+  expect(urlKey("view")).toBe("saved");
+  expect(urlKey("paged-q")).toBeNull();
+  // Choosing the state the URL already holds adds nothing; later edits replace.
+  state.applyView({}, "saved", { history: "push" });
+  await written();
+  state.search.value = "foxtrot";
+  await written();
+  expect(window.history.length).toBe(entries + 1);
+  expect(urlKey("paged-q")).toBe("foxtrot");
+
+  const back = new Promise((resolve) =>
+    window.addEventListener("popstate", resolve, { once: true })
+  );
+  window.history.back();
+  await back;
+  await nextTick();
+  expect(state.search.value).toBe("echo");
+  expect(state.activeViewId.value).toBeUndefined();
 });
 
 it("sets only what back or forward changed, as React does", async () => {

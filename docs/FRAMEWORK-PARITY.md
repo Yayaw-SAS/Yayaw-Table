@@ -64,6 +64,8 @@ Every parity-affecting PR must update this document and keep the Vue example at 
 
 Both managers support one personal favorite per table, separate from shared view records. The star is available for saved system/shared views even with saving disabled. Arrival priority is explicit URL state, `initialActiveViewId`, an accessible favorite, then `isDefault`. A link with only `?view=<id>` applies that view's settings, and a view named by the link or by `initialActiveViewId` is applied once the saved views load, without waiting for `getFavorite`. Both editions read the incoming URL once on mount, so a URL write the table makes itself right after arrival never cancels it; React makes none, not even `<tableId>-order`, so a `columns.order` that differs from the definitions no longer reads as a change by the user (`tests/table-view-favorite.test.tsx`, `tests/initial-column-order.test.tsx`, `saved-views.test.ts`, `initial-column-order.test.ts`, `e2e/views.spec.ts`). Optional `getFavorite`/`setFavorite` actions synchronize preferences; otherwise persistence is browser-local. The same holds for each user's order of views: optional `setOrder`, with `list`'s `order`, else browser-local (see [View order](#view-order)). Organization scoping and permissions remain the host's responsibility; see [saved views](SAVED-VIEWS.md).
 
+Both view menus (the chevron next to the tabs, or the named view button) start with the current view's display mode: a labelled select on wider screens, a choice list on touch screens, offering the modes the table can render. Changing it is like any other setting: the view shows as modified and **Save changes** keeps it. With URL sync, choosing a view (tab, overflow list or menu) or **Reset view** adds a browser history entry when it changes the URL, so Back returns to the state it replaced; every other write still replaces the current entry, and arriving, saving, creating or deleting a view add none (`tests/table-view-order.test.tsx`, `saved-views.test.ts`, `use-table-state.test.ts`).
+
 List actions receive both naming conventions:
 
 | Value | Accepted/emitted names |
@@ -872,6 +874,13 @@ Framework-native differences, by design:
   Calendar, Chart, Map, File tree, Form, mounted right after hydration), the
   column drag preference and the browser-kept view order (read on mount).
   React runs none of its queries or effects on the server.
+- **Compact URL state (both editions).** The URL carries only what differs from the table's
+  defaults: column visibility (the columns shown or hidden differently, merged over the defaults
+  on read), order and pinning without the locked `select` and `actions` columns (the locks add
+  them back), and no page size while it is automatic. Pages send their URL as the Referer of
+  every request: a full column state (about 1.5 kB of JSON with `"select"` … `"…count…"`) made a
+  host's WAF ban users for SQL injection. Old full links still read. Tests: Vue
+  `use-table-state.test.ts`, React `url-sync-parity.test.tsx`.
 - With URL sync on, Vue reads the URL during setup. A server-rendering host
   passes the request's query string as `urlSearch` (Nuxt:
   `useRequestURL().search`); the server then renders, and prefetches, the
