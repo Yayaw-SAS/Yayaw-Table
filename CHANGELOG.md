@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.14.0
+
+### Minor Changes
+
+- 23b1f43: Saved views (React and Vue): the view menu starts with the current view's display mode, so an existing view's layout changes from its chevron menu. The change marks the view modified, and **Save changes** keeps it. With URL sync, choosing a view or **Reset view** now adds a browser history entry when it changes the URL: Back returns to the filters, sort and columns it replaced. Other table writes still replace the current entry. Vue's `applyView` and `reset` accept `{ history: "push" }` for the same behavior from host code.
+
+### Patch Changes
+
+- ca7b06e: URL sync (React and Vue): the URL now carries only what differs from the table's defaults.
+
+  - Column visibility only lists the columns shown or hidden differently, and a link's visibility is merged over the defaults.
+  - Order and pinning leave out the locked `select` and `actions` columns.
+  - The page size is not written while it is automatic.
+
+  Before this, every change wrote the whole column state, about 1.5 kB of JSON. Pages send their URL as the Referer of every request, and a host's WAF read `"select"` … `"accountManagers"` in it as SQL injection and banned users' IPs. Old full links still read, and React rewrites them in the compact form.
+
 ## 3.13.0
 
 ### Minor Changes
