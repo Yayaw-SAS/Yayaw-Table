@@ -195,6 +195,35 @@ it("restores the page of the URL that back or forward returns to", async () => {
   expect(state.pagination.value.pageIndex).toBe(2);
 });
 
+it("adds a history entry for a user's view choice, so back returns to the state it replaced", async () => {
+  const written = () => new Promise((resolve) => setTimeout(resolve, 60));
+  const state = openLink({ "paged-q": "echo" });
+  await nextTick();
+  const entries = window.history.length;
+
+  state.applyView({}, "saved", { history: "push" });
+  await written();
+  expect(window.history.length).toBe(entries + 1);
+  expect(urlKey("view")).toBe("saved");
+  expect(urlKey("paged-q")).toBeNull();
+  // Choosing the state the URL already holds adds nothing; later edits replace.
+  state.applyView({}, "saved", { history: "push" });
+  await written();
+  state.search.value = "foxtrot";
+  await written();
+  expect(window.history.length).toBe(entries + 1);
+  expect(urlKey("paged-q")).toBe("foxtrot");
+
+  const back = new Promise((resolve) =>
+    window.addEventListener("popstate", resolve, { once: true })
+  );
+  window.history.back();
+  await back;
+  await nextTick();
+  expect(state.search.value).toBe("echo");
+  expect(state.activeViewId.value).toBeUndefined();
+});
+
 it("sets only what back or forward changed, as React does", async () => {
   vi.useFakeTimers();
   onTestFinished(() => {

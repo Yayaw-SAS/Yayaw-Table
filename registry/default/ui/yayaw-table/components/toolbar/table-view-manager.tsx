@@ -88,6 +88,7 @@ import {
   viewPosition,
 } from "../../utils/view-order";
 import { resolveViewTabs, type ViewTabsConfig } from "../../utils/view-tabs";
+import { TableDisplayModeSwitcher } from "./table-display-mode-switcher";
 import { TableViewTabs } from "./table-view-tabs";
 
 /** The saved views of a table in the query cache (the toolbar reads names). */
@@ -514,6 +515,7 @@ function ViewMenuActions({
   resetDisabled,
   resetView,
   handleDeleteActiveView,
+  layout,
 }: {
   enabled: boolean;
   allowViewSave: boolean;
@@ -536,6 +538,8 @@ function ViewMenuActions({
   resetDisabled: boolean;
   resetView: () => void | Promise<void>;
   handleDeleteActiveView: () => void | Promise<void>;
+  /** The current view's display mode, changed in place like any other setting. */
+  layout: ReactNode;
 }) {
   const { t } = useTranslations();
   let favoriteLabel = "views.setFavorite";
@@ -544,6 +548,7 @@ function ViewMenuActions({
   }
   return (
     <div className="space-y-1 border-t p-2">
+      {layout}
       {enabled && allowViewSave && activeView ? (
         <ViewAction
           compact={compact}
@@ -1150,7 +1155,7 @@ export function DataTableViewManager({
   const handleSelectDefaultView = useCallback(() => {
     hasAppliedInitialViewRef.current = true;
     setInlineError(undefined);
-    applyViewConfig(resolveView(defaultViewConfig));
+    applyViewConfig(resolveView(defaultViewConfig), { history: "push" });
     setMenuOpen(false);
   }, [applyViewConfig, defaultViewConfig, resolveView]);
 
@@ -1158,7 +1163,10 @@ export function DataTableViewManager({
     (view: TableView) => {
       hasAppliedInitialViewRef.current = true;
       setInlineError(undefined);
-      applyViewConfig(resolveView(view.config), { viewId: view.id });
+      applyViewConfig(resolveView(view.config), {
+        viewId: view.id,
+        history: "push",
+      });
       setMenuOpen(false);
     },
     [applyViewConfig, resolveView]
@@ -1418,6 +1426,7 @@ export function DataTableViewManager({
   const resetView = () => {
     applyViewConfig(resolveView(activeView?.config ?? defaultViewConfig), {
       viewId: activeView?.id,
+      history: "push",
     });
   };
   const resetDisabled =
@@ -1476,6 +1485,14 @@ export function DataTableViewManager({
         handleUpdateActiveView={handleUpdateActiveView}
         isActiveViewDirty={isActiveViewDirty}
         isMutating={isMutating}
+        layout={
+          <TableDisplayModeSwitcher
+            className="pb-1"
+            defaultDisplayMode={defaultDisplayMode}
+            displayModes={displayModes}
+            tableId={tableId}
+          />
+        }
         moveActions={
           <ViewMoveActions
             disabled={isMutating}

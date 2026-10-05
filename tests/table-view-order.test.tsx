@@ -10,6 +10,7 @@ import {
   TableProvider,
 } from "../src/components/ui/yayaw-table/providers/table-provider";
 import { TableStateSyncProvider } from "../src/components/ui/yayaw-table/providers/table-state-sync-provider";
+import type { TableDisplayMode } from "../src/components/ui/yayaw-table/types/display-types";
 import type {
   SetTableViewOrderInput,
   TableView,
@@ -38,6 +39,12 @@ async function mountManager(options: {
   actions?: TableViewActions;
   initialActiveViewId?: string;
   tabs?: ViewTabsConfig;
+  displayModes?: TableDisplayMode[];
+  /** The table's state in this URL, with its writes reported. */
+  url?: {
+    searchParams: string;
+    onUrlUpdate: (event: { queryString: string; history: string }) => void;
+  };
   /** A second manager of the same table, as two instances on one page. */
   twice?: boolean;
 }) {
@@ -59,6 +66,7 @@ async function mountManager(options: {
   };
   const manager = (key: string) => (
     <DataTableViewManager
+      displayModes={options.displayModes}
       initialActiveViewId={options.initialActiveViewId}
       key={key}
       tableId={TABLE_ID}
@@ -69,8 +77,17 @@ async function mountManager(options: {
   await act(() => {
     root.render(
       <Provider store={createStore()}>
-        <NuqsTestingAdapter hasMemory>
-          <TableStateSyncProvider enabled={false}>
+        <NuqsTestingAdapter
+          hasMemory
+          onUrlUpdate={(event) =>
+            options.url?.onUrlUpdate({
+              queryString: event.queryString,
+              history: event.options.history,
+            })
+          }
+          searchParams={options.url?.searchParams}
+        >
+          <TableStateSyncProvider enabled={Boolean(options.url)}>
             <TableProvider
               getTableActions={() => ({ views: actions })}
               queryClient={queryClient}
@@ -296,4 +313,81 @@ it("lists the views in the user's order and moves them up and down without tabs"
   await press("Move up");
   expect(listed()).toEqual(["Default view", "View a", "View b"]);
   expect(announcement()).toBe("View “View a” moved to position 2 of 3");
+});
+
+it("changes the current view's display mode from the view menu and marks the view modified", async () => {
+  await mountManager({
+    displayModes: ["table", "gallery", "kanban"],
+    initialActiveViewId: "a",
+    views: [view("a", { config: { displayMode: "gallery" } })],
+  });
+  await openViewMenu();
+  expect(button("Save changes").getAttribute("aria-disabled")).toBe("true");
+  expect(
+    document.querySelector('[role="combobox"][aria-label="Display mode"]')
+      ?.textContent
+  ).toContain("Gallery");
+});
+
+it("offers the display mode as buttons in the view menu on touch screens", async () => {
+  const width = window.innerWidth;
+  Object.defineProperty(window, "innerWidth", {
+    configurable: true,
+    value: 400,
+  });
+  try {
+    await mountManager({
+      displayModes: ["table", "gallery", "kanban"],
+      initialActiveViewId: "a",
+      views: [view("a", { config: { displayMode: "gallery" } })],
+    });
+    await openViewMenu();
+    const pressed = () =>
+      document
+        .querySelector('fieldset button[aria-pressed="true"]')
+        ?.textContent?.trim();
+    expect(pressed()).toBe("Gallery");
+    const kanban = Array.from(
+      document.querySelectorAll<HTMLButtonElement>("fieldset button")
+    ).find((choice) => choice.textContent?.trim() === "Kanban");
+    await act(() => kanban?.click());
+    await settle();
+    expect(pressed()).toBe("Kanban");
+    // Like any other setting: the view is modified until "Save changes" keeps it.
+    expect(button("Save changes").getAttribute("aria-disabled")).toBeNull();
+  } finally {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: width,
+    });
+  }
+});
+
+it("writes a history entry when the user picks a view or resets one, so back returns to the state it replaced", async () => {
+  const writes: { queryString: string; history: string }[] = [];
+  await mountManager({
+    views: [view("a", { config: { globalSearch: "alpha" } })],
+    url: {
+      searchParams: "?view=a&orders-q=beta",
+      onUrlUpdate: (write) => writes.push(write),
+    },
+  });
+  // The link's state stays: the view is modified.
+  expect(writes).toEqual([]);
+
+  await openViewMenu();
+  await press("Reset view");
+  expect(writes.at(-1)?.history).toBe("push");
+  expect(writes.at(-1)?.queryString).toContain("orders-q=alpha");
+
+  const pushes = writes.filter((write) => write.history === "push").length;
+  const defaultTab = Array.from(
+    document.querySelectorAll<HTMLElement>('[role="tab"]')
+  ).find((tab) => tab.textContent === "Default view");
+  await act(() => defaultTab?.click());
+  await settle();
+  expect(writes.filter((write) => write.history === "push")).toHaveLength(
+    pushes + 1
+  );
+  expect(writes.at(-1)?.queryString).not.toContain("view=a");
 });

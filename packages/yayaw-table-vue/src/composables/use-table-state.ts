@@ -92,6 +92,10 @@ const assignChanged = <T>(
   }
 };
 
+export interface ViewHistoryOptions {
+  history?: "push";
+}
+
 export interface TableStateRefs {
   search: Ref<string>;
   filters: Ref<ColumnFiltersState>;
@@ -120,8 +124,13 @@ export interface TableStateRefs {
   hasInitialTableUrlState: boolean;
   resolveView: (config: TableViewConfig) => TableViewConfig;
   snapshot: Readonly<Ref<TableViewConfig>>;
-  applyView: (config: TableViewConfig, viewId?: string) => void;
-  reset: () => void;
+  /** `history: "push"` for a user's choice: Back then returns to the state it replaced. */
+  applyView: (
+    config: TableViewConfig,
+    viewId?: string,
+    options?: ViewHistoryOptions
+  ) => void;
+  reset: (options?: ViewHistoryOptions) => void;
   resetFilters: () => void;
   shareableUrl: () => string;
 }
@@ -253,6 +262,8 @@ export const useTableState = <TData extends TableRecord>({
   const activeViewId = ref<string | undefined>(initialViewId);
   let hydrating = true;
   let urlTimer: ReturnType<typeof setTimeout> | undefined;
+  // Set by a user's view choice until its URL is written.
+  let pushHistory = false;
   const enabledFilters = (value: ColumnFiltersState): ColumnFiltersState =>
     config.table.enableColumnFilters ? value : [];
   const dateColumnIds = new Set(
@@ -472,6 +483,17 @@ export const useTableState = <TData extends TableRecord>({
   );
   const serializePresent = (value: object): string | undefined =>
     Object.keys(value).length ? serialize(value) : undefined;
+  // A user's view choice adds an entry: Back returns to the state it replaced.
+  const writeHistory = (url: URL): void => {
+    const push = pushHistory && url.href !== window.location.href;
+    pushHistory = false;
+    window.history[push ? "pushState" : "replaceState"](
+      window.history.state,
+      "",
+      url
+    );
+  };
+
   const commitUrl = (): void => {
     const url = new URL(window.location.href);
     const set = (key: string, value: string | undefined): void =>
@@ -527,7 +549,7 @@ export const useTableState = <TData extends TableRecord>({
       );
     }
     set(viewKey, activeViewId.value);
-    window.history.replaceState(window.history.state, "", url);
+    writeHistory(url);
   };
 
   const writeUrl = (): void => {
@@ -618,7 +640,11 @@ export const useTableState = <TData extends TableRecord>({
     );
   };
 
-  const applyView = (input: TableViewConfig, viewId?: string): void => {
+  const applyView = (
+    input: TableViewConfig,
+    viewId?: string,
+    options?: ViewHistoryOptions
+  ): void => {
     const view = resolveView(input);
     densityOverride.value = view.density;
     footerCalculationsVisible.value = view.footerCalculationsVisible ?? true;
@@ -650,6 +676,11 @@ export const useTableState = <TData extends TableRecord>({
       pageSize: view.pageSize ?? config.table.defaultPageSize,
     };
     activeViewId.value = viewId;
+    if (options?.history) {
+      pushHistory = true;
+      // Written even when nothing changed, so the next write does not push.
+      writeUrl();
+    }
   };
 
   const resetFilters = (): void => {
@@ -659,20 +690,24 @@ export const useTableState = <TData extends TableRecord>({
     pagination.value = { ...pagination.value, pageIndex: 0 };
   };
 
-  const reset = (): void => {
-    applyView({
-      sorting: config.columns.sort ?? [],
-      columnVisibility: Object.fromEntries(
-        config.columns.definitions.map((column) => [
-          column.id,
-          config.columns.visible.includes(column.id),
-        ])
-      ),
-      columnOrder: config.columns.order,
-      columnSizing: {},
-      displayMode: config.table.defaultDisplayMode,
-      pageSize: config.table.defaultPageSize,
-    });
+  const reset = (options?: ViewHistoryOptions): void => {
+    applyView(
+      {
+        sorting: config.columns.sort ?? [],
+        columnVisibility: Object.fromEntries(
+          config.columns.definitions.map((column) => [
+            column.id,
+            config.columns.visible.includes(column.id),
+          ])
+        ),
+        columnOrder: config.columns.order,
+        columnSizing: {},
+        displayMode: config.table.defaultDisplayMode,
+        pageSize: config.table.defaultPageSize,
+      },
+      undefined,
+      options
+    );
   };
 
   const shareableUrl = (): string =>

@@ -423,6 +423,8 @@ export function useTableUrlState({
   // Batch update queue
   const updateQueue = useRef<Array<() => void>>([]);
   const batchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // "push" while a user's view choice is queued: Back returns to the state it replaced.
+  const batchHistory = useRef<"push" | "replace">("replace");
 
   // Process batched updates
   const processBatchedUpdates = useCallback(() => {
@@ -438,6 +440,7 @@ export function useTableUrlState({
       }
     } finally {
       updateQueue.current = [];
+      batchHistory.current = "replace";
       isSyncing.current = false;
     }
   }, []);
@@ -453,7 +456,7 @@ export function useTableUrlState({
         // Pass shallow replace options to avoid full navigation and keep focus
         (setter as unknown as (value: T, options?: unknown) => void)(
           updateValue,
-          { shallow: true, history: "replace", scroll: false }
+          { shallow: true, history: batchHistory.current, scroll: false }
         )
       );
 
@@ -1176,9 +1179,19 @@ export function useTableUrlState({
   ]);
 
   const applyViewConfig = useCallback(
-    (config: TableViewConfig, options?: { viewId?: null | string }) => {
+    (
+      config: TableViewConfig,
+      options?: {
+        viewId?: null | string;
+        /** "push" for a user's choice: Back then returns to the state it replaced. */
+        history?: "push";
+      }
+    ) => {
       // Invalidate pending search writes before restoring the saved configuration.
       store.set(resetVersionAtom, (version) => version + 1);
+      if (options?.history) {
+        batchHistory.current = options.history;
+      }
       const nextPinning = normalizeColumnPinning(config.columnPinning) ?? {
         left: [],
         right: [],

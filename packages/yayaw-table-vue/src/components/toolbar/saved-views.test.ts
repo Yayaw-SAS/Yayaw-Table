@@ -886,3 +886,69 @@ it("treats saved-view edit and deletion rights independently", async () => {
   expect((await saveButton(wrapper)).attributes("aria-disabled")).toBe("true");
   expect(body().text()).toContain("Delete view");
 });
+
+it("changes the current view's display mode from the view menu and marks the view modified", async () => {
+  const wrapper = mountTable({
+    views: [{ ...saved, config: { displayMode: "gallery" } }],
+    active: "mine",
+  });
+  await openViewsMenu(wrapper);
+  const mode = () =>
+    wrapper.get(
+      '.yayaw-view-write-actions [role="combobox"][aria-label="Display mode"]'
+    );
+  expect(mode().text()).toContain("Gallery");
+  expect(
+    wrapper.get('[aria-label="Save changes"]').attributes("aria-disabled")
+  ).toBe("true");
+
+  await mode().trigger("keydown", { key: "Enter" });
+  await flushPromises();
+  const table = body()
+    .findAll('[role="option"]')
+    .find((item) => item.text() === "Table");
+  await table?.trigger("keydown", { key: "Enter" });
+  await flushPromises();
+  expect(mode().text()).toContain("Table");
+  // Like any other setting: the view is modified until "Save changes" keeps it.
+  expect(
+    wrapper.get('[aria-label="Save changes"]').attributes("aria-disabled")
+  ).toBe("false");
+});
+
+it("returns to the changes a view choice or Reset replaced with the browser's back", async () => {
+  window.history.replaceState({}, "", "/?view=mine&view-test-q=Beta");
+  const wrapper = mountTable({ views: [saved], syncUrl: true });
+  await flushPromises();
+  const written = () => new Promise((resolve) => setTimeout(resolve, 60));
+  const back = async () => {
+    const event = new Promise((resolve) =>
+      window.addEventListener("popstate", resolve, { once: true })
+    );
+    window.history.back();
+    await event;
+    await flushPromises();
+  };
+  const entries = window.history.length;
+
+  await openViewsMenu(wrapper);
+  await wrapper
+    .findAll(".yayaw-view-write-actions button")
+    .find((item) => item.text().startsWith("Reset"))
+    ?.trigger("click");
+  await written();
+  expect(search(wrapper).element).toHaveProperty("value", "Alpha");
+  expect(window.history.length).toBe(entries + 1);
+  await back();
+  expect(search(wrapper).element).toHaveProperty("value", "Beta");
+  expect(current(wrapper).text()).toBe("My view");
+
+  await openViewsMenu(wrapper);
+  await choose("Default view");
+  await written();
+  expect(current(wrapper).text()).toBe("Default view");
+  await back();
+  expect(current(wrapper).text()).toBe("My view");
+  expect(search(wrapper).element).toHaveProperty("value", "Beta");
+  window.history.replaceState({}, "", "/");
+});

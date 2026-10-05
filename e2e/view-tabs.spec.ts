@@ -472,3 +472,35 @@ test.describe("Connect schedules", () => {
     await expect(panel.locator("[data-schedule-next]")).toHaveCount(0);
   });
 });
+
+test("an existing view's layout changes from its chevron menu, and Back returns to the state its tab reset", async ({
+  page,
+}) => {
+  const tabs = page.getByRole("tablist", { name: "Views" });
+  const viewActions = page.getByRole("button", { name: "View actions" });
+  await viewActions.click();
+  await page.getByRole("button", { name: "Save this view…" }).click();
+  await saveView(page, "Active projects");
+  await expect(
+    tabs.getByRole("tab", { name: "Active projects" })
+  ).toHaveAttribute("aria-selected", "true");
+
+  await viewActions.click();
+  await page.getByRole("combobox", { name: "Display mode" }).click();
+  await page.getByRole("option", { name: "Calendar" }).click();
+  await expect.poll(() => displayParam(page)).toBe("calendar");
+  await expect(page.locator("[data-calendar-title]")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Save changes" })
+  ).not.toHaveAttribute("aria-disabled", "true");
+  await page.keyboard.press("Escape");
+
+  // The tab resets the view to what was saved; Back brings the change back.
+  await tabs.getByRole("tab", { name: "Active projects" }).click();
+  await expect.poll(() => displayParam(page)).toBeNull();
+  await page.goBack();
+  await expect.poll(() => displayParam(page)).toBe("calendar");
+  await expect(page.locator("[data-calendar-title]")).toBeVisible();
+  await page.goForward();
+  await expect.poll(() => displayParam(page)).toBeNull();
+});
