@@ -2772,8 +2772,10 @@ Both editions take two additive props for pages with several tables:
   sync is off from a saved view before its first request: React seeds the
   instance's store with what selecting the view writes (`seedTableViewState`),
   Vue applies it with `applyView` before loading. `pageIndex` (zero-based)
-  opens another page. With URL sync on it is ignored in both; use
-  `initialActiveViewId`. See [Server rendering](#server-rendering).
+  opens another page. With URL sync on, React ignores it (use
+  `initialActiveViewId`); Vue, which reads the URL during setup, starts from it
+  when the URL carries none of the table's state, so a host's default state and
+  a link's state both render on the server. See [Server rendering](#server-rendering).
 
 React embedded instances share the host's single `QueryClient` (required), so
 their `tableId` doubles as the cache key; Vue instances create their own

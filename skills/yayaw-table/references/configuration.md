@@ -243,7 +243,8 @@ view is `view` (React also writes `historyIndex`); the file tree adds
 - `initialView: { id?, config, pageIndex? }` starts an instance whose URL sync
   is off from a saved view, before its first request (dashboard widgets and
   server-rendered hosts use it); `pageIndex` (zero-based) opens another page.
-  It is ignored when URL sync is on; use `initialActiveViewId` there.
+  With URL sync on, React ignores it (use `initialActiveViewId`); Vue starts
+  from it when the URL carries none of the table's state.
 - React instances share the app's `QueryClient`, keyed by `tableId`; Vue
   instances create their own client unless you pass `queryClient`.
 - The current view: React `onViewConfigChange(config)`, Vue

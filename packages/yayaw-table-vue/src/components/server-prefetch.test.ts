@@ -94,6 +94,42 @@ it("renders the state of the request's URL with syncUrl", async () => {
   expect(typeof window).toBe("undefined");
 });
 
+it("starts from the host's initial view unless the URL carries the table's state", async () => {
+  const initialView = {
+    id: null,
+    config: { filters: [{ id: "owner", value: ["ann"] }] },
+  };
+  const first = spiedActions();
+  await render({
+    tableType: "ssr",
+    config: ssrConfig(),
+    getTableActions: () => first.actions,
+    queryClient: new QueryClient(),
+    serverPrefetch: true,
+    syncUrl: true,
+    urlSearch: "?other=1",
+    initialView,
+  });
+  expect(first.list.mock.calls[0]?.[0]).toMatchObject({
+    filters: { owner: ["ann"] },
+  });
+  const linked = spiedActions();
+  await render({
+    tableType: "ssr",
+    config: ssrConfig(),
+    getTableActions: () => linked.actions,
+    queryClient: new QueryClient(),
+    serverPrefetch: true,
+    syncUrl: true,
+    urlSearch: `?${new URLSearchParams({ "ssr-q": "Record 1" })}`,
+    initialView,
+  });
+  expect(linked.list.mock.calls[0]?.[0]).toMatchObject({
+    search: "Record 1",
+    filters: {},
+  });
+});
+
 it("awaits the tag catalogs with the rows and renders their names", async () => {
   const { list, other, actions } = spiedActions();
   const html = await render({
