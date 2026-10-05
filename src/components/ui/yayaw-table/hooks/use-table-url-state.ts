@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { atom, useAtom, useStore } from "jotai";
+import { atom, useAtom, useAtomValue, useStore } from "jotai";
 import { atomFamily } from "jotai-family";
 import { createParser, useQueryState, useQueryStates } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef } from "react";
@@ -26,6 +26,7 @@ import { parseDateValue } from "../utils/value-format";
 import type { TableGanttViewConfig } from "../planning/types";
 import {
   tableUrlKeys,
+  useTableColumnDefaults,
   useTableDefaultSorting,
   useTableInstanceId,
   useTableStateSync,
@@ -56,6 +57,7 @@ import {
   normalizeGroupingState,
   normalizeTableViewConfig,
 } from "../utils/table-view-state";
+import { autoPageState } from "./use-auto-page-size";
 
 // Simple debounce implementation to avoid lodash dependency
 function debounce<T extends (...args: unknown[]) => void>(
@@ -123,6 +125,39 @@ const QUERY_WRITE_OPTIONS = {
 /** Whether a search, filter or sort write changes the query (see `tableQueryKey`). */
 const changesQuery = (current: unknown, next: unknown): boolean =>
   tableQueryKey(current) !== tableQueryKey(next);
+
+// The URL carries only what differs from the table's defaults, without the
+// `select` and `actions` columns the table always places, shows and pins:
+// short links, and no internal id in the Referer of the page's requests.
+const isLockedColumn = (id: string) => id === "select" || id === "actions";
+
+/** The columns shown or hidden differently from the defaults, null when none. */
+const ownVisibility = (
+  visibility: VisibilityState,
+  defaults: VisibilityState
+): VisibilityState | null => {
+  const changes = Object.entries(visibility).filter(
+    ([id, shown]) => !isLockedColumn(id) && shown !== defaults[id]
+  );
+  return changes.length ? Object.fromEntries(changes) : null;
+};
+
+/** The order of the data columns, null when it is the default one. */
+const ownOrder = (order: string[], defaults: string[]): string[] | null => {
+  const own = order.filter((id) => !isLockedColumn(id));
+  return own.length && JSON.stringify(own) !== JSON.stringify(defaults)
+    ? own
+    : null;
+};
+
+/** The pinned data columns, null when none. */
+const ownPinning = (
+  pinning: ColumnPinningState
+): Required<ColumnPinningState> | null => {
+  const left = pinning.left?.filter((id) => !isLockedColumn(id)) ?? [];
+  const right = pinning.right?.filter((id) => !isLockedColumn(id)) ?? [];
+  return left.length || right.length ? { left, right } : null;
+};
 
 const useStateChannel = <T>(
   tableId: string,
@@ -405,6 +440,8 @@ export function useTableUrlState({
     [defaultSortingKey]
   );
   const shouldSyncUrl = enabled ?? inheritedSync;
+  const columnDefaults = useTableColumnDefaults();
+  const autoPage = useAtomValue(autoPageState(tableId));
   const instanceId = useTableInstanceId();
   const urlKeys = useMemo(
     () => tableUrlKeys(tableId, instanceId),
@@ -566,12 +603,21 @@ export function useTableUrlState({
     setUrlPageSizeParam,
     defaultPageSizeParam
   );
+  // An automatic page size follows the table's height: the URL leaves it out,
+  // another screen fits another number of rows. A link's own page size wins.
+  const shownPageSizeParam =
+    autoPage.automatic &&
+    autoPage.expectedSize &&
+    parsePositiveInt(pageSizeParam, resolvedDefaultPageSize) ===
+      resolvedDefaultPageSize
+      ? String(autoPage.expectedSize)
+      : pageSizeParam;
 
   const [urlVisibilityParam, setUrlVisibilityParam] = useQueryState(
     `${urlPrefix}-visibility`,
     objectParser
   );
-  const [visibilityParam, setVisibilityParam] = useStateChannel(
+  const [storedVisibility, setStoredVisibility] = useStateChannel(
     tableId,
     shouldSyncUrl,
     "visibility",
@@ -579,18 +625,39 @@ export function useTableUrlState({
     setUrlVisibilityParam,
     EMPTY_OBJECT as VisibilityState
   );
+  // A link carries only the columns it shows or hides differently from the defaults.
+  const visibilityParam = useMemo(
+    () =>
+      storedVisibility && Object.keys(storedVisibility).length > 0
+        ? { ...columnDefaults.visibility, ...storedVisibility }
+        : storedVisibility,
+    [columnDefaults.visibility, storedVisibility]
+  );
+  const setVisibilityParam = useCallback(
+    (value: VisibilityState | null, options?: unknown) =>
+      setStoredVisibility(
+        value && ownVisibility(value, columnDefaults.visibility),
+        options
+      ),
+    [columnDefaults.visibility, setStoredVisibility]
+  );
 
   const [urlOrderParam, setUrlOrderParam] = useQueryState(
     `${urlPrefix}-order`,
     arrayParser
   );
-  const [orderParam, setOrderParam] = useStateChannel(
+  const [orderParam, setStoredOrder] = useStateChannel(
     tableId,
     shouldSyncUrl,
     "order",
     urlOrderParam as string[],
     setUrlOrderParam,
     EMPTY_ARRAY as string[]
+  );
+  const setOrderParam = useCallback(
+    (value: string[] | null, options?: unknown) =>
+      setStoredOrder(value && ownOrder(value, columnDefaults.order), options),
+    [columnDefaults.order, setStoredOrder]
   );
 
   const [urlSizingParam, setUrlSizingParam] = useQueryState(
@@ -805,7 +872,7 @@ export function useTableUrlState({
       },
     }
   );
-  const [pinningParam, setPinningParam] = useStateChannel(
+  const [pinningParam, setStoredPinning] = useStateChannel(
     tableId,
     shouldSyncUrl,
     "pinning",
@@ -813,6 +880,29 @@ export function useTableUrlState({
     setUrlPinningParam,
     EMPTY_PINNING
   );
+  const setPinningParam = useCallback(
+    (value: ColumnPinningState | null, options?: unknown) =>
+      setStoredPinning(value && ownPinning(value), options),
+    [setStoredPinning]
+  );
+
+  // Links written before the URL left the defaults and the locked columns
+  // out read the same, then shrink to what differs.
+  useEffect(() => {
+    if (shouldSyncUrl) {
+      setVisibilityParam(visibilityParam);
+      setOrderParam(orderParam);
+      setPinningParam(pinningParam);
+    }
+  }, [
+    orderParam,
+    pinningParam,
+    setOrderParam,
+    setPinningParam,
+    setVisibilityParam,
+    shouldSyncUrl,
+    visibilityParam,
+  ]);
 
   type TableParamValue =
     | ColumnFiltersState
@@ -974,8 +1064,14 @@ export function useTableUrlState({
         queueUrlUpdate(setPageParam, pageIndex.toString());
       }
 
-      if (currentPageSize !== pageSize) {
-        queueUrlUpdate(setPageSizeParam, pageSize.toString());
+      // The size an automatic page size fits stays out of the URL (`shownPageSizeParam`).
+      const auto = store.get(autoPageState(tableId));
+      const urlPageSize =
+        auto.automatic && pageSize === auto.expectedSize
+          ? resolvedDefaultPageSize
+          : pageSize;
+      if (currentPageSize !== urlPageSize) {
+        queueUrlUpdate(setPageSizeParam, urlPageSize.toString());
       }
     },
     [
@@ -985,6 +1081,8 @@ export function useTableUrlState({
       resolvedDefaultPageSize,
       setPageParam,
       setPageSizeParam,
+      store,
+      tableId,
     ]
   );
 
@@ -1145,7 +1243,7 @@ export function useTableUrlState({
       kanbanGroupByParam: kanbanGroupByParam || "",
       modeConfigsParam: modeConfigs,
       orderParam: (orderParam || []) as string[],
-      pageSizeParam: pageSizeParam || defaultPageSizeParam,
+      pageSizeParam: shownPageSizeParam || defaultPageSizeParam,
       pinningParam: normalizeColumnPinning(
         pinningParam as ColumnPinningState | undefined
       ),
@@ -1169,7 +1267,7 @@ export function useTableUrlState({
     resolvedGroupingParam,
     kanbanGroupByParam,
     orderParam,
-    pageSizeParam,
+    shownPageSizeParam,
     pinningParam,
     sizingParam,
     resolvedDefaultDisplayMode,
@@ -1307,8 +1405,13 @@ export function useTableUrlState({
       setUrlParam(url, `${urlPrefix}-advancedFilters`, advancedFiltersParam);
       setUrlParam(url, `${urlPrefix}-q`, globalSearchParam);
       setUrlParam(url, `${urlPrefix}-page`, pageParam);
-      setUrlParam(url, `${urlPrefix}-pageSize`, pageSizeParam);
-      setUrlParam(url, `${urlPrefix}-visibility`, visibilityParam);
+      setUrlParam(
+        url,
+        `${urlPrefix}-pageSize`,
+        pageSizeParam,
+        pageSizeParam !== defaultPageSizeParam
+      );
+      setUrlParam(url, `${urlPrefix}-visibility`, storedVisibility);
       setUrlParam(url, `${urlPrefix}-order`, orderParam);
       setUrlParam(url, `${urlPrefix}-sizing`, sizingParam);
       setUrlParam(url, `${urlPrefix}-expanded`, expandedParam);
@@ -1338,7 +1441,8 @@ export function useTableUrlState({
       advancedFiltersParam,
       pageParam,
       pageSizeParam,
-      visibilityParam,
+      defaultPageSizeParam,
+      storedVisibility,
       orderParam,
       sizingParam,
       expandedParam,
@@ -1458,9 +1562,9 @@ export function useTableUrlState({
   const pagination = useMemo(
     () => ({
       pageIndex: Number.parseInt(pageParam || "0", 10),
-      pageSize: parsePositiveInt(pageSizeParam, resolvedDefaultPageSize),
+      pageSize: parsePositiveInt(shownPageSizeParam, resolvedDefaultPageSize),
     }),
-    [pageParam, pageSizeParam, resolvedDefaultPageSize]
+    [pageParam, shownPageSizeParam, resolvedDefaultPageSize]
   );
 
   // Cleanup timeout on unmount
@@ -1500,7 +1604,7 @@ export function useTableUrlState({
     kanbanGroupByParam: kanbanGroupByParam || "",
     orderParam: orderParam || EMPTY_ARRAY,
     pageParam: pageParam || "0",
-    pageSizeParam: pageSizeParam || defaultPageSizeParam,
+    pageSizeParam: shownPageSizeParam || defaultPageSizeParam,
     // Processed state
     pagination,
     pinningParam,

@@ -13,6 +13,17 @@ export function useAutoPageSize(root: Ref<HTMLElement | undefined>) {
       context.config.table.defaultAutoPageSize
   );
   const automatic = ref(defaultAutomatic);
+  // The URL leaves an automatic page size out: another screen fits another number of rows.
+  watch(
+    automatic,
+    (value) => {
+      const target = context.state.automaticPageSize;
+      if (target) {
+        target.value = value;
+      }
+    },
+    { immediate: true }
+  );
   const measurement = ref<AutoPageMeasurement>();
   let expectedSize: number | undefined;
   let fitKey = "";

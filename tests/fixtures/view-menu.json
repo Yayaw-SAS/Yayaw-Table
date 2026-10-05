@@ -309,5 +309,25 @@
     "current": {
       "columnOrder": ["select", "status", "name", "actions"]
     }
+  },
+  {
+    "name": "pinned utility columns do not dirty a view the URL carries without them",
+    "equal": true,
+    "saved": {
+      "columnPinning": { "left": ["select", "name"], "right": ["actions"] }
+    },
+    "current": {
+      "columnPinning": { "left": ["name"], "right": [] }
+    }
+  },
+  {
+    "name": "data column pinning remains a saved-view change",
+    "equal": false,
+    "saved": {
+      "columnPinning": { "left": ["select"], "right": ["actions"] }
+    },
+    "current": {
+      "columnPinning": { "left": ["name"], "right": [] }
+    }
   }
 ]
