@@ -477,6 +477,41 @@ export const useTableState = <TData extends TableRecord>({
   );
   const serializePresent = (value: object): string | undefined =>
     Object.keys(value).length ? serialize(value) : undefined;
+  /**
+   * The column settings a URL carries: only what differs from the defaults, without the locked columns the read adds
+   * back. Links stay short, and no internal id (the `select` column) reaches the Referer of the page's requests.
+   */
+  const urlColumns = (): {
+    visibility?: string;
+    order?: string;
+    pinning?: string;
+  } => {
+    const defaults = resolveView({});
+    const own = (ids: string[] | undefined) =>
+      (ids ?? []).filter((id) => !lockedColumn(id));
+    const visibilityChanges = Object.entries(visibility.value).filter(
+      ([id, shown]) =>
+        !lockedColumn(id) && shown !== defaults.columnVisibility?.[id]
+    );
+    const ownOrder = serialize(own(order.value));
+    const pinned = {
+      left: own(pinning.value.left),
+      right: own(pinning.value.right),
+    };
+    return {
+      visibility: visibilityChanges.length
+        ? serialize(Object.fromEntries(visibilityChanges))
+        : undefined,
+      order:
+        ownOrder === serialize(own(defaults.columnOrder))
+          ? undefined
+          : ownOrder,
+      pinning:
+        pinned.left.length || pinned.right.length
+          ? serializeEncoded(pinned)
+          : undefined,
+    };
+  };
   const commitUrl = (): void => {
     const url = new URL(window.location.href);
     const set = (key: string, value: string | undefined): void =>
@@ -496,44 +531,15 @@ export const useTableState = <TData extends TableRecord>({
       `${urlPrefix}-sort`,
       sorting.value.length ? serialize(sorting.value) : undefined
     );
-    // Only what differs from the defaults, without the locked columns the read adds back: short links, and no
-    // internal id (the `select` column) in the Referer of every request the page sends.
-    const defaults = resolveView({});
-    const visibilityChanges = Object.entries(visibility.value).filter(
-      ([id, shown]) =>
-        !lockedColumn(id) && shown !== defaults.columnVisibility?.[id]
-    );
-    set(
-      `${urlPrefix}-visibility`,
-      visibilityChanges.length
-        ? serialize(Object.fromEntries(visibilityChanges))
-        : undefined
-    );
-    const ownOrder = order.value.filter((id) => !lockedColumn(id));
-    set(
-      `${urlPrefix}-order`,
-      serialize(ownOrder) ===
-        serialize(
-          (defaults.columnOrder ?? []).filter((id) => !lockedColumn(id))
-        )
-        ? undefined
-        : serialize(ownOrder)
-    );
+    const columns = urlColumns();
+    set(`${urlPrefix}-visibility`, columns.visibility);
+    set(`${urlPrefix}-order`, columns.order);
     set(
       `${urlPrefix}-sizing`,
       Object.keys(sizing.value).length ? serialize(sizing.value) : undefined
     );
     set(`${urlPrefix}-grouping`, serializedGrouping.value);
-    const ownPinning = {
-      left: pinning.value.left?.filter((id) => !lockedColumn(id)) ?? [],
-      right: pinning.value.right?.filter((id) => !lockedColumn(id)) ?? [],
-    };
-    set(
-      `${urlPrefix}-pinning`,
-      ownPinning.left.length || ownPinning.right.length
-        ? serializeEncoded(ownPinning)
-        : undefined
-    );
+    set(`${urlPrefix}-pinning`, columns.pinning);
     set(
       `${urlPrefix}-page`,
       pagination.value.pageIndex

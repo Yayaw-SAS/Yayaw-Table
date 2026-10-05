@@ -872,6 +872,13 @@ Framework-native differences, by design:
   Calendar, Chart, Map, File tree, Form, mounted right after hydration), the
   column drag preference and the browser-kept view order (read on mount).
   React runs none of its queries or effects on the server.
+- **Compact URL state (both editions).** The URL carries only what differs from the table's
+  defaults: column visibility (the columns shown or hidden differently, merged over the defaults
+  on read), order and pinning without the locked `select` and `actions` columns (the locks add
+  them back), and no page size while it is automatic. Pages send their URL as the Referer of
+  every request: a full column state (about 1.5 kB of JSON with `"select"` … `"…count…"`) made a
+  host's WAF ban users for SQL injection. Old full links still read. Tests: Vue
+  `use-table-state.test.ts`, React `url-sync-parity.test.tsx`.
 - With URL sync on, Vue reads the URL during setup. A server-rendering host
   passes the request's query string as `urlSearch` (Nuxt:
   `useRequestURL().search`); the server then renders, and prefetches, the

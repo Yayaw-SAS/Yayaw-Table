@@ -37,6 +37,7 @@ const openLink = (keys: Record<string, string>): TableStateRefs => {
   });
   return state;
 };
+const LOCKED_COLUMN = /select|actions/;
 const urlKey = (key: string): string | null =>
   new URL(window.location.href).searchParams.get(key);
 /** The values the table reads from its URL keys, by name. */
@@ -115,7 +116,7 @@ it("writes only what differs from the defaults, without the locked columns", asy
   // The page size follows the screen: another one fits another number of rows.
   expect(urlKey("paged-pageSize")).toBeNull();
   // No internal id reaches the URL (nor the Referer of the page's requests).
-  expect(window.location.search).not.toMatch(/select|actions/);
+  expect(window.location.search).not.toMatch(LOCKED_COLUMN);
   state.order.value = ["select", "name", "status", "actions"];
   state.pinning.value = { left: ["select"], right: ["actions"] };
   state.visibility.value = { ...state.visibility.value, status: true };

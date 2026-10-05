@@ -18,7 +18,9 @@ export function useAutoPageSize(root: Ref<HTMLElement | undefined>) {
     automatic,
     (value) => {
       const target = context.state.automaticPageSize;
-      if (target) target.value = value;
+      if (target) {
+        target.value = value;
+      }
     },
     { immediate: true }
   );
