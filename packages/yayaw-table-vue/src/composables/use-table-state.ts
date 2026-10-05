@@ -103,6 +103,8 @@ export interface TableStateRefs {
   grouping: Ref<string[]>;
   pinning: Ref<ColumnPinningState>;
   pagination: Ref<PaginationState>;
+  /** The page size follows the table's height (auto page size): the URL does not pin it. */
+  automaticPageSize: Ref<boolean>;
   displayMode: Ref<TableDisplayMode>;
   /** Modes this table offers (configured, with their renderer or planning session). */
   offeredDisplayModes: readonly TableDisplayMode[];
@@ -172,10 +174,12 @@ export const useTableState = <TData extends TableRecord>({
   const sizing = ref<Record<string, number>>({});
   const grouping = ref<string[]>([]);
   const pinning = ref<ColumnPinningState>(emptyPinning());
+  const automaticPageSize = ref(false);
   const columnIds = config.columns.definitions.map((column) => column.id);
   const lockVisibility = (value: ColumnVisibilityState) =>
     lockedColumnVisibility(value, config.columns.mandatory);
   const lockOrder = (value: string[]) => lockedColumnOrder(value, columnIds);
+  const lockedColumn = (id: string) => id === "select" || id === "actions";
   const lockPinning = (value: ColumnPinningState) =>
     lockedColumnPinning(value, columnIds, config.table.enableColumnPinning);
   watch(
@@ -413,12 +417,13 @@ export const useTableState = <TData extends TableRecord>({
       sorting,
       parseJson(params.get(`${urlPrefix}-sort`), config.columns.sort ?? [])
     );
+    // A link carries only the columns it shows or hides differently from the defaults.
     assignChanged(
       visibility,
-      parseJson(
-        params.get(`${urlPrefix}-visibility`),
-        defaults.columnVisibility ?? {}
-      ),
+      {
+        ...defaults.columnVisibility,
+        ...parseJson(params.get(`${urlPrefix}-visibility`), {}),
+      },
       lockVisibility
     );
     assignChanged(
@@ -491,14 +496,44 @@ export const useTableState = <TData extends TableRecord>({
       `${urlPrefix}-sort`,
       sorting.value.length ? serialize(sorting.value) : undefined
     );
-    set(`${urlPrefix}-visibility`, serialize(visibility.value));
-    set(`${urlPrefix}-order`, serialize(order.value));
+    // Only what differs from the defaults, without the locked columns the read adds back: short links, and no
+    // internal id (the `select` column) in the Referer of every request the page sends.
+    const defaults = resolveView({});
+    const visibilityChanges = Object.entries(visibility.value).filter(
+      ([id, shown]) =>
+        !lockedColumn(id) && shown !== defaults.columnVisibility?.[id]
+    );
+    set(
+      `${urlPrefix}-visibility`,
+      visibilityChanges.length
+        ? serialize(Object.fromEntries(visibilityChanges))
+        : undefined
+    );
+    const ownOrder = order.value.filter((id) => !lockedColumn(id));
+    set(
+      `${urlPrefix}-order`,
+      serialize(ownOrder) ===
+        serialize(
+          (defaults.columnOrder ?? []).filter((id) => !lockedColumn(id))
+        )
+        ? undefined
+        : serialize(ownOrder)
+    );
     set(
       `${urlPrefix}-sizing`,
       Object.keys(sizing.value).length ? serialize(sizing.value) : undefined
     );
     set(`${urlPrefix}-grouping`, serializedGrouping.value);
-    set(`${urlPrefix}-pinning`, serializeEncoded(pinning.value));
+    const ownPinning = {
+      left: pinning.value.left?.filter((id) => !lockedColumn(id)) ?? [],
+      right: pinning.value.right?.filter((id) => !lockedColumn(id)) ?? [],
+    };
+    set(
+      `${urlPrefix}-pinning`,
+      ownPinning.left.length || ownPinning.right.length
+        ? serializeEncoded(ownPinning)
+        : undefined
+    );
     set(
       `${urlPrefix}-page`,
       pagination.value.pageIndex
@@ -507,7 +542,8 @@ export const useTableState = <TData extends TableRecord>({
     );
     set(
       `${urlPrefix}-pageSize`,
-      pagination.value.pageSize !== config.table.defaultPageSize
+      !automaticPageSize.value &&
+        pagination.value.pageSize !== config.table.defaultPageSize
         ? String(pagination.value.pageSize)
         : undefined
     );
@@ -758,6 +794,7 @@ export const useTableState = <TData extends TableRecord>({
     sorting,
     visibility,
     order,
+    automaticPageSize,
     sizing,
     grouping,
     pinning,

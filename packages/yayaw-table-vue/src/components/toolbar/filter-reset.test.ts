@@ -147,12 +147,8 @@ describe("toolbar filter reset", () => {
     expect(JSON.parse(result.get("reset-sort") ?? "[]")).toEqual(
       config.columns.sort
     );
-    expect(JSON.parse(result.get("reset-visibility") ?? "{}")).toEqual({
-      name: true,
-      status: true,
-      select: true,
-      actions: true,
-    });
+    // The default columns are left out of the URL.
+    expect(result.has("reset-visibility")).toBe(false);
     expect(result.get("reset-q")).toBeNull();
     expect(result.get("reset-display")).toBeNull();
     expect(result.get("view")).toBeNull();
@@ -205,9 +201,6 @@ describe("toolbar filter reset", () => {
       { id: "status", desc: true },
     ]);
     expect(JSON.parse(result.get("reset-visibility") ?? "{}")).toEqual({
-      actions: true,
-      name: true,
-      select: true,
       status: false,
     });
     expect(JSON.parse(result.get("reset-grouping") ?? "[]")).toEqual([
