@@ -133,9 +133,15 @@ export const useTableState = <TData extends TableRecord>({
   instanceId,
   planning = false,
   renderers,
+  urlSearch,
 }: {
   config: TableConfig<TData>;
   syncUrl: boolean;
+  /**
+   * The page's query string where there is no window (server rendering): the
+   * server renders the URL's state, as the hydrating browser does.
+   */
+  urlSearch?: string;
   initialActiveViewId?: string;
   /** Scopes the URL keys: `<instanceId>-view`, `<instanceId>-…`. */
   instanceId?: string;
@@ -234,10 +240,10 @@ export const useTableState = <TData extends TableRecord>({
     }
     window.localStorage.setItem(columnDragStorageKey, String(effectiveValue));
   });
+  const urlSource = (): string | undefined =>
+    typeof window === "undefined" ? urlSearch : window.location.search;
   // Capture the incoming URL before this table starts writing its own state.
-  const initialParams = new URLSearchParams(
-    syncUrl && typeof window !== "undefined" ? window.location.search : ""
-  );
+  const initialParams = new URLSearchParams((syncUrl && urlSource()) || "");
   const hasInitialTableUrlState = [...initialParams.keys()].some((key) =>
     key.startsWith(`${urlPrefix}-`)
   );
@@ -374,11 +380,12 @@ export const useTableState = <TData extends TableRecord>({
   };
 
   const fromUrl = (): void => {
-    if (!syncUrl || typeof window === "undefined") {
+    const source = syncUrl ? urlSource() : undefined;
+    if (source === undefined) {
       hydrating = false;
       return;
     }
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(source);
     const defaults = resolveView({});
     const arriving = hydrating;
     const mode = enabledDisplayMode(
@@ -714,6 +721,12 @@ export const useTableState = <TData extends TableRecord>({
     },
     { deep: true, flush: "sync" }
   );
+  // The URL is read during setup, so the server (from `urlSearch`) and the
+  // hydrating browser render the same state before any request.
+  const readAtSetup = syncUrl && urlSource() !== undefined;
+  if (readAtSetup) {
+    fromUrl();
+  }
   onMounted(() => {
     const storedDrag = window.localStorage.getItem(columnDragStorageKey);
     if (storedDrag !== null) {
@@ -724,7 +737,9 @@ export const useTableState = <TData extends TableRecord>({
       columnDragStorageKey,
       String(columnDragEnabled.value)
     );
-    fromUrl();
+    if (!readAtSetup) {
+      fromUrl();
+    }
     window.addEventListener("popstate", fromUrl);
   });
   onBeforeUnmount(() => {

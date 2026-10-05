@@ -158,6 +158,8 @@ const props = withDefaults(
     showFilterBar?: boolean;
     enableViews?: boolean;
     syncUrl?: boolean;
+    /** The page's query string for server rendering with `syncUrl` (Nuxt: `useRequestURL().search`). */
+    urlSearch?: string;
     searchDebounceMs?: number;
     rowActions?: RowActionItem[];
     customBulkActions?: BulkAction[];
@@ -322,6 +324,7 @@ const state = useTableState({
   instanceId: props.instanceId,
   planning: Boolean(planning),
   renderers: Object.keys(modeRenderers ?? {}),
+  urlSearch: props.urlSearch,
 });
 // An embedded instance starts from its view before its first request.
 if (props.initialView && !syncUrl) {

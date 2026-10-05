@@ -262,7 +262,8 @@ view is `view` (React also writes `historyIndex`); the file tree adds
   nor `getFavorite` runs on mount.
 - Server rendering: React shows `initialData`; Vue's `serverPrefetch` loads
   the starting page on the server into the request's `queryClient` (dehydrate
-  it, give it a `staleTime`). `table.timeZone` formats every date column
+  it, give it a `staleTime`); with `syncUrl`, pass `urlSearch` (the request's
+  query string) so it renders the link's state. `table.timeZone` formats every date column
   without its own zone the same on the server and in the browser.
 - A view saves `displayMode`, `density`, `globalSearch`, `columnFilters`,
   `advancedFilters` (with their AND/OR join), `sorting`, `grouping`,
