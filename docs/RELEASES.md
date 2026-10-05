@@ -98,8 +98,11 @@ you.
    `github-actions[bot]`, and such a push produces a **CI tests** run that waits
    for approval rather than running; a run that never starts a job counts as
    failed. So the version workflow runs the gate itself, on the exact tree it is
-   about to push: `bun run release:check`, the Pages artifact validator, then the
-   versioned snapshot verification. A tree that fails is never proposed.
+   about to push: the changeset, lint and type checks, the Vue and registry
+   builds, the Pages artifact validator, then the versioned snapshot
+   verification. The test suites are not run again: the code is `main`'s, which
+   passed them as an up-to-date pull request. A tree that fails is never
+   proposed.
 
    It also preserves the validated Pages tarball as `registry-pages-<head>`,
    which the publication guard accepts when the branch produced no CI run at

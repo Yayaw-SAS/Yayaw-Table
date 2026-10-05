@@ -108,11 +108,19 @@ jobs:
 
       # GitHub holds CI triggered by bot-created PRs for approval. Validate the
       # exact proposed tree here as well; a failing release is never proposed.
+      # The code is `main`'s, which passed the whole CI (tests and every e2e
+      # shard) as an up-to-date pull request: the version bump only changes
+      # versions, the changelog and the registry snapshot, so this checks those
+      # and the builds, not the test suites again (20 min down to a few).
       - name: Validate the release artifact
         if: steps.plan.outputs.action == 'version'
         run: |
           set -euo pipefail
-          bun run release:check
+          bun run changeset:check
+          bun run check
+          bun run type-check
+          bun run vue:build
+          bun run registry:pages
           node .github/scripts/validate-pages-artifact.mjs dist/registry-pages
           node scripts/verify-registry-release.mjs "v$(node -p 'require("./package.json").version')"
 
