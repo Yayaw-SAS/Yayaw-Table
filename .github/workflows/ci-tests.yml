@@ -86,6 +86,10 @@ jobs:
 
   e2e:
     name: e2e (${{ matrix.shard }}/4)
+    # The version pull request carries `main`'s code, which passed every shard
+    # as an up-to-date pull request; its own changes are versions, the
+    # changelog and the registry snapshot, which the quality job checks.
+    if: github.head_ref != 'changeset-release/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -127,4 +131,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Require the quality job and every end-to-end shard
-        run: test "${{ needs.quality.result }}" = success && test "${{ needs.e2e.result }}" = success
+        run: |
+          test "${{ needs.quality.result }}" = success
+          test "${{ needs.e2e.result }}" = success || { test "${{ needs.e2e.result }}" = skipped && test "${{ github.head_ref }}" = changeset-release/main; }
