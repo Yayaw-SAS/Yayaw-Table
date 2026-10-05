@@ -9,7 +9,8 @@ import {
 } from "../utils/auto-page-size";
 
 // The table's keyed store survives loading skeletons between server pages.
-const autoPageState = atomFamily((_tableId: string) =>
+// The URL leaves an automatic page size out (`useTableUrlState`).
+export const autoPageState = atomFamily((_tableId: string) =>
   atom({
     automatic: false,
     resetKey: "",

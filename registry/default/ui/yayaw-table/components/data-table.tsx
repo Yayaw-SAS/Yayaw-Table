@@ -940,6 +940,7 @@ function DataTableContent({
 
   return (
     <TableStateSyncProvider
+      columns={config.columns}
       defaultSorting={config.columns.sort}
       enabled={config.table.syncUrl !== false}
     >
@@ -1336,6 +1337,7 @@ function TableStateScope({
   const { config } = useTableConfig(tableType);
   return (
     <TableStateSyncProvider
+      columns={config.columns}
       defaultSorting={config.columns.sort}
       enabled={config.table.syncUrl !== false}
     >
