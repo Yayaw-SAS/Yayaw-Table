@@ -86,6 +86,44 @@ it("hydrates the server's first page from the dehydrated query client without lo
   app.unmount();
 });
 
+it("hydrates a page rendered from the request's URL without loading it again", async () => {
+  const { list, actions } = spiedActions();
+  const search = `?${new URLSearchParams({ "ssr-q": "Record 1", "ssr-sort": JSON.stringify([{ id: "name", desc: true }]), "ssr-pageSize": "3" })}`;
+  const props = (queryClient: QueryClient) => ({
+    tableType: "ssr",
+    config: ssrConfig(),
+    getTableActions: () => actions,
+    queryClient,
+    serverPrefetch: true,
+    syncUrl: true,
+    urlSearch: search,
+  });
+  const server = new QueryClient();
+  const html = await serverRender(props(server));
+  expect(list).toHaveBeenCalledTimes(1);
+  // The browser is on the same URL: the table reads it before hydrating.
+  window.history.replaceState(null, "", `/records${search}`);
+  const browser = new QueryClient({
+    defaultOptions: { queries: { staleTime: 30_000 } },
+  });
+  hydrate(browser, JSON.parse(JSON.stringify(dehydrate(server))));
+  const { root, app, mismatches } = await hydrateInBrowser(
+    html,
+    props(browser)
+  );
+  // Past the search debounce: a state read after hydration would have loaded again.
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  expect(mismatches).toEqual([]);
+  expect(list).toHaveBeenCalledTimes(1);
+  expect(list.mock.calls[0]?.[0]).toMatchObject({
+    search: "Record 1",
+    sorting: [{ id: "name", desc: true }],
+  });
+  expect(root.querySelector("input")?.value).toBe("Record 1");
+  app.unmount();
+  window.history.replaceState(null, "", "/");
+});
+
 it("loads the page again when the browser's client holds it stale (staleTime 0)", async () => {
   const { list, actions } = spiedActions();
   const props = (queryClient: QueryClient) => ({

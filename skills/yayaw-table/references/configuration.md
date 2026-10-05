@@ -243,7 +243,8 @@ view is `view` (React also writes `historyIndex`); the file tree adds
 - `initialView: { id?, config, pageIndex? }` starts an instance whose URL sync
   is off from a saved view, before its first request (dashboard widgets and
   server-rendered hosts use it); `pageIndex` (zero-based) opens another page.
-  It is ignored when URL sync is on; use `initialActiveViewId` there.
+  With URL sync on, React ignores it (use `initialActiveViewId`); Vue starts
+  from it when the URL carries none of the table's state.
 - React instances share the app's `QueryClient`, keyed by `tableId`; Vue
   instances create their own client unless you pass `queryClient`.
 - The current view: React `onViewConfigChange(config)`, Vue
@@ -262,7 +263,8 @@ view is `view` (React also writes `historyIndex`); the file tree adds
   nor `getFavorite` runs on mount.
 - Server rendering: React shows `initialData`; Vue's `serverPrefetch` loads
   the starting page on the server into the request's `queryClient` (dehydrate
-  it, give it a `staleTime`). `table.timeZone` formats every date column
+  it, give it a `staleTime`); with `syncUrl`, pass `urlSearch` (the request's
+  query string) so it renders the link's state. `table.timeZone` formats every date column
   without its own zone the same on the server and in the browser.
 - A view saves `displayMode`, `density`, `globalSearch`, `columnFilters`,
   `advancedFilters` (with their AND/OR join), `sorting`, `grouping`,

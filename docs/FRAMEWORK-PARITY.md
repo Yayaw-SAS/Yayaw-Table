@@ -872,8 +872,13 @@ Framework-native differences, by design:
   Calendar, Chart, Map, File tree, Form, mounted right after hydration), the
   column drag preference and the browser-kept view order (read on mount).
   React runs none of its queries or effects on the server.
-- With URL sync on, the server renders the state without the URL in both;
-  a link's state applies on mount.
+- With URL sync on, Vue reads the URL during setup. A server-rendering host
+  passes the request's query string as `urlSearch` (Nuxt:
+  `useRequestURL().search`); the server then renders, and prefetches, the
+  link's state, and the browser hydrates that same state without loading it
+  again. Without `urlSearch` the server renders the state without the URL and
+  the browser applies the link's state as it starts. React reads the URL
+  through nuqs, whose framework adapter gives it on the server.
 
 Vue's `DataGrid` no longer renders an empty column header (the actions
 column): its empty text node took the next fragment for its own during
@@ -889,7 +894,8 @@ catalogs awaited with the rows; the loading state without `serverPrefetch`
 or after a failure; a server board and a renderer mode left to the browser;
 `initialView.pageIndex`. Vue `components/server-hydration.test.ts` (jsdom):
 hydrating the server's HTML with the dehydrated client gives no hydration
-warning and no second `list`, `views.list` or `views.getFavorite`; with
+warning and no second `list`, `views.list` or `views.getFavorite` (also from
+a request URL with `syncUrl` and `urlSearch`); with
 `staleTime: 0` the page loads again; the measured first page keeps its first
 rows without a request and a larger one loads. React
 `tests/server-rendering.test.tsx`: dates in `table.timeZone` on the server,
@@ -2766,8 +2772,10 @@ Both editions take two additive props for pages with several tables:
   sync is off from a saved view before its first request: React seeds the
   instance's store with what selecting the view writes (`seedTableViewState`),
   Vue applies it with `applyView` before loading. `pageIndex` (zero-based)
-  opens another page. With URL sync on it is ignored in both; use
-  `initialActiveViewId`. See [Server rendering](#server-rendering).
+  opens another page. With URL sync on, React ignores it (use
+  `initialActiveViewId`); Vue, which reads the URL during setup, starts from it
+  when the URL carries none of the table's state, so a host's default state and
+  a link's state both render on the server. See [Server rendering](#server-rendering).
 
 React embedded instances share the host's single `QueryClient` (required), so
 their `tableId` doubles as the cache key; Vue instances create their own
