@@ -3332,7 +3332,8 @@
   background: color-mix(in oklab, var(--yayaw-muted) 40%, transparent);
 }
 .yayaw-list-title {
-  flex: 1;
+  /* Natural width (auto basis) so properties truncate before the title. */
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3344,8 +3345,11 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  /* Give way three times faster than the title, and keep it readable. */
+  flex: 0 3 auto;
   gap: 12px;
   min-width: 0;
+  max-width: 60%;
   margin: 0;
   overflow: hidden;
   color: var(--yayaw-muted-foreground);
