@@ -1974,11 +1974,28 @@ return to the Data menu. The screen is driven by the shared, framework-neutral
 `createImportFlow` state machine in `import-flow.ts` over the pure
 `import-model.ts` (both synced to Vue):
 
-- Source: a CSV drop zone and file picker (`decodeCsvFile`: UTF-8, else
+- Source: a CSV or JSON drop zone and file picker (accepts `.csv`, `.tsv`,
+  `.txt`, `.json`, `.jsonl`, `.ndjson`; `decodeCsvFile`: UTF-8, else
   Windows-1252), pasted text, and the host's `actions.import.sources`
   (`{ id, label, description?, load(context) }` returning headers and rows or
-  CSV text; used later by Notion and Google Sheets imports).
-  `actions.import.csv: false` hides CSV.
+  CSV or JSON text; used later by Notion and Google Sheets imports).
+  `actions.import.csv: false` hides CSV and JSON.
+- JSON: text whose first character (after whitespace and BOM) is `[` or `{`
+  is read by `parseJsonRecords` (files named `.csv`/`.tsv` stay CSV): an
+  array of objects, an object whose only list of objects holds the records
+  (`{ "records": [...] }`; other keys are ignored), a single object, or JSON
+  Lines (one object per line). Headers are the union of keys in first-seen
+  order; nested objects become dot-path columns (`address.city`), lists of
+  plain values join with ", ", other values stay JSON, `null` is empty. The
+  rows then go through the same mapping, value checks, preview and batches as
+  CSV; there is no separator select or header checkbox
+  (`state.format === "json"`, `hasHeaders: false`, so record 1 is "Row 1" in
+  errors). Invalid JSON is reported with `importJsonErrorMessage` (labels
+  `jsonError`, `jsonErrorLine`, `jsonErrorAt` with the line, and the column
+  when the engine reports it; JSON Lines always name the line) and
+  `jsonNotRecords` when the JSON holds no list of objects. Neither CSV nor JSON
+  has a row limit. Coverage: the shared `tests/import-model-suite.ts` (React
+  `bun test`, Vue `vitest`).
 - Mapping: `parseCsv` (RFC 4180, BOM, CRLF/LF, delimiter detected among
   `,` `;` tab `|`, blank lines ignored) with a separator select and a "First
   row is headers" checkbox; one row per source field from

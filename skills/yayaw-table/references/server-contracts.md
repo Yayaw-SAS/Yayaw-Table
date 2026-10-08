@@ -290,15 +290,17 @@ and memory adapter (`createMemoryPlanningAdapter()`):
 ## Import
 
 Data › Import appears when rows can be created or updated (`table.import:
-false` hides it). The browser parses CSV, maps columns and converts values
+false` hides it). The browser parses CSV or JSON (an array of objects, an
+object holding one, or JSON Lines; nested keys become `a.b` columns), maps
+columns and converts values
 (decimal commas, currencies, percents, day-first or month-first dates, yes/no,
 option labels) before writing; the server still validates everything.
 
 <!-- skill-check: actions.import -->
 | Member | Contract |
 | --- | --- |
-| `actions.import.csv` | `false` hides CSV files and pasted text. |
-| `actions.import.sources` | `[{ id, label, description?, load(context) }]`; `load` answers `{ headers, rows }` or `{ text }`. |
+| `actions.import.csv` | `false` hides CSV and JSON files and pasted text. |
+| `actions.import.sources` | `[{ id, label, description?, load(context) }]`; `load` answers `{ headers, rows }` or `{ text }` (CSV or JSON). |
 | `actions.import.importRows` | `({ creates: [{ rowIndex, values }], updates: [{ rowIndex, id, values }] }, context)` → `{ created?, updated?, failures?: [{ rowIndex, message? }] }`. Preferred over `create`/`update` row by row. |
 | `actions.import.lookup` | `({ columnId, keys })` → `{ [key]: recordId }`, to match existing records; default: every row loaded through `list`. |
 | `actions.import.allowNewOptions` | Keep unknown select choices instead of reporting them. |

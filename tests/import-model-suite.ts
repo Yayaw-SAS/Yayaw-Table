@@ -15,7 +15,9 @@ export type ImportModel = Pick<
   | "importBatches"
   | "importFields"
   | "isImportAuthError"
+  | "looksLikeJson"
   | "parseCsv"
+  | "parseJsonRecords"
   | "planImport"
   | "runImport"
   | "summarizeImport"
@@ -30,6 +32,7 @@ export type ImportModel = Pick<
     | "importColumnsFrom"
     | "importErrorLines"
     | "importFailureLines"
+    | "importJsonErrorMessage"
     | "importLabels"
     | "importMappingRows"
     | "importPreview"
@@ -949,5 +952,222 @@ export function importModelSuite(
       ),
       ["Row 2: could not be saved"]
     );
+  });
+
+  test("parses JSON records: nested paths, lists, mixed keys and nulls", () => {
+    assert.equal(model.looksLikeJson('  \n[{"a":1}]'), true);
+    assert.equal(model.looksLikeJson('﻿{"a":1}'), true);
+    assert.equal(model.looksLikeJson("name,price\nA,1"), false);
+    const parsed = model.parseJsonRecords(
+      JSON.stringify([
+        {
+          name: "Golf",
+          price: 12.5,
+          done: true,
+          address: { city: "Lyon", geo: { lat: 45.7 } },
+          tags: ["Red", "Green", null],
+          links: [{ url: "https://a.example" }],
+          note: null,
+          empty: {},
+        },
+        { name: "Hôtel", extra: "x", address: { city: "Paris" } },
+      ])
+    );
+    assert.deepEqual(parsed, {
+      headers: [
+        "name",
+        "price",
+        "done",
+        "address.city",
+        "address.geo.lat",
+        "tags",
+        "links",
+        "note",
+        "empty",
+        "extra",
+      ],
+      rows: [
+        [
+          "Golf",
+          "12.5",
+          "true",
+          "Lyon",
+          "45.7",
+          "Red, Green",
+          '[{"url":"https://a.example"}]',
+          "",
+          "",
+          "",
+        ],
+        ["Hôtel", "", "", "Paris", "", "", "", "", "", "x"],
+      ],
+    });
+  });
+
+  test("parses a wrapped array, a single object and JSON Lines", () => {
+    const wrapped = {
+      headers: ["id", "name"],
+      rows: [
+        ["1", "A"],
+        ["2", "B"],
+      ],
+    };
+    assert.deepEqual(
+      model.parseJsonRecords(
+        '{ "records": [{ "id": 1, "name": "A" }, { "id": 2, "name": "B" }] }'
+      ),
+      wrapped
+    );
+    // Other keys beside the one list of objects are metadata.
+    assert.deepEqual(
+      model.parseJsonRecords(
+        '{ "total": 2, "tags": ["x"], "data": [{ "id": 1, "name": "A" }, { "id": 2, "name": "B" }] }'
+      ),
+      wrapped
+    );
+    assert.deepEqual(
+      model.parseJsonRecords('{ "id": 1, "tags": ["a", "b"] }'),
+      {
+        headers: ["id", "tags"],
+        rows: [["1", "a, b"]],
+      }
+    );
+    assert.deepEqual(
+      model.parseJsonRecords(
+        '{"id":1,"name":"A"}\r\n\n{"id":2,"name":"B","meta":{"x":1}}\n'
+      ),
+      {
+        headers: ["id", "name", "meta.x"],
+        rows: [
+          ["1", "A", ""],
+          ["2", "B", "1"],
+        ],
+      }
+    );
+    assert.deepEqual(model.parseJsonRecords("[]"), { headers: [], rows: [] });
+  });
+
+  test("reports invalid JSON with its line and JSON that holds no records", () => {
+    const broken = model.parseJsonRecords('[{"name": "A",}]');
+    assert.ok("error" in broken);
+    assert.equal(broken.error, "invalid_json");
+    const lines = model.parseJsonRecords('{"id":1}\n{"id":2}\n{"id":3,,}');
+    assert.ok("error" in lines);
+    assert.equal(lines.error, "invalid_json");
+    assert.equal(lines.line, 3);
+    assert.deepEqual(model.parseJsonRecords("[1, 2, 3]"), {
+      error: "not_records",
+    });
+    assert.deepEqual(model.parseJsonRecords('{"id":1}\n[2]'), {
+      error: "not_records",
+      line: 2,
+    });
+    const fr = model.importLabels("fr");
+    assert.equal(
+      model.importJsonErrorMessage(
+        { error: "invalid_json", line: 2, column: 7 },
+        en
+      ),
+      "This JSON could not be read (line 2, column 7)."
+    );
+    assert.equal(
+      model.importJsonErrorMessage({ error: "invalid_json", line: 4 }, fr),
+      "Ce JSON n’a pas pu être lu (ligne 4)."
+    );
+    assert.equal(
+      model.importJsonErrorMessage({ error: "invalid_json" }, en),
+      "This JSON could not be read."
+    );
+    assert.equal(
+      model.importJsonErrorMessage({ error: "not_records" }, fr),
+      "Le JSON doit être une liste d’objets, ou un objet contenant une liste d’objets."
+    );
+  });
+
+  test("pasted JSON and JSON files reach the mapping and the preview", async () => {
+    const flow = model.createImportFlow({
+      columns: demoColumns,
+      locale: "en",
+      t: en,
+      adapters: {},
+      findExisting: () => Promise.resolve(() => undefined),
+      onChange: () => undefined,
+    });
+    flow.loadText(
+      JSON.stringify({
+        records: [
+          { Name: "Golf rollout", Status: "Active", Price: 1234.5 },
+          { Name: "India pilot", Status: "Paused", Price: "250" },
+        ],
+      })
+    );
+    assert.equal(flow.state.step, "mapping");
+    assert.equal(flow.state.format, "json");
+    assert.equal(flow.state.text, null);
+    assert.deepEqual(flow.state.headers, ["Name", "Status", "Price"]);
+    // No separator for JSON, only the key.
+    assert.deepEqual(
+      model
+        .importSettingsFields(flow.state, { columns: demoColumns, t: en })
+        .map((field) => field.id),
+      ["key"]
+    );
+    const preview = model.importPreview(flow.state, {
+      columns: demoColumns,
+      locale: "en",
+      t: en,
+    });
+    assert.deepEqual(
+      preview.columns.map((item) => item.id),
+      ["name", "status", "price"]
+    );
+    assert.deepEqual(preview.rows[0]?.cells, [
+      { columnId: "name", text: "Golf rollout" },
+      { columnId: "status", text: "Active" },
+      { columnId: "price", text: "1,234.5" },
+    ]);
+    await flow.review();
+    const plan = flow.state.plan;
+    assert.ok(plan);
+    // Records are numbered from 1: there is no header row.
+    assert.deepEqual(
+      model.importErrorLines(plan, {
+        columns: demoColumns,
+        t: en,
+        hasHeaders: flow.state.hasHeaders,
+      }),
+      ["Row 2, Status: not one of the options"]
+    );
+
+    flow.reset();
+    flow.loadText('{"Name":"A"}\n{"Name":"B"}\n{"Name":}');
+    assert.equal(flow.state.step, "source");
+    assert.ok(
+      flow.state.error?.startsWith("This JSON could not be read (line 3")
+    );
+    flow.loadText("[1, 2]");
+    assert.equal(
+      flow.state.error,
+      "The JSON must be a list of objects, or an object holding one list of objects."
+    );
+    flow.loadText("[]");
+    assert.equal(flow.state.error, "No rows found in this file.");
+
+    await flow.loadFile({
+      name: "projects.jsonl",
+      arrayBuffer: () =>
+        Promise.resolve(
+          new TextEncoder().encode('{"Name":"A"}\n{"Name":"B"}\n').buffer
+        ),
+    });
+    assert.equal(flow.state.step, "mapping");
+    assert.equal(flow.state.sourceName, "projects.jsonl");
+    assert.equal(flow.state.rows.length, 2);
+
+    // A .csv file stays CSV even when its first header starts with "[".
+    flow.reset();
+    flow.loadText("[id],Name\n1,A", "export.csv");
+    assert.equal(flow.state.format, "csv");
+    assert.deepEqual(flow.state.headers, ["[id]", "Name"]);
   });
 }

@@ -52,7 +52,7 @@ export interface ImportPanelProps {
   locale: string;
   translate: ImportTranslate;
   adapters: ImportAdapters;
-  /** Offer CSV files and pasted text (default true). */
+  /** Offer CSV and JSON files and pasted text (default true). */
   csv?: boolean;
   sources?: Pick<ImportSource, "id" | "label" | "description">[];
   /** Connectors listed with the sources ("From Notion"). */
@@ -72,7 +72,7 @@ interface StepProps {
   t: ImportT;
 }
 
-/** The CSV drop zone, file picker and paste box. */
+/** The CSV or JSON drop zone, file picker and paste box. */
 function CsvSource({ flow, state, t }: StepProps) {
   const id = useId();
   const [text, setText] = useState("");
@@ -115,7 +115,7 @@ function CsvSource({ flow, state, t }: StepProps) {
         </span>
       </button>
       <input
-        accept=".csv,.tsv,.txt,text/csv,text/plain"
+        accept=".csv,.tsv,.txt,.json,.jsonl,.ndjson,text/csv,text/plain,application/json,application/x-ndjson"
         aria-label={t("chooseFile")}
         className="sr-only"
         onChange={(event) => {
