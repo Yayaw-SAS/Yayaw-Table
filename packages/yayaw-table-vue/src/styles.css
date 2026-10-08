@@ -710,6 +710,8 @@
 }
 .yayaw-data-grid {
   width: 100%;
+  /* Cell text follows the density scale; M keeps 14px. */
+  font-size: var(--yayaw-density-font, 14px);
   border-collapse: separate;
   border-spacing: 0;
   table-layout: auto;
@@ -735,7 +737,7 @@
     var(--yayaw-background)
   );
   color: var(--yayaw-foreground);
-  font-size: 14px;
+  font-size: var(--yayaw-density-font, 14px);
   font-weight: 500;
 }
 .yayaw-data-grid thead th + th {
@@ -774,6 +776,8 @@
   width: 100%;
   min-height: var(--yayaw-density-height, 40px);
   padding: 4px 8px;
+  /* Group headings use the density text size of the grid. */
+  font: inherit;
   text-align: start;
   cursor: pointer;
 }
@@ -2118,6 +2122,27 @@
   min-height: var(--yayaw-density-control);
   padding-block: 0;
 }
+/* Below S, cell tags shrink with the text to fit the control, as React badges. */
+.yayaw-table[data-density="extra-small"] .yayaw-data-grid .yayaw-tag {
+  padding-block: 1px;
+  font-size: 11px;
+  line-height: 16px;
+}
+.yayaw-table[data-density="extra-extra-small"] .yayaw-data-grid .yayaw-tag {
+  padding-block: 0;
+  font-size: 10px;
+  line-height: 14px;
+}
+/* Header menu triggers never outgrow the density control (M and up keep 24px). */
+.yayaw-data-grid th .yayaw-column-menu-trigger {
+  width: min(24px, var(--yayaw-density-control, 24px));
+  height: min(24px, var(--yayaw-density-control, 24px));
+}
+/* A 14px line leaves no room under inline icons on the text baseline. */
+.yayaw-table[data-density="extra-extra-small"] .yayaw-data-grid
+  .yayaw-location-cell {
+  vertical-align: top;
+}
 .yayaw-data-grid .yayaw-column-resize-handle {
   top: calc(-1 * var(--yayaw-density-py));
   right: calc(-1 * var(--yayaw-density-px));
@@ -3299,6 +3324,8 @@
   min-height: var(--yayaw-density-height, 40px);
   padding: var(--yayaw-density-py, 6px)
     calc(var(--yayaw-density-px, 8px) + var(--spacing, 0.25rem));
+  font-size: var(--yayaw-density-font, 14px);
+  line-height: var(--yayaw-density-line, 20px);
   cursor: pointer;
 }
 .yayaw-list-item:hover {
@@ -3310,7 +3337,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 14px;
+  font-size: var(--yayaw-density-font, 14px);
   font-weight: 500;
 }
 .yayaw-list-properties {
@@ -3322,7 +3349,8 @@
   margin: 0;
   overflow: hidden;
   color: var(--yayaw-muted-foreground);
-  font-size: 12px;
+  /* 2px under the line's text, never below 10px, as in React. */
+  font-size: max(10px, calc(var(--yayaw-density-font, 14px) - 2px));
 }
 .yayaw-list-properties > div {
   display: flex;
@@ -3497,10 +3525,10 @@
   color: var(--yayaw-muted-foreground);
   opacity: 1;
 }
-/* Cell text uses a 20px line, as Tailwind's text-sm in React cells. */
+/* Cell lines follow the density scale, as React cells; M keeps 20px. */
 .yayaw-data-grid td,
 .yayaw-data-grid th {
-  line-height: 20px;
+  line-height: var(--yayaw-density-line, 20px);
 }
 /* Connect rows: run now, or open the schedule with the clock. */
 .yayaw-destination-row {

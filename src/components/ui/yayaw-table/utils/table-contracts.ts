@@ -180,6 +180,7 @@ export const parseJsonFormValue = (value: unknown): unknown =>
 
 /** Density labels preserve the existing configuration values in both editions. */
 export const TABLE_DENSITY_OPTIONS = [
+  { label: "2XS", value: "extra-extra-small" },
   { label: "XS", value: "extra-small" },
   { label: "S", value: "small" },
   { label: "M", value: "medium" },
@@ -190,28 +191,67 @@ export const TABLE_DENSITY_OPTIONS = [
 
 export type TableDensity = (typeof TABLE_DENSITY_OPTIONS)[number]["value"];
 
-/** Dimensions are multiples of Tailwind's default spacing unit (0.25rem). */
+/**
+ * Spacing is in multiples of Tailwind's default spacing unit (0.25rem); text
+ * sizes are in pixels. Text steps from compact (10-12px) through standard
+ * (14px) to comfortable (16-18px), and each line fits inside the control.
+ */
 export const TABLE_DENSITY_METRICS = {
+  "extra-extra-small": {
+    rowHeight: 5,
+    controlHeight: 4,
+    paddingX: 1,
+    paddingY: 0.5,
+    fontSize: 10,
+    lineHeight: 14,
+  },
   "extra-small": {
-    rowHeight: 7,
+    rowHeight: 6,
+    controlHeight: 5,
+    paddingX: 1,
+    paddingY: 0.5,
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  small: {
+    rowHeight: 8,
     controlHeight: 6,
     paddingX: 1.5,
-    paddingY: 0.5,
+    paddingY: 1,
+    fontSize: 12,
+    lineHeight: 16,
   },
-  small: { rowHeight: 8, controlHeight: 6, paddingX: 2, paddingY: 1 },
-  medium: { rowHeight: 10, controlHeight: 7, paddingX: 2, paddingY: 1.5 },
-  large: { rowHeight: 12, controlHeight: 8, paddingX: 2.5, paddingY: 2 },
-  "extra-large": {
-    rowHeight: 14,
-    controlHeight: 9,
+  medium: {
+    rowHeight: 10,
+    controlHeight: 7,
+    paddingX: 2,
+    paddingY: 1.5,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  large: {
+    rowHeight: 12,
+    controlHeight: 8,
     paddingX: 3,
-    paddingY: 2.5,
+    paddingY: 2,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  "extra-large": {
+    rowHeight: 15,
+    controlHeight: 9,
+    paddingX: 3.5,
+    paddingY: 3,
+    fontSize: 16,
+    lineHeight: 24,
   },
   "extra-extra-large": {
-    rowHeight: 16,
-    controlHeight: 10,
+    rowHeight: 18,
+    controlHeight: 11,
     paddingX: 4,
-    paddingY: 3,
+    paddingY: 3.5,
+    fontSize: 18,
+    lineHeight: 28,
   },
 } as const satisfies Record<
   TableDensity,
@@ -220,6 +260,8 @@ export const TABLE_DENSITY_METRICS = {
     controlHeight: number;
     paddingX: number;
     paddingY: number;
+    fontSize: number;
+    lineHeight: number;
   }
 >;
 

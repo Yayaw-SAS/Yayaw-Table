@@ -384,6 +384,32 @@ test("the list view follows the table density", async ({ page }) => {
   await expect.poll(height).toBeGreaterThan(medium);
 });
 
+test("table text and rows follow the density scale", async ({ page }) => {
+  await page.goto(EXAMPLE);
+  const row = page.getByRole("row").filter({ hasText: "Alpha launch" });
+  const cell = row.getByRole("cell").filter({ hasText: ALPHA_TITLE });
+  const fontSize = () =>
+    cell.first().evaluate((element) => getComputedStyle(element).fontSize);
+  const rowHeight = async () =>
+    Math.round((await row.first().boundingBox())?.height ?? 0);
+  await expect.poll(fontSize).toBe("14px");
+  for (const [label, size, minHeight, maxHeight] of [
+    ["2XS", "10px", 20, 22],
+    ["2XL", "18px", 72, 74],
+  ] as const) {
+    await openViewMenu(page);
+    await page
+      .getByRole("dialog", { name: SETTINGS })
+      .getByRole("group", { name: DENSITY })
+      .getByRole("button", { name: label, exact: true })
+      .click();
+    await page.keyboard.press("Escape");
+    await expect.poll(fontSize).toBe(size);
+    await expect.poll(rowHeight).toBeGreaterThanOrEqual(minHeight);
+    await expect.poll(rowHeight).toBeLessThanOrEqual(maxHeight);
+  }
+});
+
 test("list options from a shared link: labels, limits, alignment, wrapping and actions", async ({
   page,
 }) => {

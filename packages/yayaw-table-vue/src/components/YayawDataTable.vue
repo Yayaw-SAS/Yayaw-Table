@@ -645,6 +645,8 @@ const densityStyle = computed(() => {
     "--yayaw-density-control": spacing(metrics.controlHeight),
     "--yayaw-density-px": spacing(metrics.paddingX),
     "--yayaw-density-py": spacing(metrics.paddingY),
+    "--yayaw-density-font": `${metrics.fontSize}px`,
+    "--yayaw-density-line": `${metrics.lineHeight}px`,
   };
 });
 

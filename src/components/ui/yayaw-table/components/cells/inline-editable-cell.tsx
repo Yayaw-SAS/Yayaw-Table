@@ -522,7 +522,8 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
       <Input
         ref={focusEditor}
         className={cn(
-          "h-8 py-1 text-sm",
+          // Cell editors keep the density text size of the cell they replace.
+          "h-8 py-1 text-[length:inherit] md:text-[length:inherit]",
           resolvedEditor === "number" && "text-right"
         )}
         onBlur={handleEditorBlur}

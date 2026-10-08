@@ -42,7 +42,7 @@ export function SortableHeader({
   return (
     <TableHead
       aria-label={ariaLabel}
-      className={cn("group relative border-border border-r text-sm", className)}
+      className={cn("group relative border-border border-r", className)}
       data-column-id={id}
       style={headerStyles}
     >

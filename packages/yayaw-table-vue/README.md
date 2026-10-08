@@ -414,18 +414,19 @@ The public configuration and action vocabulary intentionally stays close to the 
 
 ### Table density
 
-The rows icon on the right of the toolbar offers six sizes. Tooltips appear on hover and keyboard focus and use the same translated labels as other table controls.
+The rows icon on the right of the toolbar offers seven sizes. Tooltips appear on hover and keyboard focus and use the same translated labels as other table controls.
 
-| Size | `table.density` | Row height before borders | Tailwind height |
-| --- | --- | --- | --- |
-| XS | `extra-small` | 28px | `h-7` |
-| S | `small` | 32px | `h-8` |
-| M | `medium` | 40px | `h-10` |
-| L | `large` | 48px | `h-12` |
-| XL | `extra-large` | 56px | `h-14` |
-| 2XL | `extra-extra-large` | 64px | `h-16` |
+| Size | `table.density` | Row height before borders | Text / line height | Tailwind height |
+| --- | --- | --- | --- | --- |
+| 2XS | `extra-extra-small` | 20px | 10px / 14px | `h-5` |
+| XS | `extra-small` | 24px | 11px / 16px | `h-6` |
+| S | `small` | 32px | 12px / 16px | `h-8` |
+| M | `medium` | 40px | 14px / 20px | `h-10` |
+| L | `large` | 48px | 14px / 20px | `h-12` |
+| XL | `extra-large` | 60px | 16px / 24px | `h-15` |
+| 2XL | `extra-extra-large` | 72px | 18px / 28px | `h-18` |
 
-XS preserves the previous compact S appearance. M remains the default. Padding, built-in controls, and thumbnails use coordinated Tailwind spacing units; text size stays unchanged and taller content can expand a row. Vue uses the same shared spacing factors without requiring Tailwind in the host application.
+M remains the default and is unchanged. Text size steps with density: compact (2XS to S), standard (M and L), and comfortable (XL and 2XL). Padding, built-in controls, thumbnails, cell text, headers, group headings, and list lines use the same shared metrics; taller content can still expand a row. Vue uses the same shared factors without requiring Tailwind in the host application.
 
 The selection stays with the table across display-mode changes and does not modify the configured default, URL state, or saved views. The density icon is hidden in Kanban and Gallery.
 

@@ -1,19 +1,33 @@
 [
   {
+    "value": "extra-extra-small",
+    "label": "2XS",
+    "height": 20,
+    "control": 16,
+    "paddingX": 4,
+    "paddingY": 2,
+    "fontSize": 10,
+    "lineHeight": 14
+  },
+  {
     "value": "extra-small",
     "label": "XS",
-    "height": 28,
-    "control": 24,
-    "paddingX": 6,
-    "paddingY": 2
+    "height": 24,
+    "control": 20,
+    "paddingX": 4,
+    "paddingY": 2,
+    "fontSize": 11,
+    "lineHeight": 16
   },
   {
     "value": "small",
     "label": "S",
     "height": 32,
     "control": 24,
-    "paddingX": 8,
-    "paddingY": 4
+    "paddingX": 6,
+    "paddingY": 4,
+    "fontSize": 12,
+    "lineHeight": 16
   },
   {
     "value": "medium",
@@ -21,30 +35,38 @@
     "height": 40,
     "control": 28,
     "paddingX": 8,
-    "paddingY": 6
+    "paddingY": 6,
+    "fontSize": 14,
+    "lineHeight": 20
   },
   {
     "value": "large",
     "label": "L",
     "height": 48,
     "control": 32,
-    "paddingX": 10,
-    "paddingY": 8
+    "paddingX": 12,
+    "paddingY": 8,
+    "fontSize": 14,
+    "lineHeight": 20
   },
   {
     "value": "extra-large",
     "label": "XL",
-    "height": 56,
+    "height": 60,
     "control": 36,
-    "paddingX": 12,
-    "paddingY": 10
+    "paddingX": 14,
+    "paddingY": 12,
+    "fontSize": 16,
+    "lineHeight": 24
   },
   {
     "value": "extra-extra-large",
     "label": "2XL",
-    "height": 64,
-    "control": 40,
+    "height": 72,
+    "control": 44,
     "paddingX": 16,
-    "paddingY": 12
+    "paddingY": 14,
+    "fontSize": 18,
+    "lineHeight": 28
   }
 ]

@@ -128,12 +128,21 @@ const spacing = (units: number) => `calc(var(--spacing, 0.25rem) * ${units})`;
 /** The same metrics as table rows, so both editions size lines identically. */
 export function listLineStyle(density: TableDensity): CSSProperties {
   const metrics = TABLE_DENSITY_METRICS[density];
+  const fontSize = `${metrics.fontSize}px`;
   return {
     minHeight: spacing(metrics.rowHeight),
     paddingBlock: spacing(metrics.paddingY),
     paddingInline: spacing(metrics.paddingX + 1),
+    fontSize,
+    lineHeight: `${metrics.lineHeight}px`,
+    ["--yayaw-density-font" as string]: fontSize,
   };
 }
+
+/** Properties stay 2px under the line's text, never below 10px, as in Vue. */
+const LIST_PROPERTIES_STYLE: CSSProperties = {
+  fontSize: "max(10px, calc(var(--yayaw-density-font, 14px) - 2px))",
+};
 
 function ListLineTitle<TData extends Record<string, unknown>>({
   align,
@@ -151,7 +160,7 @@ function ListLineTitle<TData extends Record<string, unknown>>({
   return (
     <div
       className={cn(
-        "min-w-0 font-medium text-sm",
+        "min-w-0 font-medium",
         wrap ? "whitespace-normal break-words" : "truncate",
         align === "start" ? "shrink" : "flex-1"
       )}
@@ -178,9 +187,10 @@ function ListLineProperties<TData extends Record<string, unknown>>({
   return (
     <dl
       className={cn(
-        "flex min-w-0 items-center gap-3 overflow-hidden text-muted-foreground text-xs",
+        "flex min-w-0 items-center gap-3 overflow-hidden text-muted-foreground",
         align === "start" ? "flex-1 justify-start" : "shrink justify-end"
       )}
+      style={LIST_PROPERTIES_STYLE}
     >
       {cells.map((cell) => (
         <div className="flex min-w-0 items-center gap-1" key={cell.id}>

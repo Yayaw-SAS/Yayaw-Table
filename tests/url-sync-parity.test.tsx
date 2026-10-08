@@ -99,6 +99,7 @@ it("captures and restores saved density, including legacy defaults and isolated 
   );
   expect(state.getCurrentViewConfig().density).toBe("large");
   for (const density of [
+    "extra-extra-small",
     "extra-small",
     "small",
     "medium",
