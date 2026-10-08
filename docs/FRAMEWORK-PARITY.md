@@ -1011,6 +1011,14 @@ protocol.
 through the shared `utils/list-view.ts` and offer them in the List settings
 panel. Covered by `tests/list-view-suite.ts` in both editions and Playwright.
 
+The line title has priority over its properties in both editions: with
+end-aligned properties the title keeps its natural width (`flex: 1 1 auto`)
+and truncates last, while properties shrink three times faster
+(`flex: 0 3 auto`) and never exceed 60% of the line, so a long email truncates
+before the name. Start-aligned properties keep following the title, with the
+same 60% cap. Covered by `tests/list-title-priority.test.tsx` and the Vue
+`list-title-priority.test.ts`.
+
 ## Number and date formats
 
 `utils/value-format.ts` (synced to Vue) formats numbers and dates in both

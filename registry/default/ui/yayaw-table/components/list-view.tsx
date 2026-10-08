@@ -162,7 +162,9 @@ function ListLineTitle<TData extends Record<string, unknown>>({
       className={cn(
         "min-w-0 font-medium",
         wrap ? "whitespace-normal break-words" : "truncate",
-        align === "start" ? "shrink" : "flex-1"
+        // The title keeps its natural width (auto basis) so properties
+        // truncate first instead of squeezing the name.
+        align === "start" ? "shrink" : "flex-auto"
       )}
     >
       {titleCell ? renderCell(titleCell) : titleText || row.id}
@@ -187,8 +189,10 @@ function ListLineProperties<TData extends Record<string, unknown>>({
   return (
     <dl
       className={cn(
-        "flex min-w-0 items-center gap-3 overflow-hidden text-muted-foreground",
-        align === "start" ? "flex-1 justify-start" : "shrink justify-end"
+        // Properties give way three times faster than the title and never
+        // take more than 60% of the line, so the title stays readable.
+        "flex min-w-0 max-w-[60%] items-center gap-3 overflow-hidden text-muted-foreground",
+        align === "start" ? "flex-1 justify-start" : "shrink-[3] justify-end"
       )}
       style={LIST_PROPERTIES_STYLE}
     >
