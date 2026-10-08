@@ -390,6 +390,7 @@ it("captures every saved density and restores the catalogue default for legacy v
   try {
     expect(state.snapshot.value.density).toBe("large");
     for (const density of [
+      "extra-extra-small",
       "extra-small",
       "small",
       "medium",

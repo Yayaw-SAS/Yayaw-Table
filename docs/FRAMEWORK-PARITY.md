@@ -84,7 +84,7 @@ Advanced filter input accepts either an array or `{ filters, joinOperator }`. In
 
 Saved views accept canonical `globalSearch`, `columnFilters`, and `columnPinning`, as well as Vue's earlier `search`, `filters`, and `pinning`. Canonical values take precedence when both are present. Legacy Kanban grouping is migrated to `grouping`. Vue applies a default view when there is no requested view or explicit table URL state, protects system views from update/deletion in the UI, indicates modified views, and preserves drafts when persistence fails.
 
-Saved snapshots now include the effective `density` (XS through 2XL). Applying or resetting a legacy view without density restores the configured table default. Both editions load persisted views on mount when no initial views are provided, including after a full reload. Density participates in dirty detection; it remains local until a view is saved and is not an independent URL parameter.
+Saved snapshots now include the effective `density` (2XS through 2XL). Applying or resetting a legacy view without density restores the configured table default. Both editions load persisted views on mount when no initial views are provided, including after a full reload. Density participates in dirty detection; it remains local until a view is saved and is not an independent URL parameter.
 
 React ignores repeated writes of equivalent table state in both URL and memory modes, preventing column-order synchronization from retriggering subscribers during an action refresh.
 
@@ -355,7 +355,7 @@ runs once per edition, so an observable difference fails one project.
 
 `bun run test` registers all React tests through `bun:test` and preloads a browser environment for mounted form tests. `bun run vue:test` covers Vue and the shared fixtures. Run type checks, the Vue build, `registry:sync`, and `registry:pages` before publishing copied code. React test files are excluded from consumer registry output. Immutable released snapshots are unchanged by a feature PR.
 
-Both toolbars offer XS, S, M, L, XL, and 2XL density via `extra-small`, `small`, `medium`, `large`, `extra-large`, and `extra-extra-large`. Shared Tailwind spacing factors target 28, 32, 40, 48, 56, and 64px rows before borders, coordinating cell padding, controls, and thumbnails. XS retains the old S appearance; typography stays unchanged and content may expand rows. Shared density fixtures and interaction tests cover the scale, isolated selection, configured defaults, and display-mode round trips.
+Both toolbars offer 2XS, XS, S, M, L, XL, and 2XL density via `extra-extra-small`, `extra-small`, `small`, `medium`, `large`, `extra-large`, and `extra-extra-large`. Shared metrics target 20, 24, 32, 40, 48, 60, and 72px rows before borders, coordinating cell padding, controls, and thumbnails. Text follows the same scale (10, 11, 12, 14, 14, 16, and 18px, with a line that fits the control height) for cells, headers, group headings, cell editors, and list lines; list properties stay 2px smaller, never below 10px. M is unchanged. Shared density fixtures and interaction tests cover the scale, its Tailwind classes, isolated selection, configured defaults, and display-mode round trips.
 
 Density, saved-view, toolbar-action, and row-action controls use styled tooltips on hover and keyboard focus, with translated labels and composed menu triggers. The host controls translations; Vue includes French defaults and the companion Yayaw example localizes its React labels. UI choices remain scoped to the table without affecting saved views or URL state.
 

@@ -179,7 +179,7 @@ const MenuTrigger = memo(function MenuTriggerComponent({
       <Button
         aria-label={translations.toggleColumns}
         className={cn(
-          "h-full min-h-0 w-full justify-start rounded-none px-0 font-normal",
+          "h-full min-h-0 w-full justify-start rounded-none px-0 font-normal text-[length:inherit]",
           "hover:bg-transparent hover:text-inherit",
           "aria-expanded:bg-transparent aria-expanded:text-inherit",
           "focus-visible:ring-0 focus-visible:ring-offset-0 dark:hover:bg-transparent"

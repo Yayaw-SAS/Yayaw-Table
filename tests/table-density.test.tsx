@@ -16,7 +16,16 @@ import {
   isTableDensity,
   TABLE_DENSITY_METRICS,
 } from "../src/components/ui/yayaw-table/utils/table-contracts";
+import { TABLE_DENSITY_CLASSES } from "../src/components/ui/yayaw-table/utils/table-density";
 import densityScale from "./fixtures/density-scale.json";
+
+/** Tailwind's named text sizes; other sizes use arbitrary pixel values. */
+const TAILWIND_TEXT_SIZES: Record<number, string> = {
+  12: "text-xs",
+  14: "text-sm",
+  16: "text-base",
+  18: "text-lg",
+};
 
 it("selects XS through the density menu without changing other tables or the configured default", async () => {
   const container = document.createElement("div");
@@ -54,6 +63,7 @@ it("selects XS through the density menu without changing other tables or the con
       '[role="menuitemradio"]'
     );
     expect(Array.from(items, (item) => item.textContent)).toEqual([
+      "2XS",
       "XS",
       "S",
       "M",
@@ -61,8 +71,8 @@ it("selects XS through the density menu without changing other tables or the con
       "XL",
       "2XL",
     ]);
-    expect(items[5]?.getAttribute("aria-checked")).toBe("true");
-    await act(() => items[0]?.click());
+    expect(items[6]?.getAttribute("aria-checked")).toBe("true");
+    await act(() => items[1]?.click());
     expect(store.get(tableDensityAtom("density"))).toBe("extra-small");
     expect(store.get(tableDensityAtom("other"))).toBeUndefined();
     expect(
@@ -88,11 +98,36 @@ for (const fixture of densityScale) {
     expect(resolveTableCatalogueConfig({ density }).table.density).toBe(
       density
     );
-    const metrics = TABLE_DENSITY_METRICS[density];
+    const metrics: Record<string, number> = TABLE_DENSITY_METRICS[density];
     expect(metrics.rowHeight * 4).toBe(fixture.height);
     expect(metrics.controlHeight * 4).toBe(fixture.control);
     expect((metrics.controlHeight + 2 * metrics.paddingY) * 4).toBe(
       fixture.height
+    );
+    expect(metrics.paddingX * 4).toBe(fixture.paddingX);
+    expect(metrics.paddingY * 4).toBe(fixture.paddingY);
+    expect(metrics.fontSize).toBe(fixture.fontSize);
+    expect(metrics.lineHeight).toBe(fixture.lineHeight);
+    // Each text line fits inside the density's control height.
+    expect(metrics.lineHeight).toBeLessThanOrEqual(fixture.control);
+  });
+}
+
+for (const fixture of densityScale) {
+  it(`keeps the ${fixture.label} Tailwind classes on the shared metrics`, () => {
+    const density = fixture.value;
+    if (!isTableDensity(density)) {
+      throw new Error("Invalid density fixture");
+    }
+    const metrics = TABLE_DENSITY_METRICS[density];
+    const classes: Record<string, string> = TABLE_DENSITY_CLASSES[density];
+    expect(classes.rows).toBe(`[&_tr]:h-${metrics.rowHeight}`);
+    expect(classes.cell).toBe(
+      `!px-${metrics.paddingX} !py-${metrics.paddingY}`
+    );
+    expect(classes.controls).toContain(`!h-${metrics.controlHeight} `);
+    expect(classes.text.split(" ")[0]).toBe(
+      TAILWIND_TEXT_SIZES[metrics.fontSize] ?? `text-[${metrics.fontSize}px]`
     );
   });
 }

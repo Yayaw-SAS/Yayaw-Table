@@ -70,6 +70,7 @@ it("uses the configured density, updates only its instance and retains it across
   await settle();
   const items = body().findAll(".yayaw-density-inline button");
   expect(items.map((item) => item.text())).toEqual([
+    "2XS",
     "XS",
     "S",
     "M",
@@ -77,8 +78,8 @@ it("uses the configured density, updates only its instance and retains it across
     "XL",
     "2XL",
   ]);
-  expect(items[5]?.attributes("aria-pressed")).toBe("true");
-  await items[0]?.trigger("click");
+  expect(items[6]?.attributes("aria-pressed")).toBe("true");
+  await items[1]?.trigger("click");
   await settle();
   expect(wrapper.get(".yayaw-table").attributes("data-density")).toBe(
     "extra-small"
@@ -140,6 +141,12 @@ for (const fixture of densityScale) {
     );
     expect(table.style.getPropertyValue("--yayaw-density-control")).toBe(
       `calc(var(--spacing, 0.25rem) * ${fixture.control / 4})`
+    );
+    expect(table.style.getPropertyValue("--yayaw-density-font")).toBe(
+      `${fixture.fontSize}px`
+    );
+    expect(table.style.getPropertyValue("--yayaw-density-line")).toBe(
+      `${fixture.lineHeight}px`
     );
     expect(config.table.density).toBe("extra-extra-large");
   });

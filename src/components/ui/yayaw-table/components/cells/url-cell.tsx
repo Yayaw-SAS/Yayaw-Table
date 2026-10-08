@@ -214,7 +214,7 @@ function UrlDomainDisplay({
               src={faviconSrc}
             />
           ) : null}
-          <span className="truncate text-sm">{domain}</span>
+          <span className="truncate">{domain}</span>
         </TooltipTrigger>
         <TooltipContent side="top">
           <p className="max-w-xs break-all text-xs">{url}</p>
@@ -247,7 +247,7 @@ function UrlFullDisplay({
       target="_blank"
     >
       <ExternalLink aria-hidden className="size-3 shrink-0 text-muted-foreground" />
-      <span className="truncate text-sm">{truncated}</span>
+      <span className="truncate">{truncated}</span>
     </a>
   );
 

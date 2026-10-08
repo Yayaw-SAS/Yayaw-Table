@@ -2461,7 +2461,8 @@ function ModernDataTable<
               aria-expanded={localExpanded[row.id] ?? false}
               className={cn(
                 "flex h-auto w-full cursor-pointer items-center justify-start gap-2",
-                TABLE_DENSITY_CLASSES[densityMode].groupButton
+                TABLE_DENSITY_CLASSES[densityMode].groupButton,
+                TABLE_DENSITY_CLASSES[densityMode].text
               )}
               onClick={() => {
                 const isCurrentlyExpanded = localExpanded[row.id] ?? false;
@@ -2477,9 +2478,7 @@ function ModernDataTable<
                 {localExpanded[row.id] ? "▾" : "▸"}
               </span>
               {icon}
-              <span className="text-muted-foreground text-sm">
-                {columnLabel}:
-              </span>
+              <span className="text-muted-foreground">{columnLabel}:</span>
               <span className="font-medium">{groupValue}</span>
               <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">
                 {groupedLeafRows(row).length}
@@ -2664,7 +2663,8 @@ function ModernDataTable<
           <Button
             className={cn(
               "flex h-auto w-full cursor-pointer items-center justify-start gap-2",
-              TABLE_DENSITY_CLASSES[densityMode].groupButton
+              TABLE_DENSITY_CLASSES[densityMode].groupButton,
+              TABLE_DENSITY_CLASSES[densityMode].text
             )}
             onClick={() => {
               const isExpanded = localExpanded[groupId] ?? false;
@@ -2680,7 +2680,7 @@ function ModernDataTable<
               {localExpanded[groupId] ? "▾" : "▸"}
             </span>
             {icon}
-            <span className="text-muted-foreground text-sm">Selection:</span>
+            <span className="text-muted-foreground">Selection:</span>
             <span className="font-medium">{label}</span>
             <span className={badgeClassName}>{count}</span>
           </Button>
@@ -2825,9 +2825,7 @@ function ModernDataTable<
     const orderKey = columnOrder?.join(",") ?? "";
     return (
       <TableHeader
-        className={cn(
-          "[&_th]:relative [&_th]:bg-muted/20 [&_th]:font-medium [&_th]:text-sm"
-        )}
+        className={cn("[&_th]:relative [&_th]:bg-muted/20 [&_th]:font-medium")}
         data-selected-row-count={
           Object.values(currentRowSelection).filter(Boolean).length
         }
@@ -3111,6 +3109,7 @@ function ModernDataTable<
               "w-full",
               enableColumnResizing && "table-fixed",
               TABLE_DENSITY_CLASSES[densityMode].rows,
+              TABLE_DENSITY_CLASSES[densityMode].text,
               TABLE_DENSITY_CLASSES[densityMode].controls,
               className
             )}
