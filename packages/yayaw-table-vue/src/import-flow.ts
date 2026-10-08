@@ -25,7 +25,11 @@ import {
   type ImportRunResult,
   importFields,
   isImportAuthError,
+  type JsonImportError,
+  looksLikeJson,
+  type ParsedJson,
   parseCsv,
+  parseJsonRecords,
   planImport,
   runImport,
   summarizeImport,
@@ -43,7 +47,7 @@ type MaybePromise<T> = T | Promise<T>;
 
 // Contract ---------------------------------------------------------------------
 
-/** Rows a host source returns: a table of strings, or CSV text. */
+/** Rows a host source returns: a table of strings, or CSV or JSON text. */
 export type ImportSourceData =
   | { name?: string; headers: string[]; rows: string[][] }
   | { name?: string; text: string };
@@ -58,7 +62,7 @@ export interface ImportSource<TContext = unknown> {
 
 /** What a host declares under `actions.import`; everything is optional. */
 export interface TableImportActions<TContext = unknown> {
-  /** Offer CSV files and pasted text (default true). */
+  /** Offer CSV and JSON files and pasted text (default true). */
   csv?: boolean;
   /** Sources the host adds after CSV. */
   sources?: ImportSource<TContext>[];
@@ -139,6 +143,10 @@ export type ImportLabelKey =
   | "failureRow"
   | "fileError"
   | "emptyFile"
+  | "jsonError"
+  | "jsonErrorLine"
+  | "jsonErrorAt"
+  | "jsonNotRecords"
   | "sourceError"
   | "authError"
   | "yes"
@@ -168,11 +176,11 @@ export type ImportLabelKey =
 const ENGLISH_LABELS: Record<ImportLabelKey, string> = {
   title: "Import",
   source: "Import from",
-  sourceCsv: "CSV file",
-  sourceCsvHint: "Comma, semicolon or tab separated",
+  sourceCsv: "CSV or JSON file",
+  sourceCsvHint: "CSV (comma, semicolon or tab separated) or JSON",
   chooseFile: "Choose a file",
-  dropHint: "Drop a CSV file here",
-  pasteLabel: "Or paste CSV text",
+  dropHint: "Drop a CSV or JSON file here",
+  pasteLabel: "Or paste CSV or JSON",
   usePasted: "Use text",
   reading: "Reading…",
   mapping: "Columns",
@@ -225,6 +233,11 @@ const ENGLISH_LABELS: Record<ImportLabelKey, string> = {
   failureRow: "Row {row}: {message}",
   fileError: "This file could not be read.",
   emptyFile: "No rows found in this file.",
+  jsonError: "This JSON could not be read.",
+  jsonErrorLine: "This JSON could not be read (line {line}).",
+  jsonErrorAt: "This JSON could not be read (line {line}, column {column}).",
+  jsonNotRecords:
+    "The JSON must be a list of objects, or an object holding one list of objects.",
   sourceError: "The source could not be read.",
   authError: "You are not allowed to import into this table.",
   yes: "Yes",
@@ -255,11 +268,12 @@ const ENGLISH_LABELS: Record<ImportLabelKey, string> = {
 const FRENCH_LABELS: Record<ImportLabelKey, string> = {
   title: "Importer",
   source: "Importer depuis",
-  sourceCsv: "Fichier CSV",
-  sourceCsvHint: "Séparé par des virgules, points-virgules ou tabulations",
+  sourceCsv: "Fichier CSV ou JSON",
+  sourceCsvHint:
+    "CSV (séparé par des virgules, points-virgules ou tabulations) ou JSON",
   chooseFile: "Choisir un fichier",
-  dropHint: "Déposez un fichier CSV ici",
-  pasteLabel: "Ou collez du texte CSV",
+  dropHint: "Déposez un fichier CSV ou JSON ici",
+  pasteLabel: "Ou collez du CSV ou du JSON",
   usePasted: "Utiliser le texte",
   reading: "Lecture…",
   mapping: "Colonnes",
@@ -313,6 +327,11 @@ const FRENCH_LABELS: Record<ImportLabelKey, string> = {
   failureRow: "Ligne {row} : {message}",
   fileError: "Ce fichier n’a pas pu être lu.",
   emptyFile: "Aucune ligne dans ce fichier.",
+  jsonError: "Ce JSON n’a pas pu être lu.",
+  jsonErrorLine: "Ce JSON n’a pas pu être lu (ligne {line}).",
+  jsonErrorAt: "Ce JSON n’a pas pu être lu (ligne {line}, colonne {column}).",
+  jsonNotRecords:
+    "Le JSON doit être une liste d’objets, ou un objet contenant une liste d’objets.",
   sourceError: "La source n’a pas pu être lue.",
   authError: "Vous n’êtes pas autorisé à importer dans ce tableau.",
   yes: "Oui",
@@ -378,21 +397,42 @@ export function importErrorMessage(code: ImportErrorCode, t: ImportT): string {
   return t(`error_${code}` as ImportLabelKey);
 }
 
+/** "This JSON could not be read (line 3, column 7)." for a JSON parse error. */
+export function importJsonErrorMessage(
+  error: JsonImportError,
+  t: ImportT
+): string {
+  if (error.error === "not_records") {
+    return t("jsonNotRecords");
+  }
+  if (error.line && error.column) {
+    return t("jsonErrorAt", { line: error.line, column: error.column });
+  }
+  return error.line ? t("jsonErrorLine", { line: error.line }) : t("jsonError");
+}
+
 // Flow -------------------------------------------------------------------------
 
 export type ImportStep = "source" | "mapping" | "review" | "running" | "result";
 
-/** Built-in source id of CSV files and pasted text. */
+/** Built-in source id of CSV and JSON files and pasted text. */
 export const IMPORT_CSV_SOURCE = "csv";
 /** Key select value for "don't match". */
 export const IMPORT_NO_KEY = "__yayaw_no_key__";
 /** Separator select value for "detected". */
 export const IMPORT_AUTO_DELIMITER = "auto";
 
+export type ImportFormat = "csv" | "json" | "table";
+
+/** File names read as CSV even when the text starts with `[` or `{`. */
+const CSV_FILE_NAME = /\.(csv|tsv)$/i;
+
 export interface ImportFlowState {
   step: ImportStep;
   sourceId: string | null;
   sourceName: string | null;
+  /** How the rows were read: CSV or JSON text, or a host table. */
+  format: ImportFormat | null;
   /** CSV text, re-read when the separator or header option changes. */
   text: string | null;
   /** `null`: detected. */
@@ -460,6 +500,7 @@ const initialState = (): ImportFlowState => ({
   step: "source",
   sourceId: null,
   sourceName: null,
+  format: null,
   text: null,
   delimiter: null,
   detectedDelimiter: ",",
@@ -579,24 +620,55 @@ export function createImportFlow(options: ImportFlowOptions): ImportFlow {
     };
   };
 
+  /** The rows of host data: a table, JSON records, or CSV text to parse (`table: null`). */
+  const readData = (
+    data: ImportSourceData,
+    name: string | null
+  ): { format: ImportFormat; table: ParsedJson | null } | { error: string } => {
+    if ("headers" in data) {
+      return { format: "table", table: data };
+    }
+    if (!looksLikeJson(data.text) || (name && CSV_FILE_NAME.test(name))) {
+      return { format: "csv", table: null };
+    }
+    const parsed = parseJsonRecords(data.text);
+    return "error" in parsed
+      ? { error: importJsonErrorMessage(parsed, t) }
+      : { format: "json", table: parsed };
+  };
+
   const loadTable = (
     data: ImportSourceData,
     sourceId: string,
     name: string | null
   ) => {
-    const table = "text" in data ? null : data;
+    const sourceName = data.name ?? name;
+    const read = readData(data, sourceName);
+    if ("error" in read) {
+      set({ loading: false, error: read.error });
+      return;
+    }
+    const { format, table } = read;
+    const text = table === null && "text" in data ? data.text : null;
     const base: Partial<ImportFlowState> = {
       sourceId,
-      sourceName: data.name ?? name,
-      text: table ? null : (data as { text: string }).text,
+      sourceName,
+      format,
+      text,
       loading: false,
       error: null,
     };
+    // Records have no header row: errors name record 1 as row 1.
+    const records = format === "json" ? { hasHeaders: false } : {};
     const patch = table
-      ? { ...base, ...withTable({ ...state, headers: [] }, table, options) }
-      : parse((data as { text: string }).text, { ...base, headers: [] });
-    if ((patch.rows ?? []).length === 0) {
-      set({ ...base, text: null, error: t("emptyFile") });
+      ? {
+          ...base,
+          ...records,
+          ...withTable({ ...state, headers: [] }, table, options),
+        }
+      : parse(text ?? "", { ...base, headers: [] });
+    if ((patch.rows ?? []).length === 0 || (patch.headers ?? []).length === 0) {
+      set({ ...base, format: null, text: null, error: t("emptyFile") });
       return;
     }
     set({ ...patch, step: "mapping" });

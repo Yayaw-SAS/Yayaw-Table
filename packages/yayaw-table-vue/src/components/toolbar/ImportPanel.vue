@@ -33,7 +33,7 @@ const props = defineProps<{
   locale: string;
   translate: ImportTranslate;
   adapters: ImportAdapters;
-  /** Offer CSV files and pasted text (default true). */
+  /** Offer CSV and JSON files and pasted text (default true). */
   csv?: boolean;
   sources?: Pick<ImportSource, "id" | "label" | "description">[];
   /** Connectors that can pull, listed with the sources ("From Notion"); they open their own screen. */
@@ -128,7 +128,7 @@ const loadSource = (sourceId: string): void => {
           <span class="yayaw-import-choose">{{ t("chooseFile") }}</span>
         </button>
         <input ref="fileInput" class="yayaw-sr-only" type="file" tabindex="-1" :aria-label="t('chooseFile')"
-          accept=".csv,.tsv,.txt,text/csv,text/plain" @change="onFile" />
+          accept=".csv,.tsv,.txt,.json,.jsonl,.ndjson,text/csv,text/plain,application/json,application/x-ndjson" @change="onFile" />
         <p v-if="state.loading" class="yayaw-schedule-loading"><span class="yayaw-spinner" aria-hidden="true" />{{ t("reading") }}</p>
         <div class="yayaw-import-paste">
           <label :for="`${id}-paste`">{{ t("pasteLabel") }}</label>

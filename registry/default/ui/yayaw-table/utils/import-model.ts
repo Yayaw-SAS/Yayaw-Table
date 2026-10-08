@@ -1,5 +1,5 @@
 /**
- * Data › Import, shared by the React and Vue editions: reading CSV, matching
+ * Data › Import, shared by the React and Vue editions: reading CSV or JSON, matching
  * its fields to the table's columns, converting values per column type,
  * planning creates and updates, and writing them through the host (bulk
  * `importRows` first, else the table's `create` and `update` actions).
@@ -186,6 +186,208 @@ export function decodeCsvFile(bytes: ArrayBuffer | Uint8Array): string {
   } catch {
     return decodeWindows1252(view);
   }
+}
+
+// JSON -------------------------------------------------------------------------
+
+/** Headers and rows of JSON records, shaped like `parseCsv`'s. */
+export interface ParsedJson {
+  headers: string[];
+  rows: string[][];
+}
+
+/** Why JSON text gave no rows: not JSON (with its place when known), or not records. */
+export interface JsonImportError {
+  error: "invalid_json" | "not_records";
+  line?: number;
+  column?: number;
+}
+
+export type ParseJsonResult = ParsedJson | JsonImportError;
+
+type JsonRecord = Record<string, unknown>;
+
+const JSON_START = /^\s*[[{]/;
+// Engine messages end with the place ("… at position 24 (line 3 column 11)",
+// "… at line 3 column 11 of the JSON data"); they may quote the text before.
+const JSON_LINE_COLUMN = /line (\d+) column (\d+)(?: of the JSON data)?\)?$/;
+const JSON_POSITION = /at position (\d+)$/;
+const LINE_BREAK = /\r\n|\r|\n/;
+
+const withoutBom = (text: string) =>
+  text.startsWith(BOM) ? text.slice(1) : text;
+
+/** Whether text reads as JSON: its first character is `[` or `{`. */
+export function looksLikeJson(text: string): boolean {
+  return JSON_START.test(withoutBom(text));
+}
+
+const isJsonRecord = (value: unknown): value is JsonRecord =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isJsonPrimitive = (value: unknown) =>
+  value === null || ["string", "number", "boolean"].includes(typeof value);
+
+const tryParseJson = (
+  text: string
+): { value: unknown } | { error: unknown } => {
+  try {
+    return { value: JSON.parse(text) as unknown };
+  } catch (error) {
+    return { error };
+  }
+};
+
+/** Line and column of a `JSON.parse` error, when the engine gives them. */
+function jsonErrorPlace(
+  error: unknown,
+  text: string
+): { line?: number; column?: number } {
+  const message = error instanceof Error ? error.message : "";
+  const lineColumn = JSON_LINE_COLUMN.exec(message);
+  if (lineColumn) {
+    return { line: Number(lineColumn[1]), column: Number(lineColumn[2]) };
+  }
+  const position = JSON_POSITION.exec(message);
+  if (!position) {
+    return {};
+  }
+  const before = text.slice(0, Number(position[1])).split(LINE_BREAK);
+  return { line: before.length, column: (before.at(-1)?.length ?? 0) + 1 };
+}
+
+/** A cell's text: lists of plain values joined with ", ", other values as JSON. */
+function jsonCellText(value: unknown): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  if (Array.isArray(value) && value.every(isJsonPrimitive)) {
+    return value
+      .filter((item) => item !== null)
+      .map(String)
+      .join(", ");
+  }
+  return typeof value === "object" ? JSON.stringify(value) : String(value);
+}
+
+/** Cells by dot path: `{ address: { city } }` gives `address.city`. */
+function flattenJsonRecord(
+  record: JsonRecord,
+  prefix: string,
+  cells: Map<string, string>
+): void {
+  for (const [key, value] of Object.entries(record)) {
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (isJsonRecord(value) && Object.keys(value).length > 0) {
+      flattenJsonRecord(value, path, cells);
+    } else {
+      cells.set(path, isJsonRecord(value) ? "" : jsonCellText(value));
+    }
+  }
+}
+
+/** One column per key path, in first-seen order; missing keys are empty. */
+function jsonRecordsTable(records: readonly JsonRecord[]): ParsedJson {
+  const keys: string[] = [];
+  const seen = new Set<string>();
+  const flat = records.map((record) => {
+    const cells = new Map<string, string>();
+    flattenJsonRecord(record, "", cells);
+    for (const key of cells.keys()) {
+      if (!seen.has(key)) {
+        seen.add(key);
+        keys.push(key);
+      }
+    }
+    return cells;
+  });
+  return {
+    headers: keys.map((key, index) => key.trim() || defaultColumnName(index)),
+    rows: flat.map((cells) => keys.map((key) => cells.get(key) ?? "")),
+  };
+}
+
+/** The records of a JSON value: a list of objects, an object holding one, or one object. */
+function jsonRecords(value: unknown): JsonRecord[] | null {
+  if (Array.isArray(value)) {
+    return value.every(isJsonRecord) ? value : null;
+  }
+  if (!isJsonRecord(value)) {
+    return null;
+  }
+  const entries = Object.values(value);
+  const [only] = entries;
+  if (entries.length === 1 && Array.isArray(only)) {
+    return only.every(isJsonRecord) ? only : [value];
+  }
+  const lists = entries.filter(
+    (entry): entry is JsonRecord[] =>
+      Array.isArray(entry) && entry.length > 0 && entry.every(isJsonRecord)
+  );
+  return lists.length === 1 ? (lists[0] as JsonRecord[]) : [value];
+}
+
+/** One line of JSON Lines: a record, why it is not one, or `null` when blank. */
+function readJsonLine(
+  line: string,
+  number: number
+): { record: JsonRecord } | { failure: JsonImportError } | null {
+  if (!line.trim()) {
+    return null;
+  }
+  const parsed = tryParseJson(line);
+  if ("error" in parsed) {
+    const { column } = jsonErrorPlace(parsed.error, line);
+    return {
+      failure: {
+        error: "invalid_json",
+        line: number,
+        ...(column ? { column } : {}),
+      },
+    };
+  }
+  return isJsonRecord(parsed.value)
+    ? { record: parsed.value }
+    : { failure: { error: "not_records", line: number } };
+}
+
+/** JSON Lines (one object per line); `null` when the first line is not a whole object. */
+function parseJsonLines(source: string): ParseJsonResult | null {
+  const records: JsonRecord[] = [];
+  for (const [index, line] of source.split(LINE_BREAK).entries()) {
+    const read = readJsonLine(line, index + 1);
+    if (read && "failure" in read) {
+      return records.length === 0 ? null : read.failure;
+    }
+    if (read) {
+      records.push(read.record);
+    }
+  }
+  return records.length > 0 ? jsonRecordsTable(records) : null;
+}
+
+/**
+ * Headers and rows of JSON text: an array of objects, an object holding one
+ * array of objects (`{ "records": [...] }`), or JSON Lines. Nested objects
+ * become dot-path columns, lists of plain values join with ", ", other values
+ * stay JSON, and null is empty.
+ */
+export function parseJsonRecords(text: string): ParseJsonResult {
+  const source = withoutBom(text);
+  const parsed = tryParseJson(source);
+  if ("error" in parsed) {
+    return (
+      parseJsonLines(source) ?? {
+        error: "invalid_json",
+        ...jsonErrorPlace(parsed.error, source),
+      }
+    );
+  }
+  const records = jsonRecords(parsed.value);
+  return records ? jsonRecordsTable(records) : { error: "not_records" };
 }
 
 // Columns and fields -----------------------------------------------------------
