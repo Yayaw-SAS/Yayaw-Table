@@ -70,7 +70,22 @@ const options = (values: [string, string][]) =>
   values.map(([value, label]) => ({ value, label }));
 
 export const productColumns = [
-  { id: "name", header: "Name", type: "text" as const },
+  {
+    id: "name",
+    header: "Name",
+    type: "text" as const,
+    // Cell actions: a link revealed on hover, then the copy action.
+    copyable: true,
+    cellActions: [
+      {
+        id: "search",
+        label: "Search",
+        reveal: "hover" as const,
+        href: (row: Record<string, unknown>) =>
+          `https://duckduckgo.com/?q=${encodeURIComponent(String(row.name))}`,
+      },
+    ],
+  },
   {
     id: "category",
     header: "Category",

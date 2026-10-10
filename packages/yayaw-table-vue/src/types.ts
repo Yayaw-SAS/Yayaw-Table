@@ -115,6 +115,16 @@ export interface ColumnDefinition<TData extends TableRecord = TableRecord> {
   accessorKey?: keyof TData & string;
   accessorFn?: (row: TData) => unknown;
   cellRenderer?: (value: unknown, row: TData) => VNodeChild;
+  /**
+   * Controls drawn after the cell's value at the table's control size, in
+   * every view: add a note, edit a relation, open a link. See `cell-actions.ts`.
+   */
+  cellActions?: import("./cell-actions").CellActionDefinition<
+    TData,
+    Component
+  >[];
+  /** Adds a copy action that writes the cell's value to the clipboard. */
+  copyable?: boolean;
   enableFiltering?: boolean;
   enableSorting?: boolean;
   enableGrouping?: boolean;

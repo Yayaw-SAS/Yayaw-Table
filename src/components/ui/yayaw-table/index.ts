@@ -284,6 +284,12 @@ export {
   tagUsageRequest,
 } from "./utils/tag-catalog";
 export {
+  type CellActionDefinition,
+  type CellActionReveal,
+  cellCopyText,
+  resolveCellActions,
+} from "./utils/cell-actions";
+export {
   TAG_COLOR_NAMES,
   type TagColorName,
   tagColorValue,

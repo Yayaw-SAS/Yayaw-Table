@@ -131,6 +131,12 @@ export type {
   UpdateTableViewInput,
 } from "./types/view-types";
 export type { TableActivityRecord } from "./utils/activity-shortcuts";
+export {
+  type CellActionDefinition,
+  type CellActionReveal,
+  cellCopyText,
+  resolveCellActions,
+} from "./utils/cell-actions";
 // Facets: the panel listing values with their records, clicks as filter rules.
 export {
   type FacetColumn,

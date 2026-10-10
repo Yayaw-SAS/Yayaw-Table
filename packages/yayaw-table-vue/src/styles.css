@@ -919,6 +919,70 @@
 .yayaw-cell.is-editable {
   cursor: text;
 }
+/* Cell actions sit after the value at the density's control size, like row actions. */
+.yayaw-cell.has-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.yayaw-cell.has-actions > :not(.yayaw-cell-actions) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.yayaw-cell-actions {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+.yayaw-cell-action {
+  display: inline-flex;
+  height: var(--yayaw-density-control, 28px);
+  min-width: var(--yayaw-density-control, 28px);
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid transparent;
+  border-radius: var(--yayaw-radius);
+  background: transparent;
+  color: var(--yayaw-muted-foreground);
+  padding: 0 4px;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+.yayaw-cell-action[data-icon-only] {
+  padding: 0;
+}
+.yayaw-cell-action svg {
+  width: 1.1em;
+  height: 1.1em;
+  flex-shrink: 0;
+}
+.yayaw-cell-action:hover:not([aria-disabled="true"]) {
+  background: var(--yayaw-muted);
+  color: var(--yayaw-foreground);
+}
+.yayaw-cell-action:focus-visible {
+  outline: 2px solid var(--yayaw-primary);
+  outline-offset: -2px;
+}
+.yayaw-cell-action[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.yayaw-cell-action-count {
+  font-variant-numeric: tabular-nums;
+}
+@media (hover: hover) {
+  .yayaw-cell-action[data-reveal="hover"] {
+    opacity: 0;
+  }
+  .yayaw-cell:hover .yayaw-cell-action[data-reveal="hover"],
+  .yayaw-cell:focus-within .yayaw-cell-action[data-reveal="hover"] {
+    opacity: 1;
+  }
+}
 .yayaw-inline-editor {
   width: 100%;
   min-width: 110px;

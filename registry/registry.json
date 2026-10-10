@@ -128,6 +128,11 @@
           "target": "components/ui/yayaw-table/components/cells/catalogue-inline-cell.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/cells/cell-actions.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/cells/cell-actions.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/cells/code-cell.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/cells/code-cell.tsx"
@@ -1511,6 +1516,11 @@
           "path": "registry/default/ui/yayaw-table/utils/card-properties.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/card-properties.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/cell-actions.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/cell-actions.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/chart-model.ts",
