@@ -42,6 +42,7 @@ export const defaultTranslations: Required<
     | "selectRow"
     | "bulkEdit"
     | "copy"
+    | "copied"
     | "cancel"
     | "confirm"
   >
@@ -324,6 +325,7 @@ export const defaultTranslations: Required<
   bulkMixedForms: "Select rows with the same edit form.",
   bulkUpdated: "Selected rows updated",
   copy: "Copy",
+  copied: "Copied",
   cancel: "Cancel",
   confirm: "Confirm",
 };
@@ -610,6 +612,7 @@ export const frenchTranslations: DataTableTranslations = {
     "Sélectionnez des lignes utilisant le même formulaire de modification.",
   bulkUpdated: "Lignes sélectionnées mises à jour",
   copy: "Copier",
+  copied: "Copié",
   cancel: "Annuler",
   confirm: "Confirmer",
 };

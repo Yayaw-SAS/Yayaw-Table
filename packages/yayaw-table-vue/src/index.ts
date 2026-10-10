@@ -2,6 +2,12 @@ import type { App, Plugin } from "vue";
 import YayawDataTableComponent from "./components/YayawDataTable.vue";
 import "./styles.css";
 
+export {
+  type CellActionDefinition,
+  type CellActionReveal,
+  cellCopyText,
+  resolveCellActions,
+} from "./cell-actions";
 export { default as RecordDetails } from "./components/details/RecordDetails.vue";
 export { default as CatalogueForm } from "./components/forms/CatalogueForm.vue";
 export { default as GalleryView } from "./components/gallery/GalleryView.vue";

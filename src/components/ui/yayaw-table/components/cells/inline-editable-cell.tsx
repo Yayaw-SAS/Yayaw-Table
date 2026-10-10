@@ -669,11 +669,11 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
             type="button"
           >
             {displayValue}
-            {/* Over the value's end, so it takes no column width or row height. */}
+            {/* Over the value's end, so it takes no column width or row height; cell actions, when present, end the cell instead. */}
             {isChoiceInlineEditor(resolvedEditor) ? (
               <ChevronDown
                 aria-hidden
-                className="absolute end-0.5 top-1/2 size-[1em] -translate-y-1/2 text-muted-foreground opacity-0 group-hover/inline:opacity-100 group-focus-visible/inline:opacity-100"
+                className="absolute end-0.5 top-1/2 size-[1em] -translate-y-1/2 text-muted-foreground opacity-0 group-hover/inline:opacity-100 group-focus-visible/inline:opacity-100 group-has-[[data-cell-actions]]/inline:hidden"
                 data-inline-chevron=""
               />
             ) : null}

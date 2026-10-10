@@ -80,6 +80,10 @@ export declare const feedRenderer: import("./display-mode-renderer").DisplayMode
 
 export declare const fileTreeRenderer: import("./display-mode-renderer").DisplayModeRenderer;
 
+export type {
+  CellActionDefinition,
+  CellActionReveal,
+} from "./cell-actions";
 export { default as RecordDetails } from "./components/details/RecordDetails.vue";
 export {
   type FeedBodyRenderer,

@@ -286,6 +286,18 @@ export interface ColumnDefinition {
   ) => React.ReactNode;
 
   /**
+   * Controls drawn after the cell's value at the table's control size, in
+   * every view: add a note, edit a relation, open a link. See `utils/cell-actions.ts`.
+   */
+  cellActions?: import("../utils/cell-actions").CellActionDefinition<
+    Record<string, unknown>,
+    React.ReactNode
+  >[];
+
+  /** Adds a copy action that writes the cell's value to the clipboard. */
+  copyable?: boolean;
+
+  /**
    * Whether the column can be filtered
    */
   enableFiltering?: boolean;
