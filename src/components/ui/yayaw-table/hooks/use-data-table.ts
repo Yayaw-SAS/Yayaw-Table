@@ -12,6 +12,8 @@ import {
   type ColumnFilter,
   type ColumnSizingState,
   type ColumnSort,
+  type CellContext,
+  flexRender,
   type OnChangeFn,
   type PaginationState,
   type Row,
@@ -19,6 +21,8 @@ import {
   type VisibilityState,
 } from "@/components/ui/yayaw-table/tanstack";
 
+import { CellWithActions } from "../components/cells/cell-actions";
+import type { ColumnDefinition } from "../config/helpers";
 import { DataTypeCell } from "../components/cells/data-type-cell";
 import type {
   ActionItem,
@@ -865,7 +869,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
 
       columnDefs.push(
         withInlineEditMeta(
-          configuredColumnDef,
+          withCellActions(configuredColumnDef, colDef),
           resolveInlineEditColumnConfig(colDef, tableInlineEditConfig, {
             featureEnabled: isInlineEditAllowed,
           })
@@ -1047,5 +1051,27 @@ export function useDataTable<TData extends Record<string, unknown>>(
 
     // Force re-render key when column visibility changes (until atoms are fully synced with URL state)
     visibilityKey: JSON.stringify(columnVisibility),
+  };
+}
+
+/** Draws a column's `cellActions` (and copy) after its value, in every view that renders the cell. */
+function withCellActions<TDef extends { cell?: unknown }>(
+  definition: TDef,
+  column: ColumnDefinition
+): TDef {
+  if (!(column.cellActions?.length || column.copyable)) {
+    return definition;
+  }
+  const cell = definition.cell as Parameters<typeof flexRender>[0] | undefined;
+  return {
+    ...definition,
+    cell: (info: CellContext<Record<string, unknown>, unknown>) =>
+      createElement(
+        CellWithActions,
+        { column, row: info.row.original, value: info.getValue() },
+        cell === undefined
+          ? String(info.getValue() ?? "")
+          : flexRender(cell, info as never)
+      ),
   };
 }

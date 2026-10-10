@@ -11,11 +11,14 @@ import {
   ref,
   toRaw,
   watch,
+  type Component,
   type VNodeChild,
 } from "vue";
+import { resolveCellActions } from "../../cell-actions";
 import { useTableContext, useTableTranslation } from "../../context";
 import { resolveDataType, resolveDataTypeEditor, TABLE_DATA_TYPES, dataTypeDateInput, dataTypeValueError } from "../../table-contracts";
 import { Check, Image as ImageIcon, MapPin } from "lucide-vue-next";
+import CellActions from "./CellActions.vue";
 import InlineMultiSelect from "./InlineMultiSelect.vue";
 import TagPicker from "../tags/TagPicker.vue";
 import LocationEditor from "../location/LocationEditor.vue";
@@ -72,6 +75,15 @@ const barRatio = computed(() =>
     ? numberBarRatio(props.value, effectiveColumn.value.numberFormat)
     : undefined
 );
+const cellActions = computed(() =>
+  resolveCellActions<TableRecord, Component>(
+    props.column,
+    props.row,
+    props.value,
+    String(context.translations.value.copy ?? "Copy")
+  )
+);
+const hasActions = computed(() => cellActions.value.length > 0);
 const customNode = computed(
   () =>
     props.column.cellRenderer?.(props.value, props.row) ??
@@ -417,7 +429,7 @@ const tagChip = (value: unknown) => {
 <template>
   <div
     class="yayaw-cell"
-    :class="{ 'is-editable': canEdit, 'is-pending': pending }"
+    :class="{ 'is-editable': canEdit, 'is-pending': pending, 'has-actions': hasActions && !editing }"
     tabindex="0"
     @dblclick="begin"
     @keydown="onKeydown"
@@ -628,6 +640,7 @@ const tagChip = (value: unknown) => {
       :class="{ 'yayaw-number': effectiveColumn.type === 'number' }"
       >{{ displayCellValue(value, effectiveColumn, context.locale) }}</span
     >
+    <CellActions v-if="hasActions && !editing" :actions="cellActions" />
     <span v-if="error && !editing" class="yayaw-inline-error" role="alert">{{
       error
     }}</span>

@@ -7,18 +7,22 @@
 import { useQueryClient } from "@tanstack/react-query";
 import type * as React from "react";
 import { createElement, useCallback, useMemo } from "react";
+import { CellWithActions } from "../components/cells/cell-actions";
 import { DataTypeCell } from "../components/cells/data-type-cell";
 import type {
   ActionItem,
   ActionsColumnProps,
 } from "../components/columns/actions-column";
 import { useColumns } from "../components/columns/hooks/use-columns";
+import type { ColumnDefinition } from "../config/helpers";
 import { useTranslations } from "../providers/table-provider";
 import {
+  type CellContext,
   type ColumnDef,
   type ColumnFilter,
   type ColumnSizingState,
   type ColumnSort,
+  flexRender,
   type OnChangeFn,
   type PaginationState,
   type Row,
@@ -856,7 +860,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
 
       columnDefs.push(
         withInlineEditMeta(
-          configuredColumnDef,
+          withCellActions(configuredColumnDef, colDef),
           resolveInlineEditColumnConfig(colDef, tableInlineEditConfig, {
             featureEnabled: isInlineEditAllowed,
           })
@@ -1038,5 +1042,27 @@ export function useDataTable<TData extends Record<string, unknown>>(
 
     // Force re-render key when column visibility changes (until atoms are fully synced with URL state)
     visibilityKey: JSON.stringify(columnVisibility),
+  };
+}
+
+/** Draws a column's `cellActions` (and copy) after its value, in every view that renders the cell. */
+function withCellActions<TDef extends { cell?: unknown }>(
+  definition: TDef,
+  column: ColumnDefinition
+): TDef {
+  if (!(column.cellActions?.length || column.copyable)) {
+    return definition;
+  }
+  const cell = definition.cell as Parameters<typeof flexRender>[0] | undefined;
+  return {
+    ...definition,
+    cell: (info: CellContext<Record<string, unknown>, unknown>) =>
+      createElement(
+        CellWithActions,
+        { column, row: info.row.original, value: info.getValue() },
+        cell === undefined
+          ? String(info.getValue() ?? "")
+          : flexRender(cell, info as never)
+      ),
   };
 }

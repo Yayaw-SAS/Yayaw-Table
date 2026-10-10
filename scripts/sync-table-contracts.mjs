@@ -89,6 +89,7 @@ for (const file of [
   "tag-colors.ts",
   "tag-colors.css",
   "tag-catalog.ts",
+  "cell-actions.ts",
 ]) {
   await copyFile(
     new URL(`../src/components/ui/yayaw-table/utils/${file}`, import.meta.url),

@@ -12,6 +12,7 @@ export interface DataTableTranslations {
     delete: string;
     edit: string;
     copy: string;
+    copied?: string;
     export: string;
     save: string;
     cancel: string;
