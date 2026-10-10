@@ -60,6 +60,21 @@ export function resolveDataType(
     : "string";
 }
 
+/**
+ * Editors that pick a value instead of typing one. Their editable cells show a
+ * chevron on hover, next to the hover outline every editable cell gets.
+ */
+const CHOICE_INLINE_EDITORS = new Set([
+  "select",
+  "multiSelect",
+  "date",
+  "location",
+]);
+
+export function isChoiceInlineEditor(editor: string | undefined): boolean {
+  return editor !== undefined && CHOICE_INLINE_EDITORS.has(editor);
+}
+
 /** Explicit editor overrides win; semantic JSON and array values must retain their shape. */
 export function resolveDataTypeEditor({
   explicitEditor,

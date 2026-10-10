@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { memo, useCallback, useMemo, useState } from "react";
 import type { Cell } from "@/components/ui/yayaw-table/tanstack";
@@ -38,6 +39,7 @@ import {
 import { useTagCatalog } from "../../providers/tag-catalog-provider";
 import { useTranslations } from "../../providers/table-provider";
 import {
+  isChoiceInlineEditor,
   optionControlKey,
   optionControlValue,
   resolveDataType,
@@ -649,11 +651,14 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
         <TableTooltip label={t("inline.edit_hint")}>
           <button
             data-density-control=""
+            data-inline-editor={resolvedEditor}
             className={cn(
-              "relative flex min-h-8 w-full items-center cursor-text rounded-sm px-0.5 py-1 outline-none",
+              "group/inline relative flex min-h-8 w-full items-center gap-1 cursor-text rounded-sm px-0.5 py-1 outline-none",
               resolvedEditor === "number"
                 ? "justify-end text-right"
                 : "justify-start text-left",
+              // The field outline tells which cells edit in place, on the row's hover tint too.
+              "hover:bg-background hover:shadow-[inset_0_0_0_1px_var(--border)]",
               "focus-visible:ring-primary/30 focus-visible:ring-2"
             )}
             onDoubleClick={(event) => {
@@ -663,7 +668,18 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
             onKeyDown={handleDisplayKeyDown}
             type="button"
           >
-            {displayValue}
+            {isChoiceInlineEditor(resolvedEditor) ? (
+              <>
+                <span className="min-w-0 flex-1 truncate">{displayValue}</span>
+                <ChevronDown
+                  aria-hidden
+                  className="size-[1em] shrink-0 text-muted-foreground opacity-0 group-hover/inline:opacity-100 group-focus-visible/inline:opacity-100"
+                  data-inline-chevron=""
+                />
+              </>
+            ) : (
+              displayValue
+            )}
           </button>
         </TableTooltip>
       )}

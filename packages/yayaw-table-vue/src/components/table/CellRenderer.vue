@@ -14,8 +14,8 @@ import {
   type VNodeChild,
 } from "vue";
 import { useTableContext, useTableTranslation } from "../../context";
-import { resolveDataType, resolveDataTypeEditor, TABLE_DATA_TYPES, dataTypeDateInput, dataTypeValueError } from "../../table-contracts";
-import { Check, Image as ImageIcon, MapPin } from "lucide-vue-next";
+import { isChoiceInlineEditor, resolveDataType, resolveDataTypeEditor, TABLE_DATA_TYPES, dataTypeDateInput, dataTypeValueError } from "../../table-contracts";
+import { Check, ChevronDown, Image as ImageIcon, MapPin } from "lucide-vue-next";
 import InlineMultiSelect from "./InlineMultiSelect.vue";
 import TagPicker from "../tags/TagPicker.vue";
 import LocationEditor from "../location/LocationEditor.vue";
@@ -417,7 +417,9 @@ const tagChip = (value: unknown) => {
 <template>
   <div
     class="yayaw-cell"
-    :class="{ 'is-editable': canEdit, 'is-pending': pending }"
+    :class="{ 'is-editable': canEdit, 'is-editing': editing, 'is-pending': pending }"
+    :data-inline-editor="canEdit ? editor : undefined"
+    :title="canEdit && !editing ? String(context.translations.value['inline.edit_hint'] ?? 'Double-click or press Enter to edit') : undefined"
     tabindex="0"
     @dblclick="begin"
     @keydown="onKeydown"
@@ -628,6 +630,7 @@ const tagChip = (value: unknown) => {
       :class="{ 'yayaw-number': effectiveColumn.type === 'number' }"
       >{{ displayCellValue(value, effectiveColumn, context.locale) }}</span
     >
+    <ChevronDown v-if="canEdit && !editing && isChoiceInlineEditor(editor)" class="yayaw-inline-chevron" data-inline-chevron="" aria-hidden="true" />
     <span v-if="error && !editing" class="yayaw-inline-error" role="alert">{{
       error
     }}</span>

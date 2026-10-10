@@ -380,6 +380,12 @@ Density, saved-view, toolbar-action, and row-action controls use styled tooltips
 
 JSON form drafts preserve incomplete input, validate before schemas, and submit parsed JSON values. Primitive option identities, unknown choices and whitespace survive selection edits. Calendar inline writes now use `YYYY-MM-DD` in both editions, matching generated form writes; React consumers with `Date`-only inline schemas must accept the date string. Multiline editors use Enter for a newline and Ctrl/Cmd+Enter or dismissal to commit. Explicit form catalogues retain authority over missing, hidden and disabled fields. Generated bulk fields exclude heterogeneous dynamic types. Computed accessors need an explicit write mapping before inline editing can be enabled.
 
+## Editable cell affordance
+
+An inline-editable cell says so before it is double-clicked. Hovering it draws a field: the page background and a 1 px inset border, over the row's hover tint. Cells whose editor picks a value instead of typing one (`select`, `multiSelect`, `date`, `location`, from the shared `isChoiceInlineEditor`) also show a chevron at their end on hover or keyboard focus. Read-only cells keep the plain row tint. Both editions mark the cell with `data-inline-editor="<editor>"` and the chevron with `[data-inline-chevron]`, and both give the edit hint "Double-click or press Enter to edit" (React tooltip, Vue `title`; French « Double-cliquez ou appuyez sur Entrée pour modifier » in Vue). Nothing shows while the cell edits.
+
+Verification: `tests/inline-edit-affordance.test.tsx` and the Vue `components/table/inline-edit.test.ts` ("editable cell affordance") assert the same markers for text, select and date cells and leave read-only cells unmarked. The hover field and chevron were checked in the Vue demo (Status) and the React Views example (Site).
+
 ## Automatic page size
 
 Both editions accept `table.enableAutoPageSize: true` (default: false). In table
