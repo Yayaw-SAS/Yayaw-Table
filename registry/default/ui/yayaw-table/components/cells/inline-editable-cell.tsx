@@ -655,7 +655,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
         <TableTooltip label={t("inline.edit_hint")}>
           <button
             className={cn(
-              "group/inline relative flex min-h-8 w-full cursor-text items-center gap-1 rounded-sm px-0.5 py-1 outline-none",
+              "group/inline relative flex min-h-8 w-full cursor-text items-center rounded-sm px-0.5 py-1 outline-none",
               resolvedEditor === "number"
                 ? "justify-end text-right"
                 : "justify-start text-left",
@@ -672,18 +672,15 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
             onKeyDown={handleDisplayKeyDown}
             type="button"
           >
+            {displayValue}
+            {/* Over the value's end, so it takes no column width or row height. */}
             {isChoiceInlineEditor(resolvedEditor) ? (
-              <>
-                <span className="min-w-0 flex-1 truncate">{displayValue}</span>
-                <ChevronDown
-                  aria-hidden
-                  className="size-[1em] shrink-0 text-muted-foreground opacity-0 group-hover/inline:opacity-100 group-focus-visible/inline:opacity-100"
-                  data-inline-chevron=""
-                />
-              </>
-            ) : (
-              displayValue
-            )}
+              <ChevronDown
+                aria-hidden
+                className="absolute end-0.5 top-1/2 size-[1em] -translate-y-1/2 text-muted-foreground opacity-0 group-hover/inline:opacity-100 group-focus-visible/inline:opacity-100"
+                data-inline-chevron=""
+              />
+            ) : null}
           </button>
         </TableTooltip>
       )}
