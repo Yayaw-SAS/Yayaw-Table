@@ -520,3 +520,50 @@ it("supplies the original row version for an inline conflict without adding it t
   expect(row.amount).toBe(10);
   expect(wrapper.text()).toContain("Version conflict");
 });
+
+describe("editable cell affordance", () => {
+  it("marks editable cells with their editor and the edit hint, as in React", () => {
+    const { wrapper } = createCell({
+      row: { id: "1", name: "Ada" },
+      column: { id: "name", header: "Name", type: "text", inlineEdit: true },
+    });
+    const cell = wrapper.get(".yayaw-cell");
+    expect(cell.attributes("data-inline-editor")).toBe("text");
+    expect(cell.attributes("title")).toBe(
+      "Double-click or press Enter to edit"
+    );
+    // Typed values get no chevron.
+    expect(cell.find("[data-inline-chevron]").exists()).toBe(false);
+  });
+
+  it("adds a chevron to cells whose editor picks a value", () => {
+    const { wrapper } = createCell({
+      row: { id: "1", status: "draft" },
+      column: {
+        id: "status",
+        header: "Status",
+        type: "select",
+        options: [{ value: "draft", label: "Draft" }],
+        inlineEdit: true,
+      },
+    });
+    const cell = wrapper.get(".yayaw-cell");
+    expect(cell.attributes("data-inline-editor")).toBe("select");
+    expect(cell.find("[data-inline-chevron]").exists()).toBe(true);
+  });
+
+  it("leaves read-only cells unmarked", () => {
+    const { wrapper } = createCell({
+      row: { id: "1", total: 3 },
+      column: {
+        id: "total",
+        header: "Total",
+        type: "number",
+        inlineEdit: false,
+      },
+    });
+    const cell = wrapper.get(".yayaw-cell");
+    expect(cell.attributes("data-inline-editor")).toBeUndefined();
+    expect(cell.attributes("title")).toBeUndefined();
+  });
+});

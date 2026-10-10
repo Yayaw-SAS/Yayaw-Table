@@ -917,6 +917,10 @@
   white-space: nowrap;
 }
 .yayaw-cell.is-editable {
+  display: flex;
+  min-height: var(--yayaw-density-control, 28px);
+  align-items: center;
+  border-radius: calc(var(--yayaw-radius) - 2px);
   cursor: text;
 }
 /* Cell actions sit after the value at the density's control size, like row actions. */
@@ -925,10 +929,35 @@
   align-items: center;
   gap: 4px;
 }
+.yayaw-cell.is-editable > :not(.yayaw-cell-actions, .yayaw-inline-chevron),
 .yayaw-cell.has-actions > :not(.yayaw-cell-actions) {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+/* The field outline tells which cells edit in place, on the row's hover tint too. */
+.yayaw-cell.is-editable:not(.is-editing):hover {
+  background: var(--yayaw-background);
+  box-shadow: inset 0 0 0 1px var(--yayaw-border);
+}
+/* Over the value's end, so it takes no column width. */
+.yayaw-cell.is-editable > .yayaw-inline-chevron {
+  position: absolute;
+  inset-inline-end: 2px;
+  top: 50%;
+  width: 1em;
+  height: 1em;
+  transform: translateY(-50%);
+  color: var(--yayaw-muted-foreground);
+  opacity: 0;
+}
+.yayaw-cell.is-editable:hover > .yayaw-inline-chevron,
+.yayaw-cell.is-editable:focus-visible > .yayaw-inline-chevron {
+  opacity: 1;
+}
+/* The actions already end the cell; the chevron would cover them. */
+.yayaw-cell.has-actions > .yayaw-inline-chevron {
+  display: none;
 }
 .yayaw-cell-actions {
   display: inline-flex;

@@ -389,6 +389,11 @@ Actions follow the table density like row actions: their height is the density's
 They render wherever the cell renders: the grid, List, Kanban and Gallery cards, and the display value of an inline-editable cell (hidden while it edits). Icons are framework values (a React node, a Vue component), the only difference between the two declarations.
 
 Verification: `utils/cell-actions.test.ts` covers the shared resolution; `tests/cell-actions.test.tsx` and the Vue `components/table/cell-actions.test.ts` render the same column and assert the same markup, labels, link attributes and click isolation. The shared Products example puts a hover link and the copy action on its Name column; both demos render the same sizes at 2XS and M, and React was also checked at S and in the List view.
+## Editable cell affordance
+
+An inline-editable cell says so before it is double-clicked. Hovering it draws a field: the page background and a 1 px inset border, over the row's hover tint. Cells whose editor picks a value instead of typing one (`select`, `multiSelect`, `date`, `location`, from the shared `isChoiceInlineEditor`) also show a chevron at their end on hover or keyboard focus. Read-only cells keep the plain row tint. A cell with cell actions shows no chevron: its actions end the cell. Both editions mark the cell with `data-inline-editor="<editor>"` and the chevron with `[data-inline-chevron]`, and both give the edit hint "Double-click or press Enter to edit" (React tooltip, Vue `title`; French « Double-cliquez ou appuyez sur Entrée pour modifier » in Vue). Nothing shows while the cell edits.
+
+Verification: `tests/inline-edit-affordance.test.tsx` and the Vue `components/table/inline-edit.test.ts` ("editable cell affordance") assert the same markers for text, select and date cells and leave read-only cells unmarked. The hover field and chevron were checked in the Vue demo (Status) and the React Views example (Site).
 
 ## Automatic page size
 
