@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.17.0
+
+### Minor Changes
+
+- 09ed712: Add cell actions to React and Vue columns. `cellActions` draws small controls after a cell's value (an icon or a label, an optional count, a link or a click handler, revealed always or on hover) and `copyable` adds a copy action. They take the density's control size and text in the grid, List, Kanban and Gallery views, and keep their clicks away from the row, inline editing and drag. Hosts no longer need buttons in a `cellRenderer`, which ignored the density.
+- 3d408d8: Show which cells edit in place, in React and Vue. Hovering an inline-editable cell now draws a field (page background and a thin inset border); cells that pick a value (select, multi-select, date, location) also show a chevron. Vue cells gain the "Double-click or press Enter to edit" hint React already had (`inline.edit_hint`, with a French label). Read-only cells look unchanged.
+
 ## 3.16.0
 
 ### Minor Changes
