@@ -10,6 +10,7 @@ import type {
   DetailRevertHandler,
 } from "../src/components/ui/yayaw-table/utils/record-details";
 import {
+  customFieldEntries,
   detailExampleRow,
   recordDetailsConfig,
   recordExampleColumns,
@@ -50,6 +51,7 @@ export function RecordDetailsExample() {
   const [presentation, setPresentation] =
     useState<DetailPresentation>("drawer");
   const [revision, setRevision] = useState(0);
+  const [feedback, setFeedback] = useState("");
   const replaceRows = (next: DetailRecord[]) => {
     current.current = next;
     setRows(next);
@@ -126,7 +128,33 @@ export function RecordDetailsExample() {
         ))}
       </fieldset>
       <DataTable
-        details={{ ...recordDetailsConfig, presentation }}
+        details={{
+          ...recordDetailsConfig,
+          presentation,
+          // The related list's actions belong to the host: a real application opens or creates the contact.
+          onRelatedAction: ({ kind, related }) => {
+            setFeedback(
+              kind === "open"
+                ? `Ouvrir le contact ${String(related?.name ?? "")}.`
+                : "Ajouter un contact à la campagne."
+            );
+          },
+          renderSection: (section, row) =>
+            section.id === "custom-fields" ? (
+              <dl className="grid gap-2 text-sm">
+                {customFieldEntries(row, section.data?.column).map(
+                  ([label, value]) => (
+                    <div className="flex gap-3" key={label}>
+                      <dt className="min-w-32 text-muted-foreground">
+                        {label}
+                      </dt>
+                      <dd>{value}</dd>
+                    </div>
+                  )
+                )}
+              </dl>
+            ) : undefined,
+        }}
         getTableActions={() => actions}
         getTableConfig={() => config}
         initialData={rows}
@@ -139,10 +167,10 @@ export function RecordDetailsExample() {
         tableType="record-details-react"
       />
       <footer className="flex justify-between text-muted-foreground text-sm">
-        <span>
-          Données et historique fictifs · Les modifications restent dans cette
-          démo.
-        </span>
+        <output>
+          {feedback ||
+            "Données et historique fictifs · Les modifications restent dans cette démo."}
+        </output>
         <button
           onClick={() => {
             replaceRows([structuredClone(detailExampleRow)]);

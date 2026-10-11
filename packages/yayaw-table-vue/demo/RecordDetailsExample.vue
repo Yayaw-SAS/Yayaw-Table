@@ -4,13 +4,15 @@ import { PanelRight, Square, LayoutTemplate, RotateCcw } from "lucide-vue-next";
 import { DataTable, defineTableConfig } from "../src";
 import type { TableActions, TableRecord } from "../src/types";
 import type { DetailPresentation } from "../src/record-details";
-import { detailExampleRow, recordDetailsConfig, recordExampleColumns, recordSections, updateExampleRecord, revertExampleRecord, redoExampleRecord } from "../../../examples/record-details";
+import { customFieldEntries, detailExampleRow, recordDetailsConfig, recordExampleColumns, recordSections, updateExampleRecord, revertExampleRecord, redoExampleRecord } from "../../../examples/record-details";
 import type { DetailRevertHandler } from "../src/record-details";
 
 const rows = ref<TableRecord[]>([structuredClone(detailExampleRow)]);
 const presentation = ref<DetailPresentation>("drawer");
-const detailConfig = computed(() => ({ ...recordDetailsConfig, presentation: presentation.value }));
 const feedback = ref("");
+// The related list's actions belong to the host: a real application opens or creates the contact.
+const detailConfig = computed(() => ({ ...recordDetailsConfig, presentation: presentation.value,
+  onRelatedAction: ({ kind, related }: { kind: "open" | "add"; related?: Record<string, unknown> }) => { feedback.value = kind === "open" ? `Ouvrir le contact ${String(related?.name ?? "")}.` : "Ajouter un contact à la campagne."; } }));
 const config = defineTableConfig({
   id: "record-details-demo", columns: { definitions: recordExampleColumns, visible: recordExampleColumns.map(column => column.id), order: recordExampleColumns.map(column => column.id), mandatory: [] },
   table: { syncUrl: false, rowClickMode: "activate", enableRowClickEdit: false, allowCreate: false, allowDuplicate: false, enableRowSelection: false, enableViews: false, showToolbarHeader: false, allowEdit: true, allowDelete: true },
@@ -47,6 +49,7 @@ const modes = [{ id: "drawer", label: "Panneau latéral", icon: PanelRight }, { 
     <section class="record-demo-workspace">
       <header class="record-demo-controls"><div><h2>Campagnes</h2><p>Cliquez sur l’entrée ou choisissez « Consulter » dans ses actions.</p></div><fieldset><legend>Présentation de la fiche</legend><label v-for="mode in modes" :key="mode.id" :class="{ selected: presentation === mode.id }"><input v-model="presentation" type="radio" name="presentation" :value="mode.id"><component :is="mode.icon" :size="15" aria-hidden="true" />{{ mode.label }}</label></fieldset></header>
       <DataTable :key="presentation" table-type="record-details-demo" :config="config" :details="detailConfig" :data="rows" :get-table-actions="() => actions" :on-revert-activity="revertActivity" :on-redo-activity="redoActivity" locale="fr">
+        <template #record-section-custom-fields="{ row, section }"><dl class="record-demo-custom"><div v-for="[label, value] in customFieldEntries(row, section.data?.column)" :key="label"><dt>{{ label }}</dt><dd>{{ value }}</dd></div></dl></template>
         <template #detail-score="{ value }"><span class="record-demo-score"><progress :value="Number(value)" max="100" aria-label="Préparation de la campagne" />{{ value }} %</span></template>
       </DataTable>
       <div class="record-demo-footer"><span role="status">{{ feedback || 'Données et historique fictifs · Les modifications restent dans cette démo.' }}</span><button type="button" @click="reset"><RotateCcw :size="13" aria-hidden="true" />Réinitialiser</button></div>
@@ -67,6 +70,10 @@ body { margin: 0; background: #f8f8fa; color: #202024; font-family: Inter, ui-sa
 .record-demo-intro h1 { font-size: clamp(36px, 4.8vw, 60px); font-weight: 550; line-height: 1.04; letter-spacing: -.055em; margin: 18px 0; }
 .record-demo-intro h1 span { color: #9595a0; }
 .record-demo-intro > p:last-child { font-size: 14px; line-height: 1.7; color: #62626e; }
+.record-demo-custom { display: grid; gap: 8px; margin: 12px 0 0; font-size: 13px; }
+.record-demo-custom div { display: flex; gap: 12px; }
+.record-demo-custom dt { min-width: 120px; color: #777781; }
+.record-demo-custom dd { margin: 0; }
 .record-demo-workspace { background: #fff; border: 1px solid #e0e0e7; border-radius: 14px; padding: 26px; box-shadow: 0 4px 12px #25253204; }
 .record-demo-controls { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 28px; }
 .record-demo-controls h2 { margin: 0 0 5px; font-size: 18px; letter-spacing: -.025em; }
