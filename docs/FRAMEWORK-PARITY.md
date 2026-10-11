@@ -320,6 +320,52 @@ view-state tests; Vue `components/filters/advanced-filters.test.ts`; and the
 Playwright `e2e/date-filter.spec.ts`, which picks a range from the column
 filter and opens an older link in both editions and both zones.
 
+## Relative date filters and date-time values
+
+Both editions accept relative tokens as date rule values: `$today`,
+`$yesterday`, `$tomorrow`, `$thisWeek`, `$lastWeek`, `$nextWeek`,
+`$thisMonth`, `$lastMonth`, `$nextMonth`, `$thisYear`, `$lastNDays` and
+`$nextNDays` (N from 1 to 3660, today included); `before` / `after` with
+`$today` reads "before / after today". The filter editors offer them in a
+"Date" select next to "Specific date" (React's shadcn select in the date
+filter and its compact popover, Vue's native `<select>` in `FilterRule`) and
+hide the day inputs while a token is set; chips show the translated label
+(`filters.relative.<key>`, English and French built in).
+
+Tokens are kept as they are in table state, URLs, saved views,
+`table.defaultFilters` and destination queries (export files, Connect,
+schedules). The shared `table-contracts.ts` resolves them with
+`tableFilterContext(table, locale)` (`table.timeZone`, the locale,
+`table.weekStartsOn`, `table.viewerId`) wherever a request leaves the table:
+`compatibleListParams` (list, fetch-all pages, bulk "select all"),
+`facetCountParams`, `toAdvancedFiltersParam` (aggregate) and
+`matchesContractFilter` for local data. A period becomes `between [first,
+last]`; `notEquals` excludes the period; `before` takes its first day and
+`after` its last. Weeks start on `table.weekStartsOn`, else the locale's first
+day (`Intl.Locale` week info, then a region table). `$viewer` becomes
+`table.viewerId` in any rule, or reaches the server unchanged without it.
+React's secondary hooks that build their own requests (planning, record
+pickers, global calculations) resolve with the runtime's zone and locale and
+no `viewerId`.
+
+A `date` column or form field with `withTime: true` holds ISO 8601 instants.
+Cells default to the `dateTime` preset (a column's own preset or pattern
+wins), and forms and inline edits use a native `datetime-local` input in the
+column's or field's `timeZone`, saving the instant in UTC
+(`dateTimeInputValue` / `dateTimeFromInput` in the shared `value-format.ts`,
+DST-aware). `generateDataTypeFields` passes `withTime` and `timeZone` to form
+fields, and `resolveDataTypeEditor` picks the `datetime` inline editor. Sorting
+compares instants; filters compare the instant's day in the zone.
+
+Coverage: the shared `tests/relative-dates-suite.ts` (token resolution, week
+starts by locale, zones, operators, `$viewer`, list and facet params,
+datetime conversions) run by React `tests/relative-dates.test.ts` and Vue
+`src/relative-dates.test.ts`; token persistence in URLs and views in
+`tests/date-filter-days-suite.ts`; React `tests/relative-dates-ui.test.tsx`
+and Vue `src/components/relative-dates-ui.test.ts` (relative select, chips,
+local filtering with `weekStartsOn`, resolved `list` params, datetime form
+field and inline editor).
+
 ## Behavioral parity matrix
 
 The parity contract covers user-visible behavior and serializable catalogue/action contracts. Component names, framework primitives, DOM structure, slots, and framework-native escape hatches remain specific to React or Vue.
@@ -329,6 +375,7 @@ The parity contract covers user-visible behavior and serializable catalogue/acti
 | Defaults and feature gates | Common defaults for editing, filters, column DnD/pinning, grouping, pagination, selection, views, debounce, URL state, and page sizes | Shared `behavior-defaults.json`, executed by both test runners |
 | List/filter/view contracts | One-based action pages, both page-size/search aliases, multi-sort, simple and advanced filters, aggregate labels, normalized saved views | Shared `parity.json`; both `contracts-parity.test.ts` suites; view-state suites |
 | Date filter values | `YYYY-MM-DD` days in requests, URLs and views; older instants read as the viewer's days; inclusive `between` | Shared `date-filter-days-suite.ts`; React `date-filter-picker.test.tsx`; Vue `advanced-filters.test.ts`; Playwright `e2e/date-filter.spec.ts` |
+| Relative dates and date-time | Relative tokens and `$viewer` kept in views/URLs, resolved in requests with zone, locale week start and `viewerId`; `withTime` columns and fields edit ISO instants | Shared `relative-dates-suite.ts`; React `relative-dates-ui.test.tsx`; Vue `relative-dates-ui.test.ts` |
 | Toolbar | Create/export order, icon mode, callback/static custom actions, action context, three placements, clear-filter shortcut | Vue `yayaw-data-table.test.ts`, `filter-reset.test.ts`; React toolbar and filter-reset suites |
 | View manager | Default/system views, dirty state, create/update/delete/share permissions, recoverable persistence | Vue saved-view suites; React view-manager suites |
 | Columns | Sort/filter/pin/hide menus, mandatory/utility locks, persistent DnD preference, pointer and keyboard reorder, optional resizing stored in views/URLs | Shared contract/view-state suites; Vue `catalogue-controls.test.ts`, `yayaw-data-table.test.ts`; React column and URL-state suites |
