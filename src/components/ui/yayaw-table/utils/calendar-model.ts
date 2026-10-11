@@ -9,11 +9,24 @@ type FieldTextColumnWithId = FieldTextColumn & { id: string };
 
 export type CalendarLayout = "month" | "week" | "list";
 
+/** Unit of a numeric duration; ISO 8601 strings (`"PT1H30M"`) carry their own. */
+export type CalendarDurationUnit = "minutes" | "hours" | "days";
+
 export interface CalendarViewSettings {
   /** Column holding the start date, or the only date. */
   dateColumn?: string;
   /** Column holding an inclusive end date; one-day events without it. */
   endColumn?: string;
+  /**
+   * Without `endColumn`: column holding a duration (a number in
+   * `durationUnit`, or an ISO 8601 string such as `"PT1H30M"`); the end is
+   * the start plus the duration and stretching an event writes the duration.
+   */
+  durationColumn?: string;
+  /** Unit of numeric durations and of `defaultDuration` (default minutes). */
+  durationUnit?: CalendarDurationUnit;
+  /** Duration of rows without one, as a number in `durationUnit` or ISO 8601. */
+  defaultDuration?: number | string;
   /** Column used as the event title. */
   titleColumn?: string;
   /** Column whose tag color colors the event. */
@@ -53,9 +66,15 @@ type ResolvedCalendarSettings = CalendarViewSettings &
   >;
 
 const LAYOUTS = new Set<CalendarLayout>(["month", "week", "list"]);
+const DURATION_UNITS = new Set<CalendarDurationUnit>([
+  "minutes",
+  "hours",
+  "days",
+]);
 const STRING_KEYS = [
   "dateColumn",
   "endColumn",
+  "durationColumn",
   "titleColumn",
   "colorColumn",
 ] as const;
@@ -67,7 +86,18 @@ const BOOLEAN_KEYS = [
 ] as const;
 const DAYS_IN_WEEK = 7;
 const DAY_MS = 86_400_000;
+const MINUTE_MS = 60_000;
+const MINUTES_PER_HOUR = 60;
+const MINUTES_PER_DAY = 1440;
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+/** Weeks, days, hours, minutes and seconds; years and months are ambiguous. */
+const ISO_DURATION =
+  /^P(?:(\d+(?:[.,]\d+)?)W)?(?:(\d+(?:[.,]\d+)?)D)?(?:T(?:(\d+(?:[.,]\d+)?)H)?(?:(\d+(?:[.,]\d+)?)M)?(?:(\d+(?:[.,]\d+)?)S)?)?$/i;
+const MINUTES_PER_UNIT: Record<CalendarDurationUnit, number> = {
+  minutes: 1,
+  hours: MINUTES_PER_HOUR,
+  days: MINUTES_PER_DAY,
+};
 
 /** Keep only valid calendar settings; unknown or malformed values are dropped. */
 export function normalizeCalendarViewConfig(
@@ -91,6 +121,12 @@ export function normalizeCalendarViewConfig(
   }
   if (LAYOUTS.has(input.layout as CalendarLayout)) {
     normalized.layout = input.layout as CalendarLayout;
+  }
+  if (DURATION_UNITS.has(input.durationUnit as CalendarDurationUnit)) {
+    normalized.durationUnit = input.durationUnit as CalendarDurationUnit;
+  }
+  if (parseDurationMinutes(input.defaultDuration, "minutes") !== undefined) {
+    normalized.defaultDuration = input.defaultDuration as number | string;
   }
   const weekStart = Number(input.weekStartsOn);
   if (
@@ -183,8 +219,9 @@ export function calendarEvents(
     if (!start) {
       return [];
     }
-    const lastDay =
-      (settings.endColumn && localDayKey(row[settings.endColumn])) || start;
+    const lastDay = settings.endColumn
+      ? localDayKey(row[settings.endColumn]) || start
+      : durationLastDay(row, settings, start);
     const last = lastDay < start ? start : lastDay;
     const title = settings.titleColumn ? row[settings.titleColumn] : undefined;
     const color = settings.colorColumn ? row[settings.colorColumn] : undefined;
@@ -256,6 +293,206 @@ export function calendarMovePatch(
       row[settings.endColumn],
       last < start ? start : last
     );
+    return patch;
   }
-  return patch;
+  const durationPatch = calendarDurationPatch(
+    row,
+    settings,
+    start,
+    endExclusive
+  );
+  return durationPatch ? { ...patch, ...durationPatch } : patch;
+}
+
+/** Stretching is possible with an end column or a duration column. */
+export function calendarCanResize(settings: CalendarViewSettings): boolean {
+  return Boolean(
+    settings.allowResize !== false &&
+      (settings.endColumn || settings.durationColumn)
+  );
+}
+
+/** Values prefilled when a day is clicked to create a record on it. */
+export function calendarCreateValues(
+  settings: CalendarViewSettings,
+  day: string
+): Record<string, unknown> {
+  if (!settings.dateColumn) {
+    return {};
+  }
+  const values: Record<string, unknown> = { [settings.dateColumn]: day };
+  if (settings.endColumn) {
+    values[settings.endColumn] = day;
+  } else if (
+    settings.durationColumn &&
+    settings.defaultDuration !== undefined &&
+    parseDurationMinutes(settings.defaultDuration, "minutes") !== undefined
+  ) {
+    values[settings.durationColumn] = settings.defaultDuration;
+  }
+  return values;
+}
+
+/**
+ * Minutes in a duration: a finite number (or numeric string) in `unit`, or an
+ * ISO 8601 duration with weeks, days, hours, minutes and seconds. Negative or
+ * malformed values give `undefined`.
+ */
+export function parseDurationMinutes(
+  value: unknown,
+  unit: CalendarDurationUnit = "minutes"
+): number | undefined {
+  if (value === null || value === undefined || value === "") {
+    return;
+  }
+  if (typeof value === "string") {
+    const text = value.trim();
+    const iso = ISO_DURATION.exec(text);
+    if (iso && text.length > 1 && !text.toUpperCase().endsWith("T")) {
+      const [, weeks, days, hours, minutes, seconds] = iso.map((part) =>
+        part === undefined ? 0 : Number(part.replace(",", "."))
+      );
+      return (
+        (weeks ?? 0) * DAYS_IN_WEEK * MINUTES_PER_DAY +
+        (days ?? 0) * MINUTES_PER_DAY +
+        (hours ?? 0) * MINUTES_PER_HOUR +
+        (minutes ?? 0) +
+        (seconds ?? 0) / MINUTES_PER_HOUR
+      );
+    }
+  }
+  const numeric = typeof value === "number" ? value : Number(value);
+  if (typeof value === "boolean" || !Number.isFinite(numeric) || numeric < 0) {
+    return;
+  }
+  return numeric * MINUTES_PER_UNIT[unit];
+}
+
+/** A number of minutes as an ISO 8601 duration such as `"P1DT2H30M"`. */
+export function formatIsoDuration(totalMinutes: number): string {
+  const rounded = Math.max(0, Math.round(totalMinutes));
+  const days = Math.floor(rounded / MINUTES_PER_DAY);
+  const hours = Math.floor((rounded % MINUTES_PER_DAY) / MINUTES_PER_HOUR);
+  const minutes = rounded % MINUTES_PER_HOUR;
+  const time = `${hours ? `${hours}H` : ""}${minutes ? `${minutes}M` : ""}`;
+  if (!(days || time)) {
+    return "PT0M";
+  }
+  return `P${days ? `${days}D` : ""}${time ? `T${time}` : ""}`;
+}
+
+/** The row's duration in minutes: its own value, else the default. */
+function rowDurationMinutes(
+  row: Record<string, unknown>,
+  settings: CalendarViewSettings
+): number | undefined {
+  const unit = settings.durationUnit ?? "minutes";
+  const own = settings.durationColumn
+    ? parseDurationMinutes(row[settings.durationColumn], unit)
+    : undefined;
+  return own ?? parseDurationMinutes(settings.defaultDuration, unit);
+}
+
+/** The start as an instant: a date-only value starts at local midnight. */
+function startInstant(value: unknown): Date | undefined {
+  if (typeof value === "string" && DATE_ONLY.test(value)) {
+    const [year, month, date] = dayParts(value);
+    return new Date(year, month, date);
+  }
+  const instant =
+    value instanceof Date || typeof value === "number"
+      ? new Date(value)
+      : new Date(String(value));
+  return Number.isFinite(instant.getTime()) ? instant : undefined;
+}
+
+/**
+ * The last day an event covers when its end is its start plus its duration.
+ * The end is exclusive: 24 hours from midnight stays on the start day. Whole
+ * days follow the local calendar, so a daylight-saving change moves nothing.
+ */
+function durationLastDay(
+  row: Record<string, unknown>,
+  settings: CalendarViewSettings,
+  start: string
+): string {
+  const minutes = rowDurationMinutes(row, settings);
+  const from = settings.dateColumn
+    ? startInstant(row[settings.dateColumn])
+    : undefined;
+  if (!(minutes && from)) {
+    return start;
+  }
+  const days = Math.floor(minutes / MINUTES_PER_DAY);
+  const end = new Date(
+    from.getFullYear(),
+    from.getMonth(),
+    from.getDate() + days,
+    from.getHours(),
+    from.getMinutes(),
+    from.getSeconds(),
+    from.getMilliseconds()
+  );
+  end.setTime(end.getTime() + (minutes - days * MINUTES_PER_DAY) * MINUTE_MS);
+  const endDay = localDayKey(end) ?? start;
+  const atMidnight =
+    end.getHours() === 0 &&
+    end.getMinutes() === 0 &&
+    end.getSeconds() === 0 &&
+    end.getMilliseconds() === 0;
+  return atMidnight ? addDays(endDay, -1) : endDay;
+}
+
+/** Write a duration as the stored one: ISO stays ISO, numbers keep the unit. */
+function durationLike(
+  original: unknown,
+  fallback: unknown,
+  minutes: number,
+  unit: CalendarDurationUnit
+): number | string {
+  const sample =
+    original === null || original === undefined || original === ""
+      ? fallback
+      : original;
+  if (typeof sample === "string" && ISO_DURATION.test(sample.trim())) {
+    return formatIsoDuration(minutes);
+  }
+  const value = minutes / MINUTES_PER_UNIT[unit];
+  return typeof sample === "string" ? String(value) : value;
+}
+
+/**
+ * Without an end column, a stretched event changes its duration by the days
+ * its end moved more than its start; a plain move keeps the duration.
+ */
+function calendarDurationPatch(
+  row: Record<string, unknown>,
+  settings: CalendarViewSettings,
+  start: string,
+  endExclusive: string
+): Record<string, unknown> | undefined {
+  const { dateColumn, durationColumn } = settings;
+  const previousStart = dateColumn ? localDayKey(row[dateColumn]) : undefined;
+  if (!(durationColumn && previousStart)) {
+    return;
+  }
+  const previousEnd = addDays(durationLastDay(row, settings, previousStart), 1);
+  const stretch =
+    daysBetween(previousEnd, endExclusive) - daysBetween(previousStart, start);
+  if (stretch === 0) {
+    return;
+  }
+  const unit = settings.durationUnit ?? "minutes";
+  const minutes = Math.max(
+    0,
+    (rowDurationMinutes(row, settings) ?? 0) + stretch * MINUTES_PER_DAY
+  );
+  return {
+    [durationColumn]: durationLike(
+      row[durationColumn],
+      settings.defaultDuration,
+      minutes,
+      unit
+    ),
+  };
 }

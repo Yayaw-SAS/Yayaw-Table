@@ -1182,8 +1182,25 @@ and writes moves back in the stored format (date-only stays date-only, ISO
 keeps its time). Both editions render their own toolbar (previous, today,
 next, title, Month/Week/List) and the same event pills with tag colors from
 `colorColumn`. Dragging calls `actions.update` and reverts on failure;
-stretching needs `endColumn`; clicking a day opens the create form with the
-date (and end date) prefilled. Layout changes are view settings.
+stretching needs `endColumn` or `durationColumn`; clicking a day opens the
+create form with the date (and end date, or `defaultDuration`) prefilled.
+Layout changes are view settings.
+
+Without `endColumn`, the end can be derived from the start plus a duration:
+`durationColumn` holds a number in `durationUnit` (`"minutes"` by default,
+`"hours"` or `"days"`) or an ISO 8601 duration (`"PT1H30M"`, `"P2D"`, weeks,
+days, hours, minutes and seconds; years and months are refused as
+ambiguous), and `defaultDuration` (same forms) covers rows without one, or
+every row when there is no duration column. The end is exclusive (24 hours
+from midnight stays on the start day; whole days follow the local calendar).
+A move writes the start only; stretching writes the duration, never an end,
+in the stored form (ISO stays ISO, numbers keep the unit). `endColumn` wins
+when both are set. All three keys are plain JSON view settings
+(`calendarCanResize`, `calendarCreateValues` and `parseDurationMinutes` are
+shared). Limitation: the server scope filters on the start only, so an event
+that starts before the visible range and lasts into it is not requested.
+Gantt keeps its own `gantt.startColumn` / `gantt.endColumn` mapping and does
+not read durations.
 
 Renderers receive a framework-neutral context: settings and their setter,
 current list parameters and action, local rows, row id, permissions,

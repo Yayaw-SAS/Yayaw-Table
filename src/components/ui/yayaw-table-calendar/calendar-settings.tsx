@@ -7,12 +7,20 @@ import {
 } from "@/src/components/ui/yayaw-table/components/toolbar/view-settings-panel";
 import type { DisplayModeSettingsContext } from "@/src/components/ui/yayaw-table/types/display-mode-renderer";
 import {
+  type CalendarDurationUnit,
   type CalendarViewSettings,
   resolveCalendarSettings,
 } from "@/src/components/ui/yayaw-table/utils/calendar-model";
 
 const NONE = "";
 const COLOR_TYPES = new Set(["select", "multiSelect", "text", "boolean"]);
+const DURATION_TYPES = new Set(["number", "text"]);
+const DURATION_UNITS: CalendarDurationUnit[] = ["minutes", "hours", "days"];
+const DURATION_UNIT_LABELS: Record<CalendarDurationUnit, string> = {
+  minutes: "Minutes",
+  hours: "Hours",
+  days: "Days",
+};
 const WEEK_STARTS = [
   { value: 1, key: "monday", fallback: "Monday" },
   { value: 0, key: "sunday", fallback: "Sunday" },
@@ -91,6 +99,34 @@ export function CalendarSettings({
           ],
           onChange: (value) => update({ endColumn: value || undefined }),
         },
+        ...(active.endColumn
+          ? []
+          : [
+              {
+                id: "duration",
+                label: label("durationColumn", "Duration"),
+                value: active.durationColumn ?? NONE,
+                options: [
+                  none,
+                  ...columns
+                    .filter((column) => DURATION_TYPES.has(column.type))
+                    .map(option),
+                ],
+                onChange: (value: string) =>
+                  update({ durationColumn: value || undefined }),
+              },
+              {
+                id: "durationUnit",
+                label: label("durationUnit", "Duration unit"),
+                value: active.durationUnit ?? "minutes",
+                options: DURATION_UNITS.map((unit) => ({
+                  value: unit,
+                  label: label(unit, DURATION_UNIT_LABELS[unit]),
+                })),
+                onChange: (value: string) =>
+                  update({ durationUnit: value as CalendarDurationUnit }),
+              },
+            ]),
         {
           id: "title",
           label: label("titleColumn", "Title"),

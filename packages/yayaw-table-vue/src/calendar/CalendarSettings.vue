@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import {
+  type CalendarDurationUnit,
   type CalendarLayout,
   type CalendarViewSettings,
   resolveCalendarSettings,
@@ -11,6 +12,13 @@ import type { DisplayModeSettingsContext } from "../display-mode-renderer";
 const props = defineProps<{ context: DisplayModeSettingsContext }>();
 const NONE = "";
 const COLOR_TYPES = new Set(["select", "multiSelect", "text", "boolean"]);
+const DURATION_TYPES = new Set(["number", "text"]);
+const DURATION_UNITS: CalendarDurationUnit[] = ["minutes", "hours", "days"];
+const DURATION_UNIT_LABELS: Record<CalendarDurationUnit, string> = {
+  minutes: "Minutes",
+  hours: "Hours",
+  days: "Days",
+};
 const WEEK_STARTS = [
   { value: 1, key: "monday", fallback: "Monday" },
   { value: 0, key: "sunday", fallback: "Sunday" },
@@ -38,6 +46,11 @@ const option = (column: { id: string; header: string }) => ({
 });
 const dateOptions = computed(() =>
   columns.value.filter((column) => column.type === "date").map(option)
+);
+const durationOptions = computed(() =>
+  columns.value
+    .filter((column) => DURATION_TYPES.has(String(column.type ?? "text")))
+    .map(option)
 );
 const none = computed(() => ({ value: NONE, label: label("none", "None") }));
 const update = (patch: CalendarViewSettings): void => {
@@ -80,6 +93,29 @@ const fields = computed(() => [
     ],
     onChange: (value: string) => update({ endColumn: value || undefined }),
   },
+  ...(active.value.endColumn
+    ? []
+    : [
+        {
+          id: "duration",
+          label: label("durationColumn", "Duration"),
+          value: active.value.durationColumn ?? NONE,
+          options: [none.value, ...durationOptions.value],
+          onChange: (value: string) =>
+            update({ durationColumn: value || undefined }),
+        },
+        {
+          id: "durationUnit",
+          label: label("durationUnit", "Duration unit"),
+          value: active.value.durationUnit ?? "minutes",
+          options: DURATION_UNITS.map((unit) => ({
+            value: unit,
+            label: label(unit, DURATION_UNIT_LABELS[unit]),
+          })),
+          onChange: (value: string) =>
+            update({ durationUnit: value as CalendarDurationUnit }),
+        },
+      ]),
   {
     id: "title",
     label: label("titleColumn", "Title"),
