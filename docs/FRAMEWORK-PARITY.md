@@ -335,6 +335,8 @@ The parity contract covers user-visible behavior and serializable catalogue/acti
 | Display modes | Shared mode registry, fallback for unavailable modes, grouping and pagination, card renderers, configurable empty state, one-page pagination hiding | Shared `display-modes.test.ts`; Playwright `e2e/views.spec.ts` in both editions; Vue `parity.test.ts`; React gallery/Kanban suites |
 | First load | One request for the first page, the loading state until it answers (React skeletons, on the server too; Vue overlay), views mounted once and loading their data once | React `table-loading.test.tsx`, `initial-rows.test.tsx`; Vue `table-loading.test.ts`; Playwright `e2e/filetree.spec.ts` |
 | Kanban updates | Permission-aware moves, optimistic update, rollback, accessible non-pointer movement, handle or whole-card drag (`dragFromCard`) | Vue `parity.test.ts`; React Kanban suites and `kanban-drag-from-card.test.tsx` |
+| Kanban lanes per view | `kanban.lanes` by grouping column (`order`, `hidden`) in saved views and as the table default, merged column by column; hidden lanes hide their cards and are listed under the board; the settings edit them (show, move up/down, reset); server boards arrange their loaded lanes alike | Shared `tests/kanban-lanes-suite.ts`; React `tests/kanban-lanes-avatars.test.tsx`; Vue `components/kanban-lanes-avatars.test.ts` |
+| Initials avatars | `avatar` on image columns, Kanban, List and Gallery settings: initials and a stable hue from the name where there is no image; decorative beside a shown name, labelled in cells | Shared `tests/initials-avatar-suite.ts`; React `tests/kanban-lanes-avatars.test.tsx`; Vue `components/kanban-lanes-avatars.test.ts` |
 | Selection | Controlled state, cross-page cache, select-all race protection, optional query persistence | React `selection-parity.test.tsx`; Vue component/action suites |
 | Catalogue forms | Generated fields, conditions, async values/options, nested collections, validation, transforms, patch mode | Shared `form-scenarios.json`; both form-contract suites and mounted form suites |
 | Table picker | Local/server query, controlled single/multiple selection, typed IDs, isolated URL state | React `table-picker-parity.test.tsx` and picker unit tests; Vue form-component tests |
@@ -3504,3 +3506,43 @@ Verification: the shared dashboard browser suite covers editor access, scrolling
 working drafts and narrow layouts in both frameworks. The explicit harness in
 `scripts/visual` captures desktop/mobile, light/dark, grid/flow, editing, and long
 titles in a narrow host panel without adding capture work to the normal gate.
+
+## Kanban lanes per view
+
+Both editions read lane order and visibility from `kanban.lanes`, keyed by the
+grouping column id: `{ "status": { "order": ["won", "lead"], "hidden":
+["lost"] } }`. Saved views carry it (`config.kanban.lanes`), so switching views
+switches lanes, and `table.kanban.lanes` sets the default; a view's settings
+replace the default's for the columns it names (`mergeKanbanLanes`). Lanes the
+order does not name follow in their usual order (configured `groups`, then
+values as rows bring them); the order never creates empty lanes. Hidden lanes
+hide their cards, and the board lists them under it ("Hidden lanes: …"). Each
+column keeps its own lanes, so changing the grouping column and back restores
+them.
+
+The Kanban settings list the lanes of the grouping column (configured groups,
+loaded values, the column's options, values the settings name) with a "Show
+<lane>" checkbox and "Move <lane> up/down" buttons; at an end, a move stays
+focusable but inactive. "Reset lanes" removes the view's settings for the
+column. The changes are view state: the blue dot, Save changes and Reset view
+treat them like the card properties. Server boards (`kanban.server`) arrange
+and hide the lanes their source returns the same way; hidden lanes still load.
+`sanitizeViewConfig` keeps well-formed lanes (at most 200 per column) and
+reports malformed ones as invalid values.
+
+## Initials avatars
+
+`avatar` (`true`, or `{ nameColumn, imageColumn, shape }`) shows a generated
+avatar where a record has no image: up to two initials and a hue derived from
+the name (`avatarInitials`, `avatarHue`, `initialsAvatar`), the same in both
+editions. On an image column it replaces the image placeholder in table cells
+and card properties; its name comes from `nameColumn`, else the record's
+`name`, `title` or `label`, and it is labelled with that name (`role="img"`).
+`kanban.avatar` and `list.avatar` add an avatar before each title: the image of
+`imageColumn` when it loads, else the initials of `nameColumn` (default: the
+title as shown). `gallery.avatar` replaces the placeholder of cards without an
+image with large initials. Beside a shown title, avatars are decorative
+(`aria-hidden`, images with empty `alt`). `shape` is `"circle"` (default) or
+`"square"`. The colors are tints readable in light and dark themes, with an
+outline in forced colors. Card avatar options are saved with the view's mode
+settings.
