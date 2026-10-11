@@ -718,7 +718,9 @@ export function fieldText(
   const formatted = formatColumnValue(
     value,
     column && { ...column, type },
-    locale
+    locale,
+    undefined,
+    row
   );
   if (formatted !== undefined) {
     return formatted;

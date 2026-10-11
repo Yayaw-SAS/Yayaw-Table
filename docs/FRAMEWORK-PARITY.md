@@ -1072,6 +1072,37 @@ Known difference kept for compatibility: a number column without
 locale's grouping in both. Set `numberFormat` for identical output.
 `tests/value-format-suite.ts` runs in both editions.
 
+### Amounts in several currencies
+
+`numberFormat.currencyColumn` names the row field holding each row's ISO 4217
+code (case-insensitive; anything else counts as no currency); `currency` is
+the fallback. Cells, cards and titles read in their row's currency
+(`rowNumberFormat`, `formatColumnNumber(value, column, locale, row)`,
+`fieldText`). Sums, averages, medians, extremes and ranges are computed per
+currency and never mixed: the footer shows one amount per currency joined
+with " · " (`"1 200,00 € · 300,00 $"`, codes in alphabetical order, amounts
+without a currency last); one currency reads as a plain total. Counts and
+shares are unchanged. `numberFormat.currencyConversion`
+(`{ currency: "EUR", rates: { USD: 0.92 }, display?: "converted" | "both" }`,
+plain JSON; rates are units of the target per unit of each code) shows one
+converted total instead; an optional `convert(amount, from, to)` callback
+answers codes without a rate. When any currency cannot be converted, the
+per-currency amounts stay. Local calculations convert each value first, so
+every calculation converts; a host's `byCurrency` answer converts for sums
+only.
+
+Server footers: `actions.aggregate` receives `currencyColumns`
+(`{ amount: "currency" }`) when a calculated column has a `currencyColumn`
+and may answer `{ amount: { raw: null, byCurrency: { EUR: 1200, USD: 300 } } }`
+without a label; both editions format it (`currencyAmountsResult`). A host
+label still wins. The list fallback and Vue local footers use
+`calculateCurrencyColumn`. React's grouped-table subtotals (number columns'
+aggregated cells, React only as before) total per currency too. Kanban lanes
+show counts only, so they have no totals to split. Charts and dashboard
+metrics keep their own aggregation and are not currency-aware.
+`tests/currency-totals-suite.ts` runs in both editions, with edition tests of
+the React list/aggregate footer path and the Vue `calculateColumn` and cells.
+
 ## Formats apply everywhere
 
 A format set on a column (`numberFormat`, `dateDisplayPreset`, `dateFormat`,
@@ -1191,8 +1222,25 @@ and writes moves back in the stored format (date-only stays date-only, ISO
 keeps its time). Both editions render their own toolbar (previous, today,
 next, title, Month/Week/List) and the same event pills with tag colors from
 `colorColumn`. Dragging calls `actions.update` and reverts on failure;
-stretching needs `endColumn`; clicking a day opens the create form with the
-date (and end date) prefilled. Layout changes are view settings.
+stretching needs `endColumn` or `durationColumn`; clicking a day opens the
+create form with the date (and end date, or `defaultDuration`) prefilled.
+Layout changes are view settings.
+
+Without `endColumn`, the end can be derived from the start plus a duration:
+`durationColumn` holds a number in `durationUnit` (`"minutes"` by default,
+`"hours"` or `"days"`) or an ISO 8601 duration (`"PT1H30M"`, `"P2D"`, weeks,
+days, hours, minutes and seconds; years and months are refused as
+ambiguous), and `defaultDuration` (same forms) covers rows without one, or
+every row when there is no duration column. The end is exclusive (24 hours
+from midnight stays on the start day; whole days follow the local calendar).
+A move writes the start only; stretching writes the duration, never an end,
+in the stored form (ISO stays ISO, numbers keep the unit). `endColumn` wins
+when both are set. All three keys are plain JSON view settings
+(`calendarCanResize`, `calendarCreateValues` and `parseDurationMinutes` are
+shared). Limitation: the server scope filters on the start only, so an event
+that starts before the visible range and lasts into it is not requested.
+Gantt keeps its own `gantt.startColumn` / `gantt.endColumn` mapping and does
+not read durations.
 
 Renderers receive a framework-neutral context: settings and their setter,
 current list parameters and action, local rows, row id, permissions,

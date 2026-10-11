@@ -932,6 +932,12 @@ export interface TableAggregateParams {
   calculations: Record<string, CalculationType>;
   locale: string;
   /**
+   * Columns whose amounts carry a per-row currency, with the row field
+   * holding it: answer their value calculations as `{ byCurrency }`
+   * (amounts by ISO 4217 code); the table formats them.
+   */
+  currencyColumns?: Record<string, string>;
+  /**
    * Chart groups: at most two levels (x axis, then series). When present,
    * answer `groups`; `calculations` is then empty. See `chart-model.ts`.
    */

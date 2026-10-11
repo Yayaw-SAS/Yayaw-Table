@@ -1139,6 +1139,9 @@ export const VIEW_MODE_SETTING_KEYS: Readonly<
   calendar: [
     "dateColumn",
     "endColumn",
+    "durationColumn",
+    "durationUnit",
+    "defaultDuration",
     "titleColumn",
     "colorColumn",
     "layout",
