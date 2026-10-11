@@ -74,6 +74,16 @@ const CONNECTOR_ITEMS = [
     name: "yayaw-table-connector-google-sheets",
     files: ["connector-model.ts", "sync-engine.ts", "google-sheets.ts"],
   },
+  {
+    name: "yayaw-table-connector-microsoft-excel",
+    // The Excel connector reuses the grid planning of google-sheets.ts.
+    files: [
+      "connector-model.ts",
+      "sync-engine.ts",
+      "google-sheets.ts",
+      "microsoft-excel.ts",
+    ],
+  },
 ];
 
 const REGEX_TSX_CSS = /\.(tsx?|css)$/;

@@ -70,7 +70,7 @@ free of them:
 | `yayaw-table-chart` / `yayaw-table-vue-chart` | Chart | Recharts / Unovis |
 | `yayaw-table-map` / `yayaw-table-vue-map` | Map | MapLibre (mapcn) |
 | `yayaw-table-dashboard` / `yayaw-table-vue-dashboard` | Dashboards and admin screens (views, numbers, notes, full-page tables, host blocks) | gridstack |
-| `yayaw-table-connector-notion`, `yayaw-table-connector-google-sheets` (and Vue) | Server modules for two-way sync | none |
+| `yayaw-table-connector-notion`, `yayaw-table-connector-google-sheets`, `yayaw-table-connector-microsoft-excel` (and Vue) | Server modules for two-way sync | none |
 | `yayaw-table-excel` / `yayaw-table-vue-excel` | Excel files written in the browser (`table.excelWriter`) | none (its own OOXML and ZIP writer) |
 
 ## Shared logic

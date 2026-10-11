@@ -19,6 +19,7 @@ const STANDALONE_REGISTRY_ITEMS = [
   "yayaw-table-vue-excel",
   "yayaw-table-vue-connector-notion",
   "yayaw-table-vue-connector-google-sheets",
+  "yayaw-table-vue-connector-microsoft-excel",
 ];
 
 const packageJson = JSON.parse(fs.readFileSync(PACKAGE_JSON_PATH, "utf8"));

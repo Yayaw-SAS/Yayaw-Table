@@ -145,10 +145,11 @@ their poster, and past 60 loaded posts only those near the viewport render
 are plain text unless `table.feed.renderBody` renders them (markdown or
 sanitized HTML); `table.feed: false` turns it off.
 
-Server connectors that push rows to Notion or Google Sheets, or sync them both
-ways, are optional framework-agnostic items as well
-(`yayaw-table-connector-notion`, `yayaw-table-connector-google-sheets`, and
-their `yayaw-table-vue-connector-*` copies). The host provides credential
+Server connectors that push rows to Notion, Google Sheets or Microsoft Excel
+(OneDrive and SharePoint workbooks), or sync them both ways, are optional
+framework-agnostic items as well (`yayaw-table-connector-notion`,
+`yayaw-table-connector-google-sheets`, `yayaw-table-connector-microsoft-excel`,
+and their `yayaw-table-vue-connector-*` copies). The host provides credential
 storage, sync state storage, authorization and workers; see
 [docs/connectors.md](docs/connectors.md).
 

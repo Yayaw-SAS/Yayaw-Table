@@ -1,6 +1,6 @@
 # Connectors
 
-The Notion and Google Sheets connectors are server modules, identical in both
+The Notion, Google Sheets and Microsoft Excel connectors are server modules, identical in both
 editions: `connector-model.ts` (columns, rows, mapping, push results, typed
 errors, HTTP with retries and rate limits), `sync-engine.ts` (two-way sync,
 pure) and one provider module. They use `fetch` and Web Crypto only (Node 20+,
@@ -9,6 +9,7 @@ module directly (there is no index):
 
 - React: `components/ui/yayaw-table/connectors/notion.ts`,
   `components/ui/yayaw-table/connectors/google-sheets.ts`,
+  `components/ui/yayaw-table/connectors/microsoft-excel.ts`,
   `components/ui/yayaw-table/connectors/sync-engine.ts`,
   `components/ui/yayaw-table/connectors/connector-model.ts`
 - Vue: the same files in `components/ui/yayaw-table-vue/connectors/`.
@@ -23,7 +24,7 @@ this page is about the server side. Full reference:
 
 | Duty | How |
 | --- | --- |
-| Credentials | Store Notion integration tokens and Google service account keys encrypted, per organization or user; never send them to the browser. |
+| Credentials | Store Notion integration tokens, Google service account keys and Microsoft refresh tokens encrypted, per organization or user; never send them to the browser. |
 | Authorization | Decide who may connect a destination and push or sync which table, and check it on every call and every scheduled run. |
 | Row loading | Load the rows of the view's query on the server with the user's permissions; do not accept rows from the browser. |
 | Entry points | Server actions, API routes or handlers that call the connector functions and return plain data. |
@@ -45,6 +46,14 @@ this page is about the server side. Full reference:
   credentials, spreadsheetId, sheetTitle, columns, rows, mode })`: `upsert`
   by the key column or `replace`; values are written raw, so text starting
   with `=` is never evaluated; the user's own columns are never reordered.
+- Microsoft Excel: the host runs the Microsoft sign-in (scopes
+  `MICROSOFT_EXCEL_SCOPES`), stores the refresh token and passes `token`, an
+  access token or a `({ forceRefresh }) => token` function called again after
+  a 401. `verifyMicrosoftAccount()`, `listExcelWorkbooks()`,
+  `getExcelWorkbook(token, linkOrId)` (a OneDrive or SharePoint link, or
+  `<driveId>/<itemId>`), then `pushRowsToExcel({ token, workbookId,
+  sheetName, columns, rows, mode })`. Text is written with Excel's quote
+  prefix, so it is never turned into a formula, a number or a date.
 - Rows come from `toConnectorRows()`. Failures are `ConnectorError`s (import
   it from `connector-model.ts`) with a `code` (`unauthorized`, `forbidden`,
   `not_shared`, `api_disabled`, `not_found`, `rate_limited`,

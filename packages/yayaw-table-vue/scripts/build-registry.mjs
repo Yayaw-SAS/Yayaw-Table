@@ -195,6 +195,26 @@ const connectorItems = [
     registryDependencies: [],
     files: await connectorFiles("google-sheets.ts"),
   },
+  {
+    $schema: "https://shadcn-vue.com/schema/registry-item.json",
+    name: "yayaw-table-vue-connector-microsoft-excel",
+    type: "registry:lib",
+    title: "YaYaw Table Vue Microsoft Excel Connector",
+    description:
+      'Optional, framework-agnostic server module that pushes table rows into a worksheet of a Microsoft Excel workbook stored in OneDrive or SharePoint (upsert or replace, keyed by a "Yayaw ID" column) through Microsoft Graph, and syncs both ways with the shared sync engine. The host owns the Microsoft sign-in, stores the refresh token and the sync state, authorizes the push and calls it from its server.',
+    dependencies: [],
+    registryDependencies: [],
+    // The Excel connector reuses the grid planning of google-sheets.ts.
+    files: await toRegistryFiles(
+      [
+        "connector-model.ts",
+        "sync-engine.ts",
+        "google-sheets.ts",
+        "microsoft-excel.ts",
+      ].map((file) => join(connectorsRoot, file)),
+      "registry:lib"
+    ),
+  },
 ];
 
 await mkdir(outputRoot, { recursive: true });

@@ -25,8 +25,10 @@ shadcn dependencies. The host root is not an install target: always use a
 | `yayaw-table-vue-excel` | Vue | the same writer | none |
 | `yayaw-table-connector-notion` | server, React folder | `connector-model.ts`, `sync-engine.ts`, `notion.ts` | none (uses `fetch` and Web Crypto) |
 | `yayaw-table-connector-google-sheets` | server, React folder | `connector-model.ts`, `sync-engine.ts`, `google-sheets.ts` | none |
+| `yayaw-table-connector-microsoft-excel` | server, React folder | `connector-model.ts`, `sync-engine.ts`, `google-sheets.ts`, `microsoft-excel.ts` | none |
 | `yayaw-table-vue-connector-notion` | server, Vue folder | the same files | none |
 | `yayaw-table-vue-connector-google-sheets` | server, Vue folder | the same files | none |
+| `yayaw-table-vue-connector-microsoft-excel` | server, Vue folder | the same files | none |
 | `yayaw-table-base` | React | Optional shadcn CLI v4 base: `base-vega`, lucide, neutral, the `@yayaw` namespace, the font and the table | `tw-animate-css`… |
 | `font-yayaw-sans` | React | Optional Plus Jakarta Sans as `--font-sans` | `@fontsource-variable/plus-jakarta-sans` |
 
