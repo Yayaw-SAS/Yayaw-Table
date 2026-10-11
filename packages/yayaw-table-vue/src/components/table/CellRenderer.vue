@@ -26,7 +26,7 @@ import TagPicker from "../tags/TagPicker.vue";
 import LocationEditor from "../location/LocationEditor.vue";
 import { formatCoordinates, formatLocation, parseLocation } from "../../location-model";
 import { displayCellValue, safeHttpUrl, imageSource } from "../../core";
-import { numberBarRatio } from "../../value-format";
+import { dateTimeFromInput, dateTimeInputValue, numberBarRatio } from "../../value-format";
 import {
   cloneFormValue,
   formValuesEqual,
@@ -177,7 +177,10 @@ const editor = computed<InlineEditEditor>(() => resolveDataTypeEditor({
   columnType: dynamicType.value,
   formFieldType: formField.value?.type,
   hasOptions: options.value.length > 0,
+  withTime: props.column.withTime === true || formField.value?.withTime === true,
 }));
+// Date and time editors show and read wall-clock times in the column's zone.
+const editorTimeZone = computed(() => props.column.timeZone ?? formField.value?.timeZone);
 const loadedOptions = ref<SelectOption[]>();
 const optionsLoading = ref(false);
 const optionsFailed = ref(false);
@@ -194,7 +197,7 @@ const options = computed<SelectOption[]>(
 );
 const begin = async (): Promise<void> => {
   if (!canEdit.value || pending.value || optionsLoading.value || (editing.value && !optionsFailed.value)) return;
-  draft.value = editor.value === "json" ? (props.value == null ? "" : JSON.stringify(props.value, null, 2)) : editor.value === "date" ? dataTypeDateInput(props.value) : cloneFormValue(props.value);
+  draft.value = editor.value === "json" ? (props.value == null ? "" : JSON.stringify(props.value, null, 2)) : editor.value === "date" ? dataTypeDateInput(props.value) : editor.value === "datetime" ? dateTimeInputValue(props.value, editorTimeZone.value) : cloneFormValue(props.value);
   committed.value = cloneFormValue(draft.value);
   editing.value = true;
   closeRequested = false;
@@ -234,6 +237,11 @@ const parseDraft = (): unknown => {
       return draft.value;
     }
     return draft.value.trim() ? JSON.parse(draft.value) : null;
+  }
+  if (editor.value === "datetime") {
+    const instant = dateTimeFromInput(String(draft.value ?? ""), editorTimeZone.value);
+    if (instant === undefined) throw new Error("Expected a valid date");
+    return instant === "" ? null : instant;
   }
   const issue = dataTypeValueError(editor.value, draft.value);
   if (issue) throw new Error(issue);
@@ -314,7 +322,7 @@ const save = async (close = true): Promise<void> => {
       );
     optimistic = false;
     saved = true;
-    committed.value = editor.value === "json" ? JSON.stringify(value, null, 2) : cloneFormValue(value);
+    committed.value = editor.value === "json" ? JSON.stringify(value, null, 2) : editor.value === "datetime" ? dateTimeInputValue(value, editorTimeZone.value) : cloneFormValue(value);
     // A response for an earlier draft must not replace a newer selection.
     if (formValuesEqual(draft.value, submittedDraft)) draft.value = cloneFormValue(committed.value);
     if (closeRequested && !dirty.value) editing.value = false;
@@ -542,6 +550,8 @@ const tagChip = (value: unknown) => {
             ? 'number'
             : editor === 'date'
             ? 'date'
+            : editor === 'datetime'
+            ? 'datetime-local'
             : editor === 'url'
             ? 'url'
             : 'text'

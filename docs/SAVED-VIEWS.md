@@ -176,6 +176,10 @@ scheduled connector pushes) should pass their rules through
 `normalizeDateFilterRules(rules, { timeZone })` with the zone of the person who
 saved the view.
 
+Relative date rules (`$today`, `$thisWeek`, `$last30Days`…) and `$viewer` are
+saved as tokens, so a view keeps meaning "this week" or "mine" for whoever
+opens it and whenever. They are resolved only for the requests the table sends.
+
 Reset view restores the active snapshot, or the application's initial configuration
 for a temporary view. It includes density, display mode, card configuration,
 filters, sorting, grouping, columns and `footerCalculationsVisible`. Missing legacy

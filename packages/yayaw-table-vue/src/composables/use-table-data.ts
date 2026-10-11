@@ -8,7 +8,10 @@ import {
   watch,
 } from "vue";
 import { withManualOrderView } from "../manual-order";
-import { compatibleListParams } from "../table-contracts";
+import {
+  compatibleListParams,
+  type FilterTokenContext,
+} from "../table-contracts";
 import type {
   AdvancedFiltersState,
   ColumnFiltersState,
@@ -41,6 +44,7 @@ interface ListResult<TData> {
 }
 
 export const useTableData = <TData extends TableRecord>({
+  filterContext,
   actions,
   inputData,
   search,
@@ -78,6 +82,11 @@ export const useTableData = <TData extends TableRecord>({
   searchDebounceMs?: Readonly<Ref<number>>;
   /** Active saved view; sent with the manual-order sort so the host applies that view's order. */
   viewId?: Readonly<Ref<string | undefined>>;
+  /**
+   * Resolves relative dates and `$viewer` in the rules sent to `list` (see
+   * `tableFilterContext`); the runtime's zone and locale without it.
+   */
+  filterContext?: Readonly<Ref<FilterTokenContext>>;
 }): TableDataResult<TData> => {
   const rows = ref<TData[]>([...inputData.value]) as Ref<TData[]>;
   const rowCount = ref(initialRowCount ?? inputData.value.length);
@@ -147,7 +156,12 @@ export const useTableData = <TData extends TableRecord>({
       const result = await queryClient.fetchQuery({
         queryKey: listQueryKey(params),
         queryFn: () =>
-          list(compatibleListParams(params) as unknown as TableListParams),
+          list(
+            compatibleListParams(
+              params,
+              filterContext?.value
+            ) as unknown as TableListParams
+          ),
         staleTime: 0,
       });
       if (currentRequest !== requestId) {

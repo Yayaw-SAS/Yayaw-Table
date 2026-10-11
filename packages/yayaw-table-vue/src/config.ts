@@ -111,6 +111,7 @@ export const defineTableConfig = <TData extends TableRecord>(
         dateDisplayPreset:
           column.type === "date"
             ? (column.dateDisplayPreset ??
+              (column.withTime ? "dateTime" : undefined) ??
               input.table?.dateDisplayPreset ??
               defaultTableBehavior.dateDisplayPreset)
             : column.dateDisplayPreset,

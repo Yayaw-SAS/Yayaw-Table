@@ -373,6 +373,97 @@ function wallClock(date: Date, timeZone: string): Date {
   return local;
 }
 
+const LOCAL_DATE_TIME =
+  /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,9})?)?$/;
+
+/** Milliseconds `timeZone` is ahead of UTC at an instant. */
+function zoneOffset(time: number, timeZone: string): number {
+  const clock = wallClock(new Date(time), timeZone);
+  const asUtc = Date.UTC(
+    clock.getFullYear(),
+    clock.getMonth(),
+    clock.getDate(),
+    clock.getHours(),
+    clock.getMinutes(),
+    clock.getSeconds(),
+    clock.getMilliseconds()
+  );
+  return asUtc - time;
+}
+
+const twoDigits = (value: number) => String(value).padStart(2, "0");
+
+/**
+ * A date and time as a `datetime-local` input shows it, `YYYY-MM-DDTHH:mm`:
+ * the wall-clock time of the instant in `timeZone` (the runtime's, the
+ * viewer's in a browser, without one). A day alone reads as its midnight.
+ * Empty when the value is not a date.
+ */
+export function dateTimeInputValue(value: unknown, timeZone?: string): string {
+  if (value === null || value === undefined || value === "") {
+    return "";
+  }
+  if (typeof value === "string" && LOCAL_DATE_TIME.test(value.trim())) {
+    // A wall-clock time without a zone is already what the input shows.
+    return value.trim().slice(0, 16).replace(" ", "T");
+  }
+  const date = parseDateValue(value);
+  if (!date) {
+    return "";
+  }
+  const zone = isCalendarDay(value) ? undefined : knownTimeZone(timeZone);
+  const clock = zone ? wallClock(date, zone) : date;
+  return `${String(clock.getFullYear()).padStart(4, "0")}-${twoDigits(clock.getMonth() + 1)}-${twoDigits(clock.getDate())}T${twoDigits(clock.getHours())}:${twoDigits(clock.getMinutes())}`;
+}
+
+/**
+ * The instant a `datetime-local` input names, as an ISO 8601 string in UTC
+ * (`"2026-10-11T07:30:00.000Z"`): the input's wall-clock time read in
+ * `timeZone` (the runtime's without one). Empty text gives `""`; text that is
+ * not a date and time gives `undefined`.
+ */
+export function dateTimeFromInput(
+  text: string,
+  timeZone?: string
+): string | undefined {
+  const value = text.trim();
+  if (!value) {
+    return "";
+  }
+  const match = LOCAL_DATE_TIME.exec(value);
+  if (!match) {
+    const date = parseDateValue(value);
+    return date ? date.toISOString() : undefined;
+  }
+  const [year, month, day, hour, minute, second] = match
+    .slice(1)
+    .map((part) => Number(part ?? 0));
+  const zone = knownTimeZone(timeZone);
+  if (!zone) {
+    const local = new Date(
+      year ?? 0,
+      (month ?? 1) - 1,
+      day ?? 1,
+      hour ?? 0,
+      minute ?? 0,
+      second ?? 0
+    );
+    return Number.isFinite(local.getTime()) ? local.toISOString() : undefined;
+  }
+  const asUtc = Date.UTC(
+    year ?? 0,
+    (month ?? 1) - 1,
+    day ?? 1,
+    hour ?? 0,
+    minute ?? 0,
+    second ?? 0
+  );
+  // The zone's offset at the guess, then at the corrected instant (DST edges).
+  const first = asUtc - zoneOffset(asUtc, zone);
+  const instant = asUtc - zoneOffset(first, zone);
+  return Number.isFinite(instant) ? new Date(instant).toISOString() : undefined;
+}
+
 function formatWithPattern(
   date: Date,
   pattern: string,
@@ -435,6 +526,8 @@ export function formatDateValue(
  */
 export interface ColumnValueFormat {
   type?: string;
+  /** A date column whose values are a date and a time (ISO 8601 instants). */
+  withTime?: boolean;
   numberFormat?: NumberFormatConfig;
   dateDisplayPreset?: DateDisplayPreset;
   dateFormat?: string;
@@ -452,7 +545,9 @@ export function columnDateFormat(
   fallbackPreset?: DateDisplayPreset
 ): ColumnDateFormat {
   return {
-    preset: column?.dateDisplayPreset ?? fallbackPreset,
+    preset:
+      column?.dateDisplayPreset ??
+      (column?.withTime ? "dateTime" : fallbackPreset),
     pattern: column?.dateFormat || undefined,
     locale,
     timeZone: column?.timeZone,

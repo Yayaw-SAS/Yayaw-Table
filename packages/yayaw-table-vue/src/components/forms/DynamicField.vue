@@ -25,6 +25,7 @@ import {
 import { jsonFormDraft, jsonFormText, dataTypeDateInput, optionControlKey, optionControlValue } from "../../table-contracts";
 import FormDateField from "../../form/FormDateField.vue";
 import { formLabel } from "../../form-view";
+import { dateTimeFromInput, dateTimeInputValue } from "../../value-format";
 import FieldSelect from "./FieldSelect.vue";
 import { dynamicFieldType, fieldIsHidden, fieldIsRequired } from "../../form-runtime";
 import { useFieldOptions } from "../../composables/use-field-options";
@@ -237,6 +238,13 @@ const customNode = computed(() =>
 );
 const dateLimit = (value?: Date | string): string | undefined =>
   value instanceof Date ? value.toISOString().slice(0, 10) : value;
+// Date and time fields store an ISO 8601 instant, picked in the field's zone.
+const dateTimeLimit = (value?: Date | string): string | undefined =>
+  dateTimeInputValue(value, props.field.timeZone) || undefined;
+const updateDateTime = (event: Event): void => {
+  const raw = (event.target as HTMLInputElement).value;
+  update(dateTimeFromInput(raw, props.field.timeZone) ?? "");
+};
 // The Form view's controls: dropdowns, a popover calendar, switches and checkboxes.
 const locale = computed(() => props.context.locale ?? "en");
 const choosePlaceholder = computed(
@@ -527,6 +535,24 @@ watch(valueType, (next, previous) => {
       </SwitchRoot>
       <span v-if="field.placeholder" class="yayaw-form-choice-label">{{ field.placeholder }}</span>
     </div>
+    <input
+      v-else-if="effectiveType === 'date' && field.withTime"
+      :id="fieldId"
+      class="yayaw-input"
+      type="datetime-local"
+      data-date-time-field=""
+      :name="field.name"
+      :lang="locale"
+      :value="dateTimeInputValue(modelValue, field.timeZone)"
+      :min="dateTimeLimit(field.minDate)"
+      :max="dateTimeLimit(field.maxDate)"
+      :disabled="disabled"
+      :required="required"
+      :aria-invalid="Boolean(errorMessage)"
+      :aria-describedby="describedBy"
+      @input="updateDateTime"
+      @blur="touch"
+    />
     <FormDateField
       v-else-if="effectiveType === 'date'"
       :id="fieldId"

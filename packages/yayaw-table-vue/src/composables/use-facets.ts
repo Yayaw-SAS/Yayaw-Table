@@ -20,7 +20,11 @@ import {
 } from "../facets-model";
 import { folderFacetLabel } from "../folder-directory";
 import type { ScopedRowsRequest } from "../scoped-rows";
-import { normalizeFilterEnvelope, recordValue } from "../table-contracts";
+import {
+  normalizeFilterEnvelope,
+  recordValue,
+  tableFilterContext,
+} from "../table-contracts";
 import type {
   AdvancedFilter,
   AdvancedFiltersState,
@@ -132,6 +136,7 @@ export function useFacetPanel() {
         filters: envelope.filters as unknown as AdvancedFilter[],
         joinOperator: envelope.joinOperator,
       },
+      filterContext: tableFilterContext(context.config.table, context.locale),
     });
   };
   let controller: AbortController | undefined;

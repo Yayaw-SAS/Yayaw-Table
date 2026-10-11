@@ -15,7 +15,8 @@ import type {
 import { CompactDateFilter, DateFilter } from "./date-filter";
 import { FolderFilterInput } from "./folder-filter";
 import {
-  isCalendarDay,
+  isDateFilterValue,
+  isRelativeDateToken,
   todayCalendarDay,
 } from "../../utils/date-filter-days";
 import { locationFilterHasValue } from "../../utils/location-model";
@@ -416,17 +417,21 @@ export function isValidFilterValue<TType extends ColumnDataType>(
     }
 
     case "date": {
-      // Date rules name calendar days, written `YYYY-MM-DD`.
+      // Date rules name calendar days, written `YYYY-MM-DD`, or relative
+      // tokens (`"$thisWeek"`): one token is a whole range for `between`.
       if (operator === "between") {
+        if (isRelativeDateToken(Array.isArray(value) ? value[0] : value)) {
+          return !Array.isArray(value) || value.length === 1;
+        }
         return (
           Array.isArray(value) &&
           value.length === 2 &&
-          isCalendarDay(value[0]) &&
-          isCalendarDay(value[1])
+          isDateFilterValue(value[0]) &&
+          isDateFilterValue(value[1])
         );
       }
       // One day; saved rules may hold it in a one-item list.
-      return isCalendarDay(Array.isArray(value) ? value[0] : value);
+      return isDateFilterValue(Array.isArray(value) ? value[0] : value);
     }
 
     case "select": {

@@ -66,7 +66,9 @@ import { useTableInstance } from "../../hooks/use-table-instance";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
 import { useCurrentViewConfig } from "../../hooks/use-view-config";
 import { useToolbarLayout } from "../../hooks/use-toolbar-layout";
+import { tableFilterContext } from "../../utils/table-contracts";
 import {
+  useLocale,
   useTableActions as useProviderTableActions,
   useTranslations,
 } from "../../providers/table-provider";
@@ -366,11 +368,14 @@ function createColumnOptions(
       const rawDateFormat =
         (colDef as { dateFormat?: unknown }).dateFormat ??
         (colDef as { meta?: { dateFormat?: unknown } }).meta?.dateFormat;
+      // A date and time column keeps its time in exports.
+      const fallbackDatePreset =
+        colDef.withTime === true ? "dateTime" : tableDateDisplayPreset;
       const resolvedDateDisplayPreset = isDateDisplayPreset(
         columnDateDisplayPreset
       )
         ? columnDateDisplayPreset
-        : tableDateDisplayPreset;
+        : fallbackDatePreset;
       const resolvedDateFormat =
         typeof rawDateFormat === "string" ? rawDateFormat : undefined;
       const option = {
@@ -1003,6 +1008,7 @@ export function DataTableAdvancedToolbar<TData>({
 
   // Setup configuration and state
   const { t, state, tableConfig } = useToolbarSetup(tableId, tableType);
+  const toolbarLocale = useLocale();
   const [isExporting, setIsExporting] = useState(false);
   const [pendingToolbarActionIds, setPendingToolbarActionIds] = useState<
     Set<string>
@@ -1299,15 +1305,22 @@ export function DataTableAdvancedToolbar<TData>({
     if (!hasListAction) {
       return data ?? [];
     }
+    const filterContext = tableFilterContext(tableConfig.table, toolbarLocale);
     return await fetchAllFilteredRows({
-      advancedFilters: toAdvancedFiltersParam(advancedFiltersParam),
+      advancedFilters: toAdvancedFiltersParam(
+        advancedFiltersParam,
+        filterContext
+      ),
       filters: toFiltersParam(filtersParam),
+      filterContext,
       listAction: tableActions?.list as TableListAction,
       orderBy: toOrderByParam(sortParam),
       pageSize: toPageSize(pageSizeParam || "100"),
       search: globalSearchParam?.trim() || "",
     });
   }, [
+    tableConfig.table,
+    toolbarLocale,
     advancedFiltersParam,
     data,
     filtersParam,

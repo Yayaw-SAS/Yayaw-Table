@@ -293,3 +293,387 @@ export function normalizeDateFilterRules<T>(
   }
   return state;
 }
+
+/*
+ * Relative dates: tokens such as `"$today"` or `"$thisWeek"` that a date rule
+ * holds in place of days, so a saved view ("Due this week") keeps meaning the
+ * current week. They are resolved to days when the rule is applied: in the
+ * viewer's time zone, with the week starting on the locale's first day.
+ */
+
+/** First day of the week: 0 Sunday, 1 Monday … 6 Saturday. */
+export type WeekStart = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+/** Fixed relative tokens; `$lastNDays` and `$nextNDays` take any count. */
+export const RELATIVE_DATE_TOKENS = [
+  "$today",
+  "$yesterday",
+  "$tomorrow",
+  "$thisWeek",
+  "$lastWeek",
+  "$nextWeek",
+  "$thisMonth",
+  "$lastMonth",
+  "$nextMonth",
+  "$thisYear",
+  "$lastYear",
+  "$nextYear",
+] as const;
+
+/**
+ * A relative date: one of `RELATIVE_DATE_TOKENS`, or `$last<N>Days` /
+ * `$next<N>Days` (N from 1 to 3660), such as `"$last7Days"`.
+ */
+export type RelativeDateToken =
+  | (typeof RELATIVE_DATE_TOKENS)[number]
+  | `$last${number}Days`
+  | `$next${number}Days`;
+
+/** The relative choices date filter menus offer, in order. */
+export const RELATIVE_DATE_CHOICES: readonly RelativeDateToken[] = [
+  "$today",
+  "$yesterday",
+  "$tomorrow",
+  "$thisWeek",
+  "$lastWeek",
+  "$nextWeek",
+  "$thisMonth",
+  "$lastMonth",
+  "$nextMonth",
+  "$thisYear",
+  "$last7Days",
+  "$last30Days",
+  "$last90Days",
+  "$next7Days",
+  "$next30Days",
+];
+
+const RELATIVE_DAY_COUNT = /^\$(last|next)([1-9]\d{0,3})Days$/;
+const MAX_RELATIVE_DAYS = 3660;
+
+/** Whether a value is a relative date token such as `"$thisWeek"`. */
+export function isRelativeDateToken(
+  value: unknown
+): value is RelativeDateToken {
+  if (typeof value !== "string" || !value.startsWith("$")) {
+    return false;
+  }
+  if ((RELATIVE_DATE_TOKENS as readonly string[]).includes(value)) {
+    return true;
+  }
+  const count = Number(RELATIVE_DAY_COUNT.exec(value)?.[2] ?? 0);
+  return count >= 1 && count <= MAX_RELATIVE_DAYS;
+}
+
+/** A date rule value: a `YYYY-MM-DD` day or a relative token. */
+export function isDateFilterValue(
+  value: unknown
+): value is CalendarDay | RelativeDateToken {
+  return isCalendarDay(value) || isRelativeDateToken(value);
+}
+
+/** How relative dates resolve: whose today, and which first weekday. */
+export interface RelativeDateContext {
+  /** IANA zone of "today", by default the runtime's (the viewer's in a browser). */
+  timeZone?: string;
+  /** Locale whose first weekday starts weeks, by default the runtime's. */
+  locale?: string;
+  /** First day of the week, winning over the locale's: 0 Sunday … 6 Saturday. */
+  weekStartsOn?: number;
+  /** The instant "today" is read from, by default now (mainly for tests and servers). */
+  now?: Date | number | string;
+}
+
+/** Inclusive range of calendar days. */
+export interface CalendarDayRange {
+  start: CalendarDay;
+  end: CalendarDay;
+}
+
+/** CLDR regions whose weeks start on Sunday or on Saturday; the others start on Monday. */
+const SUNDAY_REGIONS = new Set(
+  "AG AS BD BR BS BT BW BZ CA CN CO DM DO ET GT GU HK HN ID IL IN JM JP KE KH KR LA MH MM MO MT MX MZ NI NP PA PE PH PK PR PT PY SA SG SV TH TT TW UM US VE VI WS YE ZA ZW".split(
+    " "
+  )
+);
+const SATURDAY_REGIONS = new Set(
+  "AE AF BH DJ DZ EG IQ IR JO KW LY OM QA SD SY".split(" ")
+);
+const DAYS_IN_WEEK = 7;
+
+interface WeekInfoLocale {
+  getWeekInfo?: () => { firstDay: number };
+  weekInfo?: { firstDay: number };
+  maximize?: () => Intl.Locale;
+}
+
+const runtimeLocale = (): string => {
+  try {
+    return new Intl.DateTimeFormat().resolvedOptions().locale;
+  } catch {
+    return "en-US";
+  }
+};
+
+/** First day of the week in a locale (`"fr"` Monday, `"en-US"` Sunday). */
+export function localeWeekStart(locale?: string): WeekStart {
+  try {
+    const info = new Intl.Locale(locale || runtimeLocale()) as Intl.Locale &
+      WeekInfoLocale;
+    const firstDay = (info.getWeekInfo?.() ?? info.weekInfo)?.firstDay;
+    if (firstDay) {
+      return (firstDay % DAYS_IN_WEEK) as WeekStart;
+    }
+    const region = info.maximize?.().region ?? info.region ?? "";
+    if (SUNDAY_REGIONS.has(region)) {
+      return 0;
+    }
+    return SATURDAY_REGIONS.has(region) ? 6 : 1;
+  } catch {
+    return 1;
+  }
+}
+
+const contextWeekStart = (context: RelativeDateContext): WeekStart => {
+  const explicit = Number(context.weekStartsOn);
+  return Number.isInteger(explicit) && explicit >= 0 && explicit < DAYS_IN_WEEK
+    ? (explicit as WeekStart)
+    : localeWeekStart(context.locale);
+};
+
+/** The weekday of a calendar day: 0 Sunday … 6 Saturday. */
+const weekday = (day: CalendarDay): number =>
+  new Date(`${day}T00:00:00Z`).getUTCDay();
+
+const firstOfMonth = (day: CalendarDay, months: number): CalendarDay => {
+  const date = new Date(0);
+  date.setUTCFullYear(
+    Number(day.slice(0, 4)),
+    Number(day.slice(5, 7)) - 1 + months,
+    1
+  );
+  return `${pad(date.getUTCFullYear(), 4)}-${pad(date.getUTCMonth() + 1)}-01`;
+};
+
+const monthRange = (today: CalendarDay, months: number): CalendarDayRange => {
+  const start = firstOfMonth(today, months);
+  return { start, end: addCalendarDays(firstOfMonth(today, months + 1), -1) };
+};
+
+const yearRange = (today: CalendarDay, years: number): CalendarDayRange => {
+  const year = pad(Number(today.slice(0, 4)) + years, 4);
+  return { start: `${year}-01-01`, end: `${year}-12-31` };
+};
+
+const weekRange = (
+  today: CalendarDay,
+  weeks: number,
+  start: WeekStart
+): CalendarDayRange => {
+  const offset = (weekday(today) - start + DAYS_IN_WEEK) % DAYS_IN_WEEK;
+  const first = addCalendarDays(today, weeks * DAYS_IN_WEEK - offset);
+  return { start: first, end: addCalendarDays(first, DAYS_IN_WEEK - 1) };
+};
+
+const singleDay = (day: CalendarDay): CalendarDayRange => ({
+  start: day,
+  end: day,
+});
+
+/**
+ * The days a relative token names, both included, at `context.now` in
+ * `context.timeZone`: `$today` is one day, `$thisWeek` the seven days of the
+ * current week (starting on the locale's first weekday), `$last7Days` the
+ * seven days ending today and `$next7Days` the seven days starting today.
+ * Undefined when the value is not a token.
+ */
+export function resolveRelativeDate(
+  token: unknown,
+  context: RelativeDateContext = {}
+): CalendarDayRange | undefined {
+  if (!isRelativeDateToken(token)) {
+    return;
+  }
+  const now =
+    context.now === undefined ? new Date() : new Date(context.now as Date);
+  const today = todayCalendarDay(
+    context.timeZone,
+    Number.isFinite(now.getTime()) ? now : new Date()
+  );
+  const count = RELATIVE_DAY_COUNT.exec(token);
+  if (count) {
+    const days = Number(count[2]) - 1;
+    return count[1] === "last"
+      ? { start: addCalendarDays(today, -days), end: today }
+      : { start: today, end: addCalendarDays(today, days) };
+  }
+  const weekStart = contextWeekStart(context);
+  const ranges: Record<string, () => CalendarDayRange> = {
+    $today: () => singleDay(today),
+    $yesterday: () => singleDay(addCalendarDays(today, -1)),
+    $tomorrow: () => singleDay(addCalendarDays(today, 1)),
+    $thisWeek: () => weekRange(today, 0, weekStart),
+    $lastWeek: () => weekRange(today, -1, weekStart),
+    $nextWeek: () => weekRange(today, 1, weekStart),
+    $thisMonth: () => monthRange(today, 0),
+    $lastMonth: () => monthRange(today, -1),
+    $nextMonth: () => monthRange(today, 1),
+    $thisYear: () => yearRange(today, 0),
+    $lastYear: () => yearRange(today, -1),
+    $nextYear: () => yearRange(today, 1),
+  };
+  return ranges[token]?.();
+}
+
+/**
+ * The days a date rule value names: a token's days, or one day for a day (an
+ * instant reads as its day in `context.timeZone`). Undefined for other values.
+ */
+export function dateFilterValueRange(
+  value: unknown,
+  context: RelativeDateContext = {}
+): CalendarDayRange | undefined {
+  if (isRelativeDateToken(value)) {
+    return resolveRelativeDate(value, context);
+  }
+  const day = calendarDay(value, context.timeZone);
+  return day ? singleDay(day) : undefined;
+}
+
+/**
+ * A date rule's operator and values with its relative tokens resolved to
+ * days, in the shapes every date rule already uses:
+ * - `equals` / `between` a token → `between [first, last]` (the token's days);
+ * - `notEquals` a token → `notEquals [first, last]` (outside those days);
+ * - `before` / `lessThan` → its first day, `after` / `greaterThan` → its last;
+ * - `lessThanOrEqual` → its last day, `greaterThanOrEqual` → its first;
+ * - `between [A, B]` → from A's first day to B's last.
+ *
+ * A rule without tokens comes back unchanged (the same object).
+ */
+export function resolveRelativeDateRule<
+  T extends { operator?: unknown; values?: unknown },
+>(rule: T, context: RelativeDateContext = {}): T {
+  const values = Array.isArray(rule.values) ? rule.values : [rule.values];
+  if (!values.some(isRelativeDateToken)) {
+    return rule;
+  }
+  const ranges = values.map((value) => dateFilterValueRange(value, context));
+  const first = ranges[0];
+  const last = ranges[1] ?? first;
+  if (!(first && last)) {
+    return rule;
+  }
+  // One day keeps the rule's shape: a value stays a value, a list a list.
+  const one = (day: CalendarDay) => (Array.isArray(rule.values) ? [day] : day);
+  switch (rule.operator) {
+    case "equals":
+    case "between":
+      return { ...rule, operator: "between", values: [first.start, last.end] };
+    case "notEquals":
+      return { ...rule, values: [first.start, first.end] };
+    case "before":
+    case "lessThan":
+    case "greaterThanOrEqual":
+      return { ...rule, values: one(first.start) };
+    case "after":
+    case "greaterThan":
+    case "lessThanOrEqual":
+      return { ...rule, values: one(first.end) };
+    default:
+      return rule;
+  }
+}
+
+const RELATIVE_LABELS: Record<
+  "en" | "fr",
+  Record<(typeof RELATIVE_DATE_TOKENS)[number], string> & {
+    lastDays: string;
+    nextDays: string;
+  }
+> = {
+  en: {
+    $today: "Today",
+    $yesterday: "Yesterday",
+    $tomorrow: "Tomorrow",
+    $thisWeek: "This week",
+    $lastWeek: "Last week",
+    $nextWeek: "Next week",
+    $thisMonth: "This month",
+    $lastMonth: "Last month",
+    $nextMonth: "Next month",
+    $thisYear: "This year",
+    $lastYear: "Last year",
+    $nextYear: "Next year",
+    lastDays: "Last {count} days",
+    nextDays: "Next {count} days",
+  },
+  fr: {
+    $today: "Aujourd’hui",
+    $yesterday: "Hier",
+    $tomorrow: "Demain",
+    $thisWeek: "Cette semaine",
+    $lastWeek: "La semaine dernière",
+    $nextWeek: "La semaine prochaine",
+    $thisMonth: "Ce mois-ci",
+    $lastMonth: "Le mois dernier",
+    $nextMonth: "Le mois prochain",
+    $thisYear: "Cette année",
+    $lastYear: "L’année dernière",
+    $nextYear: "L’année prochaine",
+    lastDays: "{count} derniers jours",
+    nextDays: "{count} prochains jours",
+  },
+};
+
+/**
+ * A relative token as people read it, in English or French (`"fr"` locales):
+ * `"$thisWeek"` reads "This week", `"$last14Days"` "Last 14 days".
+ * `translate`, when given, wins for the keys `filters.relative.<token
+ * without $>` (and `filters.relative.lastDays` / `nextDays`, with `{count}`).
+ */
+export function relativeDateLabel(
+  token: RelativeDateToken,
+  locale?: string,
+  translate?: (key: string) => string | undefined
+): string {
+  const labels = locale?.toLowerCase().startsWith("fr")
+    ? RELATIVE_LABELS.fr
+    : RELATIVE_LABELS.en;
+  const count = RELATIVE_DAY_COUNT.exec(token);
+  const key = count ? `${count[1]}Days` : token.slice(1);
+  const fallback = count
+    ? labels[count[1] === "last" ? "lastDays" : "nextDays"]
+    : labels[token as (typeof RELATIVE_DATE_TOKENS)[number]];
+  const text = translate?.(`filters.relative.${key}`) || fallback;
+  return count ? text.replace("{count}", count[2] ?? "") : text;
+}
+
+const RELATIVE_FIELD_LABELS = {
+  en: { label: "Date", fixed: "Specific date" },
+  fr: { label: "Date", fixed: "Date précise" },
+} as const;
+
+/**
+ * The relative choice's own words: `"label"` names the choice ("Date") and
+ * `"fixed"` the option that picks days in the calendar ("Specific date").
+ * `translate` wins for `filters.relative.label` / `filters.relative.fixed`.
+ */
+export function relativeDateFieldLabel(
+  kind: "fixed" | "label",
+  locale?: string,
+  translate?: (key: string) => string | undefined
+): string {
+  const labels = locale?.toLowerCase().startsWith("fr")
+    ? RELATIVE_FIELD_LABELS.fr
+    : RELATIVE_FIELD_LABELS.en;
+  return translate?.(`filters.relative.${kind}`) || labels[kind];
+}
+
+/** The relative token a date rule's value holds, if any (`"$x"` or `["$x"]`). */
+export function relativeDateTokenOf(
+  value: unknown
+): RelativeDateToken | undefined {
+  const first = Array.isArray(value) ? value[0] : value;
+  return isRelativeDateToken(first) ? first : undefined;
+}

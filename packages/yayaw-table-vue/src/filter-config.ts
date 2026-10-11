@@ -1,4 +1,4 @@
-import { isCalendarDay } from "./date-filter-days";
+import { isDateFilterValue, relativeDateTokenOf } from "./date-filter-days";
 import { locationFilterHasValue } from "./location-model";
 import { dataTypeFilter } from "./table-contracts";
 import type {
@@ -97,6 +97,10 @@ export const filterHasValue = (filter: AdvancedFilter): boolean => {
     return locationFilterHasValue(filter.operator, filter.values);
   }
   const values = Array.isArray(filter.values) ? filter.values : [filter.values];
+  // One relative token (`"$thisWeek"`) is a whole range, even for `between`.
+  if (filter.type === "date" && relativeDateTokenOf(filter.values)) {
+    return values.length === 1 || values.every(isDateFilterValue);
+  }
   if (filter.operator === "between" && values.length !== 2) {
     return false;
   }
@@ -111,8 +115,8 @@ export const filterHasValue = (filter: AdvancedFilter): boolean => {
       return typeof value === "number" && Number.isFinite(value);
     }
     if (filter.type === "date") {
-      // Date rules name calendar days, written `YYYY-MM-DD`.
-      return isCalendarDay(value);
+      // Date rules name calendar days, written `YYYY-MM-DD`, or relative tokens.
+      return isDateFilterValue(value);
     }
     return (
       filter.type === "select" || filter.type === "multiSelect" || value !== ""
