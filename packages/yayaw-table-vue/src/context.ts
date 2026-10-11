@@ -102,6 +102,8 @@ export interface TableContextValue<TData extends TableRecord = TableRecord> {
   queryClient: QueryClient;
   /** The host's tag catalogs, for tables with tags columns and `actions.tags`. */
   tags?: TagCatalogRuntime;
+  /** Scopes the instance's URL keys (`<instanceId>-…`), the open folder's included. */
+  instanceId?: string;
   /** The view manager starts from `initialViews` without loading them (`initialViewsLoaded`). */
   initialViewsLoaded?: boolean;
   /** The user's favorite view, known by the host. */

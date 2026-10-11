@@ -72,6 +72,7 @@ import {
   useTableActions as useProviderTableActions,
   useTranslations,
 } from "../../providers/table-provider";
+import { useTableInstanceId } from "../../providers/table-state-sync-provider";
 import type {
   ColumnDataType,
   ToolbarAction,
@@ -1072,6 +1073,7 @@ export function DataTableAdvancedToolbar<TData>({
 
   // QueryClient for invalidating queries
   const queryClient = useQueryClient();
+  const instanceId = useTableInstanceId();
 
   // Use data table hook to get all table state
   const {
@@ -1622,7 +1624,7 @@ export function DataTableAdvancedToolbar<TData>({
     [locale, t]
   );
   // The active saved view names the file, as in Vue.
-  const viewsKey = tableViewsQueryKey(tableId, tableType);
+  const viewsKey = tableViewsQueryKey(tableId, tableType, instanceId);
   const readSavedViews = () => queryClient.getQueryData<TableView[]>(viewsKey);
   const savedViews = useSyncExternalStore(
     useCallback(

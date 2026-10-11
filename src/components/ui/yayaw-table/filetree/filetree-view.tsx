@@ -45,6 +45,7 @@ import {
   DropdownMenuTrigger,
 } from "@/src/components/ui/dropdown-menu";
 import { useIsMobile } from "../hooks/use-mobile";
+import { useTableInstanceId } from "../providers/table-state-sync-provider";
 import type { DisplayModeRenderContext } from "../types/display-mode-renderer";
 import {
   FileTreeController,
@@ -198,8 +199,10 @@ interface ViewActions {
 
 /** One controller per view; its events reach the latest React state through a ref. */
 function useFileTreeController(model: ViewModel, actions: ViewActions) {
-  const latest = useRef({ model, actions });
-  latest.current = { model, actions };
+  // An instance keeps its open folder under its own URL key.
+  const instanceId = useTableInstanceId();
+  const latest = useRef({ model, actions, instanceId });
+  latest.current = { model, actions, instanceId };
   const events = useMemo<FileTreeEvents>(
     () => ({
       open: (row) => latest.current.actions.openFile(row),
@@ -212,7 +215,11 @@ function useFileTreeController(model: ViewModel, actions: ViewActions) {
       folder: (id) => {
         const { context } = latest.current.model;
         if (context.syncUrl) {
-          writeFileTreeFolderParam(context.tableId, id);
+          writeFileTreeFolderParam(
+            context.tableId,
+            id,
+            latest.current.instanceId
+          );
         }
       },
       requestDelete: (ids) => latest.current.actions.setDeleteIds(ids),
@@ -230,7 +237,9 @@ function useFileTreeController(model: ViewModel, actions: ViewActions) {
   useEffect(() => {
     const { context } = latest.current.model;
     controller.start(
-      context.syncUrl ? readFileTreeFolderParam(context.tableId) : undefined
+      context.syncUrl
+        ? readFileTreeFolderParam(context.tableId, latest.current.instanceId)
+        : undefined
     );
     return () => controller.dispose();
   }, [controller]);

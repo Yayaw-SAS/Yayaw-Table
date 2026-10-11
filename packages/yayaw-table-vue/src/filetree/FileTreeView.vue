@@ -13,6 +13,7 @@ import {
 } from "lucide-vue-next";
 import {
   computed,
+  inject,
   nextTick,
   onBeforeUnmount,
   onMounted,
@@ -22,6 +23,7 @@ import {
 } from "vue";
 import { toast } from "vue-sonner";
 import TableCheckbox from "../components/controls/TableCheckbox.vue";
+import { tableContextKey } from "../context";
 import type { DisplayModeRenderContext } from "../display-mode-renderer";
 import {
   FileTreeController,
@@ -70,6 +72,8 @@ import FileTreeStatusRow from "./FileTreeStatusRow.vue";
 /** File tree display mode: folders and files as a tree table, with a details pane. */
 const props = defineProps<{ context: DisplayModeRenderContext }>();
 const PHONE_QUERY = "(max-width: 767px)";
+// An instance keeps its open folder under its own URL key.
+const instanceId = inject(tableContextKey, undefined)?.instanceId;
 
 const settings = computed(() =>
   resolveFileTreeSettings(
@@ -164,7 +168,7 @@ const events: FileTreeEvents = {
     props.context.updateSettings({ ...props.context.settings, ...state }),
   folder: (id) => {
     if (props.context.syncUrl) {
-      writeFileTreeFolderParam(props.context.tableId, id);
+      writeFileTreeFolderParam(props.context.tableId, id, instanceId);
     }
   },
   requestDelete: (ids) => {
@@ -223,7 +227,9 @@ onMounted(() => {
   media?.addEventListener("change", syncPhone);
   syncPhone();
   controller.start(
-    props.context.syncUrl ? readFileTreeFolderParam(props.context.tableId) : undefined
+    props.context.syncUrl
+      ? readFileTreeFolderParam(props.context.tableId, instanceId)
+      : undefined
   );
   if (root.value) {
     cleanups = [

@@ -205,7 +205,8 @@ count when known.
   cache.
 - Expanded state kept per view (saved, `expanded` ids capped at 500, or
   `expandedAll`) and in the URL for the current folder
-  (`<tableId>-folder=<id>`), so a link opens the same folder.
+  (`<tableId>-folder=<id>`, or `<instanceId>-folder=<id>` for a table with
+  an `instanceId`), so a link opens the same folder.
 
 ## 6. Settings (per view, saved)
 

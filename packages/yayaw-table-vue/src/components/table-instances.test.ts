@@ -1,16 +1,38 @@
-import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
+import {
+  DOMWrapper,
+  enableAutoUnmount,
+  flushPromises,
+  mount,
+} from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { defineComponent, h } from "vue";
+import { defineComponent, h, markRaw } from "vue";
+import {
+  assetColumns,
+  assetTableOptions,
+  assetVisibleColumns,
+  createAssetActions,
+} from "../../../../examples/assets";
 import viewChange from "../../../../tests/fixtures/view-config-change.json";
+import {
+  inlineTestPortals,
+  openViewSave,
+  openViewsMenu,
+} from "../../tests/menu-helpers";
 import { defineTableConfig } from "../config";
+import { fileTreeRenderer } from "../filetree/filetree-renderer";
+import { fileTreeFolderKey } from "../filetree-model";
 import type {
+  TableActions,
   TableListParams,
   TableRecord,
+  TableView,
   TableViewConfig,
   ToolbarActionContext,
 } from "../types";
 import type { ViewConfig } from "../view-config";
 import YayawDataTable from "./YayawDataTable.vue";
+
+inlineTestPortals();
 
 const rows: TableRecord[] = [
   { id: "1", name: "Alpha", status: "Open" },
@@ -253,5 +275,172 @@ describe("table instances on one page", () => {
     await wrapper.get('[aria-label="Read view"]').trigger("click");
     await flushPromises();
     expect(read).toEqual([viewChange.reports.searched]);
+  });
+});
+
+describe("instances of one source on one page", () => {
+  it("keeps `<tableId>-folder` without an instance id", () => {
+    expect(fileTreeFolderKey("test")).toBe("test-folder");
+    expect(fileTreeFolderKey("test", "left")).toBe("left-folder");
+  });
+
+  beforeEach(() => {
+    window.history.replaceState({}, "", "/");
+    window.localStorage.clear();
+  });
+
+  const viewsConfig = defineTableConfig({
+    ...config,
+    id: "shared-views",
+    table: {
+      ...config.table,
+      enableViews: true,
+      viewTabs: false,
+      allowViewSave: true,
+      syncUrl: true,
+    },
+  });
+  const statusView = (id: string, status: string): TableView => ({
+    ...onlyStatus(id, status),
+    tableId: "shared-views",
+    name: `${status} rows`,
+  });
+
+  it("opens each instance on its own default view and lists the table's saved views in both", async () => {
+    const open = statusView("open-view", "Open");
+    const closed = statusView("closed-view", "Closed");
+    const savedViews = [open, closed];
+    const views = {
+      list: () => Promise.resolve({ success: true, data: [...savedViews] }),
+      getFavorite: () =>
+        Promise.resolve({ success: true, data: { viewId: null } }),
+      create: (input: { name: string; config: TableViewConfig }) => {
+        const view: TableView = {
+          id: "late-view",
+          tableId: "shared-views",
+          name: input.name,
+          config: input.config,
+        };
+        savedViews.push(view);
+        return Promise.resolve({ success: true, data: view });
+      },
+    };
+    const mountInstance = (instanceId: string, favorite: string) =>
+      mount(YayawDataTable, {
+        attachTo: document.body,
+        props: {
+          tableType: "shared-views",
+          config: viewsConfig,
+          data: rows,
+          getTableActions: () => ({ views }) as never,
+          initialViews: [open, closed],
+          initialViewsLoaded: true,
+          initialFavoriteViewId: favorite,
+          instanceId,
+          syncUrl: true,
+        },
+        global: {
+          stubs: {
+            PopperArrow: true,
+            PopperContent: { template: "<div><slot /></div>" },
+          },
+        },
+      });
+    const left = mountInstance("left", open.id);
+    const right = mountInstance("right", closed.id);
+    await settle();
+    // Each instance opens on the default view its host gave it.
+    const params = new URLSearchParams(window.location.search);
+    expect(params.get("left-view")).toBe("open-view");
+    expect(params.get("right-view")).toBe("closed-view");
+    expect(params.has("view")).toBe(false);
+    expect(left.text()).toContain("Alpha");
+    expect(left.text()).not.toContain("Beta");
+    expect(right.text()).toContain("Beta");
+    expect(right.text()).not.toContain("Alpha");
+
+    // A view saved from one instance is listed by the other.
+    await openViewSave(left);
+    await new DOMWrapper(document.body)
+      .get(".yayaw-view-form input:not([type])")
+      .setValue("Late rows");
+    await new DOMWrapper(document.body)
+      .get(".yayaw-view-form")
+      .trigger("submit");
+    await settle();
+    await openViewsMenu(right);
+    expect(right.text()).toContain("Late rows");
+    // The other instance keeps its own view.
+    expect(new URLSearchParams(window.location.search).get("right-view")).toBe(
+      "closed-view"
+    );
+  });
+
+  it("opens each instance of one file tree on its own folder", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/?left-folder=f-photos&right-folder=f-2026&shared-assets-folder=f-brand"
+    );
+    const assetsConfig = defineTableConfig({
+      id: "shared-assets",
+      columns: {
+        definitions: assetColumns,
+        order: assetColumns.map((column) => column.id),
+        visible: assetVisibleColumns,
+        mandatory: ["name"],
+      },
+      table: {
+        syncUrl: true,
+        enableViews: false,
+        defaultDisplayMode: "filetree",
+        displayModes: ["filetree", "table"],
+        filetree: assetTableOptions.filetree,
+      },
+      translations: { namespace: "shared-assets", keys: { title: "Assets" } },
+    });
+    const actions = createAssetActions() as unknown as TableActions;
+    const renderers = markRaw({ filetree: fileTreeRenderer });
+    const mountInstance = (instanceId?: string) =>
+      mount(YayawDataTable, {
+        attachTo: document.body,
+        props: {
+          tableType: "shared-assets",
+          config: assetsConfig,
+          displayModeRenderers: renderers,
+          getTableActions: () => actions,
+          getRowId: (row: TableRecord) => String(row.id),
+          instanceId,
+        },
+      });
+    const left = mountInstance("left");
+    const right = mountInstance("right");
+    const unscoped = mountInstance();
+    const focusedRow = (wrapper: typeof left) =>
+      wrapper
+        .find('[data-filetree-id][tabindex="0"]')
+        .attributes("data-filetree-id");
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      if (
+        left.find('[data-filetree-id][tabindex="0"]').exists() &&
+        focusedRow(left) === "f-photos" &&
+        focusedRow(right) === "f-2026"
+      ) {
+        break;
+      }
+      await settle();
+    }
+    expect(focusedRow(left)).toBe("f-photos");
+    expect(focusedRow(right)).toBe("f-2026");
+    // Without an instance id, the table keeps `<tableId>-folder`.
+    expect(focusedRow(unscoped)).toBe("f-brand");
+
+    // Opening another folder writes the instance's own key only.
+    await left.get('[data-filetree-id="f-documents"]').trigger("click");
+    await settle();
+    const params = new URLSearchParams(window.location.search);
+    expect(params.get("left-folder")).toBe("f-documents");
+    expect(params.get("right-folder")).toBe("f-2026");
+    expect(params.get("shared-assets-folder")).toBe("f-brand");
   });
 });

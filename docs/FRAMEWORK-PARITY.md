@@ -1616,7 +1616,8 @@ Everything but the markup is shared and synced to Vue:
   the keyboard state machine (arrows, Home/End, Enter, Space, `*`, F2,
   Ctrl/Cmd+X/V/A/Z, Delete, Alt+Shift+↓/↑, Shift+F10, type-ahead),
   selection clicks, search helpers, formats (sizes, relative dates, values),
-  windowing, the settings fields and the `<tableId>-folder` URL key.
+  windowing, the settings fields and the `<tableId>-folder` URL key
+  (`<instanceId>-folder` for a table with an `instanceId`).
 - `filetree-controller.ts`: a framework-neutral store both views subscribe to
   (React `useSyncExternalStore`, Vue `shallowRef`). It loads with the
   `children`, `subtree` and `tree-matches` scopes (`params.scope.kind`,
@@ -2922,6 +2923,20 @@ Both editions take two additive props for pages with several tables:
   table never share atoms; Vue instances already keep their state in their own
   refs. Config, actions and saved views still resolve by table. Without
   `instanceId`, keys and stores are unchanged.
+- The File tree's open folder follows: `<instanceId>-folder` instead of
+  `<tableId>-folder` (`fileTreeFolderKey(tableId, instanceId?)`, shared by both
+  editions).
+- Saved views: every instance of a table lists the table's saved views, but
+  each keeps its own seeds (`initialViews`, `initialViewsLoaded`), active view
+  (`<instanceId>-view`) and favorite / default view (`initialFavoriteViewId`,
+  `initialActiveViewId`). React caches an instance's views under
+  `tableViewsQueryKey(tableId, tableType, instanceId)` and its favorite under
+  `tableViewFavoriteQueryKey(tableId, tableType, instanceId)`; a create,
+  update, delete or reorder invalidates the table's key
+  (`tableViewsQueryKey(tableId, tableType)`), which refreshes every instance.
+  Vue managers keep their views in their own refs and list them again when
+  another manager of the same table changes them. Without `instanceId`, React
+  keys are unchanged.
 - `initialView: { id?, config, pageIndex? }` starts an instance whose URL
   sync is off from a saved view before its first request: React seeds the
   instance's store with what selecting the view writes (`seedTableViewState`),
@@ -2941,7 +2956,10 @@ Verification: `tests/table-instances.test.tsx` and
 two instances of one table write only their own keys (the shared `view` key
 included), read only their own keys from an incoming URL, and that two
 embedded instances each send their own view's filters in their first request
-without touching the URL.
+without touching the URL. They also check that two instances of one table
+open on their own default view (`initialFavoriteViewId`) and list a view the
+other saved, and that two File trees of one table open and write their own
+folder (`<instanceId>-folder`) while an unscoped one keeps `<tableId>-folder`.
 
 ## Dashboard
 

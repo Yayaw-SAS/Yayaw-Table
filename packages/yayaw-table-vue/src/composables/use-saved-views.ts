@@ -41,6 +41,14 @@ import type { ViewHistoryOptions } from "./use-table-state";
  */
 const localOrders = shallowReactive(new Map<string, string[] | undefined>());
 
+/**
+ * A count of the saved-view changes made per table on the page. Every
+ * manager of the table, each instance included, lists them again after a
+ * change another made, as React's managers refresh the table's query.
+ * Each instance keeps its own seeds, active view and favorite.
+ */
+const viewChanges = shallowReactive(new Map<string, number>());
+
 /** Keep persistence and asynchronous state separate from menu/dialog presentation. */
 export function useSavedViews(
   initialViews: () => TableView[],
@@ -71,6 +79,17 @@ export function useSavedViews(
   );
   const views = ref<TableView[]>(cloneFormValue(initialViews()));
   const localOrderKey = getTableViewOrderStorageKey(actionContext);
+  const changesKey = JSON.stringify([
+    actionContext.tableType ?? "",
+    actionContext.tableId,
+  ]);
+  /** The last change this manager made or listed. */
+  let seenChange = viewChanges.get(changesKey) ?? 0;
+  /** Tells the table's other managers that its saved views changed. */
+  const announceChange = (): void => {
+    seenChange = (viewChanges.get(changesKey) ?? 0) + 1;
+    viewChanges.set(changesKey, seenChange);
+  };
   const localOrder = computed(() => localOrders.get(localOrderKey));
   /** The views in the user's order: tabs, "More views" and the view menu. */
   const orderedViews = computed(() =>
@@ -373,6 +392,7 @@ export function useSavedViews(
     const order = parseViewOrder(saved?.viewIds) ?? viewIds;
     if (!disposed) {
       views.value = orderViews(views.value, order);
+      announceChange();
     }
     return order;
   };
@@ -439,6 +459,7 @@ export function useSavedViews(
           return;
         }
         upsert(view);
+        announceChange();
         // Preserve table edits made while persistence was pending.
         if (
           config.displayMode !== current.displayMode ||
@@ -477,6 +498,7 @@ export function useSavedViews(
           return;
         }
         upsert(saved);
+        announceChange();
         if (
           context.state.activeViewId.value === view.id &&
           formValuesEqual(config, context.state.snapshot.value)
@@ -506,6 +528,7 @@ export function useSavedViews(
           return;
         }
         views.value = views.value.filter((item) => item.id !== view.id);
+        announceChange();
         if (context.state.activeViewId.value === view.id) {
           if (formValuesEqual(before, context.state.snapshot.value)) {
             context.state.reset();
@@ -536,6 +559,29 @@ export function useSavedViews(
       load();
     }
   });
+  /** Lists the views again after another manager of the table changed them. */
+  const listChanges = async (): Promise<void> => {
+    try {
+      await loadViews();
+    } catch (cause) {
+      if (!disposed) {
+        loadError.value =
+          cause instanceof Error
+            ? cause.message
+            : label("views.notifications.error.load", "viewLoadError");
+      }
+    }
+  };
+  watch(
+    () => viewChanges.get(changesKey) ?? 0,
+    (change) => {
+      if (change === seenChange || disposed || !enabled()) {
+        return;
+      }
+      seenChange = change;
+      listChanges();
+    }
+  );
   return {
     context,
     views,
