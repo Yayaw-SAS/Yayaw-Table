@@ -223,6 +223,18 @@ export type {
   UpdateTableViewInput,
 } from "./types/view-types";
 export type { TableActivityRecord } from "./utils/activity-shortcuts";
+// Generated avatars (initials and a stable color) for records without an image.
+export {
+  avatarHue,
+  avatarInitials,
+  initialsAvatar,
+} from "./utils/initials-avatar";
+// Kanban lane order and visibility per grouping column, as views save them.
+export {
+  arrangeKanbanLanes,
+  mergeKanbanLanes,
+  normalizeKanbanLanes,
+} from "./utils/kanban-lanes";
 export type {
   TableGalleryMediaConfig,
   TableGalleryPreviewSize,

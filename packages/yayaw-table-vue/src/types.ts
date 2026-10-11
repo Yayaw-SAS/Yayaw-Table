@@ -166,6 +166,12 @@ export interface ColumnDefinition<TData extends TableRecord = TableRecord> {
   customRenderers?: Record<string, (value: unknown, row: TData) => VNodeChild>;
   showQuotes?: boolean;
   urlDisplayMode?: "domain" | "full" | "icon" | "row-link";
+  /**
+   * Image columns: without an image, show initials with a stable color
+   * instead of the image placeholder. `nameColumn` names the column giving
+   * them; it defaults to the record's `name`, `title` or `label`.
+   */
+  avatar?: import("./initials-avatar").AvatarOption;
 }
 
 export interface TableColumnsConfig<TData extends TableRecord = TableRecord> {
@@ -201,6 +207,17 @@ export interface TableKanbanConfig {
    * grip handle. The move buttons stay the keyboard path. Defaults to false.
    */
   dragFromCard?: boolean;
+  /**
+   * Default lane order and hidden lanes, by grouping column id
+   * (`{ "stage": { "order": ["won", "lead"], "hidden": ["lost"] } }`).
+   * A saved view's `kanban.lanes` replaces a column's settings.
+   */
+  lanes?: import("./kanban-lanes").KanbanLanes;
+  /**
+   * Avatar before each card title: the image of `imageColumn`, or initials
+   * with a stable color when the record has none. Omitted shows none.
+   */
+  avatar?: import("./initials-avatar").AvatarOption;
 }
 
 /** Rows as single lines: a title followed by compact properties. */
@@ -213,6 +230,13 @@ export interface TableKanbanViewConfig {
   titleColumn?: string;
   cardColumnIds?: string[];
   showCardLabels?: boolean;
+  /**
+   * Lane order and hidden lanes, by grouping column id. Switching views
+   * switches lanes; the board's settings edit them.
+   */
+  lanes?: import("./kanban-lanes").KanbanLanes;
+  /** Avatar before each card title (see TableKanbanConfig.avatar). */
+  avatar?: import("./initials-avatar").AvatarOption;
 }
 
 export interface TableGalleryConfig {
@@ -227,6 +251,11 @@ export interface TableGalleryConfig {
   imageFit?: TableGalleryImageFit;
   cardSize?: TableGalleryCardSize;
   showCardLabels?: boolean;
+  /**
+   * Cards without an image show initials with a stable color instead of the
+   * image placeholder. `nameColumn` defaults to the card title.
+   */
+  avatar?: import("./initials-avatar").AvatarOption;
 }
 
 export type TableGalleryViewConfig = Omit<

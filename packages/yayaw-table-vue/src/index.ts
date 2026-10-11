@@ -124,6 +124,21 @@ export {
   publicFormSnapshot,
   withFormServerContext,
 } from "./form-view";
+export {
+  type AvatarConfig,
+  type AvatarOption,
+  type AvatarShape,
+  avatarHue,
+  avatarInitials,
+  initialsAvatar,
+} from "./initials-avatar";
+export {
+  arrangeKanbanLanes,
+  type KanbanLaneSettings,
+  type KanbanLanes,
+  mergeKanbanLanes,
+  normalizeKanbanLanes,
+} from "./kanban-lanes";
 // Location columns and the Map mode: shared helpers a host can use on its server.
 export {
   boundsContain,

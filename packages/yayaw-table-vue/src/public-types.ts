@@ -102,6 +102,21 @@ export type {
   FileTreeTableConfig,
   FileTreeViewSettings,
 } from "./filetree-model";
+export {
+  type AvatarConfig,
+  type AvatarOption,
+  type AvatarShape,
+  avatarHue,
+  avatarInitials,
+  initialsAvatar,
+} from "./initials-avatar";
+export {
+  arrangeKanbanLanes,
+  type KanbanLaneSettings,
+  type KanbanLanes,
+  mergeKanbanLanes,
+  normalizeKanbanLanes,
+} from "./kanban-lanes";
 export type {
   DetailActivity,
   DetailField,

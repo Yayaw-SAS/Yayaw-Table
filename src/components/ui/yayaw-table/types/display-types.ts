@@ -1,8 +1,17 @@
 import type { ReactNode } from "react";
+import type { AvatarOption } from "../utils/initials-avatar";
+import type { KanbanLanes } from "../utils/kanban-lanes";
 import type {
   TableGalleryMediaConfig,
   TableGalleryPreviewSize,
 } from "../utils/media-contract";
+
+export type {
+  AvatarConfig,
+  AvatarOption,
+  AvatarShape,
+} from "../utils/initials-avatar";
+export type { KanbanLaneSettings, KanbanLanes } from "../utils/kanban-lanes";
 
 /**
  * Display mode types shared by table configuration and saved views.
@@ -69,6 +78,19 @@ export interface TableKanbanConfig {
    * record; keyboard dragging stays on the handle. Defaults to false.
    */
   dragFromCard?: boolean;
+
+  /**
+   * Default lane order and hidden lanes, by grouping column id
+   * (`{ "stage": { "order": ["won", "lead"], "hidden": ["lost"] } }`).
+   * A saved view's `kanban.lanes` replaces a column's settings.
+   */
+  lanes?: KanbanLanes;
+
+  /**
+   * Avatar before each card title: the image of `imageColumn`, or initials
+   * with a stable color when the record has none. Omitted shows none.
+   */
+  avatar?: AvatarOption;
 }
 
 export interface TableKanbanViewConfig {
@@ -95,6 +117,15 @@ export interface TableKanbanViewConfig {
    * Show property labels on each card.
    */
   showCardLabels?: boolean;
+
+  /**
+   * Lane order and hidden lanes, by grouping column id. Switching views
+   * switches lanes; the board's settings edit them.
+   */
+  lanes?: KanbanLanes;
+
+  /** Avatar before each card title (see TableKanbanConfig.avatar). */
+  avatar?: AvatarOption;
 }
 
 /** Rows as single lines: a title followed by compact properties. */
@@ -151,6 +182,12 @@ export interface TableGalleryConfig {
    * Show property labels on each card. Hidden by default for a lighter gallery scan.
    */
   showCardLabels?: boolean;
+
+  /**
+   * Cards without an image show initials with a stable color instead of the
+   * image placeholder. `nameColumn` defaults to the card title.
+   */
+  avatar?: AvatarOption;
 }
 
 export interface TableGalleryViewConfig {
@@ -189,4 +226,7 @@ export interface TableGalleryViewConfig {
    * Show property labels on each card.
    */
   showCardLabels?: boolean;
+
+  /** Initials for cards without an image (see TableGalleryConfig.avatar). */
+  avatar?: AvatarOption;
 }

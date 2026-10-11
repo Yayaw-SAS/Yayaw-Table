@@ -271,6 +271,12 @@ export interface ColumnDefinition {
   /** Application filter control; writes the same state as saved views and reset. */
   filterRenderer?: (context: { value: unknown; onChange: (value: unknown) => void }) => React.ReactNode;
   /**
+   * Image columns: without an image, show initials with a stable color
+   * instead of the image placeholder. `nameColumn` names the column giving
+   * them; it defaults to the record's `name`, `title` or `label`.
+   */
+  avatar?: import("../utils/initials-avatar").AvatarOption;
+  /**
    * Additional props for the column
    */
   [key: string]: unknown;

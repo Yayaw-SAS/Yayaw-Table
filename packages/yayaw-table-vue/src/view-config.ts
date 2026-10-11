@@ -20,6 +20,8 @@ import {
   type GalleryViewState,
   normalizeGalleryViewConfig,
 } from "./gallery-view-state";
+import { type AvatarOption, normalizeAvatarOption } from "./initials-avatar";
+import { type KanbanLanes, normalizeKanbanLanes } from "./kanban-lanes";
 import { isTableDensity, type TableDensity } from "./table-contracts";
 
 // JSON ---------------------------------------------------------------------------
@@ -350,6 +352,10 @@ export interface ViewKanbanSettings {
   titleColumn?: string;
   cardColumnIds?: string[];
   showCardLabels?: boolean;
+  /** Lane order and hidden lanes, by grouping column id. */
+  lanes?: KanbanLanes;
+  /** Avatar before each card title. */
+  avatar?: AvatarOption;
 }
 
 export interface ViewColumnPinning {
@@ -1036,6 +1042,14 @@ function normalizeKanbanSettings(
   if (typeof value.showCardLabels === "boolean") {
     settings.showCardLabels = value.showCardLabels;
   }
+  const lanes = normalizeKanbanLanes(value.lanes);
+  if (lanes) {
+    settings.lanes = lanes;
+  }
+  const avatar = normalizeAvatarOption(value.avatar);
+  if (avatar !== undefined) {
+    settings.avatar = avatar;
+  }
   return Object.keys(settings).length ? settings : undefined;
 }
 
@@ -1092,8 +1106,9 @@ export const VIEW_MODE_SETTING_KEYS: Readonly<
     "propertyAlign",
     "maxProperties",
     "mobileMaxProperties",
+    "avatar",
   ],
-  kanban: ["titleColumn", "cardColumnIds", "showCardLabels"],
+  kanban: ["titleColumn", "cardColumnIds", "showCardLabels", "lanes", "avatar"],
   gallery: [
     "imageColumn",
     "titleColumn",
@@ -1103,6 +1118,7 @@ export const VIEW_MODE_SETTING_KEYS: Readonly<
     "cardSize",
     "previewSize",
     "showCardLabels",
+    "avatar",
   ],
   filetree: [
     "parentColumn",

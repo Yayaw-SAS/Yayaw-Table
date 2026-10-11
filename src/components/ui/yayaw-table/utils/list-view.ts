@@ -1,6 +1,7 @@
 /**
  * List view settings shared by the React and Vue editions.
  */
+import { type AvatarOption, normalizeAvatarOption } from "./initials-avatar";
 
 export interface ListViewSettings {
   /** Column used as the line title. */
@@ -19,6 +20,11 @@ export interface ListViewSettings {
   maxProperties?: number;
   /** Properties shown at most on narrow screens (below 768px). */
   mobileMaxProperties?: number;
+  /**
+   * Avatar before each title: the image of `imageColumn`, or initials with a
+   * stable color when the record has none.
+   */
+  avatar?: AvatarOption;
 }
 
 type ListDisplayDefaults = Required<
@@ -86,6 +92,10 @@ export function normalizeListViewConfig(
   const mobileMax = cleanCount(input.mobileMaxProperties);
   if (mobileMax !== undefined) {
     normalized.mobileMaxProperties = mobileMax;
+  }
+  const avatar = normalizeAvatarOption(input.avatar);
+  if (avatar !== undefined) {
+    normalized.avatar = avatar;
   }
   return Object.keys(normalized).length ? normalized : undefined;
 }
