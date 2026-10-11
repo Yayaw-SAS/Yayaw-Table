@@ -5,15 +5,31 @@ import { createStore, Provider } from "jotai";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import {
+  assetColumns,
+  assetTableOptions,
+  assetVisibleColumns,
+  createAssetActions,
+} from "../examples/assets";
 import { DataTable } from "../src/components/ui/yayaw-table/components/data-table";
+import {
+  tableViewFavoriteQueryKey,
+  tableViewsQueryKey,
+} from "../src/components/ui/yayaw-table/components/toolbar/table-view-manager";
 import { defineTableConfig } from "../src/components/ui/yayaw-table/config/helpers";
+import { fileTreeRenderer } from "../src/components/ui/yayaw-table/filetree/filetree-renderer";
 import { useTableUrlState } from "../src/components/ui/yayaw-table/hooks/use-table-url-state";
+import type { TableActions } from "../src/components/ui/yayaw-table/providers/table-provider";
 import {
   TableInstanceProvider,
   TableStateSyncProvider,
   tableUrlKeys,
 } from "../src/components/ui/yayaw-table/providers/table-state-sync-provider";
-import type { TableViewConfig } from "../src/components/ui/yayaw-table/types/view-types";
+import type {
+  TableView,
+  TableViewConfig,
+} from "../src/components/ui/yayaw-table/types/view-types";
+import { fileTreeFolderKey } from "../src/components/ui/yayaw-table/utils/filetree-model";
 import viewChange from "./fixtures/view-config-change.json";
 
 const originalGetAnimations = Object.getOwnPropertyDescriptor(
@@ -344,5 +360,239 @@ it("reports its view when it starts, after a sort and after a search, as Vue doe
     await Promise.resolve();
   });
   expect(read).toEqual([viewChange.reports.searched]);
+  client.clear();
+});
+
+const statusView = (id: string, status: string): TableView => ({
+  id,
+  name: `${status} projects`,
+  tableId: "shared-views",
+  createdById: "host",
+  config: {
+    advancedFilters: [
+      {
+        id: `only-${status}`,
+        columnId: "status",
+        type: "text",
+        operator: "isAnyOf",
+        values: [status],
+        isActive: true,
+      },
+    ] as unknown as TableViewConfig["advancedFilters"],
+  },
+});
+
+it("keeps the views query keys of a table without an instance id", () => {
+  expect(tableViewsQueryKey("projects", "projects")).toEqual([
+    "tableViews",
+    "projects",
+    "projects",
+  ]);
+  expect(tableViewFavoriteQueryKey("projects", "projects")).toEqual([
+    "tableViewFavorite",
+    "projects",
+    "projects",
+  ]);
+  expect(tableViewsQueryKey("projects", "projects", "left")).toEqual([
+    "tableViews",
+    "projects",
+    "projects",
+    "left",
+  ]);
+  expect(fileTreeFolderKey("projects")).toBe("projects-folder");
+  expect(fileTreeFolderKey("projects", "left")).toBe("left-folder");
+});
+
+it("opens each instance of one table on its own default view and lists the table's saved views in both", async () => {
+  const config = defineTableConfig({
+    id: "shared-views",
+    columns: {
+      definitions: [
+        { id: "name", header: "Name", type: "text" },
+        { id: "status", header: "Status", type: "text" },
+      ],
+      visible: ["name", "status"],
+      order: ["name", "status"],
+      mandatory: ["name"],
+    },
+    table: { enableViews: true },
+    translations: { namespace: "shared-views", keys: {} },
+  });
+  const rows = [
+    { id: "1", name: "Alpha", status: "Open" },
+    { id: "2", name: "Bravo", status: "Done" },
+  ];
+  const open = statusView("open-view", "Open");
+  const done = statusView("done-view", "Done");
+  let savedViews = [open, done];
+  const actions = {
+    list: (params: Record<string, unknown>) => {
+      const rules = (params.advancedFilters ?? []) as { values: string[] }[];
+      const data = rows.filter((row) =>
+        rules.every((rule) => rule.values.includes(row.status))
+      );
+      return Promise.resolve({
+        data,
+        meta: { pageCount: 1, totalCount: data.length },
+      });
+    },
+    views: {
+      list: () => Promise.resolve({ data: savedViews }),
+      getFavorite: () =>
+        Promise.resolve({ success: true, data: { viewId: null } }),
+    },
+  };
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  let url = new URLSearchParams();
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  roots.push(root);
+  await act(() =>
+    root.render(
+      <NuqsTestingAdapter
+        hasMemory
+        onUrlUpdate={(event) => {
+          url = event.searchParams;
+        }}
+      >
+        {(
+          [
+            ["left", open.id],
+            ["right", done.id],
+          ] as const
+        ).map(([name, favoriteViewId]) => (
+          <section data-instance={name} key={name}>
+            <DataTable
+              getRowId={(row) => String(row.id)}
+              getTableActions={() => actions}
+              getTableConfig={() => config}
+              initialFavoriteViewId={favoriteViewId}
+              initialViews={[open, done]}
+              initialViewsLoaded
+              instanceId={name}
+              queryClient={client}
+              tableType="shared-views"
+            />
+          </section>
+        ))}
+      </NuqsTestingAdapter>
+    )
+  );
+  await settle(300);
+  const text = (name: string) =>
+    container.querySelector(`[data-instance="${name}"]`)?.textContent ?? "";
+  // Each instance opens on the default view its host gave it.
+  expect(url.get("left-view")).toBe("open-view");
+  expect(url.get("right-view")).toBe("done-view");
+  expect(url.has("view")).toBe(false);
+  expect(text("left")).toContain("Alpha");
+  expect(text("left")).not.toContain("Bravo");
+  expect(text("right")).toContain("Bravo");
+  expect(text("right")).not.toContain("Alpha");
+
+  // A saved-view change refreshes the views of every instance of the table.
+  savedViews = [open, done, statusView("late-view", "Late")];
+  await act(() =>
+    client.invalidateQueries({
+      queryKey: tableViewsQueryKey("shared-views", "shared-views"),
+    })
+  );
+  await settle(100);
+  for (const name of ["left", "right"]) {
+    expect(
+      client
+        .getQueryData<TableView[]>(
+          tableViewsQueryKey("shared-views", "shared-views", name)
+        )
+        ?.map((view) => view.id)
+    ).toEqual(["open-view", "done-view", "late-view"]);
+  }
+  client.clear();
+});
+
+it("opens each instance of one file tree on its own folder", async () => {
+  window.history.replaceState(
+    null,
+    "",
+    "/?left-folder=f-photos&right-folder=f-2026&shared-assets-folder=f-brand"
+  );
+  const config = defineTableConfig({
+    id: "shared-assets",
+    columns: {
+      definitions: assetColumns,
+      order: assetColumns.map((column) => column.id),
+      visible: assetVisibleColumns,
+      mandatory: ["name"],
+    },
+    table: {
+      syncUrl: true,
+      enableViews: false,
+      defaultDisplayMode: "filetree",
+      displayModes: ["filetree", "table"],
+      filetree: assetTableOptions.filetree,
+    },
+    translations: { namespace: "shared-assets", keys: { title: "Assets" } },
+  });
+  const actions = createAssetActions() as unknown as TableActions;
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  roots.push(root);
+  await act(() =>
+    root.render(
+      <NuqsTestingAdapter hasMemory>
+        {["left", "right", "unscoped"].map((name) => (
+          <section data-instance={name} key={name}>
+            <DataTable
+              displayModeRenderers={{ filetree: fileTreeRenderer }}
+              getRowId={(row) => String(row.id)}
+              getTableActions={() => actions}
+              getTableConfig={() => config}
+              instanceId={name === "unscoped" ? undefined : name}
+              queryClient={client}
+              tableType="shared-assets"
+            />
+          </section>
+        ))}
+      </NuqsTestingAdapter>
+    )
+  );
+  const focusedRow = (name: string) =>
+    container
+      .querySelector(
+        `[data-instance="${name}"] [data-filetree-id][tabindex="0"]`
+      )
+      ?.getAttribute("data-filetree-id");
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    if (focusedRow("left") === "f-photos" && focusedRow("right") === "f-2026") {
+      break;
+    }
+    await settle(20);
+  }
+  expect(focusedRow("left")).toBe("f-photos");
+  expect(focusedRow("right")).toBe("f-2026");
+  // Without an instance id, the table keeps `<tableId>-folder`.
+  expect(focusedRow("unscoped")).toBe("f-brand");
+
+  // Opening another folder writes the instance's own key only.
+  const documents = container.querySelector<HTMLElement>(
+    '[data-instance="left"] [data-filetree-id="f-documents"]'
+  );
+  await act(async () => {
+    documents?.click();
+    await Promise.resolve();
+  });
+  await settle(40);
+  const params = new URLSearchParams(window.location.search);
+  expect(params.get("left-folder")).toBe("f-documents");
+  expect(params.get("right-folder")).toBe("f-2026");
+  expect(params.get("shared-assets-folder")).toBe("f-brand");
+  window.history.replaceState(null, "", "/");
   client.clear();
 });
