@@ -45,6 +45,130 @@ function useSeen(element: React.RefObject<HTMLElement | null>, active: boolean) 
   return seen;
 }
 
+/** Loads a related list once it is ready, ignoring answers to superseded requests. */
+function useRelatedRows({
+  errorLabel,
+  loadRelated,
+  ready,
+  row,
+  section,
+}: {
+  errorLabel: string;
+  loadRelated?: DetailRelatedLoader;
+  ready: boolean;
+  row: DetailRecord;
+  section: DetailRelatedSection;
+}) {
+  const [state, setState] = useState<RelatedState>({ status: "idle" });
+  const request = useRef(0);
+  const load = useCallback(async () => {
+    const current = request.current + 1;
+    request.current = current;
+    setState({ status: "loading" });
+    try {
+      const rows = await loadRelatedRecords(section, row, loadRelated);
+      if (request.current === current) {
+        setState({ status: "loaded", rows });
+      }
+    } catch (cause) {
+      if (request.current === current) {
+        setState({
+          status: "error",
+          error:
+            cause instanceof Error && cause.message
+              ? cause.message
+              : errorLabel,
+        });
+      }
+    }
+  }, [errorLabel, loadRelated, row, section]);
+  const shouldLoad = ready && state.status === "idle";
+  useEffect(() => {
+    if (shouldLoad) {
+      load().catch(() => undefined);
+    }
+  }, [load, shouldLoad]);
+  useEffect(
+    () => () => {
+      request.current += 1;
+    },
+    []
+  );
+  return { load, state };
+}
+
+/** The loaded rows of a related list, with an Open button per row when the host handles it. */
+function RelatedTable({
+  labels,
+  locale,
+  onOpen,
+  section,
+  view,
+}: {
+  labels: DetailLabels;
+  locale: string;
+  onOpen?: (related: DetailRecord) => void;
+  section: DetailRelatedSection;
+  view: ReturnType<typeof relatedView>;
+}) {
+  const hidden = view.total - view.rows.length;
+  return (
+    <>
+      <table className="yayaw-detail-related-table">
+        <thead>
+          <tr>
+            {section.columns.map((column) => (
+              <th key={column.id} scope="col">
+                {column.label}
+              </th>
+            ))}
+            {onOpen ? (
+              <th scope="col">
+                <span className="sr-only">
+                  {section.open?.label ?? labels.open}
+                </span>
+              </th>
+            ) : null}
+          </tr>
+        </thead>
+        <tbody>
+          {view.rows.map((related, index) => (
+            <tr key={relatedRowKey(related, index)}>
+              {section.columns.map((column) => (
+                <td key={column.id}>
+                  <DetailValue
+                    field={column}
+                    labels={labels}
+                    locale={locale}
+                    row={related}
+                    value={detailValue(related, column)}
+                  />
+                </td>
+              ))}
+              {onOpen ? (
+                <td>
+                  <button
+                    className="yayaw-detail-related-button"
+                    onClick={() => onOpen(related)}
+                    type="button"
+                  >
+                    {section.open?.label ?? labels.open}
+                  </button>
+                </td>
+              ) : null}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {hidden > 0 ? (
+        <p className="yayaw-detail-related-more">
+          {labels.relatedMore.replaceAll("{count}", String(hidden))}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
 /** A related list: loads its records once open and visible, then shows them with the host's actions. */
 export function RelatedRecords({
   labels,
@@ -64,42 +188,14 @@ export function RelatedRecords({
   const id = useId();
   const element = useRef<HTMLElement>(null);
   const [open, setOpen] = useState(section.collapsed !== true);
-  const [state, setState] = useState<RelatedState>({ status: "idle" });
   const seen = useSeen(element, open);
-  const request = useRef(0);
-  const load = useCallback(async () => {
-    const current = request.current + 1;
-    request.current = current;
-    setState({ status: "loading" });
-    try {
-      const rows = await loadRelatedRecords(section, row, loadRelated);
-      if (request.current === current) {
-        setState({ status: "loaded", rows });
-      }
-    } catch (cause) {
-      if (request.current === current) {
-        setState({
-          status: "error",
-          error:
-            cause instanceof Error && cause.message
-              ? cause.message
-              : labels.relatedError,
-        });
-      }
-    }
-  }, [labels.relatedError, loadRelated, row, section]);
-  const shouldLoad = open && seen && state.status === "idle";
-  useEffect(() => {
-    if (shouldLoad) {
-      load().catch(() => undefined);
-    }
-  }, [load, shouldLoad]);
-  useEffect(
-    () => () => {
-      request.current += 1;
-    },
-    []
-  );
+  const { load, state } = useRelatedRows({
+    errorLabel: labels.relatedError,
+    loadRelated,
+    ready: open && seen,
+    row,
+    section,
+  });
   const act = (kind: "open" | "add", related?: DetailRecord) => {
     const action = section[kind];
     if (!(action && onRelatedAction)) {
@@ -109,7 +205,6 @@ export function RelatedRecords({
   };
   const view =
     state.status === "loaded" ? relatedView(section, state.rows) : undefined;
-  const hidden = view ? view.total - view.rows.length : 0;
   const showOpen = Boolean(section.open && onRelatedAction);
   return (
     <section
@@ -177,59 +272,13 @@ export function RelatedRecords({
           </p>
         ) : null}
         {view && view.total > 0 ? (
-          <>
-            <table className="yayaw-detail-related-table">
-              <thead>
-                <tr>
-                  {section.columns.map((column) => (
-                    <th key={column.id} scope="col">
-                      {column.label}
-                    </th>
-                  ))}
-                  {showOpen ? (
-                    <th scope="col">
-                      <span className="sr-only">
-                        {section.open?.label ?? labels.open}
-                      </span>
-                    </th>
-                  ) : null}
-                </tr>
-              </thead>
-              <tbody>
-                {view.rows.map((related, index) => (
-                  <tr key={relatedRowKey(related, index)}>
-                    {section.columns.map((column) => (
-                      <td key={column.id}>
-                        <DetailValue
-                          field={column}
-                          labels={labels}
-                          locale={locale}
-                          row={related}
-                          value={detailValue(related, column)}
-                        />
-                      </td>
-                    ))}
-                    {showOpen ? (
-                      <td>
-                        <button
-                          className="yayaw-detail-related-button"
-                          onClick={() => act("open", related)}
-                          type="button"
-                        >
-                          {section.open?.label ?? labels.open}
-                        </button>
-                      </td>
-                    ) : null}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {hidden > 0 ? (
-              <p className="yayaw-detail-related-more">
-                {labels.relatedMore.replaceAll("{count}", String(hidden))}
-              </p>
-            ) : null}
-          </>
+          <RelatedTable
+            labels={labels}
+            locale={locale}
+            onOpen={showOpen ? (related) => act("open", related) : undefined}
+            section={section}
+            view={view}
+          />
         ) : null}
       </div>
     </section>

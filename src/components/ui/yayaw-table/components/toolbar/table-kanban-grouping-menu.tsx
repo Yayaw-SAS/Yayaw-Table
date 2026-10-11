@@ -80,6 +80,58 @@ function getDefaultPropertyColumnIds({
     .map((column) => column.id);
 }
 
+/** The lanes the settings list: fixed groups, row values and column options, in the board's order. */
+function groupingMenuLanes({
+  activeGroupBy,
+  defaultConfig,
+  laneColumns,
+  laneRows,
+  locale,
+  overrideLanes,
+}: {
+  activeGroupBy: string;
+  defaultConfig: TableKanbanGroupingMenuProps["defaultConfig"];
+  laneColumns: TableKanbanGroupingMenuProps["laneColumns"];
+  laneRows: TableKanbanGroupingMenuProps["laneRows"];
+  locale: string;
+  overrideLanes: TableKanbanViewConfig["lanes"];
+}) {
+  const laneColumn = laneColumns?.find((column) => column.id === activeGroupBy);
+  const laneSettings = kanbanLaneSettings(
+    mergeKanbanLanes(defaultConfig?.lanes, overrideLanes),
+    activeGroupBy
+  );
+  const laneField = laneColumn?.accessorKey ?? activeGroupBy;
+  if (!activeGroupBy) {
+    return { laneSettings, lanes: [] };
+  }
+  const lanes = kanbanLaneCandidates({
+    label: (value) =>
+      (value && (fieldText(value, laneColumn, locale) || value)) ||
+      emptyGroupLabel(locale),
+    // The board's own order: fixed groups, then values as rows bring them.
+    options:
+      defaultConfig?.groupBy === activeGroupBy
+        ? (defaultConfig.groups ?? []).map((group) => ({
+            value: groupValueKey(group.value),
+            label: group.label,
+          }))
+        : [],
+    settings: laneSettings,
+    values: [
+      ...(laneRows ?? []).map((row) =>
+        groupValueKey(row[String(laneField)])
+      ),
+      ...(Array.isArray(laneColumn?.options)
+        ? (laneColumn.options as { value?: unknown }[])
+            .filter((option) => option?.value !== undefined)
+            .map((option) => groupValueKey(option.value))
+        : []),
+    ],
+  });
+  return { laneSettings, lanes };
+}
+
 export function TableKanbanGroupingMenu({
   embedded = false,
   className,
@@ -151,38 +203,14 @@ export function TableKanbanGroupingMenu({
     setKanbanFromUI(nextConfig);
   };
 
-  const laneColumn = laneColumns?.find((column) => column.id === activeGroupBy);
-  const laneSettings = kanbanLaneSettings(
-    mergeKanbanLanes(defaultConfig?.lanes, kanbanParam.lanes),
-    activeGroupBy
-  );
-  const laneField = laneColumn?.accessorKey ?? activeGroupBy;
-  const lanes = activeGroupBy
-    ? kanbanLaneCandidates({
-        label: (value) =>
-          (value && (fieldText(value, laneColumn, locale) || value)) ||
-          emptyGroupLabel(locale),
-        // The board's own order: fixed groups, then values as rows bring them.
-        options:
-          defaultConfig?.groupBy === activeGroupBy
-            ? (defaultConfig.groups ?? []).map((group) => ({
-                value: groupValueKey(group.value),
-                label: group.label,
-              }))
-            : [],
-        settings: laneSettings,
-        values: [
-          ...(laneRows ?? []).map((row) =>
-            groupValueKey(row[String(laneField)])
-          ),
-          ...(Array.isArray(laneColumn?.options)
-            ? (laneColumn.options as { value?: unknown }[])
-                .filter((option) => option?.value !== undefined)
-                .map((option) => groupValueKey(option.value))
-            : []),
-        ],
-      })
-    : [];
+  const { laneSettings, lanes } = groupingMenuLanes({
+    activeGroupBy,
+    defaultConfig,
+    laneColumns,
+    laneRows,
+    locale,
+    overrideLanes: kanbanParam.lanes,
+  });
   const laneLabel = (key: string, fallback: string) => (lane: string) =>
     translatedOr(t, `views.kanban.${key}`, fallback, { lane });
   const setLanes = (
