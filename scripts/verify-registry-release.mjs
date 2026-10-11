@@ -24,6 +24,7 @@ const standaloneRegistryItems = [
   "yayaw-table-vue-excel",
   "yayaw-table-vue-connector-notion",
   "yayaw-table-vue-connector-google-sheets",
+  "yayaw-table-vue-connector-microsoft-excel",
 ];
 
 function fail(message) {

@@ -9,8 +9,10 @@ for (const name of [
   "yayaw-table-vue.json",
   "yayaw-table-connector-notion.json",
   "yayaw-table-connector-google-sheets.json",
+  "yayaw-table-connector-microsoft-excel.json",
   "yayaw-table-vue-connector-notion.json",
   "yayaw-table-vue-connector-google-sheets.json",
+  "yayaw-table-vue-connector-microsoft-excel.json",
   "registry.json",
 ]) {
   JSON.parse(readFileSync(resolve(root, "r", name), "utf8"));

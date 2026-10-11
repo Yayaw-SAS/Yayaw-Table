@@ -21,16 +21,20 @@ components.
 
 Each connector is an optional registry item containing the shared
 `connector-model.ts`, the shared `sync-engine.ts` and its provider module. The
-React and Vue items ship the same files.
+Microsoft Excel item also ships `google-sheets.ts`, whose pure grid planning
+(headers, upserts, records, schema) it reuses. The React and Vue items ship the
+same files.
 
 ```bash
 # React
 npx shadcn@latest add https://table.yayaw.app/r/yayaw-table-connector-notion.json
 npx shadcn@latest add https://table.yayaw.app/r/yayaw-table-connector-google-sheets.json
+npx shadcn@latest add https://table.yayaw.app/r/yayaw-table-connector-microsoft-excel.json
 
 # Vue
 npx shadcn-vue@latest add https://table.yayaw.app/r/yayaw-table-vue-connector-notion.json
 npx shadcn-vue@latest add https://table.yayaw.app/r/yayaw-table-vue-connector-google-sheets.json
+npx shadcn-vue@latest add https://table.yayaw.app/r/yayaw-table-vue-connector-microsoft-excel.json
 ```
 
 Files are installed under `components/ui/yayaw-table/connectors/` (React) or
@@ -122,6 +126,48 @@ A spreadsheet that is not shared raises `not_shared` with
 `details.serviceAccountEmail`, so the interface can say "Share the sheet with
 …". Access tokens are cached in memory per key until five minutes before
 expiry; pass `tokenCache` to use a shared store.
+
+## Microsoft Excel (`microsoft-excel.ts`)
+
+An `.xlsx` workbook stored in OneDrive or SharePoint, through the Microsoft
+Graph workbook API. The host owns the Microsoft sign-in (OAuth authorization
+code flow on `login.microsoftonline.com`, delegated scopes
+`MICROSOFT_EXCEL_SCOPES`: `offline_access`, `User.Read`,
+`Files.ReadWrite.All`), stores the refresh token encrypted and passes `token`:
+an access token, or a `({ forceRefresh }) => accessToken` function. After a
+401 the function is called once more with `forceRefresh: true`, so the host
+refreshes the token there. The module only talks to `graph.microsoft.com`; a
+pagination link to another host is refused (`invalid_target`).
+
+- `verifyMicrosoftAccount(token)` returns `{ id, name, email }`.
+- `listExcelWorkbooks(token, query?)` searches the user's OneDrive for
+  `.xlsx` files (up to 1,000). A SharePoint workbook is opened by its link.
+- `getExcelWorkbook(token, linkOrId)` accepts a OneDrive or SharePoint link
+  (resolved through `/shares/u!…`) or a `<driveId>/<itemId>` workbook id
+  (`formatExcelWorkbookId`, `parseExcelWorkbookId`) and returns the name and
+  worksheets. Store its `id`. A file that is not an `.xlsx` workbook is
+  `invalid_target`.
+- `pushRowsToExcel({ token, workbookId, sheetName, columns, rows, keyColumn =
+  "Yayaw ID", mode = "upsert", maxRows = 10000 })` behaves like
+  `pushRowsToSheet`: headers are found or added at the end, `upsert` reads the
+  key column once and rewrites known rows in place (consecutive rows in one
+  request), new rows go below the last used row, `replace` clears below the
+  header. Every write targets a fixed address, so a retried write never lands
+  twice. Excel reads written text like typing, so non-empty text gets Excel's
+  quote prefix (`'`): it stays text and is never turned into a formula, a
+  number or a date. Cells hold at most 32,767 characters (`value_truncated`).
+- `readExcelRows`, `excelValuesToRecords` and `createExcelSyncTarget` mirror
+  the Google Sheets reads and target. Excel holds dates as day serials: a
+  number in a `date` or `datetime` column is read as a date
+  (`excelSerialToIso`, UTC, since Excel times carry no zone). Rows have no
+  edit time, so declare `conflictRules: ["table-wins", "target-wins"]`.
+  Deletions remove rows by key only, from the bottom up, consecutive rows in
+  one request, retried only on 429.
+- `getExcelTargetSchema` returns a `sheets` target schema (a worksheet is a
+  grid like a tab) and `prepareExcelSheet({ fixes })` adds missing headers.
+
+Graph throttles per user and workbook: requests are spaced 200 ms apart and a
+429 or 503 honors `Retry-After`. Lock one run per workbook, as for a sheet.
 
 ## Host examples
 
@@ -333,6 +379,8 @@ duplicated.
   adapter plus `read(since?)`: it creates pages keyed by "Yayaw ID", patches
   only the given properties and the key, and archives deleted pages (a page
   already gone counts as deleted).
+- Microsoft Excel: `readExcelRows({ token, workbookId, sheetName, mapping })`
+  and `createExcelSyncTarget(...)` behave like the Google Sheets ones below.
 - Google Sheets: `readSheetRows({ credentials, spreadsheetId, sheetTitle,
   mapping })` reads the tab once (numbers and booleans typed, dates as shown)
   and maps headers to columns (`sheetValuesToRecords` is the pure part). The

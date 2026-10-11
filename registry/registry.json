@@ -2218,6 +2218,39 @@
       }
     },
     {
+      "name": "yayaw-table-connector-microsoft-excel",
+      "type": "registry:lib",
+      "title": "YaYaw Table Microsoft Excel Connector",
+      "description": "Optional, framework-agnostic server module that pushes table rows into a worksheet of a Microsoft Excel workbook stored in OneDrive or SharePoint (upsert or replace, keyed by a \"Yayaw ID\" column) through Microsoft Graph, and syncs both ways with the shared sync engine. The host owns the Microsoft sign-in, stores the refresh token and the sync state, authorizes the push and calls it from its server.",
+      "files": [
+        {
+          "path": "registry/default/ui/yayaw-table-connectors/connector-model.ts",
+          "type": "registry:lib",
+          "target": "components/ui/yayaw-table/connectors/connector-model.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-connectors/sync-engine.ts",
+          "type": "registry:lib",
+          "target": "components/ui/yayaw-table/connectors/sync-engine.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-connectors/google-sheets.ts",
+          "type": "registry:lib",
+          "target": "components/ui/yayaw-table/connectors/google-sheets.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-connectors/microsoft-excel.ts",
+          "type": "registry:lib",
+          "target": "components/ui/yayaw-table/connectors/microsoft-excel.ts"
+        }
+      ],
+      "meta": {
+        "registryUrl": "https://table.yayaw.app/r/yayaw-table-connector-microsoft-excel.json",
+        "version": "3.17.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.17.0/yayaw-table-connector-microsoft-excel.json"
+      }
+    },
+    {
       "name": "font-yayaw-sans",
       "type": "registry:font",
       "title": "YaYaw Sans Font",
