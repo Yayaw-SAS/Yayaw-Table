@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSetAtom } from "jotai";
 import { MoreHorizontal } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/custom/icon";
@@ -17,10 +17,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { Row } from "@/components/ui/yayaw-table/tanstack";
 import { cn } from "@/lib/utils";
-import { useTranslations } from "../../providers/table-provider";
+import { useLocale, useTranslations } from "../../providers/table-provider";
+import {
+  type DeleteConfirmationConfig,
+  type DetailRecord,
+  deleteConfirmationValue,
+  detailLabels,
+  detailTitle,
+} from "../../utils/record-details";
 import { TableTooltip } from "../../utils/table-tooltip";
 
 import type { ActionItem } from "../columns/actions-column";
+import { TypedDeleteDialog } from "../details/delete-confirm-dialog";
 import {
   type CatalogueFormState,
   catalogueFormAtom,
@@ -34,6 +42,12 @@ interface ActionsCellProps<TData> {
   row: Row<TData>;
   /** When set, invalidations target ["tableData", tableId] per YaYaw Table contract */
   tableId?: string;
+  /** Typed confirmation of the built-in delete action. */
+  deleteConfirmation?: DeleteConfirmationConfig;
+  /** The built-in delete action the typed confirmation applies to. */
+  confirmedDelete?: ActionItem<TData>;
+  /** The record's title, as its record view names it. */
+  recordTitle?: (row: TData) => string;
 }
 
 export function isStandardActionAllowed<TData>(
@@ -66,9 +80,24 @@ function ActionsCellBase<TData>({
   onRefresh,
   row,
   tableId,
+  deleteConfirmation,
+  confirmedDelete,
+  recordTitle,
 }: ActionsCellProps<TData>) {
   const { t } = useTranslations();
+  const locale = useLocale();
   const rowData = row.original;
+  const [pendingDelete, setPendingDelete] = useState<ActionItem<TData>>();
+  const [deleting, setDeleting] = useState(false);
+  const detailText = detailLabels(locale);
+  const deleteTitle =
+    recordTitle?.(rowData) ??
+    detailTitle(undefined, rowData as DetailRecord, detailText.record);
+  const deleteExpected = deleteConfirmationValue(
+    deleteConfirmation,
+    { row: rowData as DetailRecord, title: deleteTitle },
+    detailText
+  );
   const _rowId = row.id;
 
   // Get query client for invalidating queries
@@ -141,7 +170,7 @@ function ActionsCellBase<TData>({
   );
 
   // Stable action click handler
-  const handleActionClick = useCallback(
+  const runAction = useCallback(
     async (action: ActionItem<TData>) => {
       try {
         // Consultation does not mutate data or reset the current page through a refresh.
@@ -169,6 +198,31 @@ function ActionsCellBase<TData>({
     },
     [t, isFormAction, executeAction, handleToasts, rowData]
   );
+
+  // A typed confirmation asks before the built-in deletion runs.
+  const handleActionClick = useCallback(
+    async (action: ActionItem<TData>) => {
+      if (action === confirmedDelete && deleteExpected !== undefined) {
+        setPendingDelete(action);
+        return;
+      }
+      await runAction(action);
+    },
+    [confirmedDelete, deleteExpected, runAction]
+  );
+
+  const confirmPendingDelete = async () => {
+    if (!pendingDelete || deleting) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      await runAction(pendingDelete);
+    } finally {
+      setDeleting(false);
+      setPendingDelete(undefined);
+    }
+  };
 
   // Memoize action groups to prevent recalculation on every render
   const actionGroups = useMemo(() => {
@@ -357,6 +411,20 @@ function ActionsCellBase<TData>({
           {destructiveActionsGroup}
         </DropdownMenuContent>
       </DropdownMenu>
+      {deleteExpected === undefined ? null : (
+        <TypedDeleteDialog
+          busy={deleting}
+          confirmation={deleteConfirmation}
+          expected={deleteExpected}
+          labels={detailText}
+          onCancel={() => setPendingDelete(undefined)}
+          onConfirm={() => {
+            confirmPendingDelete().catch(() => undefined);
+          }}
+          open={Boolean(pendingDelete)}
+          title={deleteTitle}
+        />
+      )}
     </div>
   );
 }
@@ -386,6 +454,8 @@ export function ActionsCellWithTranslations<
     canDeleteRow?: (rowData: TData) => boolean;
     canDuplicateRow?: (rowData: TData) => boolean;
     canEditRow?: (rowData: TData) => boolean;
+    deleteConfirmation?: DeleteConfirmationConfig;
+    recordTitle?: (rowData: TData) => string;
     formType?: string;
     onDelete?: (rowData: TData) => Promise<boolean | undefined> | undefined;
     onDuplicate?: (rowData: TData) => Promise<boolean | undefined> | undefined;
@@ -540,8 +610,9 @@ export function ActionsCellWithTranslations<
   }
 
   // Add standard delete action if requested
+  let builtInDelete: ActionItem<TData> | undefined;
   if (standardActions.includeDelete && standardActions.onDelete) {
-    allActions.push({
+    builtInDelete = {
       disabled: (rowData) =>
         !isStandardActionAllowed(rowData, standardActions.canDeleteRow),
       icon: <Icon name="Trash" size="sm" />,
@@ -553,7 +624,8 @@ export function ActionsCellWithTranslations<
         return standardActions.onDelete?.(rowData);
       },
       type: "delete",
-    });
+    };
+    allActions.push(builtInDelete);
   }
 
   // Process other actions to ensure they have proper translations
@@ -573,7 +645,10 @@ export function ActionsCellWithTranslations<
   return (
     <ActionsCell
       actions={processedActions}
+      confirmedDelete={builtInDelete}
+      deleteConfirmation={standardActions.deleteConfirmation}
       onRefresh={onRefresh}
+      recordTitle={standardActions.recordTitle}
       row={row}
       tableId={standardActions.tableId}
     />

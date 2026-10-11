@@ -15,6 +15,8 @@ import { computed, nextTick, ref, onBeforeUnmount } from "vue";
 import { useTableContext } from "../../context";
 import type { RowActionItem, TableRecord } from "../../types";
 import FormDialog from "../forms/FormDialog.vue";
+import TypedConfirmation from "../details/TypedConfirmation.vue";
+import { deleteConfirmationMatches, deleteConfirmationValue, detailLabels, detailTitle } from "../../record-details";
 
 const props = defineProps<{ row: TableRecord }>();
 const context = useTableContext();
@@ -53,6 +55,18 @@ const runCustom = async (action: RowActionItem) => {
 const pending = ref<string>();
 const confirmingDelete = ref(false);
 const deleteError = ref("");
+// Typed confirmation (`table.deleteConfirmation`): the record's title, a column's value or a fixed word.
+const typedLabels = computed(() => detailLabels(context.locale));
+const deleteTitle = computed(() => detailTitle(context.recordDetails?.value, props.row, typedLabels.value.record));
+const deleteExpected = computed(() => deleteConfirmationValue(context.config.table.deleteConfirmation, { row: props.row, title: deleteTitle.value }, typedLabels.value));
+const typedDelete = ref("");
+const typedField = ref<InstanceType<typeof TypedConfirmation>>();
+const deleteConfirmed = computed(() => deleteConfirmationMatches(deleteExpected.value, typedDelete.value, context.config.table.deleteConfirmation));
+const focusTypedDelete = (event: Event): void => {
+  if (deleteExpected.value === undefined) return;
+  event.preventDefault();
+  typedField.value?.focus();
+};
 const menuTheme = ref<Record<string, string>>({});
 const closeMenuFocus = (event: Event): void => {
   if (confirmingDelete.value || context.form.value.open || openingDetails.value) event.preventDefault();
@@ -178,9 +192,11 @@ const requestDelete = (): void => {
   }
   menuOpen.value = false;
   deleteError.value = "";
+  typedDelete.value = "";
   confirmingDelete.value = true;
 };
 const confirmDelete = async (): Promise<void> => {
+  if (!deleteConfirmed.value) return;
   deleteError.value = "";
   if (await run("delete")) confirmingDelete.value = false;
 };
@@ -233,11 +249,12 @@ const confirmDelete = async (): Promise<void> => {
     </DropdownMenuRoot>
     <FormDialog v-if="confirmingDelete" :open="confirmingDelete" role="alertdialog" presentation="modal" width="min(460px, 94vw)"
       :title="translate('deleteRow', 'Delete row?')" :description="translate('deleteRowDescription', 'This action cannot be undone.')"
-      :close-label="translate('close', 'Close')" :return-focus="trigger" :busy="Boolean(pending)" @close="confirmingDelete = false">
+      :close-label="translate('close', 'Close')" :return-focus="trigger" :busy="Boolean(pending)" @close="confirmingDelete = false" @open-auto-focus="focusTypedDelete">
       <div class="yayaw-confirm-body">
+        <template v-if="deleteExpected !== undefined"><strong>{{ deleteTitle }}</strong><TypedConfirmation ref="typedField" v-model="typedDelete" :expected="deleteExpected" :labels="typedLabels" :confirmation="context.config.table.deleteConfirmation" :disabled="Boolean(pending)" @submit="confirmDelete" /></template>
         <p v-if="deleteError" class="yayaw-error" role="alert">{{ deleteError }}</p>
         <button type="button" class="yayaw-button yayaw-button-outline" :disabled="Boolean(pending)" @click="confirmingDelete = false">{{ translate("cancel", "Cancel") }}</button>
-        <button type="button" class="yayaw-button yayaw-button-danger" :disabled="Boolean(pending)" @click="confirmDelete">{{ translate("delete", "Delete") }}</button>
+        <button type="button" class="yayaw-button yayaw-button-danger" :disabled="Boolean(pending) || !deleteConfirmed" @click="confirmDelete">{{ translate("delete", "Delete") }}</button>
       </div>
     </FormDialog>
   </div>

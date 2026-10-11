@@ -537,6 +537,13 @@ export interface TableBehaviorConfig
   canDuplicateRow?: (row: Record<string, unknown>) => boolean;
 
   /**
+   * Typed confirmation of row, bulk and record deletions: the delete button
+   * enables once the user typed the record's title, a column's value, a fixed
+   * word or, for bulk deletion, the number of records.
+   */
+  deleteConfirmation?: import("../utils/record-details").DeleteConfirmationConfig;
+
+  /**
    * Row-aware guard for selection checkboxes.
    * Return false to prevent selecting that row.
    */
