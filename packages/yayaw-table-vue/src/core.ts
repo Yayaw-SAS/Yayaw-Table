@@ -9,6 +9,7 @@ import { normalizeGalleryViewConfig } from "./gallery-view-state";
 import { formatLocation } from "./location-model";
 import {
   dataTypeOptionLabel,
+  type FilterTokenContext,
   matchesContractFilter,
   normalizeFilterEnvelope,
 } from "./table-contracts";
@@ -100,16 +101,22 @@ const compareValues = (
   return 0;
 };
 
+/**
+ * Whether a row matches a rule. Relative dates and `$viewer` resolve with
+ * `context` (see `tableFilterContext`).
+ */
 export const matchesAdvancedFilter = (
   row: TableRecord,
-  filter: AdvancedFilter
+  filter: AdvancedFilter,
+  context: FilterTokenContext = {}
 ): boolean => {
-  return matchesContractFilter(row[filter.columnId], { ...filter });
+  return matchesContractFilter(row[filter.columnId], { ...filter }, context);
 };
 
 export const applyAdvancedFilters = <TData extends TableRecord>(
   rows: TData[],
-  input?: AdvancedFiltersState | unknown[]
+  input?: AdvancedFiltersState | unknown[],
+  context: FilterTokenContext = {}
 ): TData[] => {
   const normalized = normalizeFilterEnvelope(input);
   const state = {
@@ -121,8 +128,12 @@ export const applyAdvancedFilters = <TData extends TableRecord>(
   }
   return rows.filter((row) =>
     state.joinOperator === "or"
-      ? state.filters.some((filter) => matchesAdvancedFilter(row, filter))
-      : state.filters.every((filter) => matchesAdvancedFilter(row, filter))
+      ? state.filters.some((filter) =>
+          matchesAdvancedFilter(row, filter, context)
+        )
+      : state.filters.every((filter) =>
+          matchesAdvancedFilter(row, filter, context)
+        )
   );
 };
 
@@ -134,8 +145,11 @@ export const applyTableQuery = <TData extends TableRecord>(
     filters = [],
     advancedFilters,
     sorting = [],
+    filterContext = {},
   }: {
     columns: ColumnDefinition<TData>[];
+    /** Resolves relative dates and `$viewer` (see `tableFilterContext`). */
+    filterContext?: FilterTokenContext;
     search?: string;
     filters?: ColumnFiltersState;
     advancedFilters?: AdvancedFiltersState;
@@ -182,7 +196,8 @@ export const applyTableQuery = <TData extends TableRecord>(
             columns.map((column) => [column.id, valueFor(row, column.id)])
           ),
         })),
-        advancedFilters
+        advancedFilters,
+        filterContext
       ) as TData[])
     : filtered;
   if (!sorting.length) {

@@ -2,7 +2,16 @@
 import { Power, X } from "lucide-vue-next";
 import { computed, nextTick, ref, watch } from "vue";
 import { useTableContext } from "../../context";
-import { calendarDay } from "../../date-filter-days";
+import {
+  calendarDay,
+  isRelativeDateToken,
+  RELATIVE_DATE_CHOICES,
+  type RelativeDateToken,
+  relativeDateFieldLabel,
+  relativeDateLabel,
+  relativeDateTokenOf,
+  todayCalendarDay,
+} from "../../date-filter-days";
 import {
   filterHasValue,
   filterIsMultiple,
@@ -142,12 +151,41 @@ const changeColumn = (event: Event): void => {
   };
   search.value = "";
 };
+// Date rules can hold a relative token ("This week") instead of days.
+const relativeToken = computed(() =>
+  type.value === "date" ? relativeDateTokenOf(draft.value.values) : undefined
+);
+const FIXED_DATE_CHOICE = "fixed";
+const relativeTranslate = (key: string): string | undefined => {
+  const value = context.translations.value[key];
+  return typeof value === "string" ? value : undefined;
+};
+const relativeText = (token: RelativeDateToken): string =>
+  relativeDateLabel(token, context.locale, relativeTranslate);
+const relativeFieldText = (kind: "fixed" | "label"): string =>
+  relativeDateFieldLabel(kind, context.locale, relativeTranslate);
+const relativeChoices = computed<readonly RelativeDateToken[]>(() =>
+  relativeToken.value && !RELATIVE_DATE_CHOICES.includes(relativeToken.value)
+    ? [...RELATIVE_DATE_CHOICES, relativeToken.value]
+    : RELATIVE_DATE_CHOICES
+);
+const changeRelative = (event: Event): void => {
+  const choice = (event.target as HTMLSelectElement).value;
+  if (isRelativeDateToken(choice)) {
+    draft.value.values = choice;
+    return;
+  }
+  // Back to days: today, as the date menus start.
+  const today = todayCalendarDay();
+  draft.value.values = range.value ? [today, today] : today;
+};
 const changeOperator = (event: Event): void => {
   const operator = (event.target as HTMLSelectElement)
     .value as AdvancedFilterOperator;
   const previous = values.value;
   let value: unknown = previous[0];
-  if (operator === "between") value = [previous[0], previous[1]];
+  if (relativeToken.value) value = relativeToken.value;
+  else if (operator === "between") value = [previous[0], previous[1]];
   else if (filterIsMultiple(type.value, operator))
     value = previous.filter((item) => item !== undefined);
   if (!filterNeedsValue(operator) || type.value === "location") value = undefined;
@@ -277,7 +315,14 @@ const revert = async (): Promise<void> => {
             <option v-for="(option, index) in options" :key="`${typeof option.value}:${option.value}`" :value="index" :disabled="option.disabled">{{ option.label }}</option>
           </select>
         </label>
-        <template v-else>
+        <label v-else-if="type === 'date'" class="yayaw-field-inline">
+          <span>{{ relativeFieldText('label') }}</span>
+          <select class="yayaw-select" data-relative-date-select="" :value="relativeToken ?? FIXED_DATE_CHOICE" @change="changeRelative">
+            <option :value="FIXED_DATE_CHOICE">{{ relativeFieldText('fixed') }}</option>
+            <option v-for="token in relativeChoices" :key="token" :value="token">{{ relativeText(token) }}</option>
+          </select>
+        </label>
+        <template v-if="!multiple && type !== 'location' && type !== 'select' && !relativeToken">
           <label v-for="index in range ? 2 : 1" :key="index" class="yayaw-field-inline">
             <span>{{ index === 2 ? t('value_to', 'Filter value to') : t('value', 'Filter value') }}</span>
             <input :type="type === 'number' ? 'number' : type === 'date' ? 'date' : 'text'" :value="inputValue(index - 1)" class="yayaw-input" :step="type === 'number' ? 'any' : undefined" @input="changeValue($event, index - 1)" />

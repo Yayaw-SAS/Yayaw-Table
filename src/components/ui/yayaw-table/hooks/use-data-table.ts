@@ -32,6 +32,7 @@ import { useColumns } from "../components/columns/hooks/use-columns";
 import { useTranslations } from "../providers/table-provider";
 import {
   compatibleListParams,
+  tableFilterContext,
   dateGroupKey,
 } from "../utils/table-contracts";
 import { invalidateTableDataQuery } from "./query-cache-utils";
@@ -387,7 +388,8 @@ export function useDataTable<TData extends Record<string, unknown>>(
                 requestParams as Record<string, unknown>,
                 paramsSorting,
                 tableUrlState.viewParam
-              )
+              ),
+              tableFilterContext(config.table, locale)
             )
           );
           return {
@@ -409,6 +411,8 @@ export function useDataTable<TData extends Record<string, unknown>>(
       cleanColumnFilters,
       buildRequestParams,
       tableUrlState.viewParam,
+      config.table,
+      locale,
     ]
   );
 

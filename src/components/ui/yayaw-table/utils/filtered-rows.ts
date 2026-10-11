@@ -1,7 +1,9 @@
 import type { TableActions } from "../providers/table-provider";
 import {
+  type FilterTokenContext,
   fetchAllContractRows,
   normalizeFilterEnvelope,
+  resolveFilterTokens,
 } from "./table-contracts";
 
 export type FilteredRowsOrderBy = Record<string, "asc" | "desc">;
@@ -42,11 +44,19 @@ export const toFiltersParam = (
   );
 };
 
+/**
+ * The active rules a request carries, with relative dates and `$viewer`
+ * resolved in `filterContext` (the runtime's zone and locale without one).
+ */
 export const toAdvancedFiltersParam = (
-  advancedFiltersParam: unknown
+  advancedFiltersParam: unknown,
+  filterContext: FilterTokenContext = {}
 ): unknown[] => {
-  return normalizeFilterEnvelope(advancedFiltersParam).filters.filter(
-    (filter) => filter.isActive !== false
+  return resolveFilterTokens(
+    normalizeFilterEnvelope(advancedFiltersParam).filters.filter(
+      (filter) => filter.isActive !== false
+    ),
+    filterContext
   );
 };
 
@@ -75,6 +85,7 @@ export const fetchAllFilteredRows = async ({
   orderBy,
   pageSize,
   search,
+  filterContext,
 }: {
   listAction: TableListAction;
   advancedFilters: unknown[];
@@ -82,12 +93,15 @@ export const fetchAllFilteredRows = async ({
   orderBy?: FilteredRowsOrderBy;
   pageSize: number;
   search: string;
+  /** Resolves relative dates and `$viewer` (see `tableFilterContext`). */
+  filterContext?: FilterTokenContext;
 }): Promise<Record<string, unknown>[]> => {
   return toRecordRows(
     await fetchAllContractRows({
       list: listAction,
       params: { advancedFilters, filters, orderBy, pageSize, search },
       maxPages: MAX_FETCH_PAGES,
+      filterContext,
     })
   );
 };

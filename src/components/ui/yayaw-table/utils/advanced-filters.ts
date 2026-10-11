@@ -13,6 +13,7 @@ import type {
 } from "../types/filter-types";
 import type { DateDisplayPreset } from "../types/date-types";
 import { toValidDateRange } from "./date-display";
+import { isRelativeDateToken, relativeDateLabel } from "./date-filter-days";
 import {
   formatLocationFilterValue,
   matchesLocationFilter,
@@ -414,6 +415,9 @@ function formatDateValue(
     dateFormat: dateOptions?.dateFormat,
   };
   const day = (value: unknown) => {
+    if (isRelativeDateToken(value)) {
+      return relativeDateLabel(value, dateOptions?.locale);
+    }
     const key = dataTypeDateInput(value);
     return key
       ? formatColumnDay(
@@ -424,6 +428,14 @@ function formatDateValue(
         )
       : undefined;
   };
+  const list = Array.isArray(values) ? values : [values];
+  if (list.some(isRelativeDateToken)) {
+    // "This week", or "Today - 31/12/2026" for a range from a token.
+    return list
+      .slice(0, operator === "between" ? 2 : 1)
+      .map((value) => day(value) ?? String(value ?? ""))
+      .join(" - ");
+  }
   if (operator === "between") {
     const range = toValidDateRange(values);
     const start = range && day(range[0]);

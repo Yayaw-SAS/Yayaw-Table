@@ -22,7 +22,7 @@ import { type CSSProperties, computed, h, ref, watch, onBeforeUnmount } from "vu
 import { useTableContext } from "../../context";
 import { applyTableQuery, calculateColumn } from "../../core";
 import { formatColumnCalculation } from "../../value-format";
-import { dateGroupKey, groupedLeafRows, groupHeadingLabel, resizedColumnSizeFromKey } from "../../table-contracts";
+import { dateGroupKey, groupedLeafRows, groupHeadingLabel, resizedColumnSizeFromKey, tableFilterContext } from "../../table-contracts";
 import type {
   CalculationType,
   ColumnDefinition,
@@ -71,6 +71,7 @@ const clientRows = computed(() =>
     : applyTableQuery(context.data.rows.value, {
         columns: context.config.columns.definitions,
         advancedFilters: context.state.advancedFilters.value,
+        filterContext: tableFilterContext(context.config.table, context.locale),
       })
 );
 const internalRowSelection = computed<RowSelectionState>(
