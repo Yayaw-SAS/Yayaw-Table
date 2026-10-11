@@ -92,9 +92,30 @@ import { resolveViewTabs, type ViewTabsConfig } from "../../utils/view-tabs";
 import { TableDisplayModeSwitcher } from "./table-display-mode-switcher";
 import { TableViewTabs } from "./table-view-tabs";
 
-/** The saved views of a table in the query cache (the toolbar reads names). */
-export const tableViewsQueryKey = (tableId: string, tableType: string) =>
-  ["tableViews", tableId, tableType] as const;
+/**
+ * The saved views of a table in the query cache (the toolbar reads names).
+ * An instance (`instanceId`) keeps its own entry, seeded from its own
+ * `initialViews`, under the table's: invalidating the table's key
+ * (no `instanceId`) refreshes every instance of it.
+ */
+export const tableViewsQueryKey = (
+  tableId: string,
+  tableType: string,
+  instanceId?: string
+) =>
+  instanceId
+    ? (["tableViews", tableId, tableType, instanceId] as const)
+    : (["tableViews", tableId, tableType] as const);
+
+/** The favorite (default) view in the query cache, per instance like the views. */
+export const tableViewFavoriteQueryKey = (
+  tableId: string,
+  tableType: string,
+  instanceId?: string
+) =>
+  instanceId
+    ? (["tableViewFavorite", tableId, tableType, instanceId] as const)
+    : (["tableViewFavorite", tableId, tableType] as const);
 
 export interface ViewMenuParts {
   trigger: ReactElement;
@@ -958,6 +979,12 @@ export function DataTableViewManager({
       tableId,
     });
   const viewQueryKey = useMemo(
+    () => tableViewsQueryKey(tableId, tableType, instanceId),
+    [instanceId, tableId, tableType]
+  );
+  // Every instance of the table lists the same saved views: a change one
+  // makes refreshes the others.
+  const sourceViewsKey = useMemo(
     () => tableViewsQueryKey(tableId, tableType),
     [tableId, tableType]
   );
@@ -1012,8 +1039,8 @@ export function DataTableViewManager({
   const [moveAnnouncement, setMoveAnnouncement] = useState("");
 
   const favoriteQueryKey = useMemo(
-    () => ["tableViewFavorite", tableId, tableType],
-    [tableId, tableType]
+    () => tableViewFavoriteQueryKey(tableId, tableType, instanceId),
+    [instanceId, tableId, tableType]
   );
   const favoriteQuery = useQuery({
     enabled,
@@ -1147,9 +1174,9 @@ export function DataTableViewManager({
 
   const refreshViews = useCallback(async () => {
     await queryClient.invalidateQueries({
-      queryKey: viewQueryKey,
+      queryKey: sourceViewsKey,
     });
-  }, [queryClient, viewQueryKey]);
+  }, [queryClient, sourceViewsKey]);
 
   const handleSelectDefaultView = useCallback(() => {
     hasAppliedInitialViewRef.current = true;
@@ -1213,14 +1240,14 @@ export function DataTableViewManager({
       return viewIds;
     }
     // A stale list refetch must not replace the result of this write.
-    await queryClient.cancelQueries({ queryKey: viewQueryKey });
+    await queryClient.cancelQueries({ queryKey: sourceViewsKey });
     const result = await viewActions.setOrder({ ...context, viewIds });
     if (!result.success || result.error) {
       throw new Error(result.error || failure);
     }
     const order = parseViewOrder(result.data?.viewIds) ?? viewIds;
-    queryClient.setQueryData<TableView[]>(
-      viewQueryKey,
+    queryClient.setQueriesData<TableView[]>(
+      { queryKey: sourceViewsKey },
       (views) => views && orderViews(views, order)
     );
     return order;
