@@ -13,7 +13,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { TableCatalogueColumnConfig } from "../hooks/use-table-config";
-import { useLocale } from "../providers/table-provider";
+import { useLocale, useTranslations } from "../providers/table-provider";
+import { translatedOr } from "../providers/translation-cache";
 import type { Row, Table as TanStackTable } from "../tanstack";
 import { flexRender } from "../tanstack";
 import type {
@@ -35,6 +36,9 @@ import {
   getCompactCardPropertiesClassName,
   getCompactCardPropertyClassName,
 } from "../utils/card-properties";
+import { resolveImageSource } from "../utils/image-source";
+import { resolveAvatarConfig } from "../utils/initials-avatar";
+import { arrangeKanbanLanes, kanbanLaneSettings } from "../utils/kanban-lanes";
 import {
   emptyGroupLabel,
   fieldText,
@@ -42,6 +46,7 @@ import {
 } from "../utils/table-contracts";
 import { isBlankCardValue } from "../utils/value-format";
 
+import { type CardAvatar, RecordAvatar } from "./cells/initials-avatar";
 import { ServerKanbanView } from "./server-kanban-view";
 
 const SYSTEM_COLUMN_IDS = new Set(["actions", "select"]);
@@ -69,6 +74,8 @@ interface DataTableKanbanViewProps<TData extends Record<string, unknown>> {
 }
 
 interface KanbanCardProps<TData extends Record<string, unknown>> {
+  /** Avatar before the title (`kanban.avatar`). */
+  avatar?: CardAvatar;
   canDragUpdate: boolean;
   columnId: string;
   /** Mouse and touch drags start anywhere on the card, not only on its handle. */
@@ -370,6 +377,7 @@ function KanbanCardProperties<TData extends Record<string, unknown>>({
 
 function DataTableKanbanCard<TData extends Record<string, unknown>>({
   actionsCell,
+  avatar,
   canDragUpdate,
   columnId,
   columnDefinitionsById,
@@ -435,6 +443,14 @@ function DataTableKanbanCard<TData extends Record<string, unknown>>({
               selectionCell.getContext()
             )}
           </div>
+        ) : null}
+        {avatar ? (
+          <RecordAvatar
+            className="[--yayaw-avatar-size:1.5rem]"
+            name={avatar.name}
+            shape={avatar.shape}
+            source={avatar.source}
+          />
         ) : null}
         <div className="min-w-0 flex-1">
           <div className="line-clamp-2 font-medium text-sm">{titleContent}</div>
@@ -544,7 +560,31 @@ function LocalDataTableKanbanView<TData extends Record<string, unknown>>({
       }),
     [configuredGroups, groupBy, laneLabel, locale, rows]
   );
-  const kanbanColumns = useMemo(() => createKanbanColumns(groups), [groups]);
+  const lanes = useMemo(
+    () =>
+      arrangeKanbanLanes(groups, kanbanLaneSettings(config?.lanes, groupBy)),
+    [config?.lanes, groupBy, groups]
+  );
+  const kanbanColumns = useMemo(
+    () => createKanbanColumns(lanes.visible),
+    [lanes.visible]
+  );
+  // Cards of hidden lanes are not shown either.
+  const shownRows = useMemo(() => {
+    if (lanes.hidden.length === 0) {
+      return rows;
+    }
+    const hidden = new Set(lanes.hidden.map((lane) => lane.value));
+    return rows.filter(
+      (row) => !hidden.has(groupValueKey(row.original[groupBy]))
+    );
+  }, [groupBy, lanes.hidden, rows]);
+  const { t } = useTranslations();
+  const hiddenLanesLabel = translatedOr(
+    t,
+    "views.kanban.hiddenLanes",
+    "Hidden lanes"
+  );
   const resolvedTitleColumnId =
     titleColumnId ?? config?.titleColumn ?? getDefaultTitleColumnId(table);
   const initialKanbanItems = useMemo(
@@ -552,10 +592,10 @@ function LocalDataTableKanbanView<TData extends Record<string, unknown>>({
       createKanbanItems({
         columns: kanbanColumns,
         groupBy,
-        rows,
+        rows: shownRows,
         titleColumnId: resolvedTitleColumnId,
       }),
-    [groupBy, kanbanColumns, resolvedTitleColumnId, rows]
+    [groupBy, kanbanColumns, resolvedTitleColumnId, shownRows]
   );
   const [kanbanItems, setKanbanItems] = useState(initialKanbanItems);
 
@@ -577,6 +617,28 @@ function LocalDataTableKanbanView<TData extends Record<string, unknown>>({
     );
   }, [columnDefinitions]);
   const showCardLabels = shouldShowKanbanCardLabels(config);
+  const avatarConfig = resolveAvatarConfig(config?.avatar);
+  const avatarOf = (row: Row<TData>): CardAvatar | undefined => {
+    if (!avatarConfig) {
+      return;
+    }
+    const nameColumnId = avatarConfig.nameColumn ?? resolvedTitleColumnId;
+    return {
+      // Initials read the name as the table shows it, like the title.
+      name: nameColumnId
+        ? fieldText(
+            row.original[nameColumnId],
+            columnDefinitionsById.get(nameColumnId),
+            locale,
+            row.original
+          )
+        : row.id,
+      shape: avatarConfig.shape,
+      source: avatarConfig.imageColumn
+        ? resolveImageSource(row.original[avatarConfig.imageColumn])
+        : undefined,
+    };
+  };
   const dragFromCard = canDragUpdate && config?.dragFromCard === true;
   const rowCountByColumnId = useMemo(() => {
     const next = new Map<string, number>();
@@ -671,6 +733,7 @@ function LocalDataTableKanbanView<TData extends Record<string, unknown>>({
                 return (
                   <DataTableKanbanCard
                     actionsCell={actionsCell}
+                    avatar={avatarOf(row)}
                     canDragUpdate={canDragUpdate}
                     columnDefinitionsById={columnDefinitionsById}
                     columnId={item.column}
@@ -697,6 +760,15 @@ function LocalDataTableKanbanView<TData extends Record<string, unknown>>({
           </KanbanBoard>
         )}
       </KanbanProvider>
+      {lanes.hidden.length > 0 ? (
+        <p
+          className="px-3 pb-3 text-muted-foreground text-xs"
+          data-kanban-hidden-lanes=""
+        >
+          {hiddenLanesLabel}:{" "}
+          {lanes.hidden.map((lane) => lane.label).join(", ")}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -707,8 +779,10 @@ export function DataTableKanbanView<TData extends Record<string, unknown>>(
   if (props.config?.server) {
     return (
       <ServerKanbanView
+        avatar={props.config.avatar}
         columns={props.columnDefinitions}
         key={props.config.server.queryKey}
+        lanes={kanbanLaneSettings(props.config.lanes, props.groupBy)}
         propertyIds={props.cardColumnIds ?? props.config.cardColumnIds ?? []}
         source={props.config.server}
         titleColumn={props.titleColumnId ?? props.config.titleColumn}

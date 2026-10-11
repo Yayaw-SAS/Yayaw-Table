@@ -105,6 +105,8 @@ export function TableRecordDetails({
       config={{
         ...details,
         presentation: tableConfig.presentation ?? details.presentation,
+        deleteConfirmation:
+          details.deleteConfirmation ?? tableConfig.table.deleteConfirmation,
       }}
       editor={
         editing ? (

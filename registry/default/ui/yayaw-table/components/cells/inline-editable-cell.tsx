@@ -140,6 +140,15 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     [formFieldDefinition, inlineConfig.options]
   );
 
+  const fieldWithTime =
+    formFieldDefinition?.type === "date" &&
+    formFieldDefinition.withTime === true;
+  const timeZone =
+    inlineConfig.timeZone ??
+    (formFieldDefinition?.type === "date"
+      ? formFieldDefinition.timeZone
+      : undefined);
+
   const resolvedEditor = useMemo(
     () =>
       resolveInlineEditor({
@@ -151,8 +160,11 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
         ),
         formFieldType: formFieldDefinition?.type,
         hasOptions: resolvedOptions.length > 0,
+        withTime: inlineConfig.withTime || fieldWithTime,
       }),
     [
+      fieldWithTime,
+      inlineConfig.withTime,
       formFieldDefinition?.type,
       inlineConfig.columnType,
       inlineConfig.typeKey,
@@ -168,6 +180,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
         editor: resolvedEditor,
         rawValue: draftValue,
         options: resolvedOptions,
+        timeZone,
       });
 
       if (!parsedResult.success) {
@@ -203,6 +216,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
       rowData,
       schema,
       t,
+      timeZone,
     ]
   );
 
@@ -223,6 +237,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     editor: resolvedEditor,
     debounceMs: inlineConfig.debounceMs,
     onCommit: runtimeCommit,
+    timeZone,
   });
 
   const handleDisplayKeyDown = useCallback(
@@ -516,6 +531,8 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
       inputType = "number";
     } else if (resolvedEditor === "date") {
       inputType = "date";
+    } else if (resolvedEditor === "datetime") {
+      inputType = "datetime-local";
     } else if (resolvedEditor === "url") {
       inputType = "url";
     }

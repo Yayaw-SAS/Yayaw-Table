@@ -53,6 +53,12 @@ import { createTranslationFunction } from "./translation-cache";
 export interface TableAggregateResultValue {
   raw: number | string | null;
   label: string;
+  /**
+   * Amounts by ISO 4217 code, for a column with a `currencyColumn`. A host
+   * may answer only this (no label): the table formats one amount per
+   * currency, or the converted sum with `currencyConversion`.
+   */
+  byCurrency?: Record<string, number>;
 }
 
 export interface TableAggregateParams {
@@ -62,6 +68,11 @@ export interface TableAggregateParams {
   search: string;
   calculations: Record<string, CalculationType>;
   locale: string;
+  /**
+   * Columns whose amounts carry a per-row currency, with the row field
+   * holding it: answer their value calculations as `byCurrency`.
+   */
+  currencyColumns?: Record<string, string>;
   /**
    * Chart groups: at most two levels (x axis, then series). When present,
    * answer `groups`; `calculations` is then empty. See `utils/chart-model.ts`.
@@ -977,6 +988,12 @@ export const defaultTranslations: DataTableTranslations = {
       titleColumn: "Title",
       properties: "Properties",
       showLabels: "Show property labels",
+      lanes: "Lanes",
+      hiddenLanes: "Hidden lanes",
+      showLane: "Show {lane}",
+      moveLaneUp: "Move {lane} up",
+      moveLaneDown: "Move {lane} down",
+      resetLanes: "Reset lanes",
     },
     gantt: {
       planning: "Planning",

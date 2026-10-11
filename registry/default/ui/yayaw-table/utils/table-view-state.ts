@@ -17,6 +17,8 @@ import {
   normalizeGenericModeConfigs,
 } from "./display-modes";
 import { normalizeGalleryViewConfig } from "./gallery-view-state";
+import { normalizeAvatarOption } from "./initials-avatar";
+import { normalizeKanbanLanes } from "./kanban-lanes";
 import {
   isTableDensity,
   normalizeColumnSizing,
@@ -114,6 +116,14 @@ function normalizeKanbanViewConfig(
   }
   if (typeof config.showCardLabels === "boolean") {
     normalized.showCardLabels = config.showCardLabels;
+  }
+  const lanes = normalizeKanbanLanes(config.lanes);
+  if (lanes) {
+    normalized.lanes = lanes;
+  }
+  const avatar = normalizeAvatarOption(config.avatar);
+  if (avatar !== undefined) {
+    normalized.avatar = avatar;
   }
 
   return hasObjectValues(normalized) ? normalized : undefined;

@@ -29,6 +29,7 @@ export type InlineEditEditor =
   | "auto"
   | "boolean"
   | "date"
+  | "datetime"
   | "json"
   | "location"
   | "multiSelect"
@@ -219,13 +220,15 @@ const DATE_PRESET_CACHE = new WeakMap<
 /**
  * Date columns without a preset or a zone of their own take the table's
  * (`dateDisplayPreset`, `timeZone`), as in Vue, so every surface (cards,
- * charts, exports…) reads one declaration.
+ * charts, exports…) reads one declaration. Date and time columns
+ * (`withTime`) without a preset of their own show `"dateTime"`.
  */
 export function withTableDatePreset<
   T extends {
     type?: string;
     dateDisplayPreset?: DateDisplayPreset;
     timeZone?: string;
+    withTime?: boolean;
     meta?: unknown;
   },
 >(
@@ -235,7 +238,8 @@ export function withTableDatePreset<
 ): T[] {
   const missing = (column: T) =>
     column.type === "date" &&
-    ((preset && !column.dateDisplayPreset) || (timeZone && !column.timeZone));
+    (((preset || column.withTime) && !column.dateDisplayPreset) ||
+      (timeZone && !column.timeZone));
   if (!definitions.some(missing)) {
     return definitions;
   }
@@ -253,7 +257,10 @@ export function withTableDatePreset<
       ?.dateDisplayPreset;
     return {
       ...column,
-      dateDisplayPreset: column.dateDisplayPreset ?? legacy ?? preset,
+      dateDisplayPreset:
+        column.dateDisplayPreset ??
+        legacy ??
+        (column.withTime ? ("dateTime" as const) : preset),
       timeZone: column.timeZone ?? timeZone,
     };
   });
@@ -272,6 +279,12 @@ export interface ColumnDefinition {
     value: unknown;
     onChange: (value: unknown) => void;
   }) => React.ReactNode;
+  /**
+   * Image columns: without an image, show initials with a stable color
+   * instead of the image placeholder. `nameColumn` names the column giving
+   * them; it defaults to the record's `name`, `title` or `label`.
+   */
+  avatar?: import("../utils/initials-avatar").AvatarOption;
   /**
    * Additional props for the column
    */
@@ -357,6 +370,16 @@ export interface ColumnDefinition {
 
   /** IANA zone used by date presets, e.g. "Europe/Paris". */
   timeZone?: string;
+
+  /**
+   * A `date` column whose values are a date and a time, stored as ISO 8601
+   * instants (`"2026-10-11T07:30:00.000Z"`): cells show both (the
+   * `"dateTime"` preset unless the column sets its own), and forms and inline
+   * editing pick both, in the column's (or table's) `timeZone`. Filters still
+   * compare the calendar day a value falls on in the viewer's zone.
+   * @default false
+   */
+  withTime?: boolean;
 
   /** Force a 12- or 24-hour clock where a date preset shows a time. */
   hour12?: boolean;
@@ -536,6 +559,13 @@ export interface TableBehaviorConfig extends GenericModeTableConfigs {
    * Return false to disable the built-in duplicate action for that row.
    */
   canDuplicateRow?: (row: Record<string, unknown>) => boolean;
+
+  /**
+   * Typed confirmation of row, bulk and record deletions: the delete button
+   * enables once the user typed the record's title, a column's value, a fixed
+   * word or, for bulk deletion, the number of records.
+   */
+  deleteConfirmation?: import("../utils/record-details").DeleteConfirmationConfig;
 
   /**
    * Row-aware guard for selection checkboxes.
@@ -732,6 +762,21 @@ export interface TableBehaviorConfig extends GenericModeTableConfigs {
    * times. The runtime's zone when omitted.
    */
   timeZone?: string;
+
+  /**
+   * First day of the week for relative date filters (`"$thisWeek"`…):
+   * 0 Sunday, 1 Monday … 6 Saturday. The table locale's first day when
+   * omitted.
+   */
+  weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+  /**
+   * The signed-in person's id, provided by the host: filter rules holding
+   * `"$viewer"` ("Assigned to me") compare with it, in the table and in the
+   * rules handed to `actions.list`. Without it `"$viewer"` is sent as is,
+   * for the server to substitute its own signed-in user.
+   */
+  viewerId?: string | number;
 
   /**
    * Inline edit behavior configuration.

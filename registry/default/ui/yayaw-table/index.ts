@@ -137,6 +137,19 @@ export {
   cellCopyText,
   resolveCellActions,
 } from "./utils/cell-actions";
+// Filter tokens (relative dates, `$viewer`): helpers a host can use on its server.
+export {
+  type CalendarDayRange,
+  isRelativeDateToken,
+  localeWeekStart,
+  RELATIVE_DATE_CHOICES,
+  RELATIVE_DATE_TOKENS,
+  type RelativeDateContext,
+  type RelativeDateToken,
+  relativeDateLabel,
+  resolveRelativeDate,
+  resolveRelativeDateRule,
+} from "./utils/date-filter-days";
 // Facets: the panel listing values with their records, clicks as filter rules.
 export {
   type FacetColumn,
@@ -233,6 +246,18 @@ export {
   publicFormSnapshot,
   withFormServerContext,
 } from "./utils/form-view";
+// Generated avatars (initials and a stable color) for records without an image.
+export {
+  avatarHue,
+  avatarInitials,
+  initialsAvatar,
+} from "./utils/initials-avatar";
+// Kanban lane order and visibility per grouping column, as views save them.
+export {
+  arrangeKanbanLanes,
+  mergeKanbanLanes,
+  normalizeKanbanLanes,
+} from "./utils/kanban-lanes";
 // Location columns and the Map mode: shared helpers a host can use on its server.
 export {
   boundsContain,
@@ -260,6 +285,13 @@ export type {
   RecordPresentationConfig,
 } from "./utils/record-presentation";
 export type { BoundsScope, ListScope } from "./utils/scoped-rows";
+export {
+  type FilterTokenContext,
+  resolveFilterRuleTokens,
+  resolveFilterTokens,
+  tableFilterContext,
+  VIEWER_FILTER_TOKEN,
+} from "./utils/table-contracts";
 export {
   createLocalTableViewActions,
   type LocalTableViewActions,
@@ -296,5 +328,9 @@ export {
   type TagColorName,
   tagColorValue,
 } from "./utils/tag-colors";
+export {
+  dateTimeFromInput,
+  dateTimeInputValue,
+} from "./utils/value-format";
 // The user's order of saved views: hosts may sort their `list` answer alike.
 export { orderViews } from "./utils/view-order";

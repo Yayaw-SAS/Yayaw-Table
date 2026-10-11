@@ -30,7 +30,11 @@ import {
   type VisibilityState,
 } from "../tanstack";
 import { withManualOrderView } from "../utils/manual-order";
-import { compatibleListParams, dateGroupKey } from "../utils/table-contracts";
+import {
+  compatibleListParams,
+  dateGroupKey,
+  tableFilterContext,
+} from "../utils/table-contracts";
 import { invalidateTableDataQuery } from "./query-cache-utils";
 import { useGalleryMediaActions } from "./use-gallery-media-actions";
 import type { InlineEditColumnRuntimeConfig } from "./use-inline-edit-runtime";
@@ -154,6 +158,8 @@ export interface UseDataTableOptions<TData = Record<string, unknown>> {
   formType?: string;
   onView?: (row: TData) => void;
   rowActions?: ActionItem<TData>[];
+  /** The record's title, as its record view names it (typed delete confirmation). */
+  recordTitle?: (row: TData) => string;
 }
 
 /**
@@ -176,6 +182,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
     formType = tableType,
     onView,
     rowActions,
+    recordTitle,
   } = options;
 
   // Get QueryClient instance
@@ -383,7 +390,8 @@ export function useDataTable<TData extends Record<string, unknown>>(
                 requestParams as Record<string, unknown>,
                 paramsSorting,
                 tableUrlState.viewParam
-              )
+              ),
+              tableFilterContext(config.table, locale)
             )
           );
           return {
@@ -405,6 +413,8 @@ export function useDataTable<TData extends Record<string, unknown>>(
       cleanColumnFilters,
       buildRequestParams,
       tableUrlState.viewParam,
+      config.table,
+      locale,
     ]
   );
 
@@ -559,6 +569,8 @@ export function useDataTable<TData extends Record<string, unknown>>(
         canDeleteRow: config.table.canDeleteRow,
         canDuplicateRow: config.table.canDuplicateRow,
         canEditRow: config.table.canEditRow,
+        deleteConfirmation: config.table.deleteConfirmation,
+        recordTitle,
         formType: config.form?.editFormType || formType,
         onDelete: async (row: TData) => {
           return await handleDelete(row as TData & { id: string });
@@ -592,6 +604,8 @@ export function useDataTable<TData extends Record<string, unknown>>(
       config.table.canDeleteRow,
       config.table.canDuplicateRow,
       config.table.canEditRow,
+      config.table.deleteConfirmation,
+      recordTitle,
       enhancedRefetch,
       formType,
       handleDelete,
@@ -690,6 +704,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
         }
         case "image": {
           return column.image(colDef.id as keyof TData, {
+            avatar: colDef.avatar,
             enableColumnFilter: colDef.enableColumnFilter,
             enableSorting: colDef.enableSorting,
             header: getTranslationSafe(colDef.header),

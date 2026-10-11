@@ -4,7 +4,7 @@
  */
 
 import type { ReactElement } from "react";
-import type { CalendarDay } from "../utils/date-filter-days";
+import type { CalendarDay, RelativeDateToken } from "../utils/date-filter-days";
 import type { DateDisplayPreset } from "./date-types";
 
 /**
@@ -62,7 +62,8 @@ export interface FilterOperators {
 /**
  * Filter values mapped by data type. Date rules compare calendar days: their
  * values are `YYYY-MM-DD` days (`[first, last]` for `between`, both included),
- * never instants.
+ * never instants, or relative tokens resolved when the rule applies
+ * (`"$today"`, `"$thisWeek"`, `"$last7Days"`…; see `RELATIVE_DATE_TOKENS`).
  */
 export type FilterValues<TType extends ColumnDataType = ColumnDataType> =
   TType extends "text"
@@ -70,7 +71,10 @@ export type FilterValues<TType extends ColumnDataType = ColumnDataType> =
     : TType extends "number"
       ? number | [number, number]
       : TType extends "date"
-        ? CalendarDay | [CalendarDay, CalendarDay]
+        ?
+            | CalendarDay
+            | RelativeDateToken
+            | [CalendarDay | RelativeDateToken, CalendarDay | RelativeDateToken]
         : TType extends "select"
           ? string | string[]
           : TType extends "multiSelect"

@@ -6,6 +6,7 @@
 
 import type { ReactNode } from "react";
 import type { Row } from "../../tanstack";
+import type { DeleteConfirmationConfig } from "../../utils/record-details";
 
 import { ActionsCellWithTranslations } from "../cells/actions-cell";
 
@@ -98,6 +99,16 @@ export interface ActionsColumnProps<TData> {
   canDuplicateRow?: (row: TData) => boolean;
 
   /**
+   * Typed confirmation of the built-in delete action
+   */
+  deleteConfirmation?: DeleteConfirmationConfig;
+
+  /**
+   * The record's title for a typed delete confirmation
+   */
+  recordTitle?: (row: TData) => string;
+
+  /**
    * Default form type used by the built-in edit action
    */
   formType?: string;
@@ -157,6 +168,8 @@ export function createActionsColumn<TData extends Record<string, unknown>>({
   canDeleteRow,
   canDuplicateRow,
   canEditRow,
+  deleteConfirmation,
+  recordTitle,
   formType,
   onDelete,
   onDuplicate,
@@ -196,6 +209,8 @@ export function createActionsColumn<TData extends Record<string, unknown>>({
             canDeleteRow,
             canDuplicateRow,
             canEditRow,
+            deleteConfirmation,
+            recordTitle,
             formType,
             onDelete,
             onDuplicate,

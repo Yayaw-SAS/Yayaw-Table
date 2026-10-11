@@ -18,6 +18,8 @@ import type { Cell, Row, Table as TanStackTable } from "../tanstack";
 import { flexRender } from "../tanstack";
 import type { TableListConfig } from "../types/display-types";
 import { shouldActivateCardFromKeyboard } from "../utils/card-interaction";
+import { resolveImageSource } from "../utils/image-source";
+import { resolveAvatarConfig } from "../utils/initials-avatar";
 import {
   type ListViewSettings,
   resolveListSettings,
@@ -39,6 +41,7 @@ import {
   type TableDensity,
 } from "../utils/table-contracts";
 import { TABLE_DENSITY_CLASSES } from "../utils/table-density";
+import { type CardAvatar, RecordAvatar } from "./cells/initials-avatar";
 import {
   createGalleryGroups,
   resolveGalleryPropertyColumnIds,
@@ -84,6 +87,7 @@ interface ListReorder {
 }
 
 interface ListItemProps<TData extends Record<string, unknown>> {
+  avatar?: CardAvatar;
   lineStyle: CSSProperties;
   isActive: boolean;
   isClickable: boolean;
@@ -209,6 +213,7 @@ function ListLineProperties<TData extends Record<string, unknown>>({
 }
 
 function DataTableListItem<TData extends Record<string, unknown>>({
+  avatar,
   lineStyle,
   isActive,
   isClickable,
@@ -322,6 +327,14 @@ function DataTableListItem<TData extends Record<string, unknown>>({
           <div className="shrink-0" data-column-id="select">
             {renderCell(selectionCell)}
           </div>
+        ) : null}
+        {avatar ? (
+          <RecordAvatar
+            className="[--yayaw-avatar-size:1.5rem]"
+            name={avatar.name}
+            shape={avatar.shape}
+            source={avatar.source}
+          />
         ) : null}
         <ListLineTitle
           align={settings.propertyAlign}
@@ -510,6 +523,37 @@ export function DataTableListView<TData extends Record<string, unknown>>({
     };
   };
 
+  const avatarConfig = resolveAvatarConfig(settings.avatar);
+  const avatarNameColumn = columnDefinitions.find(
+    (definition) => definition.id === avatarConfig?.nameColumn
+  );
+  const titleTextOf = (row: Row<TData>) =>
+    titleColumnId
+      ? fieldText(
+          row.original[titleColumnId],
+          titleColumn,
+          locale,
+          row.original
+        )
+      : undefined;
+  const avatarOf = (row: Row<TData>): CardAvatar | undefined =>
+    avatarConfig
+      ? {
+          name: avatarConfig.nameColumn
+            ? fieldText(
+                row.original[avatarConfig.nameColumn],
+                avatarNameColumn,
+                locale,
+                row.original
+              )
+            : (titleTextOf(row) ?? ""),
+          shape: avatarConfig.shape,
+          source: avatarConfig.imageColumn
+            ? resolveImageSource(row.original[avatarConfig.imageColumn])
+            : undefined,
+        }
+      : undefined;
+
   const renderRow = (row: Row<TData>) => {
     const cellById = new Map(
       (row.getVisibleCells() as ListCell<TData>[]).map((cell) => [
@@ -519,6 +563,7 @@ export function DataTableListView<TData extends Record<string, unknown>>({
     );
     return (
       <DataTableListItem
+        avatar={avatarOf(row)}
         isActive={isRowActive?.(row) ?? false}
         isClickable={isRowClickable?.(row) ?? false}
         key={row.id}
@@ -535,16 +580,7 @@ export function DataTableListView<TData extends Record<string, unknown>>({
         showLabels={settings.showCardLabels}
         table={table}
         titleColumnId={titleColumnId}
-        titleText={
-          titleColumnId
-            ? fieldText(
-                row.original[titleColumnId],
-                titleColumn,
-                locale,
-                row.original
-              )
-            : undefined
-        }
+        titleText={titleTextOf(row)}
       />
     );
   };

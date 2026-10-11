@@ -15,6 +15,14 @@ export interface ColumnNumberFormat {
   locale?: string;
   /** ISO 4217 code such as `"EUR"`. */
   currency?: string;
+  /**
+   * Row field holding each row's ISO 4217 code: cells read in their row's
+   * currency (`currency` is the fallback) and sums, averages and extremes are
+   * kept per currency, never mixed (`"1 200,00 € · 300,00 $"`).
+   */
+  currencyColumn?: string;
+  /** Show calculations over several currencies as one converted total. */
+  currencyConversion?: CurrencyConversion;
   currencyDisplay?: "code" | "name" | "narrowSymbol" | "symbol";
   /** Intl unit such as `"kilogram"` or `"kilometer-per-hour"`. */
   unit?: string;
@@ -42,6 +50,25 @@ export interface ColumnNumberFormat {
 }
 
 export type NumberFormatConfig = ColumnNumberFormat | NumberFormatPreset;
+
+/**
+ * Conversion of per-currency calculations into one currency. `rates` is
+ * plain JSON (units of `currency` for one unit of each code); `convert` is an
+ * optional host callback asked for codes without a rate. When any currency
+ * cannot be converted, the per-currency amounts are shown instead.
+ */
+export interface CurrencyConversion {
+  /** Target ISO 4217 code. */
+  currency: string;
+  rates?: Record<string, number>;
+  convert?: (
+    amount: number,
+    from: string,
+    to: string
+  ) => number | null | undefined;
+  /** `"converted"` (default) shows the total only, `"both"` adds the amounts. */
+  display?: "both" | "converted";
+}
 
 const PRESET_SEPARATORS: Record<
   Exclude<NumberFormatPreset, "locale">,
@@ -346,6 +373,97 @@ function wallClock(date: Date, timeZone: string): Date {
   return local;
 }
 
+const LOCAL_DATE_TIME =
+  /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,9})?)?$/;
+
+/** Milliseconds `timeZone` is ahead of UTC at an instant. */
+function zoneOffset(time: number, timeZone: string): number {
+  const clock = wallClock(new Date(time), timeZone);
+  const asUtc = Date.UTC(
+    clock.getFullYear(),
+    clock.getMonth(),
+    clock.getDate(),
+    clock.getHours(),
+    clock.getMinutes(),
+    clock.getSeconds(),
+    clock.getMilliseconds()
+  );
+  return asUtc - time;
+}
+
+const twoDigits = (value: number) => String(value).padStart(2, "0");
+
+/**
+ * A date and time as a `datetime-local` input shows it, `YYYY-MM-DDTHH:mm`:
+ * the wall-clock time of the instant in `timeZone` (the runtime's, the
+ * viewer's in a browser, without one). A day alone reads as its midnight.
+ * Empty when the value is not a date.
+ */
+export function dateTimeInputValue(value: unknown, timeZone?: string): string {
+  if (value === null || value === undefined || value === "") {
+    return "";
+  }
+  if (typeof value === "string" && LOCAL_DATE_TIME.test(value.trim())) {
+    // A wall-clock time without a zone is already what the input shows.
+    return value.trim().slice(0, 16).replace(" ", "T");
+  }
+  const date = parseDateValue(value);
+  if (!date) {
+    return "";
+  }
+  const zone = isCalendarDay(value) ? undefined : knownTimeZone(timeZone);
+  const clock = zone ? wallClock(date, zone) : date;
+  return `${String(clock.getFullYear()).padStart(4, "0")}-${twoDigits(clock.getMonth() + 1)}-${twoDigits(clock.getDate())}T${twoDigits(clock.getHours())}:${twoDigits(clock.getMinutes())}`;
+}
+
+/**
+ * The instant a `datetime-local` input names, as an ISO 8601 string in UTC
+ * (`"2026-10-11T07:30:00.000Z"`): the input's wall-clock time read in
+ * `timeZone` (the runtime's without one). Empty text gives `""`; text that is
+ * not a date and time gives `undefined`.
+ */
+export function dateTimeFromInput(
+  text: string,
+  timeZone?: string
+): string | undefined {
+  const value = text.trim();
+  if (!value) {
+    return "";
+  }
+  const match = LOCAL_DATE_TIME.exec(value);
+  if (!match) {
+    const date = parseDateValue(value);
+    return date ? date.toISOString() : undefined;
+  }
+  const [year, month, day, hour, minute, second] = match
+    .slice(1)
+    .map((part) => Number(part ?? 0));
+  const zone = knownTimeZone(timeZone);
+  if (!zone) {
+    const local = new Date(
+      year ?? 0,
+      (month ?? 1) - 1,
+      day ?? 1,
+      hour ?? 0,
+      minute ?? 0,
+      second ?? 0
+    );
+    return Number.isFinite(local.getTime()) ? local.toISOString() : undefined;
+  }
+  const asUtc = Date.UTC(
+    year ?? 0,
+    (month ?? 1) - 1,
+    day ?? 1,
+    hour ?? 0,
+    minute ?? 0,
+    second ?? 0
+  );
+  // The zone's offset at the guess, then at the corrected instant (DST edges).
+  const first = asUtc - zoneOffset(asUtc, zone);
+  const instant = asUtc - zoneOffset(first, zone);
+  return Number.isFinite(instant) ? new Date(instant).toISOString() : undefined;
+}
+
 function formatWithPattern(
   date: Date,
   pattern: string,
@@ -408,6 +526,8 @@ export function formatDateValue(
  */
 export interface ColumnValueFormat {
   type?: string;
+  /** A date column whose values are a date and a time (ISO 8601 instants). */
+  withTime?: boolean;
   numberFormat?: NumberFormatConfig;
   dateDisplayPreset?: DateDisplayPreset;
   dateFormat?: string;
@@ -425,7 +545,9 @@ export function columnDateFormat(
   fallbackPreset?: DateDisplayPreset
 ): ColumnDateFormat {
   return {
-    preset: column?.dateDisplayPreset ?? fallbackPreset,
+    preset:
+      column?.dateDisplayPreset ??
+      (column?.withTime ? "dateTime" : fallbackPreset),
     pattern: column?.dateFormat || undefined,
     locale,
     timeZone: column?.timeZone,
@@ -511,13 +633,62 @@ export function formatColumnDay(
   );
 }
 
-/** A number in its column's format and the table locale. */
+const CURRENCY_CODE = /^[A-Z]{3}$/;
+
+/** An ISO 4217 code in upper case, or `undefined` for anything else. */
+export function currencyCode(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return;
+  }
+  const code = value.trim().toUpperCase();
+  return CURRENCY_CODE.test(code) ? code : undefined;
+}
+
+/**
+ * The currency a row's amount is in: the row's `currencyColumn` value, else
+ * the column's fixed `currency`.
+ */
+export function rowCurrency(
+  config: NumberFormatConfig | undefined,
+  row?: Readonly<Record<string, unknown>>
+): string | undefined {
+  if (!config || typeof config === "string") {
+    return;
+  }
+  const own =
+    config.currencyColumn && row
+      ? currencyCode(row[config.currencyColumn])
+      : undefined;
+  return own ?? currencyCode(config.currency);
+}
+
+/** The number format with the row's currency, when the column reads one. */
+export function rowNumberFormat(
+  config: NumberFormatConfig | undefined,
+  row?: Readonly<Record<string, unknown>>
+): NumberFormatConfig | undefined {
+  if (!(config && typeof config !== "string" && config.currencyColumn)) {
+    return config;
+  }
+  const currency = rowCurrency(config, row);
+  return currency ? { ...config, currency } : config;
+}
+
+/**
+ * A number in its column's format and the table locale; with the row, in the
+ * row's currency when the column has a `currencyColumn`.
+ */
 export function formatColumnNumber(
   value: unknown,
   column: ColumnValueFormat | undefined,
-  locale?: string
+  locale?: string,
+  row?: Readonly<Record<string, unknown>>
 ): string {
-  return formatNumberValue(value, column?.numberFormat, locale);
+  return formatNumberValue(
+    value,
+    rowNumberFormat(column?.numberFormat, row),
+    locale
+  );
 }
 
 /** A date in its column's pattern or preset, time zone and clock. */
@@ -600,10 +771,11 @@ export function formatColumnValue(
   value: unknown,
   column: ColumnValueFormat | undefined,
   locale?: string,
-  fallbackPreset?: DateDisplayPreset
+  fallbackPreset?: DateDisplayPreset,
+  row?: Readonly<Record<string, unknown>>
 ): string | undefined {
   if (column?.type === "number") {
-    return formatColumnNumber(value, column, locale);
+    return formatColumnNumber(value, column, locale, row);
   }
   if (column?.type === "date") {
     return formatColumnDate(value, column, locale, fallbackPreset);
@@ -623,4 +795,328 @@ export function isBlankCardValue(value: unknown): boolean {
     return value.trim() === "";
   }
   return Array.isArray(value) && value.length === 0;
+}
+
+/** Amounts by ISO 4217 code; `""` holds rows without a currency. */
+export type CurrencyAmounts = Record<string, number>;
+
+/** A calculation kept per currency, with its converted total when possible. */
+export interface CurrencyCalculationResult {
+  /** The converted total, the only currency's value, or `null` when mixed. */
+  raw: number | null;
+  label: string;
+  byCurrency: CurrencyAmounts;
+  /** Set when `currencyConversion` converted every currency. */
+  converted?: { currency: string; value: number };
+}
+
+const CURRENCY_SEPARATOR = " · ";
+const NO_CURRENCY = "";
+
+/** True when a column's calculations are kept per currency. */
+export function hasCurrencyColumn(
+  column: ColumnValueFormat | undefined
+): boolean {
+  const config = column?.numberFormat;
+  return Boolean(config && typeof config !== "string" && config.currencyColumn);
+}
+
+/** One value calculation over sorted numbers; `null` without numbers. */
+function numericCalculation(
+  numbers: number[],
+  calculation: string
+): number | null {
+  const first = numbers.at(0);
+  const last = numbers.at(-1);
+  if (first === undefined || last === undefined) {
+    return null;
+  }
+  const sum = numbers.reduce((total, value) => total + value, 0);
+  switch (calculation) {
+    case "sum":
+      return sum;
+    case "average":
+      return sum / numbers.length;
+    case "median": {
+      const middle = Math.floor(numbers.length / 2);
+      const upper = numbers[middle] ?? last;
+      return numbers.length % 2 === 0
+        ? ((numbers[middle - 1] ?? upper) + upper) / 2
+        : upper;
+    }
+    case "min":
+      return first;
+    case "max":
+      return last;
+    case "range":
+      return last - first;
+    default:
+      return null;
+  }
+}
+
+/** One amount in the target currency, or `undefined` without a rate. */
+function convertAmount(
+  amount: number,
+  from: string,
+  conversion: CurrencyConversion
+): number | undefined {
+  const target = currencyCode(conversion.currency);
+  if (!(target && from)) {
+    return;
+  }
+  if (from === target) {
+    return amount;
+  }
+  const rate = conversion.rates?.[from];
+  if (typeof rate === "number" && Number.isFinite(rate) && rate > 0) {
+    return amount * rate;
+  }
+  const converted = conversion.convert?.(amount, from, target);
+  return typeof converted === "number" && Number.isFinite(converted)
+    ? converted
+    : undefined;
+}
+
+/** Codes in a stable order: alphabetical, amounts without a currency last. */
+const currencyOrder = (codes: Iterable<string>): string[] =>
+  [...codes].sort((left, right) => {
+    if (left === NO_CURRENCY || right === NO_CURRENCY) {
+      return left === NO_CURRENCY ? 1 : -1;
+    }
+    return left.localeCompare(right);
+  });
+
+/** One amount in its currency, in the column's format otherwise. */
+function formatCurrencyAmount(
+  amount: number,
+  code: string,
+  calculation: string,
+  column: ColumnValueFormat | undefined,
+  locale?: string
+): string {
+  const config = resolveNumberFormat(column?.numberFormat);
+  const numberFormat: ColumnNumberFormat = code
+    ? { ...config, style: "currency", currency: code }
+    : {
+        ...config,
+        style: config.style === "currency" ? "decimal" : config.style,
+        currency: undefined,
+      };
+  return formatColumnCalculation(
+    amount,
+    calculation,
+    { ...column, type: "number", numberFormat },
+    locale
+  );
+}
+
+/**
+ * Per-currency amounts as people read them: one amount per currency joined
+ * with " · ", or one converted total. Sums convert per currency; other
+ * calculations convert only from the values (see `calculateCurrencyColumn`).
+ */
+export function formatCurrencyAmounts(
+  byCurrency: CurrencyAmounts,
+  calculation: string,
+  column: ColumnValueFormat | undefined,
+  locale?: string,
+  converted?: { currency: string; value: number }
+): string {
+  const parts = currencyOrder(Object.keys(byCurrency)).map((code) =>
+    formatCurrencyAmount(
+      byCurrency[code] ?? 0,
+      code,
+      calculation,
+      column,
+      locale
+    )
+  );
+  const breakdown = parts.length ? parts.join(CURRENCY_SEPARATOR) : "—";
+  if (!converted) {
+    return breakdown;
+  }
+  const total = formatCurrencyAmount(
+    converted.value,
+    converted.currency,
+    calculation,
+    column,
+    locale
+  );
+  const config = column?.numberFormat;
+  const both =
+    config &&
+    typeof config !== "string" &&
+    config.currencyConversion?.display === "both";
+  return both && parts.length > 1 ? `${total} (${breakdown})` : total;
+}
+
+/** The conversion a column declares, when it has a usable target. */
+function columnConversion(
+  column: ColumnValueFormat | undefined
+): CurrencyConversion | undefined {
+  const config = column?.numberFormat;
+  if (!config || typeof config === "string" || !config.currencyConversion) {
+    return;
+  }
+  return currencyCode(config.currencyConversion.currency)
+    ? config.currencyConversion
+    : undefined;
+}
+
+/**
+ * Per-currency amounts a host computed (`actions.aggregate` answering
+ * `byCurrency`): only sums add up across currencies, so only sums convert.
+ */
+export function currencyAmountsResult(
+  byCurrency: CurrencyAmounts,
+  calculation: string,
+  column: ColumnValueFormat | undefined,
+  locale?: string
+): CurrencyCalculationResult {
+  const amounts: CurrencyAmounts = {};
+  for (const [code, amount] of Object.entries(byCurrency)) {
+    const numeric = Number(amount);
+    if (Number.isFinite(numeric)) {
+      amounts[currencyCode(code) ?? NO_CURRENCY] = numeric;
+    }
+  }
+  const codes = Object.keys(amounts);
+  const conversion = columnConversion(column);
+  let converted: CurrencyCalculationResult["converted"];
+  if (conversion && calculation === "sum" && codes.length > 1) {
+    const values = codes.map((code) =>
+      convertAmount(amounts[code] ?? 0, code, conversion)
+    );
+    if (values.every((value) => value !== undefined)) {
+      converted = {
+        currency: currencyCode(conversion.currency) ?? conversion.currency,
+        value: values.reduce<number>((total, value) => total + (value ?? 0), 0),
+      };
+    }
+  }
+  const only =
+    codes.length === 1 ? amounts[codes[0] ?? NO_CURRENCY] : undefined;
+  return {
+    raw: converted?.value ?? only ?? null,
+    label: formatCurrencyAmounts(
+      amounts,
+      calculation,
+      column,
+      locale,
+      converted
+    ),
+    byCurrency: amounts,
+    converted,
+  };
+}
+
+const toFiniteNumber = (value: unknown): number | undefined => {
+  if (
+    value === null ||
+    value === undefined ||
+    value === "" ||
+    typeof value === "boolean"
+  ) {
+    return;
+  }
+  const numeric = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(numeric) ? numeric : undefined;
+};
+
+/** Finite values grouped by their row's currency. */
+function valuesByCurrency(
+  values: readonly unknown[],
+  rows: readonly Readonly<Record<string, unknown>>[],
+  column: ColumnValueFormat | undefined
+): Map<string, number[]> {
+  const grouped = new Map<string, number[]>();
+  for (const [index, value] of values.entries()) {
+    const numeric = toFiniteNumber(value);
+    if (numeric === undefined) {
+      continue;
+    }
+    const code = rowCurrency(column?.numberFormat, rows[index]) ?? NO_CURRENCY;
+    const list = grouped.get(code) ?? [];
+    list.push(numeric);
+    grouped.set(code, list);
+  }
+  return grouped;
+}
+
+/** The calculation over every value converted first, when all convert. */
+function convertedCalculation(
+  grouped: Map<string, number[]>,
+  calculation: string,
+  conversion: CurrencyConversion
+): CurrencyCalculationResult["converted"] {
+  const all = [...grouped].flatMap(([code, numbers]) =>
+    numbers.map((amount) => convertAmount(amount, code, conversion))
+  );
+  const amounts = all.filter(
+    (amount): amount is number => amount !== undefined
+  );
+  if (amounts.length !== all.length) {
+    return;
+  }
+  const value = numericCalculation(
+    amounts.sort((left, right) => left - right),
+    calculation
+  );
+  return value === null
+    ? undefined
+    : {
+        currency: currencyCode(conversion.currency) ?? conversion.currency,
+        value,
+      };
+}
+
+/**
+ * A value calculation (sum, average, median, min, max, range) over a column
+ * whose rows carry their currency: computed per currency and never mixed.
+ * With `currencyConversion` covering every currency, each value is converted
+ * first and the calculation runs once in the target currency. `undefined`
+ * when the column has no `currencyColumn` or the calculation is a count.
+ */
+export function calculateCurrencyColumn(
+  values: readonly unknown[],
+  rows: readonly Readonly<Record<string, unknown>>[],
+  calculation: string,
+  column: ColumnValueFormat | undefined,
+  locale?: string
+): CurrencyCalculationResult | undefined {
+  if (!(VALUE_CALCULATIONS.has(calculation) && hasCurrencyColumn(column))) {
+    return;
+  }
+  const grouped = valuesByCurrency(values, rows, column);
+  const byCurrency: CurrencyAmounts = {};
+  for (const [code, numbers] of grouped) {
+    const result = numericCalculation(
+      numbers.sort((left, right) => left - right),
+      calculation
+    );
+    if (result !== null) {
+      byCurrency[code] = result;
+    }
+  }
+  const conversion = columnConversion(column);
+  const converted =
+    conversion && grouped.size > 1
+      ? convertedCalculation(grouped, calculation, conversion)
+      : undefined;
+  const codes = Object.keys(byCurrency);
+  const only =
+    codes.length === 1 ? byCurrency[codes[0] ?? NO_CURRENCY] : undefined;
+  return {
+    raw: converted?.value ?? only ?? null,
+    label: formatCurrencyAmounts(
+      byCurrency,
+      calculation,
+      column,
+      locale,
+      converted
+    ),
+    byCurrency,
+    converted,
+  };
 }

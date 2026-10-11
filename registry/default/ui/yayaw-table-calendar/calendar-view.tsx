@@ -30,6 +30,8 @@ import {
   addDays,
   type CalendarLayout,
   type CalendarViewSettings,
+  calendarCanResize,
+  calendarCreateValues,
   calendarEvents,
   calendarMovePatch,
   calendarScope,
@@ -282,8 +284,7 @@ export function CalendarView({
           end: event.end,
           allDay: true,
           startEditable: settings.allowDragUpdate && editable,
-          durationEditable:
-            settings.allowResize && Boolean(settings.endColumn) && editable,
+          durationEditable: calendarCanResize(settings) && editable,
           extendedProps: {
             row,
             appearance:
@@ -343,10 +344,7 @@ export function CalendarView({
     if (!day) {
       return;
     }
-    context.createRow({
-      [settings.dateColumn]: day,
-      ...(settings.endColumn ? { [settings.endColumn]: day } : {}),
-    });
+    context.createRow(calendarCreateValues(settings, day));
   };
 
   if (!settings.dateColumn) {

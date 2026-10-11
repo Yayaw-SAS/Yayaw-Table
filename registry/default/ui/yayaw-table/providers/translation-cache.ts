@@ -116,3 +116,17 @@ export function resolveTranslationsToUiStrings(
   }
   return result;
 }
+
+/**
+ * A translation, or the English fallback when the host's translations lack
+ * the key (keys added after a host copied its translations).
+ */
+export function translatedOr(
+  t: (key: string, params?: TranslationParams) => string,
+  key: string,
+  fallback: string,
+  params?: TranslationParams
+): string {
+  const text = t(key, params);
+  return text === key ? interpolate(fallback, params ?? {}) : text;
+}

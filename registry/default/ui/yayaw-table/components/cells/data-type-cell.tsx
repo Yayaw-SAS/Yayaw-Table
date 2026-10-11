@@ -3,10 +3,12 @@
 import type { ColumnDefinition } from "../../config/helpers";
 import { useTagCatalog } from "../../providers/tag-catalog-provider";
 import type { DateDisplayPreset } from "../../types/date-types";
+import { avatarNameOf, resolveAvatarConfig } from "../../utils/initials-avatar";
 import {
   dataTypeOptionLabel,
   resolveDataType,
 } from "../../utils/table-contracts";
+import { rowNumberFormat } from "../../utils/value-format";
 import { BooleanCell } from "./boolean-cell";
 import { CodeCell } from "./code-cell";
 import { DateCell } from "./date-cell";
@@ -44,6 +46,18 @@ export function DataTypeCell({
   if (custom !== undefined && custom !== null) {
     return custom;
   }
+  const avatar =
+    type === "image" ? resolveAvatarConfig(column.avatar) : undefined;
+  if (avatar) {
+    return (
+      <ImageCell
+        alt={column.header}
+        avatarName={avatarNameOf(row, avatar.nameColumn)}
+        avatarShape={avatar.shape}
+        value={value}
+      />
+    );
+  }
   if (value == null) {
     return <span className="text-muted-foreground">—</span>;
   }
@@ -77,11 +91,12 @@ export function DataTypeCell({
     case "number":
       return (
         <NumberCell
-          numberFormat={
+          numberFormat={rowNumberFormat(
             column.numberFormat as
               | import("../../utils/number-format").NumberFormatConfig
-              | undefined
-          }
+              | undefined,
+            row
+          )}
           value={value as string | number}
         />
       );

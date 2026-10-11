@@ -279,6 +279,13 @@ export interface DateFieldDefinition<
   maxDate?: Date | string;
   minDate?: Date | string;
   type: "date";
+  /**
+   * Pick a time as well as a date: the value is an ISO 8601 instant
+   * (`"2026-10-11T07:30:00.000Z"`) instead of a `YYYY-MM-DD` day.
+   */
+  withTime?: boolean;
+  /** IANA zone the date and time are picked in; the runtime's without one. */
+  timeZone?: string;
 }
 
 /**
