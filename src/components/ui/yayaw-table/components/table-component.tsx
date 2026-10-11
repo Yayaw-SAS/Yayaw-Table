@@ -3239,6 +3239,9 @@ function ModernDataTable<
                     <BulkActionsMenu
                       canSelectAll={bulkActions.canSelectAll}
                       customBulkActions={customBulkActions}
+                      deleteConfirmation={
+                        tableConfig.table.deleteConfirmation
+                      }
                       isSelectingAll={bulkActions.isSelectingAll}
                       onBulkCopy={bulkActions.handleBulkCopy}
                       onBulkDelete={bulkActions.handleBulkDelete}
@@ -3274,6 +3277,7 @@ function ModernDataTable<
             <BulkActionsMenu
               canSelectAll={bulkActions.canSelectAll}
               customBulkActions={customBulkActions}
+              deleteConfirmation={tableConfig.table.deleteConfirmation}
               isSelectingAll={bulkActions.isSelectingAll}
               onBulkCopy={bulkActions.handleBulkCopy}
               onBulkDelete={bulkActions.handleBulkDelete}

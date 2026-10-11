@@ -1986,9 +1986,17 @@
 }
 .yayaw-confirm-body {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
   padding: 18px 20px;
+}
+/* A typed confirmation and the record's name take the whole row above the buttons. */
+.yayaw-confirm-body > strong,
+.yayaw-confirm-body > .yayaw-error,
+.yayaw-confirm-body > .yayaw-typed-confirm {
+  flex: 1 0 100%;
+  overflow-wrap: anywhere;
 }
 .yayaw-bulk-editor {
   display: grid;

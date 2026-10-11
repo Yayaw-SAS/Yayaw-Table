@@ -58,8 +58,9 @@ field's `options`. Fetch remote options in the host before passing the projectio
 Files use `{ name, url }` objects. Collections preserve every item's data.
 
 Vue supports `#detail-<field-id>="{ row, value, field }"` slots, including when
-using `DataTable`. Standalone React supports `renderField(field, value, row)`;
-return `undefined` to use the standard renderer. Pass `locale` and optional
+using `DataTable`. React supports `details.renderField(field, value, row)` and
+the standalone `renderField` prop; return `undefined` to use the standard
+renderer (see host-defined fields below). Pass `locale` and optional
 `details.labels` to localize the surface; English and French labels are included.
 
 ## Actions and presentation
@@ -88,6 +89,86 @@ corresponding action handler and table/row permissions. Delete opens an accessib
 confirmation modal naming the record, initially focuses Cancel, prevents duplicate
 requests, and keeps errors visible for retry. It closes the record only after a
 successful mutation. List refresh failures must not repeat an acknowledged delete.
+
+## Typed delete confirmation
+
+A deletion can require typing a value before Delete enables. Set it once on the
+table (serializable) for the row action, bulk delete and the record view, or on
+`details` for the record view only:
+
+```json
+{
+  "table": {
+    "deleteConfirmation": { "type": "typed", "match": "column", "column": "reference" }
+  }
+}
+```
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `type` | — | `"typed"` turns the typed confirmation on. |
+| `match` | `"title"` | A record asks for its title (`details.title`, else `name`, `title`, `id`), a `"column"` value or the `"text"` word. |
+| `column` | — | Column or dot path for `match: "column"`. A record without the value asks for the word. |
+| `text` | `"DELETE"` / `"SUPPRIMER"` | The word for `match: "text"` and `bulkMatch: "text"`. |
+| `bulkMatch` | `"count"` | Bulk delete asks for the number of selected records, or `"text"`. |
+| `caseSensitive` | `false` | Surrounding spaces are always ignored. |
+
+The field is labelled with the value to type and focused when the dialog opens.
+A non-empty mismatch is announced with an error, and Enter confirms once the
+value matches. Labels: `details.labels.typeToConfirm` (with `{value}`),
+`confirmationMismatch` and `deleteKeyword`. The confirmation guards against
+mistakes only; the server still authorizes deletions.
+
+## Related lists
+
+A related section lists records of another source linked to this one, such as
+the people of a company or the deals of a person:
+
+```json
+{
+  "kind": "related",
+  "id": "people",
+  "title": "People",
+  "source": "people",
+  "foreignKey": "companyId",
+  "localKey": "id",
+  "columns": [
+    { "id": "name", "label": "Name" },
+    { "id": "email", "label": "Email", "type": "email" }
+  ],
+  "sort": { "id": "name" },
+  "limit": 10,
+  "empty": "No people yet.",
+  "open": { "action": "open-person" },
+  "add": { "action": "add-person", "label": "Add person" }
+}
+```
+
+The table does not know the backend. Pass static `rows` in the section (filtered
+by `foreignKey`, which may hold a value or a list of values, against this
+record's `localKey`), or give `details.loadRelated(section, row, { value, sort, limit })`.
+Records load once the section is open and visible; `collapsed: true` waits until
+the user opens it. Loaded records are sorted and limited again, with a count of
+the rest. Loading, empty, error and Retry states are built in. "Open" (per row)
+and "Add" (in the header) appear with `details.onRelatedAction`, which receives
+`{ action, kind, section, row, related? }`; the host navigates or opens its own
+form. When `sections` only lists related or custom sections, the fields derived
+from the columns stay first.
+
+## Host-defined fields and sections
+
+`details.renderField(field, value, row)` (React) renders any field; return
+`undefined` for the standard renderer. Fields can read JSON columns through dot
+paths (`{ "id": "customFields.industry", "label": "Industry", "type": "custom" }`).
+A `{ "kind": "custom", "id": "custom-fields", "title": "Custom fields", "data": { "column": "customFields" } }`
+section is rendered by `details.renderSection(section, row)`; returning nothing
+hides it. Standalone `RecordDetails` also accepts `renderField` and
+`renderSection` props, which take precedence. Type the configuration as
+`RecordDetailsConfig<ReactNode>` for typed render hooks.
+
+Vue uses slots, also through `DataTable`: `#detail-<field-id>`, the catch-all
+`#detail-field="{ row, value, field }"` (render nothing to keep the standard
+value) and `#record-section-<section-id>` or `#record-section="{ row, section }"`.
 
 ## Append-only activity and undo
 

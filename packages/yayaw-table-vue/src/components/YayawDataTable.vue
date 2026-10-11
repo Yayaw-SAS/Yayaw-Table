@@ -860,7 +860,7 @@ defineExpose({ refresh, getViewConfig: () => viewConfig.value });
       <template v-for="(_, name) in $slots" #[name]="scope"><slot :name="name" v-bind="scope" /></template>
     </CatalogueForm>
     <PlanningSurface v-if="planning" :session="planning" :labels="ganttLabels" :locale="locale" :formatters="planningFormat" :on-open-record="recordDetails || onOpenDetails ? (task) => {if (task.record) openDetails(task.record)} : undefined" />
-    <RecordDetails v-if="recordDetails && currentDetailRow" :key="getRowId(currentDetailRow)" :row="currentDetailRow" :config="{ ...recordDetails, presentation: config.presentation ?? recordDetails.presentation }" :editing="form.open" :editor-busy="detailEditorBusy" :columns="config.columns.definitions" :locale="locale"
+    <RecordDetails v-if="recordDetails && currentDetailRow" :key="getRowId(currentDetailRow)" :row="currentDetailRow" :config="{ ...recordDetails, presentation: config.presentation ?? recordDetails.presentation, deleteConfirmation: recordDetails.deleteConfirmation ?? config.table.deleteConfirmation }" :editing="form.open" :editor-busy="detailEditorBusy" :columns="config.columns.definitions" :locale="locale"
       :can-edit="config.table.allowEdit && Boolean(actions?.update) && config.table.canEditRow?.(currentDetailRow) !== false"
       :can-delete="config.table.allowDelete && Boolean(actions?.delete) && config.table.canDeleteRow?.(currentDetailRow) !== false"
       :on-planning="planning ? (row) => planning?.open({source: planning.config.sourceId, id: getRowId(row)}) : undefined"

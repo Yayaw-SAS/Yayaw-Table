@@ -157,11 +157,19 @@ export type {
   MapViewSettings,
 } from "./map-model";
 export type {
+  DeleteConfirmationConfig,
   DetailActivity,
+  DetailCustomSection,
   DetailField,
   DetailPresentation,
+  DetailRelatedAction,
+  DetailRelatedActionEvent,
+  DetailRelatedLoader,
+  DetailRelatedQuery,
+  DetailRelatedSection,
   DetailRevertHandler,
   DetailSection,
+  DetailSectionConfig,
   RecordDetailsConfig,
 } from "./record-details";
 export type { BoundsScope, ListScope } from "./scoped-rows";

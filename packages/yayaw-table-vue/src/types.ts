@@ -297,6 +297,12 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord>
   canDeleteRow?: (row: TData) => boolean;
   canDuplicateRow?: (row: TData) => boolean;
   canSelectRow?: (row: TData) => boolean;
+  /**
+   * Typed confirmation of row, bulk and record deletions: the delete button
+   * enables once the user typed the record's title, a column's value, a fixed
+   * word or, for bulk deletion, the number of records.
+   */
+  deleteConfirmation?: import("./record-details").DeleteConfirmationConfig;
   showToolbar: boolean;
   showToolbarHeader: boolean;
   /** Clear search and filters while preserving display options. */

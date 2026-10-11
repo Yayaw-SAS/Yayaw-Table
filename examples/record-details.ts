@@ -1,6 +1,7 @@
 import type {
   DetailActivity,
   DetailRecord,
+  DetailRelatedSection,
   DetailSection,
   RecordDetailsConfig,
 } from "../src/components/ui/yayaw-table/utils/record-details";
@@ -57,6 +58,7 @@ export const detailExampleRow: DetailRecord = {
   id: "CAM-2026-042",
   name: "Lancement collection Automne",
   reference: "AUTOMNE-26",
+  customFields: { Agence: "Studio Nord", Canal: "Presse écrite" },
   description:
     "Présenter la nouvelle collection aux médias et aux créateurs.\nUne campagne pensée pour des rencontres et des histoires qui durent.",
   status: "ready",
@@ -236,14 +238,72 @@ export const recordSections: DetailSection[] = [
   },
 ];
 
+/** The campaign's contacts: a related list from another source, linked by `campaignId`. */
+export const contactsSection: DetailRelatedSection = {
+  kind: "related",
+  id: "contacts",
+  title: "Contacts de la campagne",
+  source: "contacts",
+  foreignKey: "campaignId",
+  columns: [
+    { id: "name", label: "Nom" },
+    { id: "role", label: "Rôle" },
+    { id: "email", label: "E-mail", type: "email" },
+  ],
+  sort: { id: "name" },
+  limit: 5,
+  empty: "Aucun contact pour cette campagne.",
+  rows: [
+    {
+      id: "contact-1",
+      campaignId: "CAM-2026-042",
+      name: "Inès Lefèvre",
+      role: "Attachée de presse",
+      email: "ines@example.com",
+    },
+    {
+      id: "contact-2",
+      campaignId: "CAM-2026-042",
+      name: "Hugo Bernard",
+      role: "Créateur partenaire",
+      email: "hugo@example.com",
+    },
+  ],
+  open: { action: "open-contact", label: "Ouvrir" },
+  add: { action: "add-contact", label: "Ajouter un contact" },
+};
+
 export const recordDetailsConfig: RecordDetailsConfig = {
   title: (row) => String(row.name),
   description: () => "Campagne · Relations presse · Automne 2026",
   updatedAt: (row) => String(row.updatedAt),
   updatedBy: (row) => String(row.updatedBy),
   activity: (row) => row.audit as DetailActivity[],
-  sections: recordSections,
+  // Deleting the campaign asks for its reference.
+  deleteConfirmation: { type: "typed", match: "column", column: "reference" },
+  sections: [
+    ...recordSections,
+    contactsSection,
+    {
+      kind: "custom",
+      id: "custom-fields",
+      title: "Champs personnalisés",
+      data: { column: "customFields" },
+    },
+  ],
 };
+
+/** The host-defined fields stored in a JSON column, as label and value pairs. */
+export function customFieldEntries(
+  row: DetailRecord,
+  column: unknown
+): [string, string][] {
+  const value = row[String(column)];
+  if (!value || typeof value !== "object") {
+    return [];
+  }
+  return Object.entries(value).map(([key, item]) => [key, String(item)]);
+}
 
 export const recordExampleColumns = [
   { id: "name", header: "Campagne", type: "text" as const },

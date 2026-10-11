@@ -45,7 +45,14 @@ import type {
   BulkDeleteCustomHandlerResult,
 } from "../../hooks/use-bulk-actions";
 import { normalizeBulkActionResult } from "../../hooks/use-bulk-actions";
-import { useTranslations } from "../../providers/table-provider";
+import { useLocale, useTranslations } from "../../providers/table-provider";
+import {
+  type DeleteConfirmationConfig,
+  deleteConfirmationMatches,
+  deleteConfirmationValue,
+  detailLabels,
+} from "../../utils/record-details";
+import { TypedConfirmation } from "../details/typed-confirmation";
 
 export interface BulkActionContext<TData> {
   selectedRows: Row<TData>[];
@@ -187,6 +194,9 @@ export interface BulkActionsMenuProps<TData> {
 
   /** "Add tags" and "Remove tags", for tables with tags columns. */
   tagActions?: BulkTagActions;
+
+  /** Typed confirmation of bulk deletion: the number of records or a fixed word. */
+  deleteConfirmation?: DeleteConfirmationConfig;
 }
 
 /** The bulk menu's tag actions and their labels. */
@@ -756,6 +766,7 @@ export function BulkActionsMenu<TData>({
   isSelectingAll = false,
   viewportBottomOffset,
   tagActions,
+  deleteConfirmation,
 }: BulkActionsMenuProps<TData>) {
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const [hoveredAction, setHoveredAction] = useState<string | null>(null);
@@ -766,7 +777,10 @@ export function BulkActionsMenu<TData>({
   const pendingActionRef = useRef<BulkActionsMenuActionTab<TData> | null>(null);
   const confirmationLockRef = useRef(false);
   const outsideClickRef = useRef<HTMLDivElement>(null);
+  const typedInputRef = useRef<HTMLInputElement>(null);
+  const [typedConfirmation, setTypedConfirmation] = useState("");
   const { t } = useTranslations();
+  const locale = useLocale();
   const showSelectAllAction = canSelectAll && typeof onSelectAll === "function";
   const selectedRowsKey = useMemo(
     () => selectedRows.map((row) => row.id).join("|"),
@@ -822,6 +836,18 @@ export function BulkActionsMenu<TData>({
   ) {
     return null;
   }
+
+  const typedLabels = detailLabels(locale);
+  const typedExpected = deleteConfirmationValue(
+    deleteConfirmation,
+    { count: selectedCount },
+    typedLabels
+  );
+  const typedConfirmed = deleteConfirmationMatches(
+    typedExpected,
+    typedConfirmation,
+    deleteConfirmation
+  );
 
   const dismissMenu = () => {
     setDismissedSelectionKey(selectedRowsKey);
@@ -899,6 +925,7 @@ export function BulkActionsMenu<TData>({
     }
 
     pendingActionRef.current = tab;
+    setTypedConfirmation("");
     setSelectedAction(tab.id);
     setShowConfirmation(true);
   };
@@ -908,7 +935,8 @@ export function BulkActionsMenu<TData>({
     if (
       !pendingAction ||
       confirmationLockRef.current ||
-      isConfirmingAction
+      isConfirmingAction ||
+      (pendingAction.id === "delete" && !typedConfirmed)
     ) {
       return;
     }
@@ -1091,13 +1119,31 @@ export function BulkActionsMenu<TData>({
             }}
             open={showConfirmation && !!selectedAction}
           >
-            <AlertDialogContent>
+            <AlertDialogContent
+              initialFocus={
+                selectedAction === "delete" && typedExpected !== undefined
+                  ? typedInputRef
+                  : undefined
+              }
+            >
               <AlertDialogHeader>
                 <AlertDialogTitle>{getConfirmationTitle()}</AlertDialogTitle>
                 <AlertDialogDescription>
                   {getConfirmationDescription()}
                 </AlertDialogDescription>
               </AlertDialogHeader>
+              {selectedAction === "delete" && typedExpected !== undefined ? (
+                <TypedConfirmation
+                  confirmation={deleteConfirmation}
+                  disabled={isConfirmingAction}
+                  expected={typedExpected}
+                  inputRef={typedInputRef}
+                  labels={typedLabels}
+                  onChange={setTypedConfirmation}
+                  onSubmit={handleConfirmAction}
+                  value={typedConfirmation}
+                />
+              ) : null}
               <AlertDialogFooter>
                 <AlertDialogCancel
                   disabled={isConfirmingAction}
@@ -1111,7 +1157,10 @@ export function BulkActionsMenu<TData>({
                       ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       : undefined
                   }
-                  disabled={isConfirmingAction}
+                  disabled={
+                    isConfirmingAction ||
+                    (selectedAction === "delete" && !typedConfirmed)
+                  }
                   onClick={handleConfirmAction}
                 >
                   {getConfirmLabel()}
