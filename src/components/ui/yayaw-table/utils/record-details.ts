@@ -65,10 +65,110 @@ export interface DetailField {
 }
 
 export interface DetailSection {
+  /** Field sections are the default kind. */
+  kind?: "fields";
   id: string;
   title: string;
   description?: string;
   fields: readonly DetailField[];
+}
+
+/** A host-handled action of a related list: `action` names it in `onRelatedAction`. */
+export interface DetailRelatedAction {
+  action: string;
+  label?: string;
+}
+
+/**
+ * Records of another source linked to this one, e.g. the people of a company.
+ * Rows come from `rows` (filtered by the link) or from the host's `loadRelated`,
+ * called once the section is open and visible.
+ */
+export interface DetailRelatedSection {
+  kind: "related";
+  id: string;
+  title: string;
+  description?: string;
+  /** The related source or table id, handed to `loadRelated`. */
+  source: string;
+  /** The related records' field holding the link (a value or a list of values). */
+  foreignKey: string;
+  /** This record's field the link points to; default `"id"`. */
+  localKey?: string;
+  /** The related records' fields shown, as detail fields. */
+  columns: readonly DetailField[];
+  sort?: { id: string; desc?: boolean };
+  /** Most rows shown; the rest are counted. */
+  limit?: number;
+  /** Text shown without related records. */
+  empty?: string;
+  /** Static related records, filtered by `foreignKey`; used instead of `loadRelated`. */
+  rows?: readonly DetailRecord[];
+  /** A per-row "Open" button handled by the host. */
+  open?: DetailRelatedAction;
+  /** An "Add" button in the section header handled by the host. */
+  add?: DetailRelatedAction;
+  /** Start closed; the records load when the section is first opened. */
+  collapsed?: boolean;
+  hidden?: boolean | ((row: DetailRecord) => boolean);
+}
+
+/** A section whose content the host renders (`renderSection` in React, `#detail-section-<id>` in Vue). */
+export interface DetailCustomSection {
+  kind: "custom";
+  id: string;
+  title: string;
+  description?: string;
+  /** Serializable settings handed to the host renderer. */
+  data?: Record<string, unknown>;
+  hidden?: boolean | ((row: DetailRecord) => boolean);
+}
+
+export type DetailSectionConfig =
+  | DetailSection
+  | DetailRelatedSection
+  | DetailCustomSection;
+
+export interface DetailRelatedQuery {
+  /** This record's link value (`localKey`). */
+  value: unknown;
+  sort?: DetailRelatedSection["sort"];
+  limit?: number;
+}
+
+export type DetailRelatedLoader = (
+  section: DetailRelatedSection,
+  row: DetailRecord,
+  query: DetailRelatedQuery
+) => readonly DetailRecord[] | Promise<readonly DetailRecord[]>;
+
+export interface DetailRelatedActionEvent {
+  /** The configured action name. */
+  action: string;
+  kind: "open" | "add";
+  section: DetailRelatedSection;
+  /** The record whose details are shown. */
+  row: DetailRecord;
+  /** The related record, for "open". */
+  related?: DetailRecord;
+}
+
+/**
+ * Typed confirmation of deletions: the delete button enables once the user
+ * typed the expected value.
+ */
+export interface DeleteConfirmationConfig {
+  type: "typed";
+  /** A record's deletion asks for its title (default), a column's value or `text`. */
+  match?: "title" | "column" | "text";
+  /** The column (or dot path) for `match: "column"`. */
+  column?: string;
+  /** The fixed word for `match: "text"` and `bulkMatch: "text"`; default the localized "DELETE". */
+  text?: string;
+  /** Bulk deletion asks for the number of selected records (default) or `text`. */
+  bulkMatch?: "count" | "text";
+  /** Compare letter case; default false. Surrounding spaces are always ignored. */
+  caseSensitive?: boolean;
 }
 
 export interface DetailActivity {
@@ -86,14 +186,18 @@ export interface DetailActivity {
   changes?: readonly { field: string; before: unknown; after: unknown }[];
 }
 
-export interface RecordDetailsConfig {
+/** `TNode` is what render hooks return, e.g. `RecordDetailsConfig<ReactNode>` in React. */
+export interface RecordDetailsConfig<TNode = unknown> {
   /** Standalone presentation; the table-wide presentation takes precedence. */
   presentation?: RecordPresentationConfig;
   width?: string;
   title?: (row: DetailRecord) => string;
   description?: (row: DetailRecord) => string;
-  /** Omit to derive fields from the table's column definitions. */
-  sections?: readonly DetailSection[];
+  /**
+   * Omit to derive fields from the table's column definitions. Related and
+   * custom sections alone keep the derived fields first.
+   */
+  sections?: readonly DetailSectionConfig[];
   updatedAt?: (row: DetailRecord) => string | Date | undefined;
   updatedBy?: (row: DetailRecord) => string | undefined;
   /** The host application owns fetching and storing the audit log. */
@@ -102,6 +206,23 @@ export interface RecordDetailsConfig {
   history?: () => readonly TableActivityRecord[];
   canRevert?: (entry: DetailActivity, row: DetailRecord) => boolean;
   labels?: Partial<DetailLabels>;
+  /** Typed confirmation of the record's deletion; the table's `deleteConfirmation` otherwise. */
+  deleteConfirmation?: DeleteConfirmationConfig;
+  /** Loads a related section's records; the table does not know the backend. */
+  loadRelated?: DetailRelatedLoader;
+  /** Handles the related sections' "open" and "add" actions. */
+  onRelatedAction?: (event: DetailRelatedActionEvent) => void;
+  /** Renders a field; return `undefined` for the standard renderer. */
+  renderField?: (
+    field: DetailField,
+    value: unknown,
+    row: DetailRecord
+  ) => TNode | undefined;
+  /** Renders a custom section's content; `undefined` hides the section. */
+  renderSection?: (
+    section: DetailCustomSection,
+    row: DetailRecord
+  ) => TNode | undefined;
 }
 
 export interface DetailLabels {
@@ -135,6 +256,18 @@ export interface DetailLabels {
   redoSuccess: string;
   redoError: string;
   redoUnavailable: string;
+  /** Complete localized sentence; {value} is replaced with the value to type. */
+  typeToConfirm: string;
+  confirmationMismatch: string;
+  deleteKeyword: string;
+  relatedLoading: string;
+  relatedError: string;
+  relatedEmpty: string;
+  /** {count} is replaced with the number of related records not shown. */
+  relatedMore: string;
+  retry: string;
+  open: string;
+  add: string;
 }
 
 export type DetailRevertHandler = (
@@ -181,6 +314,16 @@ export function detailLabels(
         redoError: "Le rétablissement a échoué. Veuillez réessayer.",
         redoUnavailable:
           "Rien à rétablir : aucune annulation récente, ou ses champs ont changé depuis.",
+        typeToConfirm: "Saisissez « {value} » pour confirmer.",
+        confirmationMismatch: "Le texte saisi ne correspond pas.",
+        deleteKeyword: "SUPPRIMER",
+        relatedLoading: "Chargement…",
+        relatedError: "Le chargement a échoué.",
+        relatedEmpty: "Aucune entrée liée.",
+        relatedMore: "{count} de plus",
+        retry: "Réessayer",
+        open: "Ouvrir",
+        add: "Ajouter",
       }
     : {
         details: "Details",
@@ -214,6 +357,16 @@ export function detailLabels(
         redoError: "Redo failed. Please try again.",
         redoUnavailable:
           "Nothing to redo: no recent undo, or its fields have changed since.",
+        typeToConfirm: "Type “{value}” to confirm.",
+        confirmationMismatch: "The text does not match.",
+        deleteKeyword: "DELETE",
+        relatedLoading: "Loading…",
+        relatedError: "Loading failed.",
+        relatedEmpty: "No linked records.",
+        relatedMore: "{count} more",
+        retry: "Retry",
+        open: "Open",
+        add: "Add",
       };
   return { ...labels, ...overrides };
 }
@@ -252,13 +405,30 @@ const columnFormat = (column: DetailColumn): ColumnValueFormat => ({
   hour12: column.hour12,
 });
 
+const isFieldSection = (section: DetailSectionConfig): section is DetailSection =>
+  section.kind === undefined || section.kind === "fields";
+
+/** Related and custom sections alone keep the fields derived from the columns. */
+const derivesFields = (sections?: readonly DetailSectionConfig[]) =>
+  !sections ||
+  (sections.length > 0 && !sections.some((section) => isFieldSection(section)));
+
+const shownFor = (
+  hidden: boolean | ((row: DetailRecord) => boolean) | undefined,
+  row: DetailRecord
+) => (typeof hidden === "function" ? !hidden(row) : !hidden);
+
+/** The record's field sections (related and custom sections excluded). */
 export function detailSections(
-  config: RecordDetailsConfig,
+  config: Pick<RecordDetailsConfig, "sections">,
   columns: readonly DetailColumn[],
   row: DetailRecord,
   title: string
 ): DetailSection[] {
-  const sections: readonly DetailSection[] = config.sections ?? [
+  const declared = config.sections?.filter(isFieldSection);
+  const sections: readonly DetailSection[] = (
+    derivesFields(config.sections) ? undefined : declared
+  ) ?? [
     {
       id: "record",
       title,
@@ -289,17 +459,226 @@ export function detailSections(
     .map((section) => ({
       ...section,
       fields: section.fields
-        .filter((field) =>
-          typeof field.hidden === "function"
-            ? !field.hidden(row)
-            : !field.hidden
-        )
+        .filter((field) => shownFor(field.hidden, row))
         .map((field) => {
           const column = field.format ? undefined : columnOf(field);
           return column ? { ...field, format: columnFormat(column) } : field;
         }),
     }))
     .filter((section) => section.fields.length > 0);
+}
+
+export type DetailLayoutSection =
+  | { kind: "fields"; section: DetailSection }
+  | { kind: "related"; section: DetailRelatedSection }
+  | { kind: "custom"; section: DetailCustomSection };
+
+/** Every section of the record view in order: fields, related lists and host-rendered sections. */
+export function detailLayout(
+  config: Pick<RecordDetailsConfig, "sections">,
+  columns: readonly DetailColumn[],
+  row: DetailRecord,
+  title: string
+): DetailLayoutSection[] {
+  const fieldSections = detailSections(config, columns, row, title);
+  if (derivesFields(config.sections) || !config.sections) {
+    const derived = fieldSections.map((section) => ({
+      kind: "fields" as const,
+      section,
+    }));
+    return [...derived, ...otherSections(config.sections ?? [], row)];
+  }
+  const resolved = new Map(fieldSections.map((section) => [section.id, section]));
+  const layout: DetailLayoutSection[] = [];
+  for (const section of config.sections) {
+    if (isFieldSection(section)) {
+      const fields = resolved.get(section.id);
+      if (fields) {
+        layout.push({ kind: "fields", section: fields });
+      }
+    } else {
+      layout.push(...otherSections([section], row));
+    }
+  }
+  return layout;
+}
+
+function otherSections(
+  sections: readonly DetailSectionConfig[],
+  row: DetailRecord
+): DetailLayoutSection[] {
+  const layout: DetailLayoutSection[] = [];
+  for (const section of sections) {
+    if (section.kind === "related" && shownFor(section.hidden, row)) {
+      layout.push({ kind: "related", section });
+    } else if (section.kind === "custom" && shownFor(section.hidden, row)) {
+      layout.push({ kind: "custom", section });
+    }
+  }
+  return layout;
+}
+
+/** This record's link value for a related section. */
+export function relatedLinkValue(
+  section: DetailRelatedSection,
+  row: DetailRecord
+): unknown {
+  return detailValue(row, {
+    id: section.localKey ?? "id",
+    label: "",
+  });
+}
+
+const linkKey = (value: unknown) =>
+  value && typeof value === "object" && "id" in value
+    ? String((value as DetailRecord).id)
+    : String(value);
+
+/** Whether a related record links to this one; lists link to each of their values. */
+function relatedLinks(link: unknown, value: unknown): boolean {
+  if (value == null || value === "") {
+    return false;
+  }
+  const target = linkKey(value);
+  return (Array.isArray(link) ? link : [link]).some(
+    (item) => item != null && linkKey(item) === target
+  );
+}
+
+function compareRelated(a: unknown, b: unknown): number {
+  if (a == null || a === "") {
+    return b == null || b === "" ? 0 : 1;
+  }
+  if (b == null || b === "") {
+    return -1;
+  }
+  if (typeof a === "number" && typeof b === "number") {
+    return a - b;
+  }
+  return String(a).localeCompare(String(b), undefined, { numeric: true });
+}
+
+/** Sorted and limited related records, with the total before the limit. */
+export function relatedView(
+  section: DetailRelatedSection,
+  rows: readonly DetailRecord[]
+): { rows: DetailRecord[]; total: number } {
+  const sorted = [...rows];
+  const sort = section.sort;
+  if (sort) {
+    const field = section.columns.find((column) => column.id === sort.id) ?? {
+      id: sort.id,
+      label: "",
+    };
+    const direction = sort.desc ? -1 : 1;
+    sorted.sort(
+      (a, b) =>
+        compareRelated(detailValue(a, field), detailValue(b, field)) *
+        direction
+    );
+  }
+  const limit =
+    section.limit !== undefined && section.limit >= 0
+      ? section.limit
+      : sorted.length;
+  return { rows: sorted.slice(0, limit), total: sorted.length };
+}
+
+/** Static rows filtered by the link, or the host loader's records. */
+export async function loadRelatedRecords(
+  section: DetailRelatedSection,
+  row: DetailRecord,
+  loader?: DetailRelatedLoader
+): Promise<DetailRecord[]> {
+  const value = relatedLinkValue(section, row);
+  if (section.rows) {
+    return section.rows.filter((item) =>
+      relatedLinks(
+        detailValue(item, { id: section.foreignKey, label: "" }),
+        value
+      )
+    );
+  }
+  if (!loader) {
+    return [];
+  }
+  return [
+    ...(await loader(section, row, {
+      value,
+      sort: section.sort,
+      limit: section.limit,
+    })),
+  ];
+}
+
+/** A stable key of a related record. */
+export function relatedRowKey(row: DetailRecord, index: number): string {
+  return row.id == null ? `row-${index}` : String(row.id);
+}
+
+/** The record's title, as its record view names it. */
+export function detailTitle(
+  config: Pick<RecordDetailsConfig, "title"> | undefined,
+  row: DetailRecord,
+  fallback: string
+): string {
+  return (
+    config?.title?.(row) ??
+    String(row.name ?? row.title ?? row.id ?? fallback)
+  );
+}
+
+/**
+ * The value to type before a deletion, or `undefined` without a typed
+ * confirmation. A record asks for `title` or `column`; `count` asks for a bulk deletion.
+ */
+export function deleteConfirmationValue(
+  confirmation: DeleteConfirmationConfig | undefined,
+  target: { row: DetailRecord; title: string } | { count: number },
+  labels: Pick<DetailLabels, "deleteKeyword">
+): string | undefined {
+  if (confirmation?.type !== "typed") {
+    return;
+  }
+  const word = confirmation.text?.trim() || labels.deleteKeyword;
+  if ("count" in target) {
+    return confirmation.bulkMatch === "text" ? word : String(target.count);
+  }
+  if (confirmation.match === "text") {
+    return word;
+  }
+  if (confirmation.match === "column" && confirmation.column) {
+    const value = detailValue(target.row, {
+      id: confirmation.column,
+      label: "",
+    });
+    const text = value == null ? "" : linkKey(value).trim();
+    // A record without the value can still be deleted by typing the word.
+    return text || word;
+  }
+  return target.title.trim() || word;
+}
+
+export function deleteConfirmationMatches(
+  expected: string | undefined,
+  typed: string,
+  confirmation?: Pick<DeleteConfirmationConfig, "caseSensitive">
+): boolean {
+  if (expected === undefined) {
+    return true;
+  }
+  const value = typed.trim();
+  return confirmation?.caseSensitive
+    ? value === expected
+    : value.toLocaleLowerCase() === expected.toLocaleLowerCase();
+}
+
+/** The confirmation sentence naming the value to type. */
+export function deleteConfirmationPrompt(
+  expected: string,
+  labels: Pick<DetailLabels, "typeToConfirm">
+): string {
+  return labels.typeToConfirm.replaceAll("{value}", () => expected);
 }
 
 export function detailValue(row: DetailRecord, field: DetailField): unknown {
