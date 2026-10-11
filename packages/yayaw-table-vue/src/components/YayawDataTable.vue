@@ -776,6 +776,7 @@ provide(tableContextKey, {
   status,
   queryClient,
   tags: tagCatalogs,
+  instanceId: props.instanceId || undefined,
   initialViewsLoaded: props.initialViewsLoaded,
   initialFavoriteViewId: props.initialFavoriteViewId,
   locale: props.locale,
