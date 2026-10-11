@@ -89,6 +89,7 @@ export function useListSettings() {
 
   return {
     context,
+    active,
     wrap,
     showActions,
     propertyAlign,

@@ -418,6 +418,8 @@ function DataTableHeaderControls({
             defaultDisplayMode={defaultDisplayMode}
             defaultGroupBy={kanbanDefaultGroupBy}
             embedded
+            laneColumns={rendererColumns}
+            laneRows={baseData}
             tableId={tableId}
           />
         ) : undefined,

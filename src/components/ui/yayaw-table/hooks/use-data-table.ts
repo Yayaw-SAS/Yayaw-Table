@@ -694,6 +694,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
         }
         case "image": {
           return column.image(colDef.id as keyof TData, {
+            avatar: colDef.avatar,
             enableColumnFilter: colDef.enableColumnFilter,
             enableSorting: colDef.enableSorting,
             header: getTranslationSafe(colDef.header),

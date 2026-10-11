@@ -19,6 +19,8 @@ import { useTableContext, useTableTranslation } from "../../context";
 import { isChoiceInlineEditor, resolveDataType, resolveDataTypeEditor, TABLE_DATA_TYPES, dataTypeDateInput, dataTypeValueError } from "../../table-contracts";
 import { Check, ChevronDown, Image as ImageIcon, MapPin } from "lucide-vue-next";
 import CellActions from "./CellActions.vue";
+import InitialsAvatar from "../controls/InitialsAvatar.vue";
+import { avatarInitials, avatarNameOf, resolveAvatarConfig } from "../../initials-avatar";
 import InlineMultiSelect from "./InlineMultiSelect.vue";
 import TagPicker from "../tags/TagPicker.vue";
 import LocationEditor from "../location/LocationEditor.vue";
@@ -390,6 +392,15 @@ const imageUrl = computed(() => {
   const candidate = dynamicType.value === "image" ? imageSource(props.value) : undefined;
   return failedImageUrl.value === candidate ? undefined : candidate;
 });
+// Image columns with `avatar`: initials of the record's name replace the placeholder.
+const cellAvatar = computed(() => {
+  const config = resolveAvatarConfig(props.column.avatar);
+  if (!config || effectiveColumn.value.type !== "image" || imageUrl.value) {
+    return undefined;
+  }
+  const name = avatarNameOf(props.row, config.nameColumn);
+  return avatarInitials(name) ? { name, shape: config.shape } : undefined;
+});
 const tags = computed(() =>
   Array.isArray(props.value) ? props.value : [props.value]
 );
@@ -582,6 +593,7 @@ const tagChip = (value: unknown) => {
       loading="lazy"
       @error="failedImageUrl = imageUrl"
     />
+    <InitialsAvatar v-else-if="cellAvatar" size="cell" :name="cellAvatar.name" :shape="cellAvatar.shape" />
     <span v-else-if="effectiveColumn.type === 'image'" class="yayaw-cell-image yayaw-image-placeholder" role="img" :aria-label="column.header"><ImageIcon :size="16" aria-hidden="true" /></span>
     <a
       v-else-if="effectiveColumn.type === 'url' && url"

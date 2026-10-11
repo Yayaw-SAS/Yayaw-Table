@@ -19,6 +19,8 @@ import { emptyGroupLabel, fieldText, groupValueKey } from "../../table-contracts
 import TableCheckbox from "../controls/TableCheckbox.vue";
 import CellRenderer from "../table/CellRenderer.vue";
 import RowActions from "../table/RowActions.vue";
+import InitialsAvatar from "../controls/InitialsAvatar.vue";
+import { avatarInitials, resolveAvatarConfig } from "../../initials-avatar";
 
 const { context, translate, columns, titleColumn, propertyIds, showLabels, imageColumn, aspectRatio, imageFit, cardSize, previewSize } = useGallerySettings();
 const rows = useCardRows();
@@ -55,6 +57,20 @@ const titleText = (row: TableRecord): string =>
   fieldText(value(row, titleColumn.value), column(titleColumn.value), context.locale, row);
 const imageFor = (row: TableRecord): string | undefined =>
   imageSource(value(row, imageColumn.value));
+const avatarConfig = computed(() =>
+  resolveAvatarConfig(
+    context.state.gallery.value.avatar ?? context.config.table.gallery?.avatar
+  )
+);
+/** Initials of cards without an image (`avatar`), read as the table shows them. */
+const avatarName = (row: TableRecord): string | undefined => {
+  const config = avatarConfig.value;
+  if (!config) return undefined;
+  const name = config.nameColumn
+    ? fieldText(value(row, config.nameColumn), column(config.nameColumn), context.locale, row)
+    : titleText(row);
+  return avatarInitials(name) ? name : undefined;
+};
 const initialFor = (row: TableRecord): string =>
   (titleText(row) || "?")
     .trim()
@@ -117,6 +133,7 @@ const CustomContent = defineComponent({ props: { node: { type: null as unknown a
             <CustomContent v-if="context.config.table.gallery?.renderMedia" :node="context.config.table.gallery.renderMedia(mediaContext(row))" />
             <GalleryMedia v-else-if="context.config.table.gallery?.media?.enabled" :source="resolveGalleryMedia(row, context.config.table.gallery.media, imageColumn)" :title="mediaContext(row).title" :fit="imageFit" :hover-preview="context.config.table.gallery.media.hoverPreview" :preview-label="labels.preview" @open="openPreview(row, $event)" />
             <img v-else-if="imageFor(row)" :src="imageFor(row)" :alt="titleText(row)" loading="lazy" :style="{ objectFit: imageFit }" />
+            <span v-else-if="avatarName(row)" class="yayaw-gallery-avatar" data-gallery-avatar=""><InitialsAvatar decorative size="large" :name="avatarName(row) ?? ''" :shape="avatarConfig?.shape" /></span>
             <span v-else class="yayaw-gallery-placeholder"><ImageIcon :size="24" aria-hidden="true" /><span>{{ initialFor(row) }}</span></span>
             <span v-if="context.config.table.enableRowSelection" class="yayaw-card-select" @click.capture="checkboxShift = $event.shiftKey" @click.stop><TableCheckbox :label="translate('selectRow', 'Select') + ' ' + titleText(row)" :model-value="Boolean(context.selection.value[context.getRowId(row)])" :disabled="context.config.table.canSelectRow?.(row) === false" @update:model-value="toggleSelection(row, $event, checkboxShift); checkboxShift = false" /></span>
           </div>

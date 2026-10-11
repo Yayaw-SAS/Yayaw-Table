@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, GripVertical } from "lucide-vue-next";
 import TableEmptyState from "../table/TableEmptyState.vue";
 import { computed, ref } from "vue";
 import { useKanbanSettings } from "../../composables/use-kanban-settings";
-import { displayCellValue } from "../../core";
+import { displayCellValue, imageSource } from "../../core";
 import type { ColumnDefinition, TableRecord } from "../../types";
 import { useCardRows } from "../../composables/use-card-rows";
 import TableCheckbox from "../controls/TableCheckbox.vue";
@@ -12,6 +12,13 @@ import CellRenderer from "../table/CellRenderer.vue";
 import { isBlankCardValue } from "../../value-format";
 import { emptyGroupLabel, fieldText, groupValueKey } from "../../table-contracts";
 import RowActions from "../table/RowActions.vue";
+import InitialsAvatar from "../controls/InitialsAvatar.vue";
+import { resolveAvatarConfig } from "../../initials-avatar";
+import {
+  arrangeKanbanLanes,
+  kanbanLaneSettings,
+  mergeKanbanLanes,
+} from "../../kanban-lanes";
 
 const { context, translate, titleColumn, propertyIds, showLabels, groupBy } = useKanbanSettings();
 const dragged = ref<TableRecord>();
@@ -43,6 +50,34 @@ const rawGroups = computed(() => {
   }
   return groups;
 });
+// A view's lanes replace the default's column by column; hidden lanes hide their cards.
+const lanes = computed(() =>
+  arrangeKanbanLanes(
+    rawGroups.value,
+    kanbanLaneSettings(
+      mergeKanbanLanes(
+        context.config.table.kanban?.lanes,
+        context.state.kanban.value.lanes
+      ),
+      groupBy.value
+    )
+  )
+);
+const groups = computed(() => lanes.value.visible);
+const avatarConfig = computed(() =>
+  resolveAvatarConfig(
+    context.state.kanban.value.avatar ?? context.config.table.kanban?.avatar
+  )
+);
+/** The avatar's name as the table shows it, like the title. */
+const avatarName = (row: TableRecord): string => {
+  const id = avatarConfig.value?.nameColumn ?? titleColumn.value;
+  return fieldText(value(row, id), column(id), context.locale, row);
+};
+const avatarSource = (row: TableRecord): string | undefined =>
+  avatarConfig.value?.imageColumn
+    ? imageSource(value(row, avatarConfig.value.imageColumn))
+    : undefined;
 /** The card's title as read aloud: option labels, number and date formats. */
 const titleText = (row: TableRecord): string =>
   fieldText(value(row, titleColumn.value), column(titleColumn.value), context.locale, row);
@@ -136,10 +171,10 @@ const adjacentGroup = (
   offset: -1 | 1
 ): { label: string; value: string } | undefined => {
   const currentValue = groupValueKey(value(row, groupBy.value));
-  const currentIndex = rawGroups.value.findIndex(
+  const currentIndex = groups.value.findIndex(
     (group) => group.value === currentValue
   );
-  return rawGroups.value[currentIndex + offset];
+  return currentIndex < 0 ? undefined : groups.value[currentIndex + offset];
 };
 const activate = (
   row: TableRecord,
@@ -164,7 +199,7 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
 </script>
 
 <template>
-  <ServerKanbanView v-if="context.config.table.kanban?.server" :source="context.config.table.kanban.server" :title-column="titleColumn" :property-ids="propertyIds" />
+  <ServerKanbanView v-if="context.config.table.kanban?.server" :source="context.config.table.kanban.server" :title-column="titleColumn" :property-ids="propertyIds" :group-by="groupBy" />
   <TableEmptyState
     v-else-if="!rows.length && !context.data.isLoading.value && !context.data.error.value && context.config.table.emptyState?.show !== false"
     class="yayaw-card-empty"
@@ -172,7 +207,7 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
   <div v-else class="yayaw-card-view-shell">
 
     <div class="yayaw-kanban" data-kanban-board="">
-      <section v-for="group in rawGroups" :key="group.value" class="yayaw-kanban-lane" :data-kanban-lane="group.value" @dragover.prevent @drop="drop(group.value)">
+      <section v-for="group in groups" :key="group.value" class="yayaw-kanban-lane" :data-kanban-lane="group.value" @dragover.prevent @drop="drop(group.value)">
         <header><strong>{{ group.label }}</strong><span class="yayaw-count">{{ rowsFor(group.value).length }}</span></header>
         <div class="yayaw-kanban-cards">
           <article
@@ -192,6 +227,7 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
               <span v-if="context.config.table.enableRowSelection" class="yayaw-card-select" @click.stop>
                 <TableCheckbox :label="translate('selectRow', 'Select') + ' ' + titleText(row)" :model-value="Boolean(context.selection.value[context.getRowId(row)])" :disabled="context.config.table.canSelectRow?.(row) === false" @update:model-value="toggleSelection(row, $event)" />
               </span>
+              <InitialsAvatar v-if="avatarConfig" class="yayaw-card-avatar" decorative :name="avatarName(row)" :source="avatarSource(row)" :shape="avatarConfig.shape" />
               <strong>{{ displayCellValue(value(row, titleColumn), column(titleColumn) ?? { id: titleColumn, header: titleColumn }, context.locale) }}</strong>
               <div v-if="canDragRow(row)" class="yayaw-kanban-move-actions">
                 <button
@@ -231,5 +267,6 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
         </div>
       </section>
     </div>
+    <p v-if="lanes.hidden.length" class="yayaw-kanban-hidden-lanes" data-kanban-hidden-lanes="">{{ translate('kanbanHiddenLanes', 'Hidden lanes') }}: {{ lanes.hidden.map((lane) => lane.label).join(', ') }}</p>
   </div>
 </template>

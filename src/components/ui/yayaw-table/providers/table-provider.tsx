@@ -974,6 +974,12 @@ export const defaultTranslations: DataTableTranslations = {
       titleColumn: "Title",
       properties: "Properties",
       showLabels: "Show property labels",
+      lanes: "Lanes",
+      hiddenLanes: "Hidden lanes",
+      showLane: "Show {lane}",
+      moveLaneUp: "Move {lane} up",
+      moveLaneDown: "Move {lane} down",
+      resetLanes: "Reset lanes",
     },
     gantt: {
       planning: "Planning",

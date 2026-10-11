@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { useKanbanSettings } from "../../composables/use-kanban-settings";
 import ViewSettingsPanel from "../controls/ViewSettingsPanel.vue";
+import KanbanLaneSettings from "./KanbanLaneSettings.vue";
 const {
+  laneSettings,
+  lanes,
+  lanesResettable,
+  setLanes,
   translate,
   columnOptions,
   titleColumn,
@@ -32,5 +37,13 @@ const {
       showLabelsLabel: translate('cardShowLabels', 'Show labels'),
       onShowLabelsChange: (value) => (showLabels = value),
     }"
-  />
+  >
+    <KanbanLaneSettings
+      :lanes="lanes"
+      :settings="laneSettings"
+      :resettable="lanesResettable"
+      :translate="translate"
+      @change="setLanes"
+    />
+  </ViewSettingsPanel>
 </template>

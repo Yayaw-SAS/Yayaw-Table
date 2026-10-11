@@ -1,5 +1,13 @@
 import { computed } from "vue";
 import { useTableContext } from "../context";
+import {
+  type KanbanLaneSettings,
+  kanbanLaneCandidates,
+  kanbanLaneSettings,
+  mergeKanbanLanes,
+  withKanbanLaneSettings,
+} from "../kanban-lanes";
+import { emptyGroupLabel, fieldText, groupValueKey } from "../table-contracts";
 
 export function useKanbanSettings() {
   const context = useTableContext();
@@ -74,8 +82,73 @@ export function useKanbanSettings() {
     },
   });
 
+  // Lanes of the grouping column: the view's settings, else the table's.
+  const laneSettings = computed(() =>
+    kanbanLaneSettings(
+      mergeKanbanLanes(
+        context.config.table.kanban?.lanes,
+        context.state.kanban.value.lanes
+      ),
+      groupBy.value
+    )
+  );
+  /** Every lane the settings can arrange, hidden ones included, in order. */
+  const lanes = computed(() => {
+    const id = groupBy.value;
+    if (!id) {
+      return [];
+    }
+    const definition = context.config.columns.definitions.find(
+      (column) => column.id === id
+    );
+    const read = (row: Record<string, unknown>) =>
+      definition?.accessorFn
+        ? definition.accessorFn(row)
+        : row[definition?.accessorKey ?? id];
+    const kanban = context.config.table.kanban;
+    return kanbanLaneCandidates({
+      label: (value) =>
+        (value && (fieldText(value, definition, context.locale) || value)) ||
+        emptyGroupLabel(context.locale),
+      // The board's own order: fixed groups, then values as rows bring them.
+      options:
+        kanban?.groupBy === id
+          ? (kanban.groups ?? []).map((group) => ({
+              value: groupValueKey(group.value),
+              label: group.label,
+            }))
+          : [],
+      settings: laneSettings.value,
+      values: [
+        ...context.data.rows.value.map((row) => groupValueKey(read(row))),
+        ...(definition?.options ?? []).map((option) =>
+          groupValueKey(option.value)
+        ),
+      ],
+    });
+  });
+  /** The view changes this column's lanes: they can be reset to the default. */
+  const lanesResettable = computed(() => {
+    const own = context.state.kanban.value.lanes;
+    return Boolean(own && Object.hasOwn(own, groupBy.value));
+  });
+  const setLanes = (settings: KanbanLaneSettings | undefined): void => {
+    context.state.kanban.value = {
+      ...context.state.kanban.value,
+      lanes: withKanbanLaneSettings(
+        context.state.kanban.value.lanes,
+        groupBy.value,
+        settings
+      ),
+    };
+  };
+
   return {
     context,
+    laneSettings,
+    lanes,
+    lanesResettable,
+    setLanes,
     translate,
     columns,
     columnOptions,

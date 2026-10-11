@@ -1,27 +1,45 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { TableCatalogueColumnConfig } from "../hooks/use-table-config";
-import { useLocale } from "../providers/table-provider";
+import { useLocale, useTranslations } from "../providers/table-provider";
 import {
   createServerKanban,
   type ServerKanbanSource,
   type ServerKanbanState,
 } from "../utils/server-kanban";
+import { translatedOr } from "../providers/translation-cache";
+import { resolveImageSource } from "../utils/image-source";
+import {
+  type AvatarOption,
+  resolveAvatarConfig,
+} from "../utils/initials-avatar";
+import {
+  arrangeKanbanLanes,
+  type KanbanLaneSettings,
+} from "../utils/kanban-lanes";
 import { fieldText } from "../utils/table-contracts";
+import { RecordAvatar } from "./cells/initials-avatar";
 import { DataTypeCell } from "./cells/data-type-cell";
 
 export function ServerKanbanView({
+  avatar,
+  lanes,
   source,
   columns,
   titleColumn,
   propertyIds,
 }: {
+  /** Avatar before each card title (`kanban.avatar`). */
+  avatar?: AvatarOption;
+  /** Lane order and hidden lanes of the grouping column (`kanban.lanes`). */
+  lanes?: KanbanLaneSettings;
   source: ServerKanbanSource;
   columns: TableCatalogueColumnConfig[];
   titleColumn?: string;
   propertyIds: string[];
 }) {
   const locale = useLocale();
+  const { t } = useTranslations();
   const [state, setState] = useState<ServerKanbanState>({
     lanes: [],
     loading: true,
@@ -53,6 +71,13 @@ export function ServerKanbanView({
     return row[(column?.accessorKey as string | undefined) ?? id];
   };
   const titleId = titleColumn ?? "name";
+  const arranged = useMemo(
+    () => arrangeKanbanLanes(state.lanes, lanes),
+    [lanes, state.lanes]
+  );
+  const avatarConfig = resolveAvatarConfig(avatar);
+  const nameOf = (row: Record<string, unknown>, id: string) =>
+    fieldText(value(row, id), columnOf(id), locale, row);
   return (
     <div>
       {state.loading && <output>{labels.loading}</output>}
@@ -73,7 +98,7 @@ export function ServerKanbanView({
         <p>{labels.empty}</p>
       )}
       <div className="flex gap-3 overflow-x-auto p-3" data-kanban-board="">
-        {state.lanes.map((lane) => (
+        {arranged.visible.map((lane) => (
           <section
             aria-label={lane.label}
             className="w-72 shrink-0 rounded-md border bg-muted/20 p-3"
@@ -90,6 +115,20 @@ export function ServerKanbanView({
                 data-row-id={source.getRowId?.(row) ?? String(row.id)}
                 key={source.getRowId?.(row) ?? String(row.id)}
               >
+                {avatarConfig ? (
+                  <RecordAvatar
+                    className="float-left mr-2 [--yayaw-avatar-size:1.5rem]"
+                    name={nameOf(row, avatarConfig.nameColumn ?? titleId)}
+                    shape={avatarConfig.shape}
+                    source={
+                      avatarConfig.imageColumn
+                        ? resolveImageSource(
+                            value(row, avatarConfig.imageColumn)
+                          )
+                        : undefined
+                    }
+                  />
+                ) : null}
                 <button
                   className="w-full text-left font-medium"
                   disabled={!source.onActivate}
@@ -141,6 +180,15 @@ export function ServerKanbanView({
           </section>
         ))}
       </div>
+      {arranged.hidden.length > 0 ? (
+        <p
+          className="px-3 pb-3 text-muted-foreground text-xs"
+          data-kanban-hidden-lanes=""
+        >
+          {translatedOr(t, "views.kanban.hiddenLanes", "Hidden lanes")}:{" "}
+          {arranged.hidden.map((lane) => lane.label).join(", ")}
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -10,6 +10,7 @@ import {
 import { BooleanCell } from "./boolean-cell";
 import { CodeCell } from "./code-cell";
 import { DateCell } from "./date-cell";
+import { avatarNameOf, resolveAvatarConfig } from "../../utils/initials-avatar";
 import { ImageCell } from "./image-cell";
 import { JsonCell } from "./json-cell";
 import { LocationCell } from "./location-cell";
@@ -43,6 +44,17 @@ export function DataTypeCell({
     column.cellRenderer?.(value, row) ?? renderers?.[type]?.(value, row);
   if (custom !== undefined && custom !== null) {
     return custom;
+  }
+  const avatar = type === "image" ? resolveAvatarConfig(column.avatar) : undefined;
+  if (avatar) {
+    return (
+      <ImageCell
+        alt={column.header}
+        avatarName={avatarNameOf(row, avatar.nameColumn)}
+        avatarShape={avatar.shape}
+        value={value}
+      />
+    );
   }
   if (value == null) {
     return <span className="text-muted-foreground">—</span>;
