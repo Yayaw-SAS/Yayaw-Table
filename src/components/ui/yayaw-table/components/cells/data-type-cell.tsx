@@ -7,6 +7,7 @@ import {
   dataTypeOptionLabel,
   resolveDataType,
 } from "../../utils/table-contracts";
+import { rowNumberFormat } from "../../utils/value-format";
 import { BooleanCell } from "./boolean-cell";
 import { CodeCell } from "./code-cell";
 import { DateCell } from "./date-cell";
@@ -77,11 +78,12 @@ export function DataTypeCell({
     case "number":
       return (
         <NumberCell
-          numberFormat={
+          numberFormat={rowNumberFormat(
             column.numberFormat as
               | import("../../utils/number-format").NumberFormatConfig
-              | undefined
-          }
+              | undefined,
+            row
+          )}
           value={value as string | number}
         />
       );

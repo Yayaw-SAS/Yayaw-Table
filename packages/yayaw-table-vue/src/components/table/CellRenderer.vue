@@ -572,7 +572,7 @@ const tagChip = (value: unknown) => {
       ><Check v-if="value" :size="14" aria-hidden="true" /></span
     >
     <code v-else-if="effectiveColumn.type === 'code'" class="yayaw-code">{{
-      displayCellValue(value, effectiveColumn, context.locale)
+      displayCellValue(value, effectiveColumn, context.locale, props.row)
     }}</code>
     <img
       v-else-if="imageUrl"
@@ -627,20 +627,20 @@ const tagChip = (value: unknown) => {
       </template>
     </span>
     <pre v-else-if="effectiveColumn.type === 'json'" class="yayaw-json">{{
-      displayCellValue(value, effectiveColumn, context.locale)
+      displayCellValue(value, effectiveColumn, context.locale, props.row)
     }}</pre>
     <span v-else-if="barRatio !== undefined" class="yayaw-number-bar">
       <span class="yayaw-number-bar-track" aria-hidden="true"
         ><span :style="{ width: `${Math.round(barRatio * 100)}%` }"
       /></span>
       <span class="yayaw-number">{{
-        displayCellValue(value, effectiveColumn, context.locale)
+        displayCellValue(value, effectiveColumn, context.locale, props.row)
       }}</span>
     </span>
     <span
       v-else
       :class="{ 'yayaw-number': effectiveColumn.type === 'number' }"
-      >{{ displayCellValue(value, effectiveColumn, context.locale) }}</span
+      >{{ displayCellValue(value, effectiveColumn, context.locale, props.row) }}</span
     >
     <ChevronDown v-if="canEdit && !editing && isChoiceInlineEditor(editor)" class="yayaw-inline-chevron" data-inline-chevron="" aria-hidden="true" />
     <CellActions v-if="hasActions && !editing" :actions="cellActions" />

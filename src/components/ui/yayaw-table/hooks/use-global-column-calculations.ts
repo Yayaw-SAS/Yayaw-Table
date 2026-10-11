@@ -27,7 +27,10 @@ import {
 import { normalizeFilterEnvelope } from "../utils/table-contracts";
 import {
   type ColumnValueFormat,
+  calculateCurrencyColumn,
+  currencyAmountsResult,
   formatColumnCalculation,
+  type NumberFormatConfig,
 } from "../utils/value-format";
 import { useTableUrlState } from "./use-table-url-state";
 
@@ -76,6 +79,9 @@ const resultWithLabel = (
   if (typeof record?.label === "string") {
     return record as TableAggregateResultValue;
   }
+  if (record?.byCurrency && typeof record.byCurrency === "object") {
+    return currencyAmountsResult(record.byCurrency, calculation, column, locale);
+  }
   const raw = (record ? record.raw : value) as number | string | null;
   return {
     raw: raw ?? null,
@@ -84,6 +90,20 @@ const resultWithLabel = (
 };
 
 const EMPTY_RESULTS: Record<string, TableAggregateResultValue> = {};
+
+/** The row field holding each calculated column's currency, by column id. */
+export const calculationCurrencyColumns = (
+  calculations: Record<string, CalculationType>,
+  columns: Record<string, { numberFormat?: NumberFormatConfig } | undefined>
+): Record<string, string> | undefined => {
+  const entries = Object.keys(calculations).flatMap((columnId) => {
+    const format = columns[columnId]?.numberFormat;
+    return format && typeof format !== "string" && format.currencyColumn
+      ? [[columnId, format.currencyColumn] as const]
+      : [];
+  });
+  return entries.length ? Object.fromEntries(entries) : undefined;
+};
 const isSystemColumnId = (columnId: string): boolean => {
   return columnId === "actions" || columnId === "select";
 };
@@ -393,6 +413,7 @@ export const loadGlobalColumnCalculationResults = async ({
   const orderBy = toOrderByParam(sortParam);
 
   if (typeof actions?.aggregate === "function") {
+    const currencyColumns = calculationCurrencyColumns(calculations, columns);
     try {
       const response = await actions.aggregate({
         filters,
@@ -402,6 +423,7 @@ export const loadGlobalColumnCalculationResults = async ({
         search,
         calculations,
         locale,
+        ...(currencyColumns ? { currencyColumns } : {}),
       });
       return Object.fromEntries(
         Object.entries(response.results ?? EMPTY_RESULTS).map(
@@ -444,13 +466,23 @@ export const loadGlobalColumnCalculationResults = async ({
       }
       return row[column?.accessorKey ?? columnId];
     });
-    results[columnId] = calculateColumn(
+    // Amounts in several currencies are kept per currency, never mixed.
+    const perCurrency = calculateCurrencyColumn(
       values,
+      rows,
       calculationType,
-      columnTypes[columnId],
-      locale,
-      formatOf(column)
+      formatOf(column),
+      locale
     );
+    results[columnId] =
+      perCurrency ??
+      calculateColumn(
+        values,
+        calculationType,
+        columnTypes[columnId],
+        locale,
+        formatOf(column)
+      );
   }
 
   return results;

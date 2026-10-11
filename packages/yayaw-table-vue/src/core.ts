@@ -30,11 +30,13 @@ import type {
 } from "./types";
 import {
   type ColumnValueFormat,
+  calculateCurrencyColumn,
   formatColumnCalculation,
   formatColumnDate,
   formatNumberValue,
   formatDateValue as formatSharedDate,
   parseDateValue,
+  rowNumberFormat,
 } from "./value-format";
 import {
   readStoredViewOrder,
@@ -234,7 +236,8 @@ const jsonText = (value: unknown): string => {
 export const displayCellValue = (
   value: unknown,
   column: ColumnDefinition,
-  locale?: string
+  locale?: string,
+  row?: TableRecord
 ): string => {
   if (value === null || value === undefined || value === "") {
     return "—";
@@ -249,7 +252,11 @@ export const displayCellValue = (
     );
   }
   if (column.type === "number") {
-    return formatNumberValue(value, column.numberFormat, locale);
+    return formatNumberValue(
+      value,
+      rowNumberFormat(column.numberFormat, row),
+      locale
+    );
   }
   if (column.type === "boolean") {
     return value ? "Yes" : "No";
@@ -405,6 +412,17 @@ export const calculateColumn = (
   column?: ColumnValueFormat
 ): number | string | null => {
   const values = rows.map((row) => row[columnId]);
+  // Amounts in several currencies are kept per currency, never mixed.
+  const perCurrency = calculateCurrencyColumn(
+    values,
+    rows,
+    calculation,
+    column && { ...column, type: columnType ?? column.type },
+    locale
+  );
+  if (perCurrency) {
+    return perCurrency.label;
+  }
   const numbers = numericValues(rows, columnId).sort((a, b) => a - b);
   const nonEmpty = values.filter((value) => !isEmptyValue(value));
   if (columnType === "date") {

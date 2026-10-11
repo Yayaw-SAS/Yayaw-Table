@@ -1063,6 +1063,37 @@ Known difference kept for compatibility: a number column without
 locale's grouping in both. Set `numberFormat` for identical output.
 `tests/value-format-suite.ts` runs in both editions.
 
+### Amounts in several currencies
+
+`numberFormat.currencyColumn` names the row field holding each row's ISO 4217
+code (case-insensitive; anything else counts as no currency); `currency` is
+the fallback. Cells, cards and titles read in their row's currency
+(`rowNumberFormat`, `formatColumnNumber(value, column, locale, row)`,
+`fieldText`). Sums, averages, medians, extremes and ranges are computed per
+currency and never mixed: the footer shows one amount per currency joined
+with " · " (`"1 200,00 € · 300,00 $"`, codes in alphabetical order, amounts
+without a currency last); one currency reads as a plain total. Counts and
+shares are unchanged. `numberFormat.currencyConversion`
+(`{ currency: "EUR", rates: { USD: 0.92 }, display?: "converted" | "both" }`,
+plain JSON; rates are units of the target per unit of each code) shows one
+converted total instead; an optional `convert(amount, from, to)` callback
+answers codes without a rate. When any currency cannot be converted, the
+per-currency amounts stay. Local calculations convert each value first, so
+every calculation converts; a host's `byCurrency` answer converts for sums
+only.
+
+Server footers: `actions.aggregate` receives `currencyColumns`
+(`{ amount: "currency" }`) when a calculated column has a `currencyColumn`
+and may answer `{ amount: { raw: null, byCurrency: { EUR: 1200, USD: 300 } } }`
+without a label; both editions format it (`currencyAmountsResult`). A host
+label still wins. The list fallback and Vue local footers use
+`calculateCurrencyColumn`. React's grouped-table subtotals (number columns'
+aggregated cells, React only as before) total per currency too. Kanban lanes
+show counts only, so they have no totals to split. Charts and dashboard
+metrics keep their own aggregation and are not currency-aware.
+`tests/currency-totals-suite.ts` runs in both editions, with edition tests of
+the React list/aggregate footer path and the Vue `calculateColumn` and cells.
+
 ## Formats apply everywhere
 
 A format set on a column (`numberFormat`, `dateDisplayPreset`, `dateFormat`,
