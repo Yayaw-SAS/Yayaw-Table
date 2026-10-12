@@ -88,7 +88,7 @@ function SelectionHeaderBase<TData>({ table }: SelectionHeaderProps<TData>) {
       <Checkbox
         aria-label="Select all rows"
         checked={isAllSelected}
-        className="translate-y-[2px] cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+        className="cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
         disabled={totalCount === 0}
         indeterminate={isSomeSelected}
         onCheckedChange={handleToggle}
@@ -137,7 +137,7 @@ export function GroupRowSelectionCell<TData>({
       <Checkbox
         aria-label="Select group"
         checked={allSelected}
-        className="translate-y-[2px] cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+        className="cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
         disabled={leafIds.length === 0}
         indeterminate={someSelected && !allSelected}
         onCheckedChange={handleGroupToggle}
