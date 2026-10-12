@@ -311,6 +311,21 @@ it("opens a single select's list on the click that starts editing", async () => 
   }
 });
 
+it("starts editing where the DOM has no HTMLSelectElement global", async () => {
+  vi.stubGlobal("HTMLSelectElement", undefined);
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  try {
+    const { wrapper } = createCell();
+    await wrapper.trigger("click");
+    await flushPromises();
+    expect(wrapper.find("input").exists()).toBe(true);
+    expect(warn).not.toHaveBeenCalled();
+  } finally {
+    warn.mockRestore();
+    vi.unstubAllGlobals();
+  }
+});
+
 it("renders searchable choices outside the cell and preserves primitive selections", async () => {
   const { wrapper, update } = createCell({
     row: { id: "1", tags: [1] },
