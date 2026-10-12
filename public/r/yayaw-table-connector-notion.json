@@ -25,8 +25,8 @@
   ],
   "meta": {
     "registryUrl": "https://table.yayaw.app/r/yayaw-table-connector-notion.json",
-    "version": "3.18.0",
-    "versionedRegistryUrl": "https://table.yayaw.app/r/v3.18.0/yayaw-table-connector-notion.json"
+    "version": "3.19.0",
+    "versionedRegistryUrl": "https://table.yayaw.app/r/v3.19.0/yayaw-table-connector-notion.json"
   },
   "type": "registry:lib"
 }

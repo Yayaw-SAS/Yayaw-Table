@@ -1,5 +1,34 @@
 # Changelog
 
+## 3.19.0
+
+### Minor Changes
+
+- f08a3c5: Date and time columns: set `withTime: true` on a `date` column (or a form field) to hold ISO 8601 instants. Cells show the date and time in the locale (the `dateTime` preset unless the column sets its own), forms and inline edits use a date and time input in the column's `timeZone` and save the instant in UTC, sorting compares instants, filters compare the instant's day in that zone, and exports keep the time.
+
+  Relative date filters: a date rule's value can be `$today`, `$yesterday`, `$tomorrow`, `$thisWeek`, `$lastWeek`, `$nextWeek`, `$thisMonth`, `$lastMonth`, `$nextMonth`, `$thisYear`, `$lastNDays` or `$nextNDays` (for example `{ "columnId": "due", "operator": "between", "values": "$thisWeek" }`), with "before today" and "after today" through `before` / `after` and `$today`. The filter menus offer them by name, saved views, links and `table.defaultFilters` keep them as tokens, and the table resolves them to days in `table.timeZone` before calling `list`, `aggregate` or facet counts. Weeks start on the new `table.weekStartsOn` (0 to 6), else on the locale's first day. Servers that run saved queries later can call `resolveFilterTokens()`.
+
+  Viewer filter: a rule whose value is `$viewer` matches the new `table.viewerId` set by the host (for example "assigned to me"); without it, `$viewer` reaches the server unchanged for it to replace with the signed-in user.
+
+- 27eec6a: Two instances of one table on a page (`instanceId`) no longer share state:
+
+  - Saved views: each instance starts from its own `initialViews`, active view and default view (`initialFavoriteViewId`, `initialActiveViewId`) instead of the first instance's, while both still list the table's saved views; a view saved, updated, deleted or moved in one instance shows in the other. Without `instanceId`, nothing changes.
+  - File tree: the open folder is kept under `<instanceId>-folder` instead of `<tableId>-folder`, so each instance opens and links its own folder.
+
+- 2648f74: Record details and deletions, in React and Vue:
+
+  - Typed delete confirmation: `table.deleteConfirmation: { type: "typed", match?: "title" | "column" | "text", column?, text?, bulkMatch?: "count" | "text", caseSensitive? }` keeps the row, bulk and record Delete buttons disabled until the user types the record's title, a column's value, a fixed word or the number of selected records. `details.deleteConfirmation` overrides it for the record view.
+  - Related lists: `details.sections` accepts `{ kind: "related", source, foreignKey, localKey?, columns, sort?, limit?, empty?, rows?, open?, add?, collapsed? }`. Records come from static `rows` or the host's `details.loadRelated(section, row, query)`, loaded once the section is open and visible; "Open" and "Add" call `details.onRelatedAction`.
+  - Host extensions: `details.renderField` and `details.renderSection` (React) and the `#detail-field` and `#record-section-<id>` slots (Vue) render host-defined fields and `{ kind: "custom" }` sections, e.g. custom fields stored in a JSON column.
+
+- ee98b24: Calendar events can end after a duration instead of an end column: the calendar view settings accept `durationColumn` (a number in `durationUnit`, `"minutes"` by default, `"hours"` or `"days"`, or an ISO 8601 duration such as `"PT1H30M"`) and `defaultDuration`. Moving an event keeps its duration; stretching it writes the duration back, never an end.
+
+  Amounts in several currencies are no longer summed together: `numberFormat.currencyColumn` names the field holding each row's currency, cells read in their row's currency, and footer calculations (and React group subtotals) show one total per currency, such as "€1,200.00 · $300.00". `numberFormat.currencyConversion` (`{ currency, rates, convert?, display? }`) shows a single converted total, and `actions.aggregate` receives `currencyColumns` and may answer `byCurrency` amounts.
+
+- ad24395: Kanban lanes per view: `kanban.lanes` keeps the lane order and hidden lanes of each grouping column (`{ "status": { "order": ["won", "lead"], "hidden": ["lost"] } }`). Saved views carry it, so switching views switches lanes; `table.kanban.lanes` sets the default. The Kanban settings show, hide, reorder and reset the lanes, and server boards arrange their lanes the same way. React and Vue.
+
+  Initials avatars: `avatar` (`true` or `{ nameColumn, imageColumn, shape }`) shows initials with a stable color where a record has no image, on image columns (table cells and card properties), before Kanban and List titles (with the record's image when it has one), and on Gallery cards without an image. Decorative beside a shown name, labelled with the name in cells. React and Vue.
+
 ## 3.18.0
 
 ### Minor Changes
