@@ -1,6 +1,19 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import {
+  AlignLeft,
+  Braces,
+  Calendar,
+  CalendarClock,
+  ChevronDown,
+  Hash,
+  Link,
+  ListChecks,
+  type LucideIcon,
+  MapPin,
+  PencilLine,
+  Tag,
+} from "lucide-react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { memo, useCallback, useMemo, useState } from "react";
 import {
@@ -39,7 +52,8 @@ import { useTranslations } from "../../providers/table-provider";
 import { useTagCatalog } from "../../providers/tag-catalog-provider";
 import type { Cell } from "../../tanstack";
 import {
-  isChoiceInlineEditor,
+  type InlineEditorIcon,
+  inlineEditorIcon,
   optionControlKey,
   optionControlValue,
   resolveDataType,
@@ -57,6 +71,50 @@ interface InlineEditableCellProps<TData extends Record<string, unknown>> {
   formFieldDefinition?: AnyFieldDefinition;
   schema?: InlineEditValidationSchema;
   onCommit: (value: unknown) => Promise<InlineEditCommitResult>;
+}
+
+const INLINE_EDITOR_ICON_COMPONENTS: Record<InlineEditorIcon, LucideIcon> = {
+  braces: Braces,
+  calendar: Calendar,
+  calendarClock: CalendarClock,
+  chevron: ChevronDown,
+  hash: Hash,
+  link: Link,
+  list: ListChecks,
+  mapPin: MapPin,
+  pencil: PencilLine,
+  tag: Tag,
+  text: AlignLeft,
+};
+
+/** A link shown in the cell keeps opening; the rest of the cell edits. */
+const isLinkClick = (target: EventTarget): boolean =>
+  target instanceof Element && target.closest("a[href]") !== null;
+
+/** Floats over the cell's end (its start for right-aligned numbers), so it takes no column width or row height; cell actions, when present, end the cell instead. */
+function InlineEditorIconChip({
+  icon,
+  placement,
+}: {
+  icon: InlineEditorIcon | null;
+  placement: "start" | "end";
+}) {
+  if (!icon) {
+    return null;
+  }
+  const Icon = INLINE_EDITOR_ICON_COMPONENTS[icon];
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "pointer-events-none absolute top-1/2 flex -translate-y-1/2 items-center justify-center rounded-[5px] border bg-background p-[0.25em] text-muted-foreground opacity-0 shadow-sm group-hover/inline:opacity-100 group-focus-visible/inline:opacity-100 group-has-[[data-cell-actions]]/inline:hidden",
+        placement === "start" ? "start-1" : "end-1"
+      )}
+      data-inline-icon={icon}
+    >
+      <Icon className="size-[0.85em]" />
+    </span>
+  );
 }
 
 interface NormalizedSelectOption {
@@ -664,6 +722,10 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     return renderInputEditor();
   };
 
+  const editorIcon = inlineEditorIcon(resolvedEditor, {
+    tags: Boolean(tagColumn),
+  });
+
   return (
     <div className="relative w-full">
       {isEditing ? (
@@ -672,7 +734,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
         <TableTooltip label={t("inline.edit_hint")}>
           <button
             className={cn(
-              "group/inline relative flex min-h-8 w-full cursor-text items-center rounded-sm px-0.5 py-1 outline-none",
+              "group/inline relative flex min-h-8 w-full cursor-pointer items-center rounded-sm px-0.5 py-1 outline-none",
               resolvedEditor === "number"
                 ? "justify-end text-right"
                 : "justify-start text-left",
@@ -682,22 +744,20 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
             )}
             data-density-control=""
             data-inline-editor={resolvedEditor}
-            onDoubleClick={(event) => {
+            onClick={(event) => {
               event.stopPropagation();
-              startEditing();
+              if (!isLinkClick(event.target)) {
+                startEditing();
+              }
             }}
             onKeyDown={handleDisplayKeyDown}
             type="button"
           >
             {displayValue}
-            {/* Over the value's end, so it takes no column width or row height; cell actions, when present, end the cell instead. */}
-            {isChoiceInlineEditor(resolvedEditor) ? (
-              <ChevronDown
-                aria-hidden
-                className="absolute end-0.5 top-1/2 size-[1em] -translate-y-1/2 text-muted-foreground opacity-0 group-hover/inline:opacity-100 group-focus-visible/inline:opacity-100 group-has-[[data-cell-actions]]/inline:hidden"
-                data-inline-chevron=""
-              />
-            ) : null}
+            <InlineEditorIconChip
+              icon={editorIcon}
+              placement={resolvedEditor === "number" ? "start" : "end"}
+            />
           </button>
         </TableTooltip>
       )}

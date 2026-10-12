@@ -233,7 +233,7 @@ it("blocks invalid inline Done, Enter and blur until the visible draft is correc
   );
   await act(() =>
     required(view.container.querySelector("button")).dispatchEvent(
-      new MouseEvent("dblclick", { bubbles: true })
+      new MouseEvent("click", { bubbles: true })
     )
   );
   await fill("lat", "91");

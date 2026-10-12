@@ -363,7 +363,7 @@ it("autosaves inline drafts after the configured delay and cancels on Escape", a
   if (!cell) {
     throw new Error("Missing editable cell");
   }
-  await cell.trigger("dblclick");
+  await cell.trigger("click");
   await cell.get("input").setValue("Changed");
   await vi.advanceTimersByTimeAsync(49);
   expect(update).not.toHaveBeenCalled();

@@ -224,7 +224,7 @@ it("creates a tag on the fly in a cell, selects it and saves the record", async 
     "editable cell"
   );
   await act(async () => {
-    display.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+    display.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await settle();
   });
   const input = required(

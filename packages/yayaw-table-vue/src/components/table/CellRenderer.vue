@@ -16,8 +16,8 @@ import {
 } from "vue";
 import { resolveCellActions } from "../../cell-actions";
 import { useTableContext, useTableTranslation } from "../../context";
-import { isChoiceInlineEditor, resolveDataType, resolveDataTypeEditor, TABLE_DATA_TYPES, dataTypeDateInput, dataTypeValueError } from "../../table-contracts";
-import { Check, ChevronDown, Image as ImageIcon, MapPin } from "lucide-vue-next";
+import { inlineEditorIcon, type InlineEditorIcon, resolveDataType, resolveDataTypeEditor, TABLE_DATA_TYPES, dataTypeDateInput, dataTypeValueError } from "../../table-contracts";
+import { AlignLeft, Braces, Calendar, CalendarClock, Check, ChevronDown, Hash, Image as ImageIcon, Link, ListChecks, MapPin, PencilLine, Tag } from "lucide-vue-next";
 import CellActions from "./CellActions.vue";
 import InitialsAvatar from "../controls/InitialsAvatar.vue";
 import { avatarInitials, avatarNameOf, resolveAvatarConfig } from "../../initials-avatar";
@@ -360,6 +360,28 @@ const cancel = (): void => {
   if (!pending.value) resetEditing();
 };
 watch(() => context.getRowId(props.row), resetEditing);
+const INLINE_EDITOR_ICON_COMPONENTS: Record<InlineEditorIcon, Component> = {
+  braces: Braces,
+  calendar: Calendar,
+  calendarClock: CalendarClock,
+  chevron: ChevronDown,
+  hash: Hash,
+  link: Link,
+  list: ListChecks,
+  mapPin: MapPin,
+  pencil: PencilLine,
+  tag: Tag,
+  text: AlignLeft,
+};
+const editorIcon = computed(() => inlineEditorIcon(editor.value, { tags: Boolean(tagColumn.value) }));
+/** One click anywhere in the cell edits it; links and the editor's own controls keep their click. */
+const onCellClick = async (event: MouseEvent): Promise<void> => {
+  if (editing.value) return;
+  if (event.target instanceof Element && event.target !== event.currentTarget && event.target.closest("a[href],button,input,select,textarea,[role='option'],[data-location-editor],.yayaw-cell-actions")) return;
+  await begin();
+};
+// Only editable cells listen for clicks; a read-only cell leaves the click to the row.
+const cellListeners = computed(() => (canEdit.value ? { click: onCellClick } : {}));
 const onKeydown = async (event: KeyboardEvent): Promise<void> => {
   if (!editing.value && event.key === "Enter") {
     await begin();
@@ -450,9 +472,9 @@ const tagChip = (value: unknown) => {
     class="yayaw-cell"
     :class="{ 'is-editable': canEdit, 'is-editing': editing, 'is-pending': pending, 'has-actions': hasActions && !editing }"
     :data-inline-editor="canEdit ? editor : undefined"
-    :title="canEdit && !editing ? String(context.translations.value['inline.edit_hint'] ?? 'Double-click or press Enter to edit') : undefined"
+    :title="canEdit && !editing ? String(context.translations.value['inline.edit_hint'] ?? 'Click or press Enter to edit') : undefined"
     tabindex="0"
-    @dblclick="begin"
+    v-on="cellListeners"
     @keydown="onKeydown"
   >
     <template v-if="editing">
@@ -664,7 +686,14 @@ const tagChip = (value: unknown) => {
       :class="{ 'yayaw-number': effectiveColumn.type === 'number' }"
       >{{ displayCellValue(value, effectiveColumn, context.locale, props.row) }}</span
     >
-    <ChevronDown v-if="canEdit && !editing && isChoiceInlineEditor(editor)" class="yayaw-inline-chevron" data-inline-chevron="" aria-hidden="true" />
+    <span
+      v-if="canEdit && !editing && editorIcon"
+      class="yayaw-inline-icon"
+      :class="{ 'is-start': editor === 'number' }"
+      :data-inline-icon="editorIcon"
+      aria-hidden="true"
+      ><component :is="INLINE_EDITOR_ICON_COMPONENTS[editorIcon]"
+    /></span>
     <CellActions v-if="hasActions && !editing" :actions="cellActions" />
     <span v-if="error && !editing" class="yayaw-inline-error" role="alert">{{
       error
