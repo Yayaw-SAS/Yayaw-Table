@@ -287,6 +287,30 @@ const settle = async () => {
   await new Promise((resolve) => setTimeout(resolve, 10));
 };
 
+it("opens a single select's list on the click that starts editing", async () => {
+  const showPicker = vi.fn();
+  HTMLSelectElement.prototype.showPicker = showPicker;
+  try {
+    const { wrapper } = createCell({
+      column: {
+        id: "amount",
+        header: "Amount",
+        type: "select",
+        options: [
+          { value: 1, label: "One" },
+          { value: 2, label: "Two" },
+        ],
+      },
+    });
+    await wrapper.trigger("click");
+    await flushPromises();
+    expect(wrapper.find("select").exists()).toBe(true);
+    expect(showPicker).toHaveBeenCalledTimes(1);
+  } finally {
+    Reflect.deleteProperty(HTMLSelectElement.prototype, "showPicker");
+  }
+});
+
 it("renders searchable choices outside the cell and preserves primitive selections", async () => {
   const { wrapper, update } = createCell({
     row: { id: "1", tags: [1] },
