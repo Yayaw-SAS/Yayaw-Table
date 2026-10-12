@@ -452,7 +452,9 @@ Both editions accept `table.enableAutoPageSize: true` (default: false). In table
 mode the rows-per-page selector offers Automatic, followed by the computed row
 count while active. Capacity uses the available viewport or scroll container,
 header/footer space and the measured row heights in their display order.
-Unseen rows use the smallest visible row as an estimate. Capacity may decrease
+Unseen rows use the smallest visible row as an estimate. A row counts for at most twice the median
+measured row, so one unusually tall row scrolls inside the table instead of
+ending the page before it. Capacity may decrease
 for later pages with taller rows and grows again after viewport/density changes
 to avoid oscillating page-size requests. The layout identity uses the container
 width, since an intrinsic table width can shrink on a later page without any
