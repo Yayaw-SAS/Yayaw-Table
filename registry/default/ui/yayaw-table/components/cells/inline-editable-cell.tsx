@@ -87,6 +87,36 @@ const INLINE_EDITOR_ICON_COMPONENTS: Record<InlineEditorIcon, LucideIcon> = {
   text: AlignLeft,
 };
 
+/** A link shown in the cell keeps opening; the rest of the cell edits. */
+const isLinkClick = (target: EventTarget): boolean =>
+  target instanceof Element && target.closest("a[href]") !== null;
+
+/** Floats over the cell's end (its start for right-aligned numbers), so it takes no column width or row height; cell actions, when present, end the cell instead. */
+function InlineEditorIconChip({
+  icon,
+  placement,
+}: {
+  icon: InlineEditorIcon | null;
+  placement: "start" | "end";
+}) {
+  if (!icon) {
+    return null;
+  }
+  const Icon = INLINE_EDITOR_ICON_COMPONENTS[icon];
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "pointer-events-none absolute top-1/2 flex -translate-y-1/2 items-center justify-center rounded-[5px] border bg-background p-[0.25em] text-muted-foreground opacity-0 shadow-sm group-hover/inline:opacity-100 group-focus-visible/inline:opacity-100 group-has-[[data-cell-actions]]/inline:hidden",
+        placement === "start" ? "start-1" : "end-1"
+      )}
+      data-inline-icon={icon}
+    >
+      <Icon className="size-[0.85em]" />
+    </span>
+  );
+}
+
 interface NormalizedSelectOption {
   disabled?: boolean;
   label: string;
@@ -695,9 +725,6 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
   const editorIcon = inlineEditorIcon(resolvedEditor, {
     tags: Boolean(tagColumn),
   });
-  const EditorIcon = editorIcon
-    ? INLINE_EDITOR_ICON_COMPONENTS[editorIcon]
-    : null;
 
   return (
     <div className="relative w-full">
@@ -719,32 +746,18 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
             data-inline-editor={resolvedEditor}
             onClick={(event) => {
               event.stopPropagation();
-              // A link shown in the cell keeps opening; the rest of the cell edits.
-              if (
-                event.target instanceof Element &&
-                event.target.closest("a[href]")
-              ) {
-                return;
+              if (!isLinkClick(event.target)) {
+                startEditing();
               }
-              startEditing();
             }}
             onKeyDown={handleDisplayKeyDown}
             type="button"
           >
             {displayValue}
-            {/* Floats over the cell's end (its start for right-aligned numbers), so it takes no column width or row height; cell actions, when present, end the cell instead. */}
-            {EditorIcon ? (
-              <span
-                aria-hidden
-                className={cn(
-                  "pointer-events-none absolute top-1/2 flex -translate-y-1/2 items-center justify-center rounded-[5px] border bg-background p-[0.25em] text-muted-foreground opacity-0 shadow-sm group-hover/inline:opacity-100 group-focus-visible/inline:opacity-100 group-has-[[data-cell-actions]]/inline:hidden",
-                  resolvedEditor === "number" ? "start-1" : "end-1"
-                )}
-                data-inline-icon={editorIcon ?? undefined}
-              >
-                <EditorIcon className="size-[0.85em]" />
-              </span>
-            ) : null}
+            <InlineEditorIconChip
+              icon={editorIcon}
+              placement={resolvedEditor === "number" ? "start" : "end"}
+            />
           </button>
         </TableTooltip>
       )}
