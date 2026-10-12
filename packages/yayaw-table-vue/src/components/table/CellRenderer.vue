@@ -380,6 +380,8 @@ const onCellClick = async (event: MouseEvent): Promise<void> => {
   if (event.target instanceof Element && event.target !== event.currentTarget && event.target.closest("a[href],button,input,select,textarea,[role='option'],[data-location-editor],.yayaw-cell-actions")) return;
   await begin();
 };
+// Only editable cells listen for clicks; a read-only cell leaves the click to the row.
+const cellListeners = computed(() => (canEdit.value ? { click: onCellClick } : {}));
 const onKeydown = async (event: KeyboardEvent): Promise<void> => {
   if (!editing.value && event.key === "Enter") {
     await begin();
@@ -472,7 +474,7 @@ const tagChip = (value: unknown) => {
     :data-inline-editor="canEdit ? editor : undefined"
     :title="canEdit && !editing ? String(context.translations.value['inline.edit_hint'] ?? 'Click or press Enter to edit') : undefined"
     tabindex="0"
-    @click="onCellClick"
+    v-on="cellListeners"
     @keydown="onKeydown"
   >
     <template v-if="editing">
