@@ -222,6 +222,14 @@ const begin = async (): Promise<void> => {
   }
   await nextTick();
   editorElement.value?.focus();
+  // A native select only lists its options on a second click: open it so the cell's click picks a value.
+  if (editorElement.value instanceof HTMLSelectElement) {
+    try {
+      editorElement.value.showPicker?.();
+    } catch {
+      // No user activation (keyboard start after a slow load) or no support: focus is enough.
+    }
+  }
 };
 const parseDraft = (): unknown => {
   if (editor.value === "number") {
