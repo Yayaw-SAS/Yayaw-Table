@@ -158,6 +158,11 @@
           "target": "components/ui/yayaw-table/components/cells/index.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/cells/initials-avatar.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/cells/initials-avatar.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/cells/inline-editable-cell.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/cells/inline-editable-cell.tsx"
@@ -343,6 +348,11 @@
           "target": "components/ui/yayaw-table/components/data-table.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/details/delete-confirm-dialog.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/details/delete-confirm-dialog.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/details/detail-value.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/details/detail-value.tsx"
@@ -363,9 +373,19 @@
           "target": "components/ui/yayaw-table/components/details/record-details.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/details/related-records.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/details/related-records.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/details/table-record-details.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/details/table-record-details.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/details/typed-confirmation.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/details/typed-confirmation.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/details/use-activity-undo.ts",
@@ -851,6 +871,11 @@
           "path": "registry/default/ui/yayaw-table/components/toolbar/import-screen.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/import-screen.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/kanban-lane-settings.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/kanban-lane-settings.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/toolbar/menu-choice-list.tsx",
@@ -1698,6 +1723,21 @@
           "target": "components/ui/yayaw-table/utils/initial-rows.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/initials-avatar.css",
+          "type": "registry:style",
+          "target": "components/ui/yayaw-table/utils/initials-avatar.css"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/initials-avatar.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/initials-avatar.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/kanban-lanes.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/kanban-lanes.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/list-view.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/list-view.ts"
@@ -1870,8 +1910,8 @@
       ],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/yayaw-table.json",
-        "version": "3.18.0",
-        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.18.0/yayaw-table.json"
+        "version": "3.19.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.19.0/yayaw-table.json"
       }
     },
     {
@@ -1903,8 +1943,8 @@
       ],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/yayaw-table-calendar.json",
-        "version": "3.18.0",
-        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.18.0/yayaw-table-calendar.json"
+        "version": "3.19.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.19.0/yayaw-table-calendar.json"
       }
     },
     {
@@ -1942,8 +1982,8 @@
       ],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/yayaw-table-chart.json",
-        "version": "3.18.0",
-        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.18.0/yayaw-table-chart.json"
+        "version": "3.19.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.19.0/yayaw-table-chart.json"
       }
     },
     {
@@ -2100,8 +2140,8 @@
       ],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/yayaw-table-dashboard.json",
-        "version": "3.18.0",
-        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.18.0/yayaw-table-dashboard.json"
+        "version": "3.19.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.19.0/yayaw-table-dashboard.json"
       }
     },
     {
@@ -2117,8 +2157,8 @@
       "dependencies": ["maplibre-gl"],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/yayaw-table-map.json",
-        "version": "3.18.0",
-        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.18.0/yayaw-table-map.json"
+        "version": "3.19.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.19.0/yayaw-table-map.json"
       },
       "files": [
         {
@@ -2157,8 +2197,8 @@
       ],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/yayaw-table-excel.json",
-        "version": "3.18.0",
-        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.18.0/yayaw-table-excel.json"
+        "version": "3.19.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.19.0/yayaw-table-excel.json"
       }
     },
     {
@@ -2185,8 +2225,8 @@
       ],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/yayaw-table-connector-notion.json",
-        "version": "3.18.0",
-        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.18.0/yayaw-table-connector-notion.json"
+        "version": "3.19.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.19.0/yayaw-table-connector-notion.json"
       }
     },
     {
@@ -2213,8 +2253,8 @@
       ],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/yayaw-table-connector-google-sheets.json",
-        "version": "3.18.0",
-        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.18.0/yayaw-table-connector-google-sheets.json"
+        "version": "3.19.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.19.0/yayaw-table-connector-google-sheets.json"
       }
     },
     {
@@ -2246,8 +2286,8 @@
       ],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/yayaw-table-connector-microsoft-excel.json",
-        "version": "3.18.0",
-        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.18.0/yayaw-table-connector-microsoft-excel.json"
+        "version": "3.19.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.19.0/yayaw-table-connector-microsoft-excel.json"
       }
     },
     {
@@ -2267,8 +2307,8 @@
       "categories": ["font", "theme", "yayaw-table"],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/font-yayaw-sans.json",
-        "version": "3.18.0",
-        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.18.0/font-yayaw-sans.json"
+        "version": "3.19.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.19.0/font-yayaw-sans.json"
       }
     },
     {
@@ -2329,8 +2369,8 @@
       "categories": ["base", "theme", "yayaw-table"],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/yayaw-table-base.json",
-        "version": "3.18.0",
-        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.18.0/yayaw-table-base.json"
+        "version": "3.19.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.19.0/yayaw-table-base.json"
       }
     }
   ]
