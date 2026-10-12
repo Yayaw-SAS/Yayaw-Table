@@ -223,9 +223,10 @@ const begin = async (): Promise<void> => {
   await nextTick();
   editorElement.value?.focus();
   // A native select only lists its options on a second click: open it so the cell's click picks a value.
-  if (editorElement.value instanceof HTMLSelectElement) {
+  // Checked through the editor, not `instanceof HTMLSelectElement`: the component also runs where no DOM globals exist.
+  if (editor.value === "select") {
     try {
-      editorElement.value.showPicker?.();
+      (editorElement.value as HTMLSelectElement | undefined)?.showPicker?.();
     } catch {
       // No user activation (keyboard start after a slow load) or no support: focus is enough.
     }
