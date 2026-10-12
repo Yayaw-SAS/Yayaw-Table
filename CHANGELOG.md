@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.20.2
+
+### Patch Changes
+
+- 4c66b73: Vue: starting an inline edit no longer references the `HTMLSelectElement` global, so it also runs where no DOM globals exist (Node tests, server-side contract checks).
+
 ## 3.20.1
 
 ### Patch Changes
