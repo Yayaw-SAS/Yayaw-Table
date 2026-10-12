@@ -31,7 +31,7 @@ export function SelectionHeader<TData, TValue>({
         <Checkbox
           aria-label="Select all rows"
           checked={isAllSelected}
-          className="translate-y-[2px] cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+          className="cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
           onCheckedChange={(value) => {
             table.toggleAllRowsSelected(!!value);
           }}

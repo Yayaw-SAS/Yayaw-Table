@@ -410,6 +410,35 @@ test("table text and rows follow the density scale", async ({ page }) => {
   }
 });
 
+test("the select-all checkbox stays centered in a 2XS header", async ({
+  page,
+}) => {
+  await page.goto(EXAMPLE);
+  await openViewMenu(page);
+  await page
+    .getByRole("dialog", { name: SETTINGS })
+    .getByRole("group", { name: DENSITY })
+    .getByRole("button", { name: "2XS", exact: true })
+    .click();
+  await page.keyboard.press("Escape");
+  const header = page.locator("thead th").first();
+  const checkbox = header.getByRole("checkbox");
+  const offsets = async () => {
+    const cell = await header.boundingBox();
+    const box = await checkbox.boundingBox();
+    if (!(cell && box)) {
+      return Number.POSITIVE_INFINITY;
+    }
+    const above = box.y - cell.y;
+    const below = cell.y + cell.height - (box.y + box.height);
+    return Math.abs(above - below);
+  };
+  await expect
+    .poll(async () => (await header.boundingBox())?.height ?? 0)
+    .toBeLessThanOrEqual(22);
+  await expect.poll(offsets).toBeLessThanOrEqual(1);
+});
+
 test("list options from a shared link: labels, limits, alignment, wrapping and actions", async ({
   page,
 }) => {

@@ -3604,10 +3604,6 @@
   display: grid;
   margin: 0 auto;
 }
-/* React's header checkbox sits 2px lower than row checkboxes. */
-.yayaw-data-grid thead th:first-child input[type="checkbox"] {
-  transform: translateY(2px);
-}
 /* Header labels are regular weight inside a medium cell, as in React. */
 .yayaw-data-grid th .yayaw-column-sort {
   font-weight: 400;
