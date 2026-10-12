@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.20.0
+
+### Minor Changes
+
+- 2b8acca: Inline-editable cells now start editing on a single click anywhere in the cell, show a pointer cursor, and show a hover icon named after their editor (pencil, chevron, checklist, tag, `#`, calendar, link, pin, braces) in a small chip floating over the cell's end, so the cell never resizes. Boolean cells show no icon. React and Vue, with the shared `inlineEditorIcon` contract.
+
+### Patch Changes
+
+- fc306dc: Center the select-all checkbox in the selection column header. It sat 2px low and touched the header's bottom border in 2XS. React and Vue.
+
 ## 3.19.0
 
 ### Minor Changes
