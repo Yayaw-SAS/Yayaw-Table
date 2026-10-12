@@ -178,8 +178,8 @@
   ],
   "meta": {
     "registryUrl": "https://table.yayaw.app/r/yayaw-table-dashboard.json",
-    "version": "3.20.1",
-    "versionedRegistryUrl": "https://table.yayaw.app/r/v3.20.1/yayaw-table-dashboard.json"
+    "version": "3.20.2",
+    "versionedRegistryUrl": "https://table.yayaw.app/r/v3.20.2/yayaw-table-dashboard.json"
   },
   "type": "registry:block"
 }
