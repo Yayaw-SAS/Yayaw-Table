@@ -734,6 +734,11 @@ const calculationFor = (
   }
   return formatColumnCalculation(value, calculation, definition, context.locale);
 };
+/** Number columns end-align their header, cells and footer, like the React edition. */
+const numberColumnIds = computed(
+  () => new Set(sourceColumns.value.filter((column) => column.type === "number").map((column) => column.id))
+);
+const columnAlign = (columnId: string) => (numberColumnIds.value.has(columnId) ? "end" : undefined);
 const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
   const pinned = column.getIsPinned();
   const size = `${column.getSize()}px`;
@@ -772,6 +777,7 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
               v-for="header in headerGroup.headers"
               :key="header.id"
               :style="pinnedStyle(header.column)"
+              :data-align="columnAlign(header.column.id)"
               :aria-sort="header.column.getIsSorted() === 'asc' ? 'ascending' : header.column.getIsSorted() === 'desc' ? 'descending' : undefined"
               :aria-label="header.column.id === 'actions' ? String(context.translations.value.actions ?? 'Actions') : undefined"
               :draggable="canDragColumn(header.column.id)"
@@ -854,7 +860,7 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
               </td>
             </tr>
             <tr v-else :class="{ selected: row.getIsSelected() }" :data-row-id="row.id" @click="rowClick(row.original, $event)">
-              <td v-for="cell in row.getVisibleCells()" :key="cell.id" :style="pinnedStyle(cell.column)" :data-column-id="cell.column.id">
+              <td v-for="cell in row.getVisibleCells()" :key="cell.id" :style="pinnedStyle(cell.column)" :data-column-id="cell.column.id" :data-align="columnAlign(cell.column.id)">
                 <span v-if="context.planning && cell.column.id === row.getVisibleCells().find(item => !['select', 'actions'].includes(item.column.id))?.column.id" :style="{paddingInlineStart: `${row.depth * 16}px`}">
                   <button v-if="row.subRows.length" type="button" :aria-expanded="row.getIsExpanded()" :aria-label="`${row.getIsExpanded() ? 'Collapse' : 'Expand'} ${row.id}`" @click.stop="row.toggleExpanded()">{{ row.getIsExpanded() ? '▾' : '▸' }}</button>
                   <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
@@ -867,7 +873,7 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
         </tbody>
         <tfoot v-if="context.config.table.enableCalculations && context.footerCalculationsVisible.value && calculationColumns.length">
           <tr>
-            <td v-for="column in visibleColumns" :key="column.id" class="yayaw-calculation" :style="pinnedStyle(column)">
+            <td v-for="column in visibleColumns" :key="column.id" class="yayaw-calculation" :style="pinnedStyle(column)" :data-align="columnAlign(column.id)">
               <template v-if="calculationColumns.find((item) => item.id === column.id)">
                 <CalculationMenu
                   v-model="selectedCalculations[column.id]"

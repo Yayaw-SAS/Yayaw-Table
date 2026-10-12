@@ -740,6 +740,17 @@
   font-size: var(--yayaw-density-font, 14px);
   font-weight: 500;
 }
+/* Number columns read right-aligned, header and footer included. */
+.yayaw-data-grid th[data-align="end"],
+.yayaw-data-grid td[data-align="end"] {
+  text-align: right;
+}
+.yayaw-data-grid th[data-align="end"] .yayaw-header-cell,
+.yayaw-data-grid
+  td[data-align="end"]
+  .yayaw-cell:is(.is-editable, .has-actions) {
+  justify-content: flex-end;
+}
 .yayaw-data-grid thead th + th {
   border-left: 1px solid var(--yayaw-border);
 }
