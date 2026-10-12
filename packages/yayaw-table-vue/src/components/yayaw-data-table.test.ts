@@ -97,6 +97,26 @@ describe("YayawDataTable", () => {
     expect(wrapper.text()).toContain("60");
   });
 
+  it("end-aligns number columns in the header, cells and footer", async () => {
+    const wrapper = mount(YayawDataTable, {
+      props: { tableType: "test", config, data, syncUrl: false },
+      attachTo: document.body,
+    });
+    await flushPromises();
+    const headers = wrapper.findAll("thead th");
+    const amountHeader = headers.find((th) => th.text().includes("Amount"));
+    const nameHeader = headers.find((th) => th.text().includes("Name"));
+    expect(amountHeader?.attributes("data-align")).toBe("end");
+    expect(nameHeader?.attributes("data-align")).toBeUndefined();
+    expect(
+      wrapper.find('tbody td[data-column-id="amount"]').attributes("data-align")
+    ).toBe("end");
+    expect(
+      wrapper.find('tbody td[data-column-id="name"]').attributes("data-align")
+    ).toBeUndefined();
+    expect(wrapper.findAll('tfoot td[data-align="end"]')).toHaveLength(1);
+  });
+
   it("resizes columns from the keyboard", async () => {
     const wrapper = mount(YayawDataTable, {
       props: { tableType: "test", config, data, syncUrl: false },
