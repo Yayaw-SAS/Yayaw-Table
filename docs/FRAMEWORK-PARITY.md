@@ -406,7 +406,7 @@ runs once per edition, so an observable difference fails one project.
 
 Both toolbars offer 2XS, XS, S, M, L, XL, and 2XL density via `extra-extra-small`, `extra-small`, `small`, `medium`, `large`, `extra-large`, and `extra-extra-large`. Shared metrics target 20, 24, 32, 40, 48, 60, and 72px rows before borders, coordinating cell padding, controls, and thumbnails. Text follows the same scale (10, 11, 12, 14, 14, 16, and 18px, with a line that fits the control height) for cells, headers, group headings, cell editors, and list lines; list properties stay 2px smaller, never below 10px. M is unchanged. Shared density fixtures and interaction tests cover the scale, its Tailwind classes, isolated selection, configured defaults, and display-mode round trips.
 
-Density, saved-view, toolbar-action, and row-action controls use styled tooltips on hover and keyboard focus, with translated labels and composed menu triggers. The host controls translations; Vue includes French defaults and the companion Yayaw example localizes its React labels. UI choices remain scoped to the table without affecting saved views or URL state.
+Every icon-only toolbar control (view settings, data, density, facets, search, add item, new folder, view actions, view tabs' More and New view, and the compact view trigger) and the row-action controls use styled tooltips on hover and keyboard focus, repeating their translated `aria-label`, with composed menu triggers. The host controls translations; Vue includes French defaults and the companion Yayaw example localizes its React labels. UI choices remain scoped to the table without affecting saved views or URL state.
 
 ## Data types
 

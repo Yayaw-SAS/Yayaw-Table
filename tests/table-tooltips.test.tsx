@@ -82,3 +82,64 @@ it("shows translated density and view-action tooltips on keyboard focus without 
     queryClient.clear();
   }
 });
+
+it("names the icon-only view tab controls in tooltips on keyboard focus", async () => {
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  const queryClient = new QueryClient();
+  const views = {
+    list: async () => ({ data: [] }),
+    create: async () => ({ success: true }),
+  };
+  try {
+    await act(async () => {
+      root.render(
+        <NuqsTestingAdapter>
+          <Provider>
+            <TableProvider
+              getTableActions={() => ({ views })}
+              queryClient={queryClient}
+              tableId="tab-tooltip"
+              translations={defaultTranslations}
+            >
+              <DataTableViewManager
+                initialViews={[]}
+                initialViewsLoaded
+                tableId="tab-tooltip"
+                tableType="tab-tooltip"
+                tabs
+              />
+            </TableProvider>
+          </Provider>
+        </NuqsTestingAdapter>
+      );
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    });
+    for (const label of ["View actions", "New view"]) {
+      const trigger = container.querySelector<HTMLButtonElement>(
+        `button[aria-label="${label}"]`
+      );
+      expect(trigger).not.toBeNull();
+      expect(trigger?.hasAttribute("title")).toBe(false);
+      await act(async () => {
+        if (trigger) {
+          const matches = trigger.matches.bind(trigger);
+          trigger.matches = (selector) =>
+            selector === ":focus-visible" || matches(selector);
+          trigger.focus();
+        }
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      expect(
+        document.querySelector('[data-slot="tooltip-content"][data-open]')
+          ?.textContent
+      ).toBe(label);
+      await act(() => trigger?.blur());
+    }
+  } finally {
+    await act(() => root.unmount());
+    container.remove();
+    queryClient.clear();
+  }
+});

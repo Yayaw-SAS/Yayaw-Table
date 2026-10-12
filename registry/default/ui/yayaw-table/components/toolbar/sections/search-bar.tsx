@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useIsMobile } from "../../../hooks/use-mobile";
 import { useTableUrlState } from "../../../hooks/use-table-url-state";
 import { useTranslations } from "../../../providers/table-provider";
+import { TableTooltip } from "../../../utils/table-tooltip";
 
 const SearchBar = ({
   alwaysExpanded = false,
@@ -118,18 +119,20 @@ const SearchBar = ({
 
   if (isMobile && !isExpandedOnMobile) {
     return (
-      <Button
-        aria-label={placeholder}
-        className="h-8 w-8"
-        onClick={() => {
-          setIsExpandedOnMobile(true);
-        }}
-        size="icon-sm"
-        type="button"
-        variant="outline"
-      >
-        <Search className="size-4" />
-      </Button>
+      <TableTooltip label={placeholder}>
+        <Button
+          aria-label={placeholder}
+          className="h-8 w-8"
+          onClick={() => {
+            setIsExpandedOnMobile(true);
+          }}
+          size="icon-sm"
+          type="button"
+          variant="outline"
+        >
+          <Search className="size-4" />
+        </Button>
+      </TableTooltip>
     );
   }
 

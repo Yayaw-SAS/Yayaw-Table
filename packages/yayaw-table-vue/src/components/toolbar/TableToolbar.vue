@@ -733,10 +733,12 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
       :title="optionsTitle"
       :back="optionsView !== 'main'" :back-label="translate('back', 'Back')" :close-label="translate('close', 'Close')" @back="optionsView = 'main'">
       <template #trigger>
-        <button type="button" class="yayaw-button yayaw-button-outline yayaw-icon-only yayaw-settings-trigger" :id="`table-options-${context.config.id}`" :aria-label="translate('views.settings', 'View settings')">
-          <SlidersHorizontal :size="16" aria-hidden="true" />
-          <span v-if="settingsBadge" class="yayaw-settings-badge" aria-hidden="true">{{ settingsBadge }}</span>
-        </button>
+        <TableTooltip :label="translate('views.settings', 'View settings')">
+          <button type="button" class="yayaw-button yayaw-button-outline yayaw-icon-only yayaw-settings-trigger" :id="`table-options-${context.config.id}`" :aria-label="translate('views.settings', 'View settings')">
+            <SlidersHorizontal :size="16" aria-hidden="true" />
+            <span v-if="settingsBadge" class="yayaw-settings-badge" aria-hidden="true">{{ settingsBadge }}</span>
+          </button>
+        </TableTooltip>
       </template>
       <div v-if="optionsView === 'main'" ref="optionsRoot">
         <div v-if="modes.length > 1 && !compact" class="yayaw-display-mode-select">
@@ -1025,9 +1027,11 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
     <ToolbarMenu v-model:open="dataOpen" :compact="compact" align="end" :title="dataTitle"
       :back="dataView !== 'main'" :back-label="translate('back', 'Back')" :close-label="translate('close', 'Close')" @back="dataBack">
       <template #trigger>
-        <button type="button" class="yayaw-button yayaw-button-outline yayaw-icon-only yayaw-data-trigger" :aria-label="translate('menu.data', 'Data')">
-          <Database :size="16" aria-hidden="true" />
-        </button>
+        <TableTooltip :label="translate('menu.data', 'Data')">
+          <button type="button" class="yayaw-button yayaw-button-outline yayaw-icon-only yayaw-data-trigger" :aria-label="translate('menu.data', 'Data')">
+            <Database :size="16" aria-hidden="true" />
+          </button>
+        </TableTooltip>
       </template>
       <div v-if="dataView === 'main'" class="yayaw-options-list" data-menu-section="data">
           <template v-if="compact">
@@ -1106,7 +1110,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
     </ToolbarMenu>
     <NewFolderButton :compact="compact" :actions-as-icons="actionsAsIcons" />
     <template v-if="compact">
-      <button v-if="isCreateEnabled" type="button" class="yayaw-button yayaw-icon-only" :aria-label="translate('add_an_item', 'Add item')" @click="context.openCreate()"><Plus :size="16" /></button>
+      <TableTooltip v-if="isCreateEnabled" :label="translate('add_an_item', 'Add item')"><button type="button" class="yayaw-button yayaw-icon-only" :aria-label="translate('add_an_item', 'Add item')" @click="context.openCreate()"><Plus :size="16" /></button></TableTooltip>
     </template>
     <template v-else>
       <TableTooltip v-if="isCreateEnabled" :label="translate('add_an_item', 'Add item')"><button type="button" class="yayaw-button" :class="{ 'yayaw-icon-only': actionsAsIcons }" :aria-label="translate('add_an_item', 'Add item')" @click="context.openCreate()"><Plus :size="16" /><span v-if="!actionsAsIcons">{{ translate('add_an_item', 'Add item') }}</span></button></TableTooltip>

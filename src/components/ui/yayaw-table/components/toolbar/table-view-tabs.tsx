@@ -153,17 +153,19 @@ export function TableViewTabs({
         </DropdownMenu>
       ) : null}
       {canCreate ? (
-        <Button
-          aria-label={labels.newView}
-          className="size-8 shrink-0 text-muted-foreground"
-          disabled={disabled}
-          onClick={onCreate}
-          size="icon"
-          type="button"
-          variant="ghost"
-        >
-          <Plus aria-hidden="true" className="size-4" />
-        </Button>
+        <TableTooltip label={labels.newView}>
+          <Button
+            aria-label={labels.newView}
+            className="size-8 shrink-0 text-muted-foreground"
+            disabled={disabled}
+            onClick={onCreate}
+            size="icon"
+            type="button"
+            variant="ghost"
+          >
+            <Plus aria-hidden="true" className="size-4" />
+          </Button>
+        </TableTooltip>
       ) : null}
     </div>
   );

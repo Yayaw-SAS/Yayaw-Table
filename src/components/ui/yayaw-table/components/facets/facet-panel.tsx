@@ -399,20 +399,22 @@ export function FacetsToggle({
   if (compact) {
     return (
       <>
-        <Button
-          aria-expanded={sheetOpen}
-          aria-haspopup="dialog"
-          aria-label={text}
-          className="relative size-11"
-          data-facets-toggle=""
-          onClick={() => setSheetOpen(true)}
-          size="icon"
-          type="button"
-          variant="outline"
-        >
-          <ListFilter className="size-4" />
-          {badge}
-        </Button>
+        <TableTooltip label={text}>
+          <Button
+            aria-expanded={sheetOpen}
+            aria-haspopup="dialog"
+            aria-label={text}
+            className="relative size-11"
+            data-facets-toggle=""
+            onClick={() => setSheetOpen(true)}
+            size="icon"
+            type="button"
+            variant="outline"
+          >
+            <ListFilter className="size-4" />
+            {badge}
+          </Button>
+        </TableTooltip>
         <Drawer onOpenChange={setSheetOpen} open={sheetOpen}>
           <DrawerContent
             aria-describedby={undefined}

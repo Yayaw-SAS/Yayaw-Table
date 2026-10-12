@@ -21,10 +21,12 @@ const text = computed(() =>
   <template v-if="facets && shown">
     <ToolbarMenu v-if="compact" v-model:open="sheetOpen" compact :title="label('title')" :close-label="label('close')">
       <template #trigger>
-        <button type="button" class="yayaw-button yayaw-button-outline yayaw-icon-only yayaw-facets-toggle" data-facets-toggle="" :aria-label="text">
-          <ListFilter :size="16" aria-hidden="true" />
-          <span v-if="selectedCount" class="yayaw-settings-badge" aria-hidden="true">{{ selectedCount }}</span>
-        </button>
+        <TableTooltip :label="text">
+          <button type="button" class="yayaw-button yayaw-button-outline yayaw-icon-only yayaw-facets-toggle" data-facets-toggle="" :aria-label="text">
+            <ListFilter :size="16" aria-hidden="true" />
+            <span v-if="selectedCount" class="yayaw-settings-badge" aria-hidden="true">{{ selectedCount }}</span>
+          </button>
+        </TableTooltip>
       </template>
       <div class="yayaw-facets-sheet" data-facet-sheet="">
         <FacetPanel :heading-id="`${context.config.id}-facets-sheet-title`" sheet />
