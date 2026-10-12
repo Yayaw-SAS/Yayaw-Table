@@ -12,9 +12,13 @@ import TableCheckbox from "../controls/TableCheckbox.vue";
 import CellRenderer from "../table/CellRenderer.vue";
 import RowActions from "../table/RowActions.vue";
 import TableEmptyState from "../table/TableEmptyState.vue";
+import InitialsAvatar from "../controls/InitialsAvatar.vue";
+import { imageSource } from "../../core";
+import { resolveAvatarConfig } from "../../initials-avatar";
 
 const {
   context,
+  active,
   translate,
   columns,
   titleColumn,
@@ -50,6 +54,16 @@ const value = (row: TableRecord, id: string): unknown =>
     ? column(id)?.accessorFn?.(row)
     : row[column(id)?.accessorKey ?? id];
 const groupBy = computed(() => context.state.grouping.value[0] ?? "");
+const avatarConfig = computed(() => resolveAvatarConfig(active.value.avatar));
+/** The avatar's name as the table shows it, like the title. */
+const avatarName = (row: TableRecord): string => {
+  const id = avatarConfig.value?.nameColumn ?? titleColumn.value;
+  return fieldText(value(row, id), column(id), context.locale, row);
+};
+const avatarSource = (row: TableRecord): string | undefined =>
+  avatarConfig.value?.imageColumn
+    ? imageSource(value(row, avatarConfig.value.imageColumn))
+    : undefined;
 const properties = computed(() =>
   visibleProperties(
     propertyIds.value.filter(
@@ -308,6 +322,7 @@ const activate = (row: TableRecord, event: MouseEvent | KeyboardEvent): void => 
                 @update:model-value="toggleSelection(row, $event, checkboxShift); checkboxShift = false"
               />
             </span>
+            <InitialsAvatar v-if="avatarConfig" decorative :name="avatarName(row)" :source="avatarSource(row)" :shape="avatarConfig.shape" />
             <strong class="yayaw-list-title" :class="{ 'yayaw-list-wrap': wrap, 'yayaw-list-title-start': propertyAlign === 'start' }">{{ displayCellValue(value(row, titleColumn), column(titleColumn) ?? { id: titleColumn, header: titleColumn }, context.locale) }}</strong>
             <dl class="yayaw-list-properties" :data-align="propertyAlign">
               <div v-for="id in properties" :key="id">

@@ -418,6 +418,8 @@ function DataTableHeaderControls({
             defaultDisplayMode={defaultDisplayMode}
             defaultGroupBy={kanbanDefaultGroupBy}
             embedded
+            laneColumns={rendererColumns}
+            laneRows={baseData}
             tableId={tableId}
           />
         ) : undefined,
@@ -673,7 +675,8 @@ function DataTableContent({
   displayModeRenderers?: DisplayModeRenderers;
   /**
    * Built-in record view, shown on row click. Fields come from the columns by
-   * default; pass `false` to turn it off.
+   * default; pass `false` to turn it off. `renderField` and `renderSection`
+   * render host-defined fields and sections.
    */
   details?: RecordDetailsConfig | false;
   /** Open an application-owned record route or drawer instead of the built-in details. */
@@ -817,6 +820,7 @@ function DataTableContent({
   } = useDataTable({
     onView: openDetails,
     rowActions,
+    recordTitle: recordDetails?.title,
     formType: defaultFormType,
     initialData,
     initialDataSort,

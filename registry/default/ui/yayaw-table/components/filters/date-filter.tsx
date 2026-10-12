@@ -35,6 +35,12 @@ import {
   type CalendarDay,
   calendarDay,
   calendarDayToLocalDate,
+  isRelativeDateToken,
+  RELATIVE_DATE_CHOICES,
+  type RelativeDateToken,
+  relativeDateFieldLabel,
+  relativeDateLabel,
+  relativeDateTokenOf,
   todayCalendarDay,
 } from "../../utils/date-filter-days";
 import { Calendar } from "./calendar";
@@ -43,8 +49,14 @@ import {
   translateWithFallback,
 } from "./i18n-utils";
 
-/** One day, or `[first, last]` days for `between`, written `YYYY-MM-DD`. */
-type DateFilterValue = CalendarDay | [CalendarDay, CalendarDay];
+/**
+ * One day, or `[first, last]` days for `between`, written `YYYY-MM-DD`; or a
+ * relative token (`"$thisWeek"`) resolved when the rule applies.
+ */
+type DateFilterValue =
+  | CalendarDay
+  | RelativeDateToken
+  | [CalendarDay, CalendarDay];
 
 export interface DateFilterProps {
   /**
@@ -112,6 +124,10 @@ const normalizeDateValue = (
   value: unknown,
   operator: FilterOperators["date"]
 ): DateFilterValue | undefined => {
+  const token = relativeDateTokenOf(value);
+  if (token) {
+    return token;
+  }
   if (operator === "between") {
     return normalizeBetweenDateValue(value);
   }
@@ -131,7 +147,7 @@ const toDateRange = (
     return normalizedValue;
   }
 
-  if (normalizedValue) {
+  if (normalizedValue && !isRelativeDateToken(normalizedValue)) {
     return [normalizedValue, normalizedValue];
   }
 
@@ -140,7 +156,62 @@ const toDateRange = (
 
 /** The day picker works with local dates: a day is its local midnight. */
 const pickerDate = (day: CalendarDay | undefined): Date | undefined =>
-  day ? calendarDayToLocalDate(day) : undefined;
+  day && !isRelativeDateToken(day) ? calendarDayToLocalDate(day) : undefined;
+
+const FIXED_DATE_CHOICE = "fixed";
+
+/**
+ * Picks a relative date (`"$thisWeek"`…) instead of days, or "Specific date"
+ * to pick days in the calendar. Its labels follow the table locale.
+ */
+function RelativeDateSelect({
+  disabled,
+  onChange,
+  size = "default",
+  value,
+}: {
+  disabled?: boolean;
+  onChange: (token: RelativeDateToken | undefined) => void;
+  size?: "default" | "sm";
+  value: RelativeDateToken | undefined;
+}) {
+  const { t } = useTranslations();
+  const locale = useLocale();
+  const translate = (key: string) => translateWithFallback(t, key, "");
+  const label = (token: RelativeDateToken) =>
+    relativeDateLabel(token, locale, translate);
+  const choices =
+    value && !RELATIVE_DATE_CHOICES.includes(value)
+      ? [...RELATIVE_DATE_CHOICES, value]
+      : RELATIVE_DATE_CHOICES;
+  const fixedLabel = relativeDateFieldLabel("fixed", locale, translate);
+  return (
+    <Select
+      disabled={disabled}
+      onValueChange={(selected) =>
+        onChange(isRelativeDateToken(selected) ? selected : undefined)
+      }
+      value={value ?? FIXED_DATE_CHOICE}
+    >
+      <SelectTrigger
+        aria-label={relativeDateFieldLabel("label", locale, translate)}
+        className="w-full"
+        data-relative-date-select=""
+        size={size}
+      >
+        <SelectValue>{value ? label(value) : fixedLabel}</SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={FIXED_DATE_CHOICE}>{fixedLabel}</SelectItem>
+        {choices.map((token) => (
+          <SelectItem key={token} value={token}>
+            {label(token)}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
 
 /** A picked local date as the day it shows. */
 const pickedDay = (date: Date | undefined): CalendarDay | undefined =>
@@ -217,6 +288,7 @@ export function DateFilter({
   // Check if this operator needs a value input
   const needsValue = !["isEmpty", "isNotEmpty"].includes(operator);
   const isBetween = operator === "between";
+  const relativeToken = relativeDateTokenOf(internalValue);
   const normalizedInternalValue = normalizeDateValue(internalValue, operator);
   const currentSingleValue = pickerDate(
     Array.isArray(normalizedInternalValue)
@@ -310,8 +382,20 @@ export function DateFilter({
           </Select>
         )}
 
+        {/* Relative date ("This week") or specific days */}
+        {needsValue && (
+          <RelativeDateSelect
+            disabled={disabled}
+            onChange={(token) =>
+              handleValueChange(token ?? getFallbackValue(operator))
+            }
+            value={relativeToken}
+          />
+        )}
+
         {/* Date picker */}
         {needsValue &&
+          !relativeToken &&
           (inline ? (
             <div className="mr-auto w-fit rounded-md border p-2">
               {isBetween ? (
@@ -540,6 +624,19 @@ export function CompactDateFilter({
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-auto p-0">
+        <div className="p-2 pb-0">
+          <RelativeDateSelect
+            disabled={disabled}
+            onChange={(token) => {
+              handleValueChange(token ?? getFallbackValue(operator));
+              if (token) {
+                setIsOpen(false);
+              }
+            }}
+            size="sm"
+            value={relativeDateTokenOf(internalValue)}
+          />
+        </div>
         {isBetween ? (
           <Calendar
             {...CALENDAR_NAVIGATION_PROPS}

@@ -24,8 +24,10 @@ import {
   type ContractRecord,
   dataTypeFilter,
   emptyGroupLabel,
+  type FilterTokenContext,
   normalizeFilterEnvelope,
   recordValue,
+  resolveFilterTokens,
 } from "./table-contracts";
 
 /** What a facet lists: a select (tags, status), a list, yes/no, or folders. */
@@ -512,7 +514,8 @@ export function clearFacets(
  */
 export function facetCountParams(
   params: ContractRecord,
-  facet: Pick<FacetColumn, "id" | "kind">
+  facet: Pick<FacetColumn, "id" | "kind">,
+  filterContext: FilterTokenContext = {}
 ): ContractRecord {
   const envelope = normalizeFilterEnvelope(params.advancedFilters);
   const own = ownRuleIndex(envelope.filters, facet);
@@ -521,9 +524,13 @@ export function facetCountParams(
   return {
     ...rest,
     advancedFilters: {
-      filters: envelope.filters
-        .filter((filter, index) => index !== own && filter.isActive !== false)
-        .map(withoutJoin),
+      // Counts answer today's query: relative dates and `$viewer` resolved.
+      filters: resolveFilterTokens(
+        envelope.filters
+          .filter((filter, index) => index !== own && filter.isActive !== false)
+          .map(withoutJoin),
+        filterContext
+      ),
       joinOperator: envelope.joinOperator,
     },
   };

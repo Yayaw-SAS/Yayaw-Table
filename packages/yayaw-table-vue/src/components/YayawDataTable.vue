@@ -43,7 +43,7 @@ import type {
   ToolbarActionsInput,
   ToolbarActionsPlacement,
 } from "../types";
-import { fetchAllContractRows, TABLE_DENSITY_METRICS } from "../table-contracts";
+import { fetchAllContractRows, TABLE_DENSITY_METRICS, tableFilterContext } from "../table-contracts";
 import type { TableListParams } from "../types";
 import CardPagination from "./table/CardPagination.vue";
 import TableFilterBar from "./filters/TableFilterBar.vue";
@@ -351,7 +351,10 @@ const initialRowsCurrent =
     initialDataSort: props.initialDataSort,
     sorting: state.sorting.value,
   }) === "current";
+// Relative dates and `$viewer` resolve in the table's zone, locale and viewer.
+const filterContext = computed(() => tableFilterContext(config.table, props.locale));
 const tableData = useTableData({
+  filterContext,
   actions,
   inputData,
   search: state.search,
@@ -450,6 +453,7 @@ const matchingRowCount = computed(() => {
     filters: state.filters.value,
     advancedFilters: state.advancedFilters.value,
     sorting: state.sorting.value,
+    filterContext: filterContext.value,
   }).length;
 });
 watch(
@@ -525,6 +529,7 @@ const loadAllMatchingRows = async (): Promise<TableRecord[]> => {
       filters: state.filters.value,
       advancedFilters: state.advancedFilters.value,
       sorting: state.sorting.value,
+      filterContext: filterContext.value,
     });
   }
   // Capture the query once so changing filters during export cannot mix result sets.
@@ -542,6 +547,7 @@ const loadAllMatchingRows = async (): Promise<TableRecord[]> => {
   return await fetchAllContractRows({
     list: async (request) => await list(request as unknown as TableListParams),
     params,
+    filterContext: filterContext.value,
   });
 };
 let selectionVersion = 0;
@@ -776,6 +782,7 @@ provide(tableContextKey, {
   status,
   queryClient,
   tags: tagCatalogs,
+  instanceId: props.instanceId || undefined,
   initialViewsLoaded: props.initialViewsLoaded,
   initialFavoriteViewId: props.initialFavoriteViewId,
   locale: props.locale,
@@ -860,7 +867,7 @@ defineExpose({ refresh, getViewConfig: () => viewConfig.value });
       <template v-for="(_, name) in $slots" #[name]="scope"><slot :name="name" v-bind="scope" /></template>
     </CatalogueForm>
     <PlanningSurface v-if="planning" :session="planning" :labels="ganttLabels" :locale="locale" :formatters="planningFormat" :on-open-record="recordDetails || onOpenDetails ? (task) => {if (task.record) openDetails(task.record)} : undefined" />
-    <RecordDetails v-if="recordDetails && currentDetailRow" :key="getRowId(currentDetailRow)" :row="currentDetailRow" :config="{ ...recordDetails, presentation: config.presentation ?? recordDetails.presentation }" :editing="form.open" :editor-busy="detailEditorBusy" :columns="config.columns.definitions" :locale="locale"
+    <RecordDetails v-if="recordDetails && currentDetailRow" :key="getRowId(currentDetailRow)" :row="currentDetailRow" :config="{ ...recordDetails, presentation: config.presentation ?? recordDetails.presentation, deleteConfirmation: recordDetails.deleteConfirmation ?? config.table.deleteConfirmation }" :editing="form.open" :editor-busy="detailEditorBusy" :columns="config.columns.definitions" :locale="locale"
       :can-edit="config.table.allowEdit && Boolean(actions?.update) && config.table.canEditRow?.(currentDetailRow) !== false"
       :can-delete="config.table.allowDelete && Boolean(actions?.delete) && config.table.canDeleteRow?.(currentDetailRow) !== false"
       :on-planning="planning ? (row) => planning?.open({source: planning.config.sourceId, id: getRowId(row)}) : undefined"

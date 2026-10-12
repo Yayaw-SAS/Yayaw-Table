@@ -158,6 +158,11 @@
           "target": "components/ui/yayaw-table/components/cells/index.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/cells/initials-avatar.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/cells/initials-avatar.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/cells/inline-editable-cell.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/cells/inline-editable-cell.tsx"
@@ -343,6 +348,11 @@
           "target": "components/ui/yayaw-table/components/data-table.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/details/delete-confirm-dialog.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/details/delete-confirm-dialog.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/details/detail-value.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/details/detail-value.tsx"
@@ -363,9 +373,19 @@
           "target": "components/ui/yayaw-table/components/details/record-details.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/details/related-records.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/details/related-records.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/details/table-record-details.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/details/table-record-details.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/details/typed-confirmation.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/details/typed-confirmation.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/details/use-activity-undo.ts",
@@ -851,6 +871,11 @@
           "path": "registry/default/ui/yayaw-table/components/toolbar/import-screen.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/import-screen.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/kanban-lane-settings.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/kanban-lane-settings.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/toolbar/menu-choice-list.tsx",
@@ -1696,6 +1721,21 @@
           "path": "registry/default/ui/yayaw-table/utils/initial-rows.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/initial-rows.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/initials-avatar.css",
+          "type": "registry:style",
+          "target": "components/ui/yayaw-table/utils/initials-avatar.css"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/initials-avatar.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/initials-avatar.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/kanban-lanes.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/kanban-lanes.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/list-view.ts",

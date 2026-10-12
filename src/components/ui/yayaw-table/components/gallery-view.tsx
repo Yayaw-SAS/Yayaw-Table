@@ -11,11 +11,17 @@ import {
 } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
+import { InitialsAvatar } from "./cells/initials-avatar";
 import type { TableCatalogueColumnConfig } from "../hooks/use-table-config";
 import type { Row, Table as TanStackTable } from "../tanstack";
 import { flexRender } from "../tanstack";
 import type { TableGalleryConfig } from "../types/display-types";
 import { shouldActivateCardFromKeyboard } from "../utils/card-interaction";
+import {
+  type AvatarShape,
+  avatarInitials,
+  resolveAvatarConfig,
+} from "../utils/initials-avatar";
 import {
   getCompactCardPropertiesClassName,
   getCompactCardPropertyClassName,
@@ -85,6 +91,9 @@ interface DataTableGalleryViewProps<TData extends Record<string, unknown>> {
 }
 
 interface GalleryCardProps<TData extends Record<string, unknown>> {
+  /** Without an image, initials of this name replace the placeholder (`avatar`). */
+  avatarName?: string;
+  avatarShape?: AvatarShape;
   mediaSource?: TableMediaSource;
   nativeMedia?: boolean;
   previewLabel: string;
@@ -413,11 +422,15 @@ function GalleryCardProperties<TData extends Record<string, unknown>>({
 
 function GalleryCardMedia({
   aspectRatio,
+  avatarName,
+  avatarShape,
   imageFit,
   source,
   title,
   previewSize,
 }: {
+  avatarName?: string;
+  avatarShape?: AvatarShape;
   previewSize?: TableGalleryPreviewSize;
   aspectRatio: NonNullable<TableGalleryConfig["aspectRatio"]>;
   imageFit: NonNullable<TableGalleryConfig["imageFit"]>;
@@ -444,7 +457,22 @@ function GalleryCardMedia({
           src={resolvedSource}
           width={640}
         />
-      ) : (
+      ) : null}
+      {!resolvedSource && avatarName && avatarInitials(avatarName) ? (
+        <div
+          className="flex h-full w-full items-center justify-center bg-muted"
+          data-gallery-avatar=""
+        >
+          {/* The card shows the title: the initials stay decorative. */}
+          <InitialsAvatar
+            decorative
+            name={avatarName}
+            shape={avatarShape}
+            size="large"
+          />
+        </div>
+      ) : null}
+      {resolvedSource || (avatarName && avatarInitials(avatarName)) ? null : (
         <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
           <div className="flex flex-col items-center gap-2">
             <ImageIcon aria-hidden className="h-6 w-6" />
@@ -560,6 +588,8 @@ function GalleryCardVisual<TData extends Record<string, unknown>>({
   ...props
 }: Pick<
   GalleryCardProps<TData>,
+  | "avatarName"
+  | "avatarShape"
   | "nativeMedia"
   | "renderMedia"
   | "mediaSource"
@@ -572,6 +602,8 @@ function GalleryCardVisual<TData extends Record<string, unknown>>({
   | "row"
 > & { title: string; imageSource?: string }) {
   const {
+    avatarName,
+    avatarShape,
     nativeMedia,
     renderMedia,
     mediaSource,
@@ -619,6 +651,8 @@ function GalleryCardVisual<TData extends Record<string, unknown>>({
   return (
     <GalleryCardMedia
       aspectRatio={aspectRatio}
+      avatarName={avatarName}
+      avatarShape={avatarShape}
       imageFit={imageFit}
       previewSize={previewSize}
       source={imageSource}
@@ -628,6 +662,8 @@ function GalleryCardVisual<TData extends Record<string, unknown>>({
 }
 
 function DataTableGalleryCard<TData extends Record<string, unknown>>({
+  avatarName,
+  avatarShape,
   mediaSource,
   nativeMedia,
   previewLabel,
@@ -739,6 +775,8 @@ function DataTableGalleryCard<TData extends Record<string, unknown>>({
       <div className="relative">
         <GalleryCardVisual
           aspectRatio={aspectRatio}
+          avatarName={avatarName}
+          avatarShape={avatarShape}
           hoverPreview={hoverPreview}
           imageFit={imageFit}
           imageSource={imageSource}
@@ -867,6 +905,24 @@ export function DataTableGalleryView<TData extends Record<string, unknown>>({
     titleColumnId
       ? fieldText(row.original[titleColumnId], titleColumn, locale, row.original)
       : "";
+  const avatar = resolveAvatarConfig(resolvedConfig.avatar);
+  const avatarColumn = avatar?.nameColumn
+    ? columnDefinitions.find((definition) => definition.id === avatar.nameColumn)
+    : undefined;
+  // Initials read the name as the table shows it, like the title.
+  const avatarNameOfRow = (row: Row<TData>): string | undefined => {
+    if (!avatar) {
+      return;
+    }
+    return avatar.nameColumn
+      ? fieldText(
+          row.original[avatar.nameColumn],
+          avatarColumn,
+          locale,
+          row.original
+        )
+      : titleTextOf(row);
+  };
   const galleryGroups = useMemo(() => {
     const groupColumn = columnDefinitions.find(
       (definition) => definition.id === groupBy
@@ -923,6 +979,8 @@ export function DataTableGalleryView<TData extends Record<string, unknown>>({
       <DataTableGalleryCard
         actionsCell={visibleCells.find((cell) => cell.column.id === "actions")}
         aspectRatio={resolvedConfig.aspectRatio}
+        avatarName={avatarNameOfRow(row)}
+        avatarShape={avatar?.shape}
         canEditRow={canEditRow?.(row) ?? false}
         editRowLabel={editRowLabel}
         hoverPreview={resolvedConfig.media?.hoverPreview}

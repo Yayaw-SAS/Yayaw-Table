@@ -409,6 +409,18 @@ export interface DataTableTranslations {
       titleColumn: string;
       properties: string;
       showLabels: string;
+      /** Lane settings heading. Optional: omitted keeps the English label. */
+      lanes?: string;
+      /** Note listing the hidden lanes on the board. */
+      hiddenLanes?: string;
+      /** Checkbox label showing one lane; `{lane}` is its name. */
+      showLane?: string;
+      /** Button moving one lane before the previous; `{lane}` is its name. */
+      moveLaneUp?: string;
+      /** Button moving one lane after the next; `{lane}` is its name. */
+      moveLaneDown?: string;
+      /** Button restoring the default lane order and visibility. */
+      resetLanes?: string;
     };
     /**
      * Timeline vocabulary. Every key is optional: an omitted key keeps the

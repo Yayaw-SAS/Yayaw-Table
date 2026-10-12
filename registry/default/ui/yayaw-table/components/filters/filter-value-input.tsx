@@ -11,7 +11,11 @@ import type {
   FilterOperators,
   FilterValues,
 } from "../../types/filter-types";
-import { isCalendarDay, todayCalendarDay } from "../../utils/date-filter-days";
+import {
+  isDateFilterValue,
+  isRelativeDateToken,
+  todayCalendarDay,
+} from "../../utils/date-filter-days";
 import { locationFilterHasValue } from "../../utils/location-model";
 import { CompactDateFilter, DateFilter } from "./date-filter";
 import { FolderFilterInput } from "./folder-filter";
@@ -385,6 +389,26 @@ export function getDefaultFilterOperator<TType extends ColumnDataType>(
 }
 
 /**
+ * Date rules name calendar days, written `YYYY-MM-DD`, or relative tokens
+ * (`"$thisWeek"`): one token is a whole range for `between`.
+ */
+const isValidDateFilterValue = (operator: string, value: unknown): boolean => {
+  if (operator === "between") {
+    if (isRelativeDateToken(Array.isArray(value) ? value[0] : value)) {
+      return !Array.isArray(value) || value.length === 1;
+    }
+    return (
+      Array.isArray(value) &&
+      value.length === 2 &&
+      isDateFilterValue(value[0]) &&
+      isDateFilterValue(value[1])
+    );
+  }
+  // One day; saved rules may hold it in a one-item list.
+  return isDateFilterValue(Array.isArray(value) ? value[0] : value);
+};
+
+/**
  * Helper to validate a filter value for a given type and operator
  */
 export function isValidFilterValue<TType extends ColumnDataType>(
@@ -413,19 +437,8 @@ export function isValidFilterValue<TType extends ColumnDataType>(
       return typeof value === "number" && Number.isFinite(value);
     }
 
-    case "date": {
-      // Date rules name calendar days, written `YYYY-MM-DD`.
-      if (operator === "between") {
-        return (
-          Array.isArray(value) &&
-          value.length === 2 &&
-          isCalendarDay(value[0]) &&
-          isCalendarDay(value[1])
-        );
-      }
-      // One day; saved rules may hold it in a one-item list.
-      return isCalendarDay(Array.isArray(value) ? value[0] : value);
-    }
+    case "date":
+      return isValidDateFilterValue(operator as string, value);
 
     case "select": {
       if (["isAnyOf", "isNoneOf"].includes(operator as string)) {

@@ -47,6 +47,7 @@ export type InlineEditEditor =
   | "auto"
   | "boolean"
   | "date"
+  | "datetime"
   | "json"
   | "location"
   | "multiSelect"
@@ -145,6 +146,15 @@ export interface ColumnDefinition<TData extends TableRecord = TableRecord> {
   dateFormat?: string;
   /** IANA zone used by date presets, e.g. "Europe/Paris". */
   timeZone?: string;
+  /**
+   * A `date` column whose values are a date and a time, stored as ISO 8601
+   * instants (`"2026-10-11T07:30:00.000Z"`): cells show both (the
+   * `"dateTime"` preset unless the column sets its own), and forms and inline
+   * editing pick both, in the column's (or table's) `timeZone`. Filters still
+   * compare the calendar day a value falls on in the viewer's zone.
+   * Default false.
+   */
+  withTime?: boolean;
   /** Force a 12- or 24-hour clock where a date preset shows a time. */
   hour12?: boolean;
   defaultCalculation?: CalculationType;
@@ -166,6 +176,12 @@ export interface ColumnDefinition<TData extends TableRecord = TableRecord> {
   customRenderers?: Record<string, (value: unknown, row: TData) => VNodeChild>;
   showQuotes?: boolean;
   urlDisplayMode?: "domain" | "full" | "icon" | "row-link";
+  /**
+   * Image columns: without an image, show initials with a stable color
+   * instead of the image placeholder. `nameColumn` names the column giving
+   * them; it defaults to the record's `name`, `title` or `label`.
+   */
+  avatar?: import("./initials-avatar").AvatarOption;
 }
 
 export interface TableColumnsConfig<TData extends TableRecord = TableRecord> {
@@ -201,6 +217,17 @@ export interface TableKanbanConfig {
    * grip handle. The move buttons stay the keyboard path. Defaults to false.
    */
   dragFromCard?: boolean;
+  /**
+   * Default lane order and hidden lanes, by grouping column id
+   * (`{ "stage": { "order": ["won", "lead"], "hidden": ["lost"] } }`).
+   * A saved view's `kanban.lanes` replaces a column's settings.
+   */
+  lanes?: import("./kanban-lanes").KanbanLanes;
+  /**
+   * Avatar before each card title: the image of `imageColumn`, or initials
+   * with a stable color when the record has none. Omitted shows none.
+   */
+  avatar?: import("./initials-avatar").AvatarOption;
 }
 
 /** Rows as single lines: a title followed by compact properties. */
@@ -213,6 +240,13 @@ export interface TableKanbanViewConfig {
   titleColumn?: string;
   cardColumnIds?: string[];
   showCardLabels?: boolean;
+  /**
+   * Lane order and hidden lanes, by grouping column id. Switching views
+   * switches lanes; the board's settings edit them.
+   */
+  lanes?: import("./kanban-lanes").KanbanLanes;
+  /** Avatar before each card title (see TableKanbanConfig.avatar). */
+  avatar?: import("./initials-avatar").AvatarOption;
 }
 
 export interface TableGalleryConfig {
@@ -227,6 +261,11 @@ export interface TableGalleryConfig {
   imageFit?: TableGalleryImageFit;
   cardSize?: TableGalleryCardSize;
   showCardLabels?: boolean;
+  /**
+   * Cards without an image show initials with a stable color instead of the
+   * image placeholder. `nameColumn` defaults to the card title.
+   */
+  avatar?: import("./initials-avatar").AvatarOption;
 }
 
 export type TableGalleryViewConfig = Omit<
@@ -268,6 +307,12 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord>
   canDeleteRow?: (row: TData) => boolean;
   canDuplicateRow?: (row: TData) => boolean;
   canSelectRow?: (row: TData) => boolean;
+  /**
+   * Typed confirmation of row, bulk and record deletions: the delete button
+   * enables once the user typed the record's title, a column's value, a fixed
+   * word or, for bulk deletion, the number of records.
+   */
+  deleteConfirmation?: import("./record-details").DeleteConfirmationConfig;
   showToolbar: boolean;
   showToolbarHeader: boolean;
   /** Clear search and filters while preserving display options. */
@@ -350,6 +395,19 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord>
    * times. The runtime's zone when omitted.
    */
   timeZone?: string;
+  /**
+   * First day of the week for relative date filters (`"$thisWeek"`…):
+   * 0 Sunday, 1 Monday … 6 Saturday. The table locale's first day when
+   * omitted.
+   */
+  weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  /**
+   * The signed-in person's id, provided by the host: filter rules holding
+   * `"$viewer"` ("Assigned to me") compare with it, in the table and in the
+   * rules handed to `actions.list`. Without it `"$viewer"` is sent as is,
+   * for the server to substitute its own signed-in user.
+   */
+  viewerId?: string | number;
   inlineEdit?: TableInlineEditConfig;
   enableCalculations?: boolean;
   enableGrouping?: boolean;
@@ -555,6 +613,13 @@ export interface FormFieldDefinition<TData extends TableRecord = TableRecord> {
   optionKeys?: string[];
   minDate?: Date | string;
   maxDate?: Date | string;
+  /**
+   * `date` fields: pick a time as well as a date; the value is an ISO 8601
+   * instant (`"2026-10-11T07:30:00.000Z"`) instead of a `YYYY-MM-DD` day.
+   */
+  withTime?: boolean;
+  /** `date` fields with a time: IANA zone they are picked in (the runtime's by default). */
+  timeZone?: string;
   format?: string;
   variant?: "checkbox" | "switch";
   showMetaPreview?: boolean;
@@ -896,6 +961,12 @@ export interface TableAggregateParams {
   search: string;
   calculations: Record<string, CalculationType>;
   locale: string;
+  /**
+   * Columns whose amounts carry a per-row currency, with the row field
+   * holding it: answer their value calculations as `{ byCurrency }`
+   * (amounts by ISO 4217 code); the table formats them.
+   */
+  currencyColumns?: Record<string, string>;
   /**
    * Chart groups: at most two levels (x axis, then series). When present,
    * answer `groups`; `calculations` is then empty. See `chart-model.ts`.

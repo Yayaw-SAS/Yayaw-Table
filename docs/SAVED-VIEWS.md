@@ -176,6 +176,10 @@ scheduled connector pushes) should pass their rules through
 `normalizeDateFilterRules(rules, { timeZone })` with the zone of the person who
 saved the view.
 
+Relative date rules (`$today`, `$thisWeek`, `$last30Days`…) and `$viewer` are
+saved as tokens, so a view keeps meaning "this week" or "mine" for whoever
+opens it and whenever. They are resolved only for the requests the table sends.
+
 Reset view restores the active snapshot, or the application's initial configuration
 for a temporary view. It includes density, display mode, card configuration,
 filters, sorting, grouping, columns and `footerCalculationsVisible`. Missing legacy
@@ -183,3 +187,24 @@ footer visibility inherits the initial setting. Reset never changes records or
 removes the view. The filter-only reset flags retain their historical scope in the
 Filters screen. Failed saves keep the draft, and edits made during a save are not
 replaced by its response.
+
+## Kanban lanes
+
+A saved view keeps its own Kanban lanes in `config.kanban.lanes`, by grouping
+column: the lane order (`order`, stored values) and the hidden lanes
+(`hidden`). Selecting another view switches the lanes with the rest of the
+board, and the Kanban settings edit them as view changes (save them with
+**Save changes**). The table's `kanban.lanes` is the default for views that do
+not set a column.
+
+```json
+{
+  "displayMode": "kanban",
+  "grouping": ["stage"],
+  "kanban": {
+    "lanes": {
+      "stage": { "order": ["won", "negotiation", "lead"], "hidden": ["lost"] }
+    }
+  }
+}
+```

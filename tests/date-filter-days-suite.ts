@@ -464,4 +464,25 @@ export function dateFilterDaysSuite(
     });
     assert.ok(days.isCalendarDay(scope?.from) && days.isCalendarDay(scope?.to));
   });
+
+  test("keeps relative date tokens in links and saved views, to resolve when applied", () => {
+    const relative = [
+      dueRule("between", "$thisWeek"),
+      dueRule("before", ["$today"]),
+      dueRule("between", ["$last7Days", "2026-12-31"]),
+    ];
+    const expected = ["$thisWeek", ["$today"], ["$last7Days", "2026-12-31"]];
+    assert.deepEqual(
+      valuesOf(edition.readUrlRules(JSON.stringify(relative))),
+      expected
+    );
+    assert.deepEqual(
+      valuesOf(edition.applyViewRules({ advancedFilters: relative })),
+      expected
+    );
+    assert.deepEqual(
+      valuesOf(days.normalizeDateFilterRules(relative, { timeZone: PARIS })),
+      expected
+    );
+  });
 }

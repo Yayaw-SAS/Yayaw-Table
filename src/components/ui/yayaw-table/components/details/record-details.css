@@ -468,3 +468,111 @@
   border-radius: 0.5rem;
   background: #000;
 }
+/* Typed confirmation of a deletion: a label naming the value, the field and its mismatch message. */
+.yayaw-typed-confirm {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+.yayaw-typed-confirm label {
+  overflow-wrap: anywhere;
+}
+.yayaw-typed-confirm input {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid var(--yayaw-border, var(--border, #e4e4e7));
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: var(--yayaw-background, var(--background, #fff));
+  color: inherit;
+  font: inherit;
+}
+.yayaw-typed-confirm input[aria-invalid="true"] {
+  border-color: var(--yayaw-danger, var(--destructive, #c92a2a));
+}
+.yayaw-typed-confirm input:focus-visible {
+  outline: 2px solid var(--yayaw-foreground, var(--foreground, #18181b));
+  outline-offset: 1px;
+}
+.yayaw-typed-confirm-error {
+  margin: 0;
+  color: var(--yayaw-danger, var(--destructive, #c92a2a));
+  font-size: 12px;
+}
+/* Related lists: records of another source linked to this one. */
+.yayaw-detail-related-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.yayaw-detail-related-header h3 button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.yayaw-detail-related-header h3 button svg {
+  transition: transform 0.15s ease;
+}
+.yayaw-detail-related-header h3 button[aria-expanded="false"] svg {
+  transform: rotate(-90deg);
+}
+.yayaw-detail-related-body {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+.yayaw-detail-related-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.yayaw-detail-related-table th {
+  color: var(--detail-secondary);
+  font-weight: 500;
+  text-align: left;
+}
+.yayaw-detail-related-table th,
+.yayaw-detail-related-table td {
+  padding: 8px 10px 8px 0;
+  border-bottom: 1px solid var(--detail-border);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.yayaw-detail-related-table tr:last-child td {
+  border-bottom: 0;
+}
+.yayaw-detail-related-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--detail-secondary);
+  font-size: 13px;
+}
+.yayaw-detail-related-more {
+  margin: 8px 0 0;
+  color: var(--detail-secondary);
+  font-size: 12px;
+}
+.yayaw-detail-related-button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--detail-border);
+  border-radius: 6px;
+  padding: 3px 9px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}

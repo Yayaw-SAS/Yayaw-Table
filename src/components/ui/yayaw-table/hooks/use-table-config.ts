@@ -105,6 +105,12 @@ export interface TableCatalogueTableConfig
   canDeleteRow?: (row: Record<string, unknown>) => boolean;
   canDuplicateRow?: (row: Record<string, unknown>) => boolean;
   canSelectRow?: (row: Record<string, unknown>) => boolean;
+  /**
+   * Typed confirmation of row, bulk and record deletions: the delete button
+   * enables once the user typed the record's title, a column's value, a fixed
+   * word or, for bulk deletion, the number of records.
+   */
+  deleteConfirmation?: import("../utils/record-details").DeleteConfirmationConfig;
   showToolbar?: boolean;
   showToolbarHeader?: boolean;
   /** Show an icon in the toolbar to clear filters and global search. */
@@ -336,6 +342,7 @@ function resolveTablePermissionConfig(
   | "canDuplicateRow"
   | "canEditRow"
   | "canSelectRow"
+  | "deleteConfirmation"
 > {
   return {
     allowCreate: mergedConfig.allowCreate ?? true,
@@ -351,6 +358,7 @@ function resolveTablePermissionConfig(
     canDeleteRow: mergedConfig.canDeleteRow,
     canDuplicateRow: mergedConfig.canDuplicateRow,
     canSelectRow: mergedConfig.canSelectRow,
+    deleteConfirmation: mergedConfig.deleteConfirmation,
   };
 }
 

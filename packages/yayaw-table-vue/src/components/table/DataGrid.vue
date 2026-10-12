@@ -21,8 +21,8 @@ import { ArrowDown, ArrowUp, GripVertical } from "lucide-vue-next";
 import { type CSSProperties, computed, h, ref, watch, onBeforeUnmount } from "vue";
 import { useTableContext } from "../../context";
 import { applyTableQuery, calculateColumn } from "../../core";
-import { formatColumnCalculation } from "../../value-format";
-import { dateGroupKey, groupedLeafRows, groupHeadingLabel, resizedColumnSizeFromKey } from "../../table-contracts";
+import { currencyAmountsResult, formatColumnCalculation } from "../../value-format";
+import { dateGroupKey, groupedLeafRows, groupHeadingLabel, resizedColumnSizeFromKey, tableFilterContext } from "../../table-contracts";
 import type {
   CalculationType,
   ColumnDefinition,
@@ -71,6 +71,7 @@ const clientRows = computed(() =>
     : applyTableQuery(context.data.rows.value, {
         columns: context.config.columns.definitions,
         advancedFilters: context.state.advancedFilters.value,
+        filterContext: tableFilterContext(context.config.table, context.locale),
       })
 );
 const internalRowSelection = computed<RowSelectionState>(
@@ -556,6 +557,15 @@ const availableCalculations = (column: ColumnDefinition): CalculationType[] => {
   return base;
 };
 const aggregateResults = ref<Record<string, unknown>>({});
+/** The row field holding each calculated column's currency, by column id. */
+const currencyColumns = computed<Record<string, string> | undefined>(() => {
+  const entries = calculations.value.flatMap((column) =>
+    column.numberFormat?.currencyColumn
+      ? [[column.id, column.numberFormat.currencyColumn] as const]
+      : []
+  );
+  return entries.length ? Object.fromEntries(entries) : undefined;
+});
 /**
  * Footer text: sums, averages and extremes in the column's format, counts
  * and shares plain; date extremes and ranges arrive as text already.
@@ -606,6 +616,7 @@ const refreshCalculations = async (): Promise<void> => {
               search: context.state.search.value,
               calculations: activeCalculations.value,
               locale: context.locale,
+              ...(currencyColumns.value ? { currencyColumns: currencyColumns.value } : {}),
             }),
           staleTime: 15_000,
         });
@@ -708,10 +719,18 @@ const calculationFor = (
   const value = aggregateResults.value[columnId];
   // A host's label is kept; its plain values read in the column's format.
   if (value && typeof value === "object") {
-    const result = value as { label?: unknown; raw?: unknown };
-    return result.label === undefined
-      ? formatColumnCalculation(result.raw, calculation, definition, context.locale)
-      : String(result.label);
+    const result = value as {
+      label?: unknown;
+      raw?: unknown;
+      byCurrency?: Record<string, number>;
+    };
+    if (result.label !== undefined) {
+      return String(result.label);
+    }
+    // Amounts by currency stay apart, or read as one converted sum.
+    return result.byCurrency && typeof result.byCurrency === "object"
+      ? currencyAmountsResult(result.byCurrency, calculation, definition, context.locale).label
+      : formatColumnCalculation(result.raw, calculation, definition, context.locale);
   }
   return formatColumnCalculation(value, calculation, definition, context.locale);
 };

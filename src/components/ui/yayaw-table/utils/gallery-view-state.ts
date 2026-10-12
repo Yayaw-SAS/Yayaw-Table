@@ -1,4 +1,6 @@
 /** Serializable gallery preferences shared by both framework registries. */
+import { type AvatarOption, normalizeAvatarOption } from "./initials-avatar";
+
 type TableGalleryAspectRatio = "portrait" | "square" | "video" | "wide";
 type TableGalleryCardSize = "large" | "medium" | "small";
 type TableGalleryImageFit = "contain" | "cover";
@@ -12,6 +14,8 @@ export interface GalleryViewState {
   cardSize?: TableGalleryCardSize;
   previewSize?: TableGalleryCardSize;
   showCardLabels?: boolean;
+  /** Initials with a stable color on cards without an image. */
+  avatar?: AvatarOption;
 }
 
 function normalizeColumnIds(value: unknown): string[] | undefined {
@@ -99,6 +103,10 @@ export function normalizeGalleryViewConfig(
   }
   if (typeof config.showCardLabels === "boolean") {
     normalized.showCardLabels = config.showCardLabels;
+  }
+  const avatar = normalizeAvatarOption(config.avatar);
+  if (avatar !== undefined) {
+    normalized.avatar = avatar;
   }
 
   return Object.keys(normalized).length > 0 ? normalized : undefined;

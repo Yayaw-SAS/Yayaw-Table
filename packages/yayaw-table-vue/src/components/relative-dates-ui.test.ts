@@ -1,0 +1,205 @@
+import {
+  enableAutoUnmount,
+  flushPromises,
+  mount,
+  type VueWrapper,
+} from "@vue/test-utils";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { computed, reactive } from "vue";
+import { inlineTestPortals, openViewMenu } from "../../tests/menu-helpers";
+import { defineTableConfig } from "../config";
+import { type TableContextValue, tableContextKey } from "../context";
+import { createTranslations } from "../translations";
+import type {
+  ColumnDefinition,
+  TableListParams,
+  TableRecord,
+  YayawTableProps,
+} from "../types";
+import DynamicField from "./forms/DynamicField.vue";
+import CellRenderer from "./table/CellRenderer.vue";
+import YayawDataTable from "./YayawDataTable.vue";
+
+inlineTestPortals();
+
+const PARIS = "Europe/Paris";
+const rows = [
+  { id: "1", name: "Monday task", due: "2026-10-12" },
+  { id: "2", name: "Sunday task", due: "2026-10-18" },
+  { id: "3", name: "Next week task", due: "2026-10-19" },
+];
+const config = defineTableConfig({
+  id: "relative",
+  translations: { namespace: "relative", keys: {} },
+  table: {
+    enableAdvancedFilters: true,
+    enableViews: false,
+    syncUrl: false,
+    timeZone: PARIS,
+    weekStartsOn: 1,
+  },
+  columns: {
+    definitions: [
+      { id: "name", header: "Name", type: "text" },
+      { id: "due", header: "Due", type: "date" },
+    ],
+    mandatory: [],
+    visible: ["name", "due"],
+    order: ["name", "due"],
+  },
+});
+const mountTable = (props: Partial<YayawTableProps> = {}) =>
+  mount(YayawDataTable, {
+    props: { tableType: config.id, config, data: rows, ...props },
+    attachTo: document.body,
+    global: {
+      stubs: {
+        PopperArrow: true,
+        PopperContent: { template: "<div><slot /></div>" },
+      },
+    },
+  });
+type Wrapper = ReturnType<typeof mountTable>;
+
+const mounted: VueWrapper[] = [];
+enableAutoUnmount((unmount) =>
+  afterEach(() => {
+    unmount();
+    for (const wrapper of mounted.splice(0)) {
+      wrapper.unmount();
+    }
+    document.body.replaceChildren();
+    vi.useRealTimers();
+  })
+);
+// A Wednesday in Paris.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-14T10:00:00.000Z"));
+  window.history.replaceState({}, "", "/");
+});
+
+const addDateRule = async (wrapper: Wrapper) => {
+  await openViewMenu(wrapper);
+  await wrapper
+    .findAll(".yayaw-options-item")
+    .find((item) => item.text().startsWith("Filter"))
+    ?.trigger("click");
+  await wrapper.get('[aria-label="Add filter"]').trigger("click");
+  await flushPromises();
+  const rule = wrapper.get(".yayaw-filter-rule:last-child");
+  await rule.findAll("select")[0]?.setValue("due");
+  return rule;
+};
+const names = (wrapper: Wrapper) =>
+  wrapper.findAll("tbody tr").map((row) => row.text());
+
+it("filters on a relative date picked by its label, with the table's first weekday", async () => {
+  const wrapper = mountTable();
+  const rule = await addDateRule(wrapper);
+  const relative = rule.get("[data-relative-date-select]");
+  expect(relative.findAll("option").map((option) => option.text())).toContain(
+    "This week"
+  );
+  await relative.setValue("$thisWeek");
+  // A token replaces the day inputs.
+  expect(rule.findAll('input[type="date"]')).toHaveLength(0);
+  await rule.trigger("submit");
+  await flushPromises();
+  expect(names(wrapper)).toHaveLength(2);
+  expect(wrapper.get("tbody").text()).not.toContain("Next week task");
+  // Back to a specific date: today's day input.
+  await relative.setValue("fixed");
+  expect(rule.get<HTMLInputElement>('input[type="date"]').element.value).toBe(
+    "2026-10-14"
+  );
+});
+
+it("sends list requests the days a relative rule names", async () => {
+  const list = vi.fn(async (_params: TableListParams) => ({
+    data: rows,
+    meta: { totalCount: 3 },
+  }));
+  const wrapper = mountTable({ getTableActions: () => ({ list }) });
+  const rule = await addDateRule(wrapper);
+  await rule.get("[data-relative-date-select]").setValue("$last7Days");
+  await rule.trigger("submit");
+  await flushPromises();
+  expect(list.mock.lastCall?.[0].advancedFilters).toEqual([
+    expect.objectContaining({
+      columnId: "due",
+      operator: "between",
+      values: ["2026-10-08", "2026-10-14"],
+    }),
+  ]);
+});
+
+it("edits a date and time field in its zone and stores an ISO instant", async () => {
+  const wrapper = mount(DynamicField, {
+    props: {
+      field: {
+        name: "starts",
+        label: "Starts",
+        type: "date",
+        withTime: true,
+        timeZone: PARIS,
+      },
+      modelValue: "2026-10-14T07:30:00.000Z",
+      context: { mode: "edit", values: {} },
+    },
+  });
+  mounted.push(wrapper);
+  const input = wrapper.get<HTMLInputElement>('input[type="datetime-local"]');
+  expect(input.element.value).toBe("2026-10-14T09:30");
+  await input.setValue("2026-10-15T18:45");
+  expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual([
+    "2026-10-15T16:45:00.000Z",
+  ]);
+});
+
+it("edits a date and time cell inline and saves an ISO instant", async () => {
+  const row = reactive<TableRecord>({
+    id: "1",
+    starts: "2026-10-14T07:30:00.000Z",
+  });
+  const column: ColumnDefinition = {
+    id: "starts",
+    header: "Starts",
+    type: "date",
+    withTime: true,
+    timeZone: PARIS,
+  };
+  const update = vi.fn(async () => ({ success: true }));
+  const context = {
+    config: defineTableConfig({
+      id: "instance",
+      columns: { definitions: [column], mandatory: [], visible: [], order: [] },
+      translations: { namespace: "items", keys: {} },
+      table: { inlineEdit: { enabled: true, debounceMs: 0 } },
+    }),
+    tableType: "items",
+    actions: computed(() => ({ update })),
+    translations: computed(() => createTranslations("en")),
+    getFormConfig: vi.fn(() => undefined),
+    getRowId: () => "1",
+    refresh: vi.fn(async () => undefined),
+  } as unknown as TableContextValue;
+  const wrapper = mount(CellRenderer, {
+    props: { row, column, value: row.starts },
+    attachTo: document.body,
+    global: { provide: { [tableContextKey as symbol]: context } },
+  });
+  mounted.push(wrapper);
+  await wrapper.trigger("dblclick");
+  await flushPromises();
+  const input = wrapper.get<HTMLInputElement>('input[type="datetime-local"]');
+  expect(input.element.value).toBe("2026-10-14T09:30");
+  await input.setValue("2026-10-14T11:00");
+  await input.trigger("blur");
+  await flushPromises();
+  expect(update).toHaveBeenCalledWith(
+    "1",
+    { starts: "2026-10-14T09:00:00.000Z" },
+    expect.anything()
+  );
+});

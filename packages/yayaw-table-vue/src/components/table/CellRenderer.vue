@@ -19,12 +19,14 @@ import { useTableContext, useTableTranslation } from "../../context";
 import { isChoiceInlineEditor, resolveDataType, resolveDataTypeEditor, TABLE_DATA_TYPES, dataTypeDateInput, dataTypeValueError } from "../../table-contracts";
 import { Check, ChevronDown, Image as ImageIcon, MapPin } from "lucide-vue-next";
 import CellActions from "./CellActions.vue";
+import InitialsAvatar from "../controls/InitialsAvatar.vue";
+import { avatarInitials, avatarNameOf, resolveAvatarConfig } from "../../initials-avatar";
 import InlineMultiSelect from "./InlineMultiSelect.vue";
 import TagPicker from "../tags/TagPicker.vue";
 import LocationEditor from "../location/LocationEditor.vue";
 import { formatCoordinates, formatLocation, parseLocation } from "../../location-model";
 import { displayCellValue, safeHttpUrl, imageSource } from "../../core";
-import { numberBarRatio } from "../../value-format";
+import { dateTimeFromInput, dateTimeInputValue, numberBarRatio } from "../../value-format";
 import {
   cloneFormValue,
   formValuesEqual,
@@ -175,7 +177,10 @@ const editor = computed<InlineEditEditor>(() => resolveDataTypeEditor({
   columnType: dynamicType.value,
   formFieldType: formField.value?.type,
   hasOptions: options.value.length > 0,
+  withTime: props.column.withTime === true || formField.value?.withTime === true,
 }));
+// Date and time editors show and read wall-clock times in the column's zone.
+const editorTimeZone = computed(() => props.column.timeZone ?? formField.value?.timeZone);
 const loadedOptions = ref<SelectOption[]>();
 const optionsLoading = ref(false);
 const optionsFailed = ref(false);
@@ -192,7 +197,7 @@ const options = computed<SelectOption[]>(
 );
 const begin = async (): Promise<void> => {
   if (!canEdit.value || pending.value || optionsLoading.value || (editing.value && !optionsFailed.value)) return;
-  draft.value = editor.value === "json" ? (props.value == null ? "" : JSON.stringify(props.value, null, 2)) : editor.value === "date" ? dataTypeDateInput(props.value) : cloneFormValue(props.value);
+  draft.value = editor.value === "json" ? (props.value == null ? "" : JSON.stringify(props.value, null, 2)) : editor.value === "date" ? dataTypeDateInput(props.value) : editor.value === "datetime" ? dateTimeInputValue(props.value, editorTimeZone.value) : cloneFormValue(props.value);
   committed.value = cloneFormValue(draft.value);
   editing.value = true;
   closeRequested = false;
@@ -232,6 +237,11 @@ const parseDraft = (): unknown => {
       return draft.value;
     }
     return draft.value.trim() ? JSON.parse(draft.value) : null;
+  }
+  if (editor.value === "datetime") {
+    const instant = dateTimeFromInput(String(draft.value ?? ""), editorTimeZone.value);
+    if (instant === undefined) throw new Error("Expected a valid date");
+    return instant === "" ? null : instant;
   }
   const issue = dataTypeValueError(editor.value, draft.value);
   if (issue) throw new Error(issue);
@@ -312,7 +322,7 @@ const save = async (close = true): Promise<void> => {
       );
     optimistic = false;
     saved = true;
-    committed.value = editor.value === "json" ? JSON.stringify(value, null, 2) : cloneFormValue(value);
+    committed.value = editor.value === "json" ? JSON.stringify(value, null, 2) : editor.value === "datetime" ? dateTimeInputValue(value, editorTimeZone.value) : cloneFormValue(value);
     // A response for an earlier draft must not replace a newer selection.
     if (formValuesEqual(draft.value, submittedDraft)) draft.value = cloneFormValue(committed.value);
     if (closeRequested && !dirty.value) editing.value = false;
@@ -389,6 +399,15 @@ const failedImageUrl = ref<string>();
 const imageUrl = computed(() => {
   const candidate = dynamicType.value === "image" ? imageSource(props.value) : undefined;
   return failedImageUrl.value === candidate ? undefined : candidate;
+});
+// Image columns with `avatar`: initials of the record's name replace the placeholder.
+const cellAvatar = computed(() => {
+  const config = resolveAvatarConfig(props.column.avatar);
+  if (!config || effectiveColumn.value.type !== "image" || imageUrl.value) {
+    return undefined;
+  }
+  const name = avatarNameOf(props.row, config.nameColumn);
+  return avatarInitials(name) ? { name, shape: config.shape } : undefined;
 });
 const tags = computed(() =>
   Array.isArray(props.value) ? props.value : [props.value]
@@ -531,6 +550,8 @@ const tagChip = (value: unknown) => {
             ? 'number'
             : editor === 'date'
             ? 'date'
+            : editor === 'datetime'
+            ? 'datetime-local'
             : editor === 'url'
             ? 'url'
             : 'text'
@@ -572,7 +593,7 @@ const tagChip = (value: unknown) => {
       ><Check v-if="value" :size="14" aria-hidden="true" /></span
     >
     <code v-else-if="effectiveColumn.type === 'code'" class="yayaw-code">{{
-      displayCellValue(value, effectiveColumn, context.locale)
+      displayCellValue(value, effectiveColumn, context.locale, props.row)
     }}</code>
     <img
       v-else-if="imageUrl"
@@ -582,6 +603,7 @@ const tagChip = (value: unknown) => {
       loading="lazy"
       @error="failedImageUrl = imageUrl"
     />
+    <InitialsAvatar v-else-if="cellAvatar" size="cell" :name="cellAvatar.name" :shape="cellAvatar.shape" />
     <span v-else-if="effectiveColumn.type === 'image'" class="yayaw-cell-image yayaw-image-placeholder" role="img" :aria-label="column.header"><ImageIcon :size="16" aria-hidden="true" /></span>
     <a
       v-else-if="effectiveColumn.type === 'url' && url"
@@ -627,20 +649,20 @@ const tagChip = (value: unknown) => {
       </template>
     </span>
     <pre v-else-if="effectiveColumn.type === 'json'" class="yayaw-json">{{
-      displayCellValue(value, effectiveColumn, context.locale)
+      displayCellValue(value, effectiveColumn, context.locale, props.row)
     }}</pre>
     <span v-else-if="barRatio !== undefined" class="yayaw-number-bar">
       <span class="yayaw-number-bar-track" aria-hidden="true"
         ><span :style="{ width: `${Math.round(barRatio * 100)}%` }"
       /></span>
       <span class="yayaw-number">{{
-        displayCellValue(value, effectiveColumn, context.locale)
+        displayCellValue(value, effectiveColumn, context.locale, props.row)
       }}</span>
     </span>
     <span
       v-else
       :class="{ 'yayaw-number': effectiveColumn.type === 'number' }"
-      >{{ displayCellValue(value, effectiveColumn, context.locale) }}</span
+      >{{ displayCellValue(value, effectiveColumn, context.locale, props.row) }}</span
     >
     <ChevronDown v-if="canEdit && !editing && isChoiceInlineEditor(editor)" class="yayaw-inline-chevron" data-inline-chevron="" aria-hidden="true" />
     <CellActions v-if="hasActions && !editing" :actions="cellActions" />

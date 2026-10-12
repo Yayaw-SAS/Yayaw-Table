@@ -12,7 +12,9 @@ import {
   X,
 } from "lucide-vue-next";
 import BulkTagsDialog from "../tags/BulkTagsDialog.vue";
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import TypedConfirmation from "../details/TypedConfirmation.vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { deleteConfirmationMatches, deleteConfirmationValue, detailLabels } from "../../record-details";
 import {
   parseBulkEditPatch,
   resolveBulkActionResult,
@@ -44,8 +46,14 @@ const confirmation = ref<{
   title: string;
   description?: string;
   confirmLabel?: string;
+  /** The value to type first (`table.deleteConfirmation`). */
+  expected?: string;
   execute: () => Promise<void>;
 }>();
+const typedLabels = computed(() => detailLabels(context.locale));
+const typedValue = ref("");
+const typedField = ref<InstanceType<typeof TypedConfirmation>>();
+const typedConfirmed = computed(() => deleteConfirmationMatches(confirmation.value?.expected, typedValue.value, context.config.table.deleteConfirmation));
 const editOpen = ref(false);
 const editValue = ref("{}");
 const editError = ref<string>();
@@ -264,14 +272,18 @@ const requestBulkDelete = (): void => {
   }
   const selectedIds = [...ids.value];
   const selectedRows = [...context.selectedRows.value];
+  typedValue.value = "";
   confirmation.value = {
     title: `Delete ${selectedIds.length} rows?`,
     description: "This action cannot be undone.",
     confirmLabel: translate("delete", "Delete"),
+    expected: deleteConfirmationValue(context.config.table.deleteConfirmation, { count: selectedIds.length }, typedLabels.value),
     execute: () => executeBulkDelete(selectedIds, selectedRows),
   };
+  nextTick(() => typedField.value?.focus());
 };
 const confirmPendingAction = async (): Promise<void> => {
+  if (!typedConfirmed.value) return;
   const request = confirmation.value;
   confirmation.value = undefined;
   try {
@@ -660,6 +672,15 @@ const bulkExport = async (): Promise<void> => {
         </div>
       </header>
       <div class="yayaw-confirm-body">
+        <TypedConfirmation
+          v-if="confirmation.expected !== undefined"
+          ref="typedField"
+          v-model="typedValue"
+          :expected="confirmation.expected"
+          :labels="typedLabels"
+          :confirmation="context.config.table.deleteConfirmation"
+          @submit="confirmPendingAction"
+        />
         <button
           type="button"
           class="yayaw-button yayaw-button-outline"
@@ -670,6 +691,7 @@ const bulkExport = async (): Promise<void> => {
         <button
           type="button"
           class="yayaw-button yayaw-button-danger"
+          :disabled="!typedConfirmed"
           @click="confirmPendingAction"
         >
           {{ confirmation.confirmLabel ?? translate("confirm", "Confirm") }}

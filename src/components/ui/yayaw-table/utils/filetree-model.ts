@@ -1939,17 +1939,26 @@ export function fileTreeRowAt(x: number, y: number): string | undefined {
 
 // ---------------------------------------------------------------- URL
 
-export const fileTreeFolderKey = (tableId: string): string =>
-  `${tableId}-folder`;
+/**
+ * URL key of the open folder: `<tableId>-folder`, or `<instanceId>-folder`
+ * for an instance scoped like its other URL keys.
+ */
+export const fileTreeFolderKey = (
+  tableId: string,
+  instanceId?: string
+): string => `${instanceId || tableId}-folder`;
 
 /** The folder opened by a link (`?<tableId>-folder=<id>`). */
-export function readFileTreeFolderParam(tableId: string): string | undefined {
+export function readFileTreeFolderParam(
+  tableId: string,
+  instanceId?: string
+): string | undefined {
   if (typeof window === "undefined") {
     return;
   }
   return (
     new URLSearchParams(window.location.search).get(
-      fileTreeFolderKey(tableId)
+      fileTreeFolderKey(tableId, instanceId)
     ) ?? undefined
   );
 }
@@ -1957,13 +1966,14 @@ export function readFileTreeFolderParam(tableId: string): string | undefined {
 /** Keep the open folder in the URL without adding history entries. */
 export function writeFileTreeFolderParam(
   tableId: string,
-  id: string | null | undefined
+  id: string | null | undefined,
+  instanceId?: string
 ): void {
   if (typeof window === "undefined") {
     return;
   }
   const url = new URL(window.location.href);
-  const key = fileTreeFolderKey(tableId);
+  const key = fileTreeFolderKey(tableId, instanceId);
   if ((url.searchParams.get(key) ?? undefined) === (id ?? undefined)) {
     return;
   }

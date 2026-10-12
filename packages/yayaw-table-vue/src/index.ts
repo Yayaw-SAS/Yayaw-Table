@@ -20,6 +20,19 @@ export { useTableData } from "./composables/use-table-data";
 export { useTableState } from "./composables/use-table-state";
 export * from "./config";
 export * from "./core";
+// Filter tokens (relative dates, `$viewer`): helpers a host can use on its server.
+export {
+  type CalendarDayRange,
+  isRelativeDateToken,
+  localeWeekStart,
+  RELATIVE_DATE_CHOICES,
+  RELATIVE_DATE_TOKENS,
+  type RelativeDateContext,
+  type RelativeDateToken,
+  relativeDateLabel,
+  resolveRelativeDate,
+  resolveRelativeDateRule,
+} from "./date-filter-days";
 export type {
   DisplayModeRenderContext,
   DisplayModeRenderer,
@@ -124,6 +137,21 @@ export {
   publicFormSnapshot,
   withFormServerContext,
 } from "./form-view";
+export {
+  type AvatarConfig,
+  type AvatarOption,
+  type AvatarShape,
+  avatarHue,
+  avatarInitials,
+  initialsAvatar,
+} from "./initials-avatar";
+export {
+  arrangeKanbanLanes,
+  type KanbanLaneSettings,
+  type KanbanLanes,
+  mergeKanbanLanes,
+  normalizeKanbanLanes,
+} from "./kanban-lanes";
 // Location columns and the Map mode: shared helpers a host can use on its server.
 export {
   boundsContain,
@@ -142,14 +170,29 @@ export type {
   MapViewSettings,
 } from "./map-model";
 export type {
+  DeleteConfirmationConfig,
   DetailActivity,
+  DetailCustomSection,
   DetailField,
   DetailPresentation,
+  DetailRelatedAction,
+  DetailRelatedActionEvent,
+  DetailRelatedLoader,
+  DetailRelatedQuery,
+  DetailRelatedSection,
   DetailRevertHandler,
   DetailSection,
+  DetailSectionConfig,
   RecordDetailsConfig,
 } from "./record-details";
 export type { BoundsScope, ListScope } from "./scoped-rows";
+export {
+  type FilterTokenContext,
+  resolveFilterRuleTokens,
+  resolveFilterTokens,
+  tableFilterContext,
+  VIEWER_FILTER_TOKEN,
+} from "./table-contracts";
 // Tag catalogs (`actions.tags`): shared helpers a host can use on its server.
 export {
   applyTagPatch,
@@ -184,6 +227,10 @@ export {
 } from "./tag-colors";
 export * from "./translations";
 export * from "./types";
+export {
+  dateTimeFromInput,
+  dateTimeInputValue,
+} from "./value-format";
 
 export const YayawTablePlugin: Plugin = {
   install(app: App): void {

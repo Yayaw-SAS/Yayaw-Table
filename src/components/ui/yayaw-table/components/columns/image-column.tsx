@@ -2,6 +2,11 @@
 
 import type { CellContext, ColumnDef } from "@/components/ui/yayaw-table/tanstack";
 import { ImageIcon, type LucideIcon } from "lucide-react";
+import {
+  type AvatarOption,
+  avatarNameOf,
+  resolveAvatarConfig,
+} from "../../utils/initials-avatar";
 import { ImageCell } from "../cells/image-cell";
 
 interface CustomColumnProps {
@@ -13,6 +18,8 @@ type ExtendedColumnDef<TData> = ColumnDef<TData> & CustomColumnProps;
 
 interface ImageColumnProps {
   accessorKey: string;
+  /** Initials with a stable color for records without an image. */
+  avatar?: AvatarOption;
   className?: string;
   enableColumnFilter?: boolean;
   enableHiding?: boolean;
@@ -22,12 +29,14 @@ interface ImageColumnProps {
 
 export function createImageColumn<TData>({
   accessorKey,
+  avatar,
   className = "",
   enableColumnFilter = false,
   enableHiding = true,
   enableSorting = false,
   header,
 }: ImageColumnProps): ExtendedColumnDef<TData> {
+  const avatarConfig = resolveAvatarConfig(avatar);
   return {
     accessorKey,
     cell: (info: CellContext<TData, unknown>) => {
@@ -37,6 +46,12 @@ export function createImageColumn<TData>({
       return (
         <ImageCell
           alt={label ? `${label} image` : header}
+          avatarName={
+            avatarConfig
+              ? avatarNameOf(rowData, avatarConfig.nameColumn)
+              : undefined
+          }
+          avatarShape={avatarConfig?.shape}
           className={className}
           fallbackLabel={label}
           value={info.getValue()}

@@ -1,6 +1,7 @@
 import { computed } from "vue";
 import { useTableContext } from "../context";
 import { applyTableQuery } from "../core";
+import { tableFilterContext } from "../table-contracts";
 
 /** Cards and the grid use the same page state; server pages must never be sliced twice. */
 export const useCardRows = () => {
@@ -15,6 +16,7 @@ export const useCardRows = () => {
       filters: context.state.filters.value,
       advancedFilters: context.state.advancedFilters.value,
       sorting: context.state.sorting.value,
+      filterContext: tableFilterContext(context.config.table, context.locale),
     });
     if (!context.config.table.enablePagination) {
       return rows;

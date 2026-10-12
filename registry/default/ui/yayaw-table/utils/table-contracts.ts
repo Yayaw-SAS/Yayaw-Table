@@ -1,5 +1,10 @@
 /** Framework-independent adapters. Also copied into the standalone Vue registry. */
-import { calendarDay } from "./date-filter-days";
+import {
+  calendarDay,
+  isRelativeDateToken,
+  type RelativeDateContext,
+  resolveRelativeDateRule,
+} from "./date-filter-days";
 import {
   formatLocation,
   locationValueError,
@@ -68,6 +73,7 @@ const CHOICE_INLINE_EDITORS = new Set([
   "select",
   "multiSelect",
   "date",
+  "datetime",
   "location",
 ]);
 
@@ -81,14 +87,24 @@ export function resolveDataTypeEditor({
   columnType,
   formFieldType,
   hasOptions = false,
+  withTime = false,
 }: {
   explicitEditor?: string;
   columnType?: string;
   formFieldType?: string;
   hasOptions?: boolean;
-}): DataTypeInlineEditor {
+  /** A date column or field holding a date and a time edits both. */
+  withTime?: boolean;
+}): DataTypeInlineEditor | "datetime" {
   if (explicitEditor && explicitEditor !== "auto") {
     return explicitEditor as DataTypeInlineEditor;
+  }
+  const isDate =
+    formFieldType === "date" ||
+    formFieldType === "datetime" ||
+    (!formFieldType && columnType === "date");
+  if (isDate && (withTime || formFieldType === "datetime")) {
+    return "datetime";
   }
   if (columnType === "multiSelect" || columnType === "json") {
     return columnType;
@@ -125,6 +141,8 @@ export interface DataTypeColumn {
   accessorKey?: unknown;
   accessorFn?: unknown;
   options?: unknown;
+  withTime?: boolean;
+  timeZone?: string;
 }
 
 /** Custom and computed values require a catalogue field describing how to edit them. */
@@ -163,6 +181,12 @@ export function generateDataTypeFields(
         type,
         ...(type === "select" || type === "multiSelect"
           ? { options: column.options ?? [] }
+          : {}),
+        ...(type === "date" && column.withTime
+          ? {
+              withTime: true,
+              ...(column.timeZone ? { timeZone: column.timeZone } : {}),
+            }
           : {}),
       },
     ];
@@ -376,8 +400,17 @@ export function normalizeFilterEnvelope(value: unknown): {
   };
 }
 
-/** Supply both editions' existing list parameter names to unchanged application handlers. */
-export function compatibleListParams(input: ContractRecord): ContractRecord {
+/**
+ * Supplies both editions' existing list parameter names to unchanged
+ * application handlers. The shared `list` request. Its `advancedFilters` are the active rules with
+ * their tokens resolved (`resolveFilterTokens`): relative dates arrive as
+ * days, computed in `context` (the viewer's zone, locale and first weekday;
+ * the runtime's without one), and `$viewer` as `context.viewerId` when given.
+ */
+export function compatibleListParams(
+  input: ContractRecord,
+  context: FilterTokenContext = {}
+): ContractRecord {
   const pageSize = positiveInteger(input.pageSize ?? input.limit, 10);
   const sorting = Array.isArray(input.sorting)
     ? input.sorting
@@ -404,8 +437,9 @@ export function compatibleListParams(input: ContractRecord): ContractRecord {
     q: search,
     globalSearch: search,
     filters: recordValue(input.filters),
-    advancedFilters: advanced.filters.filter(
-      (filter) => filter.isActive !== false
+    advancedFilters: resolveFilterTokens(
+      advanced.filters.filter((filter) => filter.isActive !== false),
+      context
     ),
     advancedFilterJoin: input.advancedFilterJoin ?? advanced.joinOperator,
     grouping: Array.isArray(input.grouping) ? input.grouping : [],
@@ -447,6 +481,7 @@ export async function fetchAllContractRows<T>({
   list,
   params,
   maxPages = 1000,
+  filterContext,
 }: {
   list: (params: ContractRecord) => Promise<{
     data: T[];
@@ -454,8 +489,10 @@ export async function fetchAllContractRows<T>({
   }>;
   params: ContractRecord;
   maxPages?: number;
+  /** Resolves relative dates and `$viewer` in the rules (see `compatibleListParams`). */
+  filterContext?: FilterTokenContext;
 }): Promise<T[]> {
-  const request = compatibleListParams(params);
+  const request = compatibleListParams(params, filterContext);
   const rows: T[] = [];
   for (let page = 1; page <= maxPages; page += 1) {
     const result = await list({ ...request, page });
@@ -501,18 +538,139 @@ export function normalizeViewAliases(value: unknown): ContractRecord {
   };
 }
 
-/** Match the shared operators before either framework renders the filtered rows. */
+/**
+ * What a host tells filters at query time: whose "today" and week relative
+ * dates use (see `RelativeDateContext`), and who `$viewer` is.
+ */
+export interface FilterTokenContext extends RelativeDateContext {
+  /** Replaces the `$viewer` token in rule values: the signed-in person's id. */
+  viewerId?: string | number;
+}
+
+/** The table settings filter tokens read (`table.timeZone`, `weekStartsOn`, `viewerId`). */
+export interface FilterTokenSettings {
+  timeZone?: string;
+  weekStartsOn?: number;
+  viewerId?: string | number;
+}
+
+/** The token context of a table: its settings and the locale it shows. */
+export function tableFilterContext(
+  table: FilterTokenSettings | undefined,
+  locale?: string
+): FilterTokenContext {
+  const context: FilterTokenContext = {};
+  if (table?.timeZone) {
+    context.timeZone = table.timeZone;
+  }
+  if (locale) {
+    context.locale = locale;
+  }
+  if (table?.weekStartsOn !== undefined) {
+    context.weekStartsOn = table.weekStartsOn;
+  }
+  if (table?.viewerId !== undefined && table.viewerId !== null) {
+    context.viewerId = table.viewerId;
+  }
+  return context;
+}
+
+/** A rule value standing for the signed-in person, resolved to `viewerId`. */
+export const VIEWER_FILTER_TOKEN = "$viewer";
+
+const replaceViewer = (value: unknown, viewerId: string | number): unknown =>
+  value === VIEWER_FILTER_TOKEN ? viewerId : value;
+
+/**
+ * A filter rule with its tokens resolved: relative dates (`"$thisWeek"`…) of
+ * date rules become days (see `resolveRelativeDateRule`), and `"$viewer"`
+ * becomes `context.viewerId` when the host gives one (otherwise it stays, for
+ * a server to substitute its signed-in user). The same object comes back when
+ * nothing changes.
+ */
+export function resolveFilterRuleTokens<T>(
+  rule: T,
+  context: FilterTokenContext = {}
+): T {
+  if (!rule || typeof rule !== "object" || Array.isArray(rule)) {
+    return rule;
+  }
+  const record = rule as ContractRecord;
+  const values = Array.isArray(record.values) ? record.values : [record.values];
+  if (record.type === "date" || record.type === undefined) {
+    const dated = resolveRelativeDateRule(record, context);
+    if (dated !== record || record.type === "date") {
+      return dated as T;
+    }
+  }
+  const { viewerId } = context;
+  if (
+    viewerId === undefined ||
+    viewerId === null ||
+    !values.includes(VIEWER_FILTER_TOKEN)
+  ) {
+    return rule;
+  }
+  return {
+    ...record,
+    values: Array.isArray(record.values)
+      ? record.values.map((value) => replaceViewer(value, viewerId))
+      : replaceViewer(record.values, viewerId),
+  } as T;
+}
+
+/**
+ * Every rule of a filter state with its tokens resolved: a list of rules or
+ * a `{ filters, joinOperator }` envelope comes back in the same shape, and
+ * the same object when nothing changes. Both editions call it before
+ * filtering rows and before handing rules to `actions.list`; a server that
+ * reads saved views or config filters itself can call it with the viewer's
+ * zone, locale and id.
+ */
+export function resolveFilterTokens<T>(
+  state: T,
+  context: FilterTokenContext = {}
+): T {
+  if (Array.isArray(state)) {
+    const rules = state.map((rule) => resolveFilterRuleTokens(rule, context));
+    return (
+      rules.every((rule, index) => rule === state[index]) ? state : rules
+    ) as T;
+  }
+  const record = recordValue(state);
+  if (Array.isArray(record.filters)) {
+    const filters = resolveFilterTokens(record.filters, context);
+    return (filters === record.filters ? state : { ...record, filters }) as T;
+  }
+  return state;
+}
+
+/** Whether a rule holds a token resolved at query time. */
+export const hasFilterToken = (rule: unknown): boolean => {
+  const values = recordValue(rule).values;
+  return (Array.isArray(values) ? values : [values]).some(
+    (value) => value === VIEWER_FILTER_TOKEN || isRelativeDateToken(value)
+  );
+};
+
+/**
+ * Match the shared operators before either framework renders the filtered
+ * rows. Tokens resolve with `context` (relative dates in the runtime's zone
+ * and locale without one).
+ */
 export function matchesContractFilter(
   actual: unknown,
-  filter: ContractRecord
+  input: ContractRecord,
+  context: FilterTokenContext = {}
 ): boolean {
+  const filter = resolveFilterRuleTokens(input, context);
   const values = Array.isArray(filter.values) ? filter.values : [filter.values];
   const items = Array.isArray(actual) ? actual : [actual];
   const empty =
     actual == null ||
     actual === "" ||
     (Array.isArray(actual) && !actual.length);
-  const typed = matchesTypedFilter(actual, filter, values);
+  const typed = matchesTypedFilter(actual, filter, values, context.timeZone);
   if (typed !== undefined) {
     return typed;
   }
@@ -586,10 +744,11 @@ export function matchesContractFilter(
 function matchesTypedFilter(
   actual: unknown,
   filter: ContractRecord,
-  values: unknown[]
+  values: unknown[],
+  timeZone?: string
 ): boolean | undefined {
   if (filter.type === "date") {
-    return matchesDateFilter(actual, filter.operator, values);
+    return matchesDateFilter(actual, filter.operator, values, timeZone);
   }
   if (filter.type === "location") {
     return matchesLocationFilter(actual, filter.operator, filter.values);
@@ -599,16 +758,18 @@ function matchesTypedFilter(
 
 /**
  * Date rules compare calendar days: the record's day in the viewer's time
- * zone (a `YYYY-MM-DD` value is that day) against the rule's days (older
- * instants read as the viewer's days). `between` includes both days, in
- * either order.
+ * zone (a `YYYY-MM-DD` value is that day; a date and time is the day it falls
+ * on there) against the rule's days (older instants read as the viewer's
+ * days). `between` includes both days, in either order; `notEquals` with two
+ * days (a resolved relative range) keeps the days outside them.
  */
 function matchesDateFilter(
   actual: unknown,
   operator: unknown,
-  values: unknown[]
+  values: unknown[],
+  timeZone?: string
 ): boolean {
-  const day = calendarDay(actual);
+  const day = calendarDay(actual, timeZone);
   if (operator === "isEmpty" || operator === "isNotEmpty") {
     return operator === "isEmpty" ? day === undefined : day !== undefined;
   }
@@ -619,8 +780,10 @@ function matchesDateFilter(
   switch (operator) {
     case "equals":
       return day === first;
-    case "notEquals":
-      return day !== first;
+    case "notEquals": {
+      const last = values.length > 1 ? calendarDay(values[1]) : undefined;
+      return last ? day < first || day > last : day !== first;
+    }
     case "before":
     case "lessThan":
       return day < first;
@@ -718,7 +881,9 @@ export function fieldText(
   const formatted = formatColumnValue(
     value,
     column && { ...column, type },
-    locale
+    locale,
+    undefined,
+    row
   );
   if (formatted !== undefined) {
     return formatted;
@@ -872,7 +1037,7 @@ export function dataTypeValueError(
   ) {
     return "Expected an array of option values";
   }
-  if (type === "date") {
+  if (type === "date" || type === "datetime") {
     const date =
       value instanceof Date ? value : new Date(value as string | number);
     if (!Number.isFinite(date.getTime())) {

@@ -122,6 +122,19 @@ of a list or a `{ filters, joinOperator }` envelope, and
 server). Without a zone they use the server's, which is right only for
 viewers in that zone.
 
+Relative tokens (`$today`, `$thisWeek`, `$last7Days`…, see
+[configuration](configuration.md)) are resolved by the table before it calls
+`list`, `aggregate`, facet counts, the pages it loads for a browser export or
+bulk "select all": the server
+receives days, a day for `$today` and `[first, last]` with `between` for a
+period. `$viewer` becomes `table.viewerId` when the host sets it. Saved views,
+links and destination queries (`exportFile`, Connect destinations, schedules)
+keep the tokens so a scheduled push stays relative: resolve them when it runs
+with `resolveFilterTokens(rules, { timeZone, locale, weekStartsOn, viewerId })`
+(a list or an envelope; `resolveRelativeDate(token, context)` gives one
+`{ start, end }`). A `$viewer` left unresolved is for the server to replace with
+its signed-in user.
+
 ## `aggregate`
 
 Receives the query (`search`, `filters`, `advancedFilters`,

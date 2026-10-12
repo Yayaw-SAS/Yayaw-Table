@@ -40,6 +40,7 @@ or an `instanceId`.
 | `displayVariant: "tag"`, `coloredTags`, `tagColorMap` | Tags instead of plain text; colors come from the stored value or `color`. |
 | `tags` | `true` or `{ create?, manage?, bulk? }`: a tags column whose options come from `actions.tags` (see [tag catalogs](server-contracts.md#tag-catalogs)); `bulk: "patch"` sends `{ add, remove }` to `bulkUpdate`. In `table.facets`, it lists the catalog's names. |
 | `numberFormat`, `dateDisplayPreset`, `dateFormat`, `timeZone`, `hour12` | Formats, see below. |
+| `withTime` | On a `date` column: values are instants (ISO 8601 strings). Cells default to the `dateTime` preset, forms and inline edits show a date and time input in the column's `timeZone`, and they save an ISO instant in UTC. Filters still compare whole days, in that zone. |
 | `inlineEdit` | `true` or `{ enabled, editor, debounceMs, options, readonly }`; editing is opt-in per column or with `table.inlineEdit.enabled`. |
 | `enableSorting`, `enableFiltering`, `enableGrouping`, `enablePinning`, `enableResizing`, `enableCalculation`, `defaultCalculation` | Per-column capabilities and the default footer calculation. |
 | `enableExport` | `false` keeps the column in the table: never in the Export screen's lists, `actions.exportFile` requests, the bulk CSV, Connect destinations' `columns` or connector mappings. |
@@ -97,6 +98,17 @@ exports. Shared code: `value-format.ts`.
   `dateTime`, `time`, `relative`), or a date-fns `dateFormat` pattern.
   `table.dateDisplayPreset` sets the table default. One rule in both
   editions: the column's pattern, else its preset, else the table's preset.
+- Relative date filters: a date rule's value can be a token instead of days:
+  `$today`, `$yesterday`, `$tomorrow`, `$thisWeek`, `$lastWeek`, `$nextWeek`,
+  `$thisMonth`, `$lastMonth`, `$nextMonth`, `$thisYear`, `$lastNDays` and
+  `$nextNDays` (N from 1 to 3660, today included). `before` / `after` with
+  `$today` reads "before / after today". Tokens are saved as they are in views,
+  links and `table.defaultFilters`, and the filter menus show their labels.
+  They resolve to days in `table.timeZone` (else the viewer's zone); weeks
+  start on `table.weekStartsOn` (0 = Sunday … 6), else the locale's first day.
+- `table.viewerId` (string or number) is the value of the `$viewer` token in
+  any rule (`{ "columnId": "owner", "operator": "equals", "values": "$viewer" }`).
+  Without it, `$viewer` reaches the server as is.
 - `timeZone` (IANA) applies to presets and patterns, `hour12` to presets (a
   pattern picks `HH` or `h`); an unknown zone shows local time. Charts bucket
   dates in the x column's `timeZone`.

@@ -4,6 +4,7 @@ import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { Tabs } from "@base-ui/react/tabs";
 import { Clock3, History, Pencil, Trash2 } from "lucide-react";
 import {
+  isValidElement,
   type ReactNode,
   type RefObject,
   useEffect,
@@ -14,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import type { ColumnDefinition } from "../../config/helpers";
 import {
   type DetailActivity,
+  type DetailCustomSection,
   type DetailField,
   type DetailLabels,
   type DetailRecord,
@@ -23,11 +25,17 @@ import {
   detailLabels,
   detailSections,
   detailValue,
+  deleteConfirmationMatches,
+  deleteConfirmationValue,
+  detailLayout,
+  detailTitle,
   type RecordDetailsConfig,
 } from "../../utils/record-details";
 import { RecordSurface, RecordSurfaceHeader } from "../records/record-surface";
 import { DetailValue } from "./detail-value";
 import { RecordActivity } from "./record-activity";
+import { RelatedRecords } from "./related-records";
+import { TypedConfirmation } from "./typed-confirmation";
 import "./record-details.css";
 
 export interface RecordDetailsProps {
@@ -49,11 +57,31 @@ export interface RecordDetailsProps {
   onDeleted?: (row: DetailRecord) => void;
   onRevertActivity?: DetailRevertHandler;
   onReverted?: (entry: DetailActivity) => void;
+  /** Renders a field; return `undefined` for `config.renderField` or the standard renderer. */
   renderField?: (
     field: DetailField,
     value: unknown,
     row: DetailRecord
   ) => ReactNode;
+  /** Renders a custom section; return `undefined` for `config.renderSection`. */
+  renderSection?: (
+    section: DetailCustomSection,
+    row: DetailRecord
+  ) => ReactNode;
+}
+
+/** A render hook's output when React can render it; `undefined` otherwise. */
+function asReactNode(value: unknown): ReactNode | undefined {
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    isValidElement(value)
+  ) {
+    return value;
+  }
+  return Array.isArray(value) ? (value as ReactNode[]) : undefined;
 }
 
 function DetailHeader({
@@ -169,6 +197,7 @@ export function RecordDetails({
   onRevertActivity,
   onReverted,
   renderField,
+  renderSection,
 }: RecordDetailsProps) {
   const contentRef = useRef<HTMLElement>(null);
   const wasEditing = useRef(false);
@@ -186,16 +215,42 @@ export function RecordDetails({
   const [error, setError] = useState("");
   const cancelButton = useRef<HTMLButtonElement>(null);
   const deleteButton = useRef<HTMLButtonElement>(null);
+  const typedInput = useRef<HTMLInputElement>(null);
+  const [typed, setTyped] = useState("");
   const labels = detailLabels(locale, config.labels);
-  const title =
-    config.title?.(row) ??
-    String(row.name ?? row.title ?? row.id ?? labels.record);
+  const title = detailTitle(config, row, labels.record);
   const sections = detailSections(config, columns, row, labels.details);
+  const layout = detailLayout(config, columns, row, labels.details);
   const fields = sections.flatMap((section) => section.fields);
+  const expected = deleteConfirmationValue(
+    config.deleteConfirmation,
+    { row, title },
+    labels
+  );
+  const confirmed = deleteConfirmationMatches(
+    expected,
+    typed,
+    config.deleteConfirmation
+  );
+  const fieldContent = (field: DetailField) => {
+    const value = detailValue(row, field);
+    return (
+      renderField?.(field, value, row) ??
+      asReactNode(config.renderField?.(field, value, row)) ?? (
+        <DetailValue
+          field={field}
+          labels={labels}
+          locale={locale}
+          row={row}
+          value={value}
+        />
+      )
+    );
+  };
   const activity = detailActivity(config, row);
   const [undoPending, setUndoPending] = useState(false);
   const confirmDelete = async () => {
-    if (!onDelete || deletionPending.current || undoPending) {
+    if (!onDelete || deletionPending.current || undoPending || !confirmed) {
       return;
     }
     deletionPending.current = true;
@@ -237,6 +292,7 @@ export function RecordDetails({
             onDelete
               ? () => {
                   setError("");
+                  setTyped("");
                   setConfirming(true);
                 }
               : undefined
@@ -265,35 +321,62 @@ export function RecordDetails({
             className="yayaw-detail-body yayaw-record-body"
             value="details"
           >
-            {sections.map((section) => (
-              <section className="yayaw-detail-section" key={section.id}>
-                <h3>{section.title}</h3>
-                {section.description ? (
-                  <p className="yayaw-detail-description">
-                    {section.description}
-                  </p>
-                ) : null}
-                <dl>
-                  {section.fields.map((field) => (
-                    <div className="yayaw-detail-field" key={field.id}>
-                      <dt>{field.label}</dt>
-                      <dd>
-                        {renderField?.(field, detailValue(row, field), row) ?? (
-                          <DetailValue
-                            field={field}
-                            labels={labels}
-                            locale={locale}
-                            row={row}
-                            value={detailValue(row, field)}
-                          />
-                        )}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              </section>
-            ))}
-            {sections.length === 0 ? (
+            {layout.map((item) => {
+              if (item.kind === "related") {
+                return (
+                  <RelatedRecords
+                    key={item.section.id}
+                    labels={labels}
+                    loadRelated={config.loadRelated}
+                    locale={locale}
+                    onRelatedAction={config.onRelatedAction}
+                    row={row}
+                    section={item.section}
+                  />
+                );
+              }
+              if (item.kind === "custom") {
+                const custom =
+                  renderSection?.(item.section, row) ??
+                  asReactNode(config.renderSection?.(item.section, row));
+                return custom == null ? null : (
+                  <section
+                    className="yayaw-detail-section"
+                    data-custom-section={item.section.id}
+                    key={item.section.id}
+                  >
+                    <h3>{item.section.title}</h3>
+                    {item.section.description ? (
+                      <p className="yayaw-detail-description">
+                        {item.section.description}
+                      </p>
+                    ) : null}
+                    {custom}
+                  </section>
+                );
+              }
+              const section = item.section;
+              return (
+                <section className="yayaw-detail-section" key={section.id}>
+                  <h3>{section.title}</h3>
+                  {section.description ? (
+                    <p className="yayaw-detail-description">
+                      {section.description}
+                    </p>
+                  ) : null}
+                  <dl>
+                    {section.fields.map((field) => (
+                      <div className="yayaw-detail-field" key={field.id}>
+                        <dt>{field.label}</dt>
+                        <dd>{fieldContent(field)}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
+              );
+            })}
+            {layout.length === 0 ? (
+
               <p className="yayaw-detail-empty">{labels.empty}</p>
             ) : null}
           </Tabs.Panel>
@@ -331,13 +414,25 @@ export function RecordDetails({
           <AlertDialog.Popup
             className="yayaw-detail-surface yayaw-detail-confirm-surface"
             finalFocus={deleteButton}
-            initialFocus={cancelButton}
+            initialFocus={expected === undefined ? cancelButton : typedInput}
           >
             <AlertDialog.Title>{labels.confirmDelete}</AlertDialog.Title>
             <AlertDialog.Description>
               {labels.deleteDescription}
             </AlertDialog.Description>
             <strong>{title}</strong>
+            {expected === undefined ? null : (
+              <TypedConfirmation
+                confirmation={config.deleteConfirmation}
+                disabled={deleting}
+                expected={expected}
+                inputRef={typedInput}
+                labels={labels}
+                onChange={setTyped}
+                onSubmit={confirmDelete}
+                value={typed}
+              />
+            )}
             {error ? <p role="alert">{error}</p> : null}
             <div className="yayaw-detail-actions">
               <Button
@@ -349,7 +444,7 @@ export function RecordDetails({
                 {labels.cancel}
               </Button>
               <Button
-                disabled={deleting || !onDelete}
+                disabled={deleting || !onDelete || !confirmed}
                 onClick={confirmDelete}
                 variant="destructive"
               >

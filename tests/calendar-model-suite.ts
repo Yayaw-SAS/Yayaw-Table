@@ -16,11 +16,14 @@ export function calendarModelSuite(
   calendar: Pick<
     typeof Calendar,
     | "addDays"
+    | "calendarCanResize"
+    | "calendarCreateValues"
     | "calendarEvents"
     | "calendarMovePatch"
     | "calendarScope"
     | "daysBetween"
     | "normalizeCalendarViewConfig"
+    | "parseDurationMinutes"
     | "resolveCalendarSettings"
   >,
   modes: Pick<typeof Modes, "normalizeModeConfig" | "resolveDisplayModes">
@@ -164,6 +167,141 @@ export function calendarModelSuite(
     );
     assert.equal(calendar.addDays("2026-12-31", 1), "2027-01-01");
     assert.equal(calendar.daysBetween("2026-10-24", "2026-10-26"), 2);
+  });
+
+  test("keeps duration settings and reads numeric and ISO 8601 durations", () => {
+    assert.deepEqual(
+      calendar.normalizeCalendarViewConfig({
+        dateColumn: "start",
+        durationColumn: " minutes ",
+        durationUnit: "hours",
+        defaultDuration: "PT30M",
+      }),
+      {
+        dateColumn: "start",
+        durationColumn: "minutes",
+        durationUnit: "hours",
+        defaultDuration: "PT30M",
+      }
+    );
+    assert.equal(
+      calendar.normalizeCalendarViewConfig({
+        durationUnit: "weeks",
+        defaultDuration: -5,
+      }),
+      undefined
+    );
+    assert.equal(calendar.parseDurationMinutes(90), 90);
+    assert.equal(calendar.parseDurationMinutes("2", "hours"), 120);
+    assert.equal(calendar.parseDurationMinutes(1.5, "days"), 2160);
+    assert.equal(calendar.parseDurationMinutes("PT1H30M"), 90);
+    assert.equal(calendar.parseDurationMinutes("P1DT2H"), 1560);
+    assert.equal(calendar.parseDurationMinutes("P1W"), 10_080);
+    assert.equal(calendar.parseDurationMinutes("P1M"), undefined);
+    assert.equal(calendar.parseDurationMinutes("PT"), undefined);
+    assert.equal(calendar.parseDurationMinutes(-1), undefined);
+  });
+
+  test("derives the end from the start plus a duration", () => {
+    const settings = {
+      dateColumn: "start",
+      durationColumn: "duration",
+      durationUnit: "minutes" as const,
+      defaultDuration: 60,
+    };
+    const events = calendar.calendarEvents(
+      [
+        {
+          id: 1,
+          start: new Date(2026, 8, 2, 9, 0).toISOString(),
+          duration: 90,
+        },
+        {
+          id: 2,
+          start: new Date(2026, 8, 2, 22, 0).toISOString(),
+          duration: "PT3H",
+        },
+        { id: 3, start: "2026-09-05", duration: 2880 },
+        { id: 4, start: "2026-09-08" },
+        { id: 5, start: "2026-09-10", duration: "P3D" },
+      ],
+      settings,
+      rowId
+    );
+    assert.deepEqual(
+      events.map(({ id, start, end }) => ({ id, start, end })),
+      [
+        { id: "1", start: "2026-09-02", end: "2026-09-03" },
+        { id: "2", start: "2026-09-02", end: "2026-09-04" },
+        { id: "3", start: "2026-09-05", end: "2026-09-07" },
+        { id: "4", start: "2026-09-08", end: "2026-09-09" },
+        { id: "5", start: "2026-09-10", end: "2026-09-13" },
+      ]
+    );
+    const days = calendar.calendarEvents(
+      [{ id: 6, start: "2026-09-14", length: 2 }],
+      { dateColumn: "start", durationColumn: "length", durationUnit: "days" },
+      rowId
+    );
+    assert.equal(days[0]?.end, "2026-09-16");
+  });
+
+  test("stretching a derived end writes the duration, moving keeps it", () => {
+    const settings = {
+      dateColumn: "start",
+      durationColumn: "duration",
+      durationUnit: "minutes" as const,
+    };
+    const row = { start: "2026-09-05", duration: 1440 };
+    assert.deepEqual(
+      calendar.calendarMovePatch(row, settings, "2026-09-07", "2026-09-08"),
+      { start: "2026-09-07" }
+    );
+    assert.deepEqual(
+      calendar.calendarMovePatch(row, settings, "2026-09-05", "2026-09-08"),
+      { start: "2026-09-05", duration: 4320 }
+    );
+    assert.deepEqual(
+      calendar.calendarMovePatch(
+        { start: "2026-09-05", duration: "P2D" },
+        settings,
+        "2026-09-05",
+        "2026-09-06"
+      ),
+      { start: "2026-09-05", duration: "P1D" }
+    );
+    assert.deepEqual(
+      calendar.calendarMovePatch(
+        { start: "2026-09-05" },
+        { ...settings, durationUnit: "hours", defaultDuration: 24 },
+        "2026-09-05",
+        "2026-09-07"
+      ),
+      { start: "2026-09-05", duration: 48 }
+    );
+    assert.equal(calendar.calendarCanResize({ ...settings }), true);
+    assert.equal(
+      calendar.calendarCanResize({ dateColumn: "start", defaultDuration: 60 }),
+      false
+    );
+    assert.equal(
+      calendar.calendarCanResize({ ...settings, allowResize: false }),
+      false
+    );
+    assert.deepEqual(
+      calendar.calendarCreateValues(
+        { ...settings, defaultDuration: 30 },
+        "2026-09-05"
+      ),
+      { start: "2026-09-05", duration: 30 }
+    );
+    assert.deepEqual(
+      calendar.calendarCreateValues(
+        { dateColumn: "start", endColumn: "end" },
+        "2026-09-05"
+      ),
+      { start: "2026-09-05", end: "2026-09-05" }
+    );
   });
 
   test("the calendar is offered only when its renderer is installed", () => {

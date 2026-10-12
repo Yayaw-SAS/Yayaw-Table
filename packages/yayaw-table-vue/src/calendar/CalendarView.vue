@@ -21,6 +21,8 @@ import {
   addDays,
   type CalendarLayout,
   type CalendarViewSettings,
+  calendarCanResize,
+  calendarCreateValues,
   calendarEvents,
   calendarMovePatch,
   calendarScope,
@@ -122,8 +124,7 @@ const events = computed<EventInput[]>(() =>
       end: event.end,
       allDay: true,
       startEditable: settings.value.allowDragUpdate && editable,
-      durationEditable:
-        settings.value.allowResize && Boolean(settings.value.endColumn) && editable,
+      durationEditable: calendarCanResize(settings.value) && editable,
       extendedProps: {
         appearance:
           event.colorValue === undefined
@@ -161,13 +162,10 @@ const moveEvent = async (info: EventChangeInfo): Promise<void> => {
 };
 
 const createOn = (info: DateClickInfo): void => {
-  const { allowCreate, dateColumn, endColumn } = settings.value;
+  const { allowCreate, dateColumn } = settings.value;
   const day = localDayKey(info.date);
   if (!(allowCreate && props.context.canCreate && dateColumn && day)) return;
-  props.context.createRow({
-    [dateColumn]: day,
-    ...(endColumn ? { [endColumn]: day } : {}),
-  });
+  props.context.createRow(calendarCreateValues(settings.value, day));
 };
 
 const setLayout = (layout: CalendarLayout): void => {

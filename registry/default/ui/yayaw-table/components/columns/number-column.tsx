@@ -10,6 +10,11 @@ import { useLocale } from "../../providers/table-provider";
 import type { CellContext, ColumnDef } from "../../tanstack";
 import type { NumberFormatConfig } from "../../utils/number-format";
 import { formatNumber } from "../../utils/number-format";
+import {
+  calculateCurrencyColumn,
+  hasCurrencyColumn,
+  rowNumberFormat,
+} from "../../utils/value-format";
 import { NumberCell } from "../cells/number-cell";
 
 /**
@@ -95,6 +100,30 @@ function NumberGroupValue({
 }
 
 /**
+ * A group subtotal over amounts in several currencies: one total per
+ * currency (or the converted total), never a mixed sum.
+ */
+function CurrencyGroupTotal({
+  numberFormat,
+  rows,
+  values,
+}: {
+  numberFormat?: NumberFormatConfig;
+  rows: Record<string, unknown>[];
+  values: unknown[];
+}) {
+  const locale = useLocale();
+  const result = calculateCurrencyColumn(
+    values,
+    rows,
+    "sum",
+    { type: "number", numberFormat },
+    locale
+  );
+  return <>{result?.label ?? "—"}</>;
+}
+
+/**
  * Creates a number column definition
  * @returns Column definition for displaying numeric values
  */
@@ -160,21 +189,41 @@ export function createNumberColumn<TData>({
         <NumberCell
           className={className}
           formatter={formatter}
-          numberFormat={numberFormat}
+          numberFormat={rowNumberFormat(
+            numberFormat,
+            info.row.original as Record<string, unknown>
+          )}
           value={numValue}
         />
       );
     },
-    // Render subtotal values on grouped rows
-    aggregatedCell: ({ getValue }) => (
-      <span className="font-medium">
-        <NumberGroupValue
-          formatter={formatter}
-          numberFormat={numberFormat}
-          value={getValue()}
-        />
-      </span>
-    ),
+    // Render subtotal values on grouped rows; amounts in several currencies
+    // are totalled per currency.
+    aggregatedCell: ({ column, getValue, row }) => {
+      if (!formatter && hasCurrencyColumn({ numberFormat })) {
+        const leaves = row.getLeafRows().filter((leaf) => !leaf.getIsGrouped());
+        return (
+          <span className="font-medium">
+            <CurrencyGroupTotal
+              numberFormat={numberFormat}
+              rows={leaves.map(
+                (leaf) => leaf.original as Record<string, unknown>
+              )}
+              values={leaves.map((leaf) => leaf.getValue(column.id))}
+            />
+          </span>
+        );
+      }
+      return (
+        <span className="font-medium">
+          <NumberGroupValue
+            formatter={formatter}
+            numberFormat={numberFormat}
+            value={getValue()}
+          />
+        </span>
+      );
+    },
     enableColumnFilter,
     enableHiding,
     enableSorting,

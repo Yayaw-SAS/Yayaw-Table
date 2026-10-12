@@ -4,9 +4,17 @@ import { ImageIcon } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { resolveImageSource } from "../../utils/image-source";
+import { type AvatarShape, avatarInitials } from "../../utils/initials-avatar";
+import { InitialsAvatar } from "./initials-avatar";
 
 interface ImageCellProps {
   alt?: string;
+  /**
+   * Without an image, initials of this name (with a stable color) replace
+   * the image placeholder. Set by the column's `avatar` option.
+   */
+  avatarName?: string;
+  avatarShape?: AvatarShape;
   className?: string;
   fallbackLabel?: string;
   value: unknown;
@@ -14,6 +22,8 @@ interface ImageCellProps {
 
 export function ImageCell({
   alt,
+  avatarName,
+  avatarShape,
   className,
   fallbackLabel,
   value,
@@ -22,6 +32,18 @@ export function ImageCell({
   const resolvedSource = resolveImageSource(value);
   const source = failedSource === resolvedSource ? undefined : resolvedSource;
   const label = alt || fallbackLabel || "Image";
+
+  // A name without letters keeps the image placeholder.
+  if (!source && avatarName && avatarInitials(avatarName)) {
+    return (
+      <InitialsAvatar
+        className={className}
+        name={avatarName}
+        shape={avatarShape}
+        size="cell"
+      />
+    );
+  }
 
   if (!source) {
     return (

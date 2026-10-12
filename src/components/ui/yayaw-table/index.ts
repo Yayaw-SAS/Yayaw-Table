@@ -223,6 +223,18 @@ export type {
   UpdateTableViewInput,
 } from "./types/view-types";
 export type { TableActivityRecord } from "./utils/activity-shortcuts";
+// Generated avatars (initials and a stable color) for records without an image.
+export {
+  avatarHue,
+  avatarInitials,
+  initialsAvatar,
+} from "./utils/initials-avatar";
+// Kanban lane order and visibility per grouping column, as views save them.
+export {
+  arrangeKanbanLanes,
+  mergeKanbanLanes,
+  normalizeKanbanLanes,
+} from "./utils/kanban-lanes";
 export type {
   TableGalleryMediaConfig,
   TableGalleryPreviewSize,
@@ -238,6 +250,30 @@ export {
 } from "./utils/table-view-storage";
 // The user's order of saved views: hosts may sort their `list` answer alike.
 export { orderViews } from "./utils/view-order";
+// Filter tokens (relative dates, `$viewer`): helpers a host can use on its server.
+export {
+  type CalendarDayRange,
+  isRelativeDateToken,
+  localeWeekStart,
+  RELATIVE_DATE_CHOICES,
+  RELATIVE_DATE_TOKENS,
+  type RelativeDateContext,
+  type RelativeDateToken,
+  relativeDateLabel,
+  resolveRelativeDate,
+  resolveRelativeDateRule,
+} from "./utils/date-filter-days";
+export {
+  type FilterTokenContext,
+  resolveFilterRuleTokens,
+  resolveFilterTokens,
+  tableFilterContext,
+  VIEWER_FILTER_TOKEN,
+} from "./utils/table-contracts";
+export {
+  dateTimeFromInput,
+  dateTimeInputValue,
+} from "./utils/value-format";
 // Location columns and the Map mode: shared helpers a host can use on its server.
 export {
   boundsContain,

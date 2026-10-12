@@ -1,11 +1,14 @@
 import { test } from "bun:test";
 import {
   addDays,
+  calendarCanResize,
+  calendarCreateValues,
   calendarEvents,
   calendarMovePatch,
   calendarScope,
   daysBetween,
   normalizeCalendarViewConfig,
+  parseDurationMinutes,
   resolveCalendarSettings,
 } from "../src/components/ui/yayaw-table/utils/calendar-model";
 import {
@@ -18,11 +21,14 @@ calendarModelSuite(
   test,
   {
     addDays,
+    calendarCanResize,
+    calendarCreateValues,
     calendarEvents,
     calendarMovePatch,
     calendarScope,
     daysBetween,
     normalizeCalendarViewConfig,
+    parseDurationMinutes,
     resolveCalendarSettings,
   },
   {

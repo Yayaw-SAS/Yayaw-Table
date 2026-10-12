@@ -320,6 +320,52 @@ view-state tests; Vue `components/filters/advanced-filters.test.ts`; and the
 Playwright `e2e/date-filter.spec.ts`, which picks a range from the column
 filter and opens an older link in both editions and both zones.
 
+## Relative date filters and date-time values
+
+Both editions accept relative tokens as date rule values: `$today`,
+`$yesterday`, `$tomorrow`, `$thisWeek`, `$lastWeek`, `$nextWeek`,
+`$thisMonth`, `$lastMonth`, `$nextMonth`, `$thisYear`, `$lastNDays` and
+`$nextNDays` (N from 1 to 3660, today included); `before` / `after` with
+`$today` reads "before / after today". The filter editors offer them in a
+"Date" select next to "Specific date" (React's shadcn select in the date
+filter and its compact popover, Vue's native `<select>` in `FilterRule`) and
+hide the day inputs while a token is set; chips show the translated label
+(`filters.relative.<key>`, English and French built in).
+
+Tokens are kept as they are in table state, URLs, saved views,
+`table.defaultFilters` and destination queries (export files, Connect,
+schedules). The shared `table-contracts.ts` resolves them with
+`tableFilterContext(table, locale)` (`table.timeZone`, the locale,
+`table.weekStartsOn`, `table.viewerId`) wherever a request leaves the table:
+`compatibleListParams` (list, fetch-all pages, bulk "select all"),
+`facetCountParams`, `toAdvancedFiltersParam` (aggregate) and
+`matchesContractFilter` for local data. A period becomes `between [first,
+last]`; `notEquals` excludes the period; `before` takes its first day and
+`after` its last. Weeks start on `table.weekStartsOn`, else the locale's first
+day (`Intl.Locale` week info, then a region table). `$viewer` becomes
+`table.viewerId` in any rule, or reaches the server unchanged without it.
+React's secondary hooks that build their own requests (planning, record
+pickers, global calculations) resolve with the runtime's zone and locale and
+no `viewerId`.
+
+A `date` column or form field with `withTime: true` holds ISO 8601 instants.
+Cells default to the `dateTime` preset (a column's own preset or pattern
+wins), and forms and inline edits use a native `datetime-local` input in the
+column's or field's `timeZone`, saving the instant in UTC
+(`dateTimeInputValue` / `dateTimeFromInput` in the shared `value-format.ts`,
+DST-aware). `generateDataTypeFields` passes `withTime` and `timeZone` to form
+fields, and `resolveDataTypeEditor` picks the `datetime` inline editor. Sorting
+compares instants; filters compare the instant's day in the zone.
+
+Coverage: the shared `tests/relative-dates-suite.ts` (token resolution, week
+starts by locale, zones, operators, `$viewer`, list and facet params,
+datetime conversions) run by React `tests/relative-dates.test.ts` and Vue
+`src/relative-dates.test.ts`; token persistence in URLs and views in
+`tests/date-filter-days-suite.ts`; React `tests/relative-dates-ui.test.tsx`
+and Vue `src/components/relative-dates-ui.test.ts` (relative select, chips,
+local filtering with `weekStartsOn`, resolved `list` params, datetime form
+field and inline editor).
+
 ## Behavioral parity matrix
 
 The parity contract covers user-visible behavior and serializable catalogue/action contracts. Component names, framework primitives, DOM structure, slots, and framework-native escape hatches remain specific to React or Vue.
@@ -329,12 +375,15 @@ The parity contract covers user-visible behavior and serializable catalogue/acti
 | Defaults and feature gates | Common defaults for editing, filters, column DnD/pinning, grouping, pagination, selection, views, debounce, URL state, and page sizes | Shared `behavior-defaults.json`, executed by both test runners |
 | List/filter/view contracts | One-based action pages, both page-size/search aliases, multi-sort, simple and advanced filters, aggregate labels, normalized saved views | Shared `parity.json`; both `contracts-parity.test.ts` suites; view-state suites |
 | Date filter values | `YYYY-MM-DD` days in requests, URLs and views; older instants read as the viewer's days; inclusive `between` | Shared `date-filter-days-suite.ts`; React `date-filter-picker.test.tsx`; Vue `advanced-filters.test.ts`; Playwright `e2e/date-filter.spec.ts` |
+| Relative dates and date-time | Relative tokens and `$viewer` kept in views/URLs, resolved in requests with zone, locale week start and `viewerId`; `withTime` columns and fields edit ISO instants | Shared `relative-dates-suite.ts`; React `relative-dates-ui.test.tsx`; Vue `relative-dates-ui.test.ts` |
 | Toolbar | Create/export order, icon mode, callback/static custom actions, action context, three placements, clear-filter shortcut | Vue `yayaw-data-table.test.ts`, `filter-reset.test.ts`; React toolbar and filter-reset suites |
 | View manager | Default/system views, dirty state, create/update/delete/share permissions, recoverable persistence | Vue saved-view suites; React view-manager suites |
 | Columns | Sort/filter/pin/hide menus, mandatory/utility locks, persistent DnD preference, pointer and keyboard reorder, optional resizing stored in views/URLs | Shared contract/view-state suites; Vue `catalogue-controls.test.ts`, `yayaw-data-table.test.ts`; React column and URL-state suites |
 | Display modes | Shared mode registry, fallback for unavailable modes, grouping and pagination, card renderers, configurable empty state, one-page pagination hiding | Shared `display-modes.test.ts`; Playwright `e2e/views.spec.ts` in both editions; Vue `parity.test.ts`; React gallery/Kanban suites |
 | First load | One request for the first page, the loading state until it answers (React skeletons, on the server too; Vue overlay), views mounted once and loading their data once | React `table-loading.test.tsx`, `initial-rows.test.tsx`; Vue `table-loading.test.ts`; Playwright `e2e/filetree.spec.ts` |
 | Kanban updates | Permission-aware moves, optimistic update, rollback, accessible non-pointer movement, handle or whole-card drag (`dragFromCard`) | Vue `parity.test.ts`; React Kanban suites and `kanban-drag-from-card.test.tsx` |
+| Kanban lanes per view | `kanban.lanes` by grouping column (`order`, `hidden`) in saved views and as the table default, merged column by column; hidden lanes hide their cards and are listed under the board; the settings edit them (show, move up/down, reset); server boards arrange their loaded lanes alike | Shared `tests/kanban-lanes-suite.ts`; React `tests/kanban-lanes-avatars.test.tsx`; Vue `components/kanban-lanes-avatars.test.ts` |
+| Initials avatars | `avatar` on image columns, Kanban, List and Gallery settings: initials and a stable hue from the name where there is no image; decorative beside a shown name, labelled in cells | Shared `tests/initials-avatar-suite.ts`; React `tests/kanban-lanes-avatars.test.tsx`; Vue `components/kanban-lanes-avatars.test.ts` |
 | Selection | Controlled state, cross-page cache, select-all race protection, optional query persistence | React `selection-parity.test.tsx`; Vue component/action suites |
 | Catalogue forms | Generated fields, conditions, async values/options, nested collections, validation, transforms, patch mode | Shared `form-scenarios.json`; both form-contract suites and mounted form suites |
 | Table picker | Local/server query, controlled single/multiple selection, typed IDs, isolated URL state | React `table-picker-parity.test.tsx` and picker unit tests; Vue form-component tests |
@@ -737,6 +786,13 @@ React and Vue accept `DetailField.type: "video"` in built-in and standalone reco
 
 Shared `tests/fixtures/record-media.json` exercises URL validation, posters, captions and empty values in React and Vue DOM tests. Both record presentation examples include the same video record; the Vue example is available from `demo/App.vue?example=records`.
 
+## Typed delete confirmation, related lists and record extensions
+
+- `table.deleteConfirmation: { type: "typed", match?: "title" | "column" | "text", column?, text?, bulkMatch?: "count" | "text", caseSensitive? }` (serializable, default off) applies to the built-in row Delete action, bulk Delete and the record view's Delete in React and Vue. `details.deleteConfirmation` overrides it for the record view. A record asks for its title (`details.title`, else `name`, `title`, `id`), a column's value (dot paths allowed; a record without the value asks for the word) or `text` (default the localized `DELETE` / `SUPPRIMER`); bulk deletion asks for the selected count or `text`. Comparison trims spaces and ignores case unless `caseSensitive`. Both editions label the field with the value to type, mark a non-empty mismatch `aria-invalid` with a described error, focus the field when the dialog opens, keep Delete disabled until it matches and confirm with Enter. React's row Delete, previously immediate, opens a confirmation only when a typed confirmation is configured; custom delete-typed row actions are unchanged. Shared helpers: `deleteConfirmationValue`, `deleteConfirmationMatches`, `deleteConfirmationPrompt`.
+- `details.sections` accepts `{ kind: "related", id, title, source, foreignKey, localKey?, columns, sort?, limit?, empty?, rows?, open?, add?, collapsed?, hidden? }`. Static `rows` are filtered by `foreignKey` (a value or a list) against `localKey` (default `id`); otherwise `details.loadRelated(section, row, { value, sort, limit })` loads them once the section is open and on screen (IntersectionObserver; immediately without it). Both editions sort, limit (with an "N more" note), show loading, empty, error and Retry states, and call `details.onRelatedAction({ action, kind: "open" | "add", section, row, related? })`. Sections listing only related or custom entries keep the fields derived from the columns first.
+- `{ kind: "custom", id, title, description?, data?, hidden? }` declares a host-rendered section: React `details.renderSection(section, row)` (or the standalone `renderSection` prop), Vue `#record-section-<id>` or `#record-section` slots with `{ row, section }`. Nothing rendered hides the section. Host fields: React `details.renderField(field, value, row)` (standalone `renderField` prop first; `undefined` keeps the standard value), Vue `#detail-<field-id>` and the new catch-all `#detail-field` slot (rendering nothing keeps the standard value). React render hooks return React nodes (`RecordDetailsConfig<ReactNode>` for typing); Vue uses slots because render functions cannot cross the serializable config.
+- Coverage: React `tests/record-details-extensions.test.tsx` and Vue `components/details/record-details-extensions.test.ts` (same cases: helper values, layout, typed record/row/bulk deletion with focus and mismatch, lazy related lists with actions, empty/error/retry, host fields and sections). Both record examples show a contacts list, a custom-fields section and a deletion confirmed by the campaign reference.
+
 ## Gallery media workspace and activity shortcuts
 
 - React and Vue share `media-contract`, the native media viewer/thumbnail adapter, deterministic stored-value tag colors, shortcut ownership, and activity undo helpers. Gallery media is opt-in through `table.gallery.media.enabled`; supported types are image, video, audio, document/PDF and file fallback. Preview opens the media, Info opens the record. Playback never autoplays in the viewer; opt-in muted hover samples last five seconds and respect reduced motion.
@@ -1063,6 +1119,37 @@ Known difference kept for compatibility: a number column without
 locale's grouping in both. Set `numberFormat` for identical output.
 `tests/value-format-suite.ts` runs in both editions.
 
+### Amounts in several currencies
+
+`numberFormat.currencyColumn` names the row field holding each row's ISO 4217
+code (case-insensitive; anything else counts as no currency); `currency` is
+the fallback. Cells, cards and titles read in their row's currency
+(`rowNumberFormat`, `formatColumnNumber(value, column, locale, row)`,
+`fieldText`). Sums, averages, medians, extremes and ranges are computed per
+currency and never mixed: the footer shows one amount per currency joined
+with " · " (`"1 200,00 € · 300,00 $"`, codes in alphabetical order, amounts
+without a currency last); one currency reads as a plain total. Counts and
+shares are unchanged. `numberFormat.currencyConversion`
+(`{ currency: "EUR", rates: { USD: 0.92 }, display?: "converted" | "both" }`,
+plain JSON; rates are units of the target per unit of each code) shows one
+converted total instead; an optional `convert(amount, from, to)` callback
+answers codes without a rate. When any currency cannot be converted, the
+per-currency amounts stay. Local calculations convert each value first, so
+every calculation converts; a host's `byCurrency` answer converts for sums
+only.
+
+Server footers: `actions.aggregate` receives `currencyColumns`
+(`{ amount: "currency" }`) when a calculated column has a `currencyColumn`
+and may answer `{ amount: { raw: null, byCurrency: { EUR: 1200, USD: 300 } } }`
+without a label; both editions format it (`currencyAmountsResult`). A host
+label still wins. The list fallback and Vue local footers use
+`calculateCurrencyColumn`. React's grouped-table subtotals (number columns'
+aggregated cells, React only as before) total per currency too. Kanban lanes
+show counts only, so they have no totals to split. Charts and dashboard
+metrics keep their own aggregation and are not currency-aware.
+`tests/currency-totals-suite.ts` runs in both editions, with edition tests of
+the React list/aggregate footer path and the Vue `calculateColumn` and cells.
+
 ## Formats apply everywhere
 
 A format set on a column (`numberFormat`, `dateDisplayPreset`, `dateFormat`,
@@ -1182,8 +1269,25 @@ and writes moves back in the stored format (date-only stays date-only, ISO
 keeps its time). Both editions render their own toolbar (previous, today,
 next, title, Month/Week/List) and the same event pills with tag colors from
 `colorColumn`. Dragging calls `actions.update` and reverts on failure;
-stretching needs `endColumn`; clicking a day opens the create form with the
-date (and end date) prefilled. Layout changes are view settings.
+stretching needs `endColumn` or `durationColumn`; clicking a day opens the
+create form with the date (and end date, or `defaultDuration`) prefilled.
+Layout changes are view settings.
+
+Without `endColumn`, the end can be derived from the start plus a duration:
+`durationColumn` holds a number in `durationUnit` (`"minutes"` by default,
+`"hours"` or `"days"`) or an ISO 8601 duration (`"PT1H30M"`, `"P2D"`, weeks,
+days, hours, minutes and seconds; years and months are refused as
+ambiguous), and `defaultDuration` (same forms) covers rows without one, or
+every row when there is no duration column. The end is exclusive (24 hours
+from midnight stays on the start day; whole days follow the local calendar).
+A move writes the start only; stretching writes the duration, never an end,
+in the stored form (ISO stays ISO, numbers keep the unit). `endColumn` wins
+when both are set. All three keys are plain JSON view settings
+(`calendarCanResize`, `calendarCreateValues` and `parseDurationMinutes` are
+shared). Limitation: the server scope filters on the start only, so an event
+that starts before the visible range and lasts into it is not requested.
+Gantt keeps its own `gantt.startColumn` / `gantt.endColumn` mapping and does
+not read durations.
 
 Renderers receive a framework-neutral context: settings and their setter,
 current list parameters and action, local rows, row id, permissions,
@@ -1512,7 +1616,8 @@ Everything but the markup is shared and synced to Vue:
   the keyboard state machine (arrows, Home/End, Enter, Space, `*`, F2,
   Ctrl/Cmd+X/V/A/Z, Delete, Alt+Shift+↓/↑, Shift+F10, type-ahead),
   selection clicks, search helpers, formats (sizes, relative dates, values),
-  windowing, the settings fields and the `<tableId>-folder` URL key.
+  windowing, the settings fields and the `<tableId>-folder` URL key
+  (`<instanceId>-folder` for a table with an `instanceId`).
 - `filetree-controller.ts`: a framework-neutral store both views subscribe to
   (React `useSyncExternalStore`, Vue `shallowRef`). It loads with the
   `children`, `subtree` and `tree-matches` scopes (`params.scope.kind`,
@@ -2818,6 +2923,20 @@ Both editions take two additive props for pages with several tables:
   table never share atoms; Vue instances already keep their state in their own
   refs. Config, actions and saved views still resolve by table. Without
   `instanceId`, keys and stores are unchanged.
+- The File tree's open folder follows: `<instanceId>-folder` instead of
+  `<tableId>-folder` (`fileTreeFolderKey(tableId, instanceId?)`, shared by both
+  editions).
+- Saved views: every instance of a table lists the table's saved views, but
+  each keeps its own seeds (`initialViews`, `initialViewsLoaded`), active view
+  (`<instanceId>-view`) and favorite / default view (`initialFavoriteViewId`,
+  `initialActiveViewId`). React caches an instance's views under
+  `tableViewsQueryKey(tableId, tableType, instanceId)` and its favorite under
+  `tableViewFavoriteQueryKey(tableId, tableType, instanceId)`; a create,
+  update, delete or reorder invalidates the table's key
+  (`tableViewsQueryKey(tableId, tableType)`), which refreshes every instance.
+  Vue managers keep their views in their own refs and list them again when
+  another manager of the same table changes them. Without `instanceId`, React
+  keys are unchanged.
 - `initialView: { id?, config, pageIndex? }` starts an instance whose URL
   sync is off from a saved view before its first request: React seeds the
   instance's store with what selecting the view writes (`seedTableViewState`),
@@ -2837,7 +2956,10 @@ Verification: `tests/table-instances.test.tsx` and
 two instances of one table write only their own keys (the shared `view` key
 included), read only their own keys from an incoming URL, and that two
 embedded instances each send their own view's filters in their first request
-without touching the URL.
+without touching the URL. They also check that two instances of one table
+open on their own default view (`initialFavoriteViewId`) and list a view the
+other saved, and that two File trees of one table open and write their own
+folder (`<instanceId>-folder`) while an unscoped one keeps `<tableId>-folder`.
 
 ## Dashboard
 
@@ -3504,3 +3626,43 @@ Verification: the shared dashboard browser suite covers editor access, scrolling
 working drafts and narrow layouts in both frameworks. The explicit harness in
 `scripts/visual` captures desktop/mobile, light/dark, grid/flow, editing, and long
 titles in a narrow host panel without adding capture work to the normal gate.
+
+## Kanban lanes per view
+
+Both editions read lane order and visibility from `kanban.lanes`, keyed by the
+grouping column id: `{ "status": { "order": ["won", "lead"], "hidden":
+["lost"] } }`. Saved views carry it (`config.kanban.lanes`), so switching views
+switches lanes, and `table.kanban.lanes` sets the default; a view's settings
+replace the default's for the columns it names (`mergeKanbanLanes`). Lanes the
+order does not name follow in their usual order (configured `groups`, then
+values as rows bring them); the order never creates empty lanes. Hidden lanes
+hide their cards, and the board lists them under it ("Hidden lanes: …"). Each
+column keeps its own lanes, so changing the grouping column and back restores
+them.
+
+The Kanban settings list the lanes of the grouping column (configured groups,
+loaded values, the column's options, values the settings name) with a "Show
+<lane>" checkbox and "Move <lane> up/down" buttons; at an end, a move stays
+focusable but inactive. "Reset lanes" removes the view's settings for the
+column. The changes are view state: the blue dot, Save changes and Reset view
+treat them like the card properties. Server boards (`kanban.server`) arrange
+and hide the lanes their source returns the same way; hidden lanes still load.
+`sanitizeViewConfig` keeps well-formed lanes (at most 200 per column) and
+reports malformed ones as invalid values.
+
+## Initials avatars
+
+`avatar` (`true`, or `{ nameColumn, imageColumn, shape }`) shows a generated
+avatar where a record has no image: up to two initials and a hue derived from
+the name (`avatarInitials`, `avatarHue`, `initialsAvatar`), the same in both
+editions. On an image column it replaces the image placeholder in table cells
+and card properties; its name comes from `nameColumn`, else the record's
+`name`, `title` or `label`, and it is labelled with that name (`role="img"`).
+`kanban.avatar` and `list.avatar` add an avatar before each title: the image of
+`imageColumn` when it loads, else the initials of `nameColumn` (default: the
+title as shown). `gallery.avatar` replaces the placeholder of cards without an
+image with large initials. Beside a shown title, avatars are decorative
+(`aria-hidden`, images with empty `alt`). `shape` is `"circle"` (default) or
+`"square"`. The colors are tints readable in light and dark themes, with an
+outline in forced colors. Card avatar options are saved with the view's mode
+settings.

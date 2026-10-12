@@ -15,6 +15,7 @@ import {
   resolveDataTypeEditor,
   TABLE_DATA_TYPES,
 } from "../utils/table-contracts";
+import { dateTimeFromInput, dateTimeInputValue } from "../utils/value-format";
 
 const DEFAULT_INLINE_EDIT_DEBOUNCE_MS = 700;
 const INLINE_DATE_INPUT_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -55,6 +56,10 @@ export interface InlineEditColumnRuntimeConfig {
   readonly: boolean;
   columnType?: string;
   typeKey?: string;
+  /** A date column holding a date and a time: edited with both. */
+  withTime?: boolean;
+  /** The zone its times read and write in (the runtime's without one). */
+  timeZone?: string;
 }
 
 interface InlineEditColumnLike {
@@ -65,6 +70,8 @@ interface InlineEditColumnLike {
   accessorFn?: unknown;
   options?: unknown;
   inlineEdit?: boolean | InlineEditColumnConfig;
+  withTime?: boolean;
+  timeZone?: string;
 }
 
 export interface InlineEditTableRuntimeConfig {
@@ -84,12 +91,15 @@ export interface ResolveInlineEditorInput {
   columnType?: string;
   formFieldType?: FormFieldType;
   hasOptions?: boolean;
+  withTime?: boolean;
 }
 
 export interface ParseInlineEditValueInput {
   editor: InlineEditEditor;
   rawValue: unknown;
   options?: InlineEditOption[];
+  /** Zone a `datetime` draft's wall-clock time is read in. */
+  timeZone?: string;
 }
 
 export interface ParseInlineEditValueResult {
@@ -116,6 +126,8 @@ export interface UseInlineEditRuntimeOptions {
   editor: InlineEditEditor;
   debounceMs: number;
   onCommit: (draftValue: unknown) => Promise<InlineEditCommitResult>;
+  /** Zone a `datetime` editor shows and reads its times in. */
+  timeZone?: string;
 }
 
 function normalizeInlineEditTableConfig(
@@ -181,6 +193,8 @@ export function resolveInlineEditColumnConfig(
     readonly: isReadonly,
     columnType: column.type,
     typeKey: column.typeKey,
+    ...(column.withTime ? { withTime: true } : {}),
+    ...(column.timeZone ? { timeZone: column.timeZone } : {}),
   };
 }
 
@@ -357,16 +371,36 @@ function parseLocationValue(rawValue: unknown): ParseInlineEditValueResult {
     : { success: false, errorMessage: "Inline edit expects a location." };
 }
 
+/** A date and time as an ISO 8601 instant, read in `timeZone`. */
+function parseDateTimeValue(
+  rawValue: unknown,
+  timeZone?: string
+): ParseInlineEditValueResult {
+  if (rawValue == null || rawValue === "") {
+    return { success: true, value: null };
+  }
+  const value =
+    rawValue instanceof Date
+      ? dateTimeFromInput(dateTimeInputValue(rawValue, timeZone), timeZone)
+      : dateTimeFromInput(String(rawValue), timeZone);
+  return value
+    ? { success: true, value }
+    : { success: false, errorMessage: "Inline edit expects a valid date." };
+}
+
 export function parseInlineEditValue({
   editor,
   rawValue,
   options = [],
+  timeZone,
 }: ParseInlineEditValueInput): ParseInlineEditValueResult {
   switch (editor) {
     case "boolean":
       return { success: true, value: parseBooleanValue(rawValue) };
     case "date":
       return parseDateValue(rawValue);
+    case "datetime":
+      return parseDateTimeValue(rawValue, timeZone);
     case "json":
       return parseJsonValue(rawValue);
     case "number":
@@ -435,7 +469,7 @@ export function validateInlineEditValue({
     }
   }
 
-  if (editor === "date") {
+  if (editor === "date" || editor === "datetime") {
     const isValidDate =
       candidateValue === null || Boolean(toValidDate(candidateValue));
     if (!isValidDate) {
@@ -497,13 +531,16 @@ function toComparableString(value: unknown): string {
 
 export function toInlineEditDraftValue(
   value: unknown,
-  editor: InlineEditEditor
+  editor: InlineEditEditor,
+  timeZone?: string
 ): unknown {
   switch (editor) {
     case "boolean":
       return Boolean(value);
     case "date":
       return toDraftDateInputValue(value);
+    case "datetime":
+      return dateTimeInputValue(value, timeZone);
     case "json":
       if (value == null || value === "") {
         return "";
@@ -531,9 +568,10 @@ export function useInlineEditRuntime({
   editor,
   debounceMs,
   onCommit,
+  timeZone,
 }: UseInlineEditRuntimeOptions) {
   const [draftValue, setDraftValue] = useState(() =>
-    toInlineEditDraftValue(initialValue, editor)
+    toInlineEditDraftValue(initialValue, editor, timeZone)
   );
   const [isEditing, setIsEditing] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -591,7 +629,7 @@ export function useInlineEditRuntime({
       return;
     }
 
-    const nextDraft = toInlineEditDraftValue(initialValue, editor);
+    const nextDraft = toInlineEditDraftValue(initialValue, editor, timeZone);
     if (
       toComparableString(nextDraft) ===
       toComparableString(externalDraftRef.current)
@@ -608,7 +646,7 @@ export function useInlineEditRuntime({
     committedDraftRef.current = nextDraft;
     draftValueRef.current = nextDraft;
     setDraftValue(nextDraft);
-  }, [editor, initialValue, isDirty, isEditing, isSaving]);
+  }, [editor, initialValue, isDirty, isEditing, isSaving, timeZone]);
 
   const commitDraftValue = useCallback(async (): Promise<boolean> => {
     clearScheduledSave();
@@ -638,7 +676,11 @@ export function useInlineEditRuntime({
           return false;
         }
         const nextCommittedValue = result.committedValue ?? valueToCommit;
-        const normalized = toInlineEditDraftValue(nextCommittedValue, editor);
+        const normalized = toInlineEditDraftValue(
+          nextCommittedValue,
+          editor,
+          timeZone
+        );
         committedDraftRef.current = normalized;
         // An older response must never replace a newer selection or text draft.
         if (
@@ -665,7 +707,7 @@ export function useInlineEditRuntime({
     });
     inFlightRef.current = request;
     return await request;
-  }, [clearScheduledSave, editor, onCommit]);
+  }, [clearScheduledSave, editor, onCommit, timeZone]);
 
   const scheduleSave = useCallback(() => {
     clearScheduledSave();

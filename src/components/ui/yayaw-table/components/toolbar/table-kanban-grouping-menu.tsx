@@ -10,13 +10,27 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
 import { useIsMobile } from "../../hooks/use-mobile";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
-import { useTranslations } from "../../providers/table-provider";
+import type { TableCatalogueColumnConfig } from "../../hooks/use-table-config";
+import { useLocale, useTranslations } from "../../providers/table-provider";
+import { translatedOr } from "../../providers/translation-cache";
 import type {
   TableDisplayMode,
   TableKanbanConfig,
   TableKanbanViewConfig,
 } from "../../types/display-types";
+import {
+  kanbanLaneCandidates,
+  kanbanLaneSettings,
+  mergeKanbanLanes,
+  withKanbanLaneSettings,
+} from "../../utils/kanban-lanes";
+import {
+  emptyGroupLabel,
+  fieldText,
+  groupValueKey,
+} from "../../utils/table-contracts";
 import { TableTooltip } from "../../utils/table-tooltip";
+import { KanbanLaneSettingsEditor } from "./kanban-lane-settings";
 import type { GroupPickerColumn } from "./sections/group-picker";
 import { GroupPicker } from "./sections/group-picker";
 import { ViewSettingsPanel } from "./view-settings-panel";
@@ -30,6 +44,10 @@ interface TableKanbanGroupingMenuProps {
   defaultDisplayMode?: TableDisplayMode;
   defaultGroupBy?: string;
   enabled?: boolean;
+  /** Column definitions: the grouped column's options and value labels. */
+  laneColumns?: TableCatalogueColumnConfig[];
+  /** Loaded records: the lanes they fill, offered before the board shows them. */
+  laneRows?: Record<string, unknown>[];
   tableId: string;
 }
 
@@ -62,6 +80,58 @@ function getDefaultPropertyColumnIds({
     .map((column) => column.id);
 }
 
+/** The lanes the settings list: fixed groups, row values and column options, in the board's order. */
+function groupingMenuLanes({
+  activeGroupBy,
+  defaultConfig,
+  laneColumns,
+  laneRows,
+  locale,
+  overrideLanes,
+}: {
+  activeGroupBy: string;
+  defaultConfig: TableKanbanGroupingMenuProps["defaultConfig"];
+  laneColumns: TableKanbanGroupingMenuProps["laneColumns"];
+  laneRows: TableKanbanGroupingMenuProps["laneRows"];
+  locale: string;
+  overrideLanes: TableKanbanViewConfig["lanes"];
+}) {
+  const laneColumn = laneColumns?.find((column) => column.id === activeGroupBy);
+  const laneSettings = kanbanLaneSettings(
+    mergeKanbanLanes(defaultConfig?.lanes, overrideLanes),
+    activeGroupBy
+  );
+  const laneField = laneColumn?.accessorKey ?? activeGroupBy;
+  if (!activeGroupBy) {
+    return { laneSettings, lanes: [] };
+  }
+  const lanes = kanbanLaneCandidates({
+    label: (value) =>
+      (value && (fieldText(value, laneColumn, locale) || value)) ||
+      emptyGroupLabel(locale),
+    // The board's own order: fixed groups, then values as rows bring them.
+    options:
+      defaultConfig?.groupBy === activeGroupBy
+        ? (defaultConfig.groups ?? []).map((group) => ({
+            value: groupValueKey(group.value),
+            label: group.label,
+          }))
+        : [],
+    settings: laneSettings,
+    values: [
+      ...(laneRows ?? []).map((row) =>
+        groupValueKey(row[String(laneField)])
+      ),
+      ...(Array.isArray(laneColumn?.options)
+        ? (laneColumn.options as { value?: unknown }[])
+            .filter((option) => option?.value !== undefined)
+            .map((option) => groupValueKey(option.value))
+        : []),
+    ],
+  });
+  return { laneSettings, lanes };
+}
+
 export function TableKanbanGroupingMenu({
   embedded = false,
   className,
@@ -71,9 +141,12 @@ export function TableKanbanGroupingMenu({
   defaultDisplayMode,
   defaultGroupBy,
   enabled = true,
+  laneColumns,
+  laneRows,
   tableId,
 }: TableKanbanGroupingMenuProps) {
   const { t } = useTranslations();
+  const locale = useLocale();
   const compact = useIsMobile();
   const {
     displayModeParam,
@@ -129,6 +202,23 @@ export function TableKanbanGroupingMenu({
 
     setKanbanFromUI(nextConfig);
   };
+
+  const { laneSettings, lanes } = groupingMenuLanes({
+    activeGroupBy,
+    defaultConfig,
+    laneColumns,
+    laneRows,
+    locale,
+    overrideLanes: kanbanParam.lanes,
+  });
+  const laneLabel = (key: string, fallback: string) => (lane: string) =>
+    translatedOr(t, `views.kanban.${key}`, fallback, { lane });
+  const setLanes = (
+    settings: Parameters<typeof withKanbanLaneSettings>[2]
+  ) =>
+    updateKanban({
+      lanes: withKanbanLaneSettings(kanbanParam.lanes, activeGroupBy, settings),
+    });
 
   if (!enabled || displayModeParam !== "kanban" || columns.length === 0) {
     return null;
@@ -186,7 +276,28 @@ export function TableKanbanGroupingMenu({
             onShowLabelsChange: (showCardLabels) =>
               updateKanban({ showCardLabels }),
           }}
-        />
+        >
+          <KanbanLaneSettingsEditor
+            labels={{
+              lanes: translatedOr(t, "views.kanban.lanes", "Lanes"),
+              showLane: laneLabel("showLane", "Show {lane}"),
+              moveLaneUp: laneLabel("moveLaneUp", "Move {lane} up"),
+              moveLaneDown: laneLabel("moveLaneDown", "Move {lane} down"),
+              resetLanes: translatedOr(
+                t,
+                "views.kanban.resetLanes",
+                "Reset lanes"
+              ),
+            }}
+            lanes={lanes}
+            onChange={setLanes}
+            onReset={() => setLanes(undefined)}
+            resettable={Boolean(
+              kanbanParam.lanes && Object.hasOwn(kanbanParam.lanes, activeGroupBy)
+            )}
+            settings={laneSettings}
+          />
+        </ViewSettingsPanel>
       </div>
     </StackMenuContent>
   );

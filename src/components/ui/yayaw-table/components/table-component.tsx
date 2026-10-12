@@ -147,6 +147,7 @@ import {
 } from "./gallery-view";
 import { translateWithFallback } from "./filters/i18n-utils";
 import { DataTableListView, type ListNeighbours } from "./list-view";
+import { mergeKanbanLanes } from "../utils/kanban-lanes";
 import { DataTableKanbanView } from "./kanban-view";
 import {
   DisplayModeRendererView,
@@ -1837,6 +1838,11 @@ function ModernDataTable<
     () => ({
       ...tableConfig.table.kanban,
       ...kanbanParam,
+      // A view's lanes replace the default's column by column.
+      lanes: mergeKanbanLanes(
+        tableConfig.table.kanban?.lanes,
+        kanbanParam?.lanes
+      ),
     }),
     [kanbanParam, tableConfig.table.kanban]
   );
@@ -3233,6 +3239,9 @@ function ModernDataTable<
                     <BulkActionsMenu
                       canSelectAll={bulkActions.canSelectAll}
                       customBulkActions={customBulkActions}
+                      deleteConfirmation={
+                        tableConfig.table.deleteConfirmation
+                      }
                       isSelectingAll={bulkActions.isSelectingAll}
                       onBulkCopy={bulkActions.handleBulkCopy}
                       onBulkDelete={bulkActions.handleBulkDelete}
@@ -3268,6 +3277,7 @@ function ModernDataTable<
             <BulkActionsMenu
               canSelectAll={bulkActions.canSelectAll}
               customBulkActions={customBulkActions}
+              deleteConfirmation={tableConfig.table.deleteConfirmation}
               isSelectingAll={bulkActions.isSelectingAll}
               onBulkCopy={bulkActions.handleBulkCopy}
               onBulkDelete={bulkActions.handleBulkDelete}

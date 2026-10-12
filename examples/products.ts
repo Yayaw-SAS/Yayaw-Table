@@ -152,8 +152,18 @@ export const productTableOptions = {
   defaultPageSize: 10,
   // The facet panel: a category and the tags, counted by `aggregate`.
   facets: { columns: ["category", "tags"] },
-  kanban: { groupBy: "status" },
-  list: { titleColumn: "name", cardColumnIds: ["category", "tags", "price"] },
+  kanban: {
+    groupBy: "status",
+    // Card avatars: the product image, else initials with a stable color.
+    avatar: { imageColumn: "image", shape: "square" as const },
+    // Default lanes; each saved view may carry its own (`kanban.lanes`).
+    lanes: { status: { order: ["draft", "active", "archived"] } },
+  },
+  list: {
+    titleColumn: "name",
+    cardColumnIds: ["category", "tags", "price"],
+    avatar: { imageColumn: "image", shape: "square" as const },
+  },
   gallery: {
     titleColumn: "name",
     imageColumn: "image",
