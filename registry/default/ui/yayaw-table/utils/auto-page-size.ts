@@ -17,7 +17,11 @@ export function fitPageSize(
   );
 }
 
-/** Count measured rows in order, then estimate unseen rows using the smallest visible row. */
+/**
+ * Count measured rows in order, then estimate unseen rows using the smallest visible row.
+ * A row counts for at most twice the typical (median) row: an unusually tall row scrolls
+ * inside the bounded table instead of cutting the page short before it.
+ */
 export function fitMeasuredPageSize(
   availableHeight: number,
   heights: number[]
@@ -28,9 +32,13 @@ export function fitMeasuredPageSize(
   if (!measured.length) {
     return 1;
   }
+  const sorted = [...measured].sort((a, b) => a - b);
+  const median = sorted[Math.floor((sorted.length - 1) / 2)] ?? 0;
+  const tallest = 2 * median;
   let remaining = Math.max(0, availableHeight);
   let count = 0;
-  for (const height of measured) {
+  for (const measuredHeight of measured) {
+    const height = Math.min(measuredHeight, tallest);
     if (height > remaining) {
       return Math.max(1, count);
     }
