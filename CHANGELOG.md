@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.20.1
+
+### Patch Changes
+
+- e294308: Vue: clicking an inline-editable single select cell now opens its option list right away, like the React edition, instead of needing a second click.
+- 1d65790: Vue: number columns are end-aligned in the header, the cells (custom cell renderers included) and the footer, matching the React edition.
+
 ## 3.20.0
 
 ### Minor Changes
