@@ -65,20 +65,52 @@ export function resolveDataType(
     : "string";
 }
 
-/**
- * Editors that pick a value instead of typing one. Their editable cells show a
- * chevron on hover, next to the hover outline every editable cell gets.
- */
-const CHOICE_INLINE_EDITORS = new Set([
-  "select",
-  "multiSelect",
-  "date",
-  "datetime",
-  "location",
-]);
+/** The hover icon an editable cell shows, named after what its editor does. */
+export type InlineEditorIcon =
+  | "braces"
+  | "calendar"
+  | "calendarClock"
+  | "chevron"
+  | "hash"
+  | "link"
+  | "list"
+  | "mapPin"
+  | "pencil"
+  | "tag"
+  | "text";
 
-export function isChoiceInlineEditor(editor: string | undefined): boolean {
-  return editor !== undefined && CHOICE_INLINE_EDITORS.has(editor);
+const INLINE_EDITOR_ICONS: Record<string, InlineEditorIcon | null> = {
+  boolean: null,
+  date: "calendar",
+  datetime: "calendarClock",
+  json: "braces",
+  location: "mapPin",
+  multiSelect: "list",
+  number: "hash",
+  select: "chevron",
+  textarea: "text",
+  url: "link",
+};
+
+/**
+ * Editable cells show this icon on hover, floating over the cell's end so the
+ * cell never resizes. A switch needs none, and a tag column shows a tag
+ * whatever its editor.
+ */
+export function inlineEditorIcon(
+  editor: string | undefined,
+  options: { tags?: boolean } = {}
+): InlineEditorIcon | null {
+  if (editor === "boolean") {
+    return null;
+  }
+  if (options.tags) {
+    return "tag";
+  }
+  if (editor !== undefined && Object.hasOwn(INLINE_EDITOR_ICONS, editor)) {
+    return INLINE_EDITOR_ICONS[editor] ?? null;
+  }
+  return "pencil";
 }
 
 /** Explicit editor overrides win; semantic JSON and array values must retain their shape. */

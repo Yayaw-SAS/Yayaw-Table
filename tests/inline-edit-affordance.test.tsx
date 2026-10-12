@@ -59,22 +59,56 @@ it("marks editable cells with their editor and a hover outline, as in Vue", asyn
   expect(text?.className).toContain(
     "hover:shadow-[inset_0_0_0_1px_var(--border)]"
   );
-  // Typed values get no chevron.
-  expect(text?.querySelector("[data-inline-chevron]")).toBeNull();
+  // Typed text shows a pencil, floating over the cell's end.
+  expect(
+    text?.querySelector<HTMLElement>("[data-inline-icon]")?.dataset.inlineIcon
+  ).toBe("pencil");
+  expect(text?.className).toContain("cursor-pointer");
 });
 
-it("adds a chevron to cells whose editor picks a value", async () => {
-  const select = await render(
-    {
-      id: "status",
-      type: "select",
-      options: [{ value: "draft", label: "Draft" }],
-    },
-    "draft"
+it("picks the hover icon from the cell's editor, as in Vue", async () => {
+  const iconFor = async (column: Record<string, unknown>, value: unknown) =>
+    (await render(column, value))?.querySelector<HTMLElement>(
+      "[data-inline-icon]"
+    )?.dataset.inlineIcon;
+  expect(
+    await iconFor(
+      {
+        id: "status",
+        type: "select",
+        options: [{ value: "draft", label: "Draft" }],
+      },
+      "draft"
+    )
+  ).toBe("chevron");
+  expect(
+    await iconFor(
+      {
+        id: "tags",
+        type: "multiSelect",
+        options: [{ value: "a", label: "A" }],
+      },
+      ["a"]
+    )
+  ).toBe("list");
+  expect(await iconFor({ id: "total", type: "number" }, 3)).toBe("hash");
+  expect(await iconFor({ id: "due", type: "date" }, "2026-10-10")).toBe(
+    "calendar"
   );
-  expect(select?.dataset.inlineEditor).toBe("select");
-  expect(select?.querySelector("[data-inline-chevron]")).not.toBeNull();
+  expect(await iconFor({ id: "site", type: "url" }, "https://yayaw.app")).toBe(
+    "link"
+  );
+  // A switch needs no icon.
+  expect(
+    await iconFor({ id: "active", type: "boolean" }, true)
+  ).toBeUndefined();
+});
 
-  const date = await render({ id: "due", type: "date" }, "2026-10-10");
-  expect(date?.querySelector("[data-inline-chevron]")).not.toBeNull();
+it("starts editing on a single click anywhere in the cell", async () => {
+  const text = await render({ id: "name", type: "text" }, "Ada");
+  await act(async () => {
+    text?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await Promise.resolve();
+  });
+  expect(document.querySelector("input")).not.toBeNull();
 });

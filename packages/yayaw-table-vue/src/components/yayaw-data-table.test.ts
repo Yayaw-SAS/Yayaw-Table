@@ -648,7 +648,7 @@ describe("YayawDataTable", () => {
         syncUrl: false,
       },
     });
-    await wrapper.get("tbody .yayaw-cell").trigger("dblclick");
+    await wrapper.get("tbody .yayaw-cell").trigger("click");
     expect(wrapper.find(".yayaw-inline-editor").exists()).toBe(false);
     await wrapper.get("tbody tr").trigger("click");
     expect(wrapper.find(".yayaw-dialog-backdrop").exists()).toBe(false);

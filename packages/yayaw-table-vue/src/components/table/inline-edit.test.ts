@@ -81,7 +81,7 @@ describe("catalogue-backed inline editing", () => {
       row: { id: "1", site: { lat: 48.8566, lng: 2.3522 } },
       column: { id: "site", header: "Site", type: "location" },
     });
-    await wrapper.trigger("dblclick");
+    await wrapper.trigger("click");
     await flushPromises();
     const element = document.querySelector<HTMLElement>(
       "[data-location-editor]"
@@ -138,7 +138,7 @@ describe("catalogue-backed inline editing", () => {
         ],
       },
     });
-    await wrapper.trigger("dblclick");
+    await wrapper.trigger("click");
     expect(wrapper.get("input").attributes("type")).toBe("number");
     await wrapper.get("input").setValue("2");
     await wrapper.get("input").trigger("blur");
@@ -169,7 +169,7 @@ describe("catalogue-backed inline editing", () => {
         ],
       },
     });
-    await wrapper.trigger("dblclick");
+    await wrapper.trigger("click");
     await wrapper.get("input").setValue("0");
     await wrapper.get("input").trigger("blur");
     await flushPromises();
@@ -201,7 +201,7 @@ describe("catalogue-backed inline editing", () => {
         ],
       },
     });
-    await wrapper.trigger("dblclick");
+    await wrapper.trigger("click");
     await flushPromises();
     expect(wrapper.text()).toContain("Two");
     await wrapper.get("select").setValue("2");
@@ -221,7 +221,7 @@ describe("catalogue-backed inline editing", () => {
     const { wrapper, row } = createCell({
       update: () => Promise.reject(new Error("Offline")),
     });
-    await wrapper.trigger("dblclick");
+    await wrapper.trigger("click");
     await wrapper.get("input").setValue("25");
     await wrapper.get("input").trigger("blur");
     await flushPromises();
@@ -233,7 +233,7 @@ describe("catalogue-backed inline editing", () => {
   it("does not roll back a persisted value when refreshing fails", async () => {
     const { wrapper, row, context } = createCell();
     context.refresh = vi.fn(() => Promise.reject(new Error("Refresh failed")));
-    await wrapper.trigger("dblclick");
+    await wrapper.trigger("click");
     await wrapper.get("input").setValue("25");
     await wrapper.get("input").trigger("blur");
     await flushPromises();
@@ -262,7 +262,7 @@ describe("catalogue-backed inline editing", () => {
               ],
       },
     });
-    await wrapper.trigger("dblclick");
+    await wrapper.trigger("click");
     expect(wrapper.find("input").exists()).toBe(false);
     expect(update).not.toHaveBeenCalled();
   });
@@ -292,7 +292,7 @@ it("renders searchable choices outside the cell and preserves primitive selectio
     row: { id: "1", tags: [1] },
     column: themeColumn,
   });
-  await wrapper.trigger("dblclick");
+  await wrapper.trigger("click");
   await settle();
   expect(document.activeElement).toBe(
     wrapper.get('input[role="combobox"]').element
@@ -328,7 +328,7 @@ it("flushes an empty multi-selection when focus leaves the popup", async () => {
     row: { id: "1", tags: [1] },
     column: themeColumn,
   });
-  await wrapper.trigger("dblclick");
+  await wrapper.trigger("click");
   await settle();
   await wrapper.get('button[aria-label="Remove Culture"]').trigger("click");
   const outside = document.createElement("button");
@@ -352,7 +352,7 @@ it.each([
     finish = resolve;
   });
   const { wrapper, update } = createCell({ debounceMs: 1, update: () => gate });
-  await wrapper.trigger("dblclick");
+  await wrapper.trigger("click");
   await wrapper.get("input").setValue("25");
   await settle();
   expect(update).toHaveBeenCalledTimes(1);
@@ -376,7 +376,7 @@ it("cancels unsaved choices with Escape and focuses text editors on entry", asyn
     row: { id: "1", tags: [1] },
     column: themeColumn,
   });
-  await wrapper.trigger("dblclick");
+  await wrapper.trigger("click");
   await settle();
   await wrapper.get('button[aria-label="Remove Culture"]').trigger("click");
   document.activeElement?.dispatchEvent(
@@ -386,10 +386,10 @@ it("cancels unsaved choices with Escape and focuses text editors on entry", asyn
   expect(wrapper.find(".yayaw-inline-selection").exists()).toBe(false);
   expect(update).not.toHaveBeenCalled();
   const text = createCell();
-  await text.wrapper.trigger("dblclick");
+  await text.wrapper.trigger("click");
   expect(document.activeElement).toBe(text.wrapper.get("input").element);
   await text.wrapper.get("input").setValue("25");
-  await text.wrapper.get("input").trigger("dblclick");
+  await text.wrapper.get("input").trigger("click");
   expect(text.wrapper.get("input").element.value).toBe("25");
 });
 
@@ -399,7 +399,7 @@ it("shows the delay and pending save bar, then clears it after acknowledgement",
     finish = resolve;
   });
   const { wrapper } = createCell({ debounceMs: 200, update: () => gate });
-  await wrapper.trigger("dblclick");
+  await wrapper.trigger("click");
   await wrapper.get("input").setValue("25");
   await new Promise((resolve) => setTimeout(resolve, 110));
   expect(
@@ -426,7 +426,7 @@ it("serializes newer selections behind a pending save without dropping the draft
     finish = resolve;
   });
   const { wrapper, update } = createCell({ debounceMs: 1, update: () => gate });
-  await wrapper.trigger("dblclick");
+  await wrapper.trigger("click");
   await wrapper.get("input").setValue("25");
   await settle();
   await wrapper.get("input").setValue("30");
@@ -464,7 +464,7 @@ for (const [type, value, selector] of [
         options: [{ label: "One", value: 1 }],
       },
     });
-    await wrapper.trigger("dblclick");
+    await wrapper.trigger("click");
     await flushPromises();
     expect(wrapper.find(selector).exists()).toBe(true);
     if (type === "date") {
@@ -485,7 +485,7 @@ it("resolves the dynamic row type for both display and editing", async () => {
     },
   });
   expect(wrapper.get("a").attributes("href")).toBe("https://example.com/");
-  await wrapper.trigger("dblclick");
+  await wrapper.trigger("click");
   await flushPromises();
   expect(wrapper.find('input[type="url"]').exists()).toBe(true);
 });
@@ -508,7 +508,7 @@ it("supplies the original row version for an inline conflict without adding it t
     row: { id: "1", amount: 10, dataVersion: 7 },
     update: async () => ({ success: false, error: "Version conflict" }),
   });
-  await wrapper.trigger("dblclick");
+  await wrapper.trigger("click");
   await wrapper.get("input").setValue("20");
   await wrapper.get("input").trigger("blur");
   await flushPromises();
@@ -529,27 +529,53 @@ describe("editable cell affordance", () => {
     });
     const cell = wrapper.get(".yayaw-cell");
     expect(cell.attributes("data-inline-editor")).toBe("text");
-    expect(cell.attributes("title")).toBe(
-      "Double-click or press Enter to edit"
+    expect(cell.attributes("title")).toBe("Click or press Enter to edit");
+    // Typed text shows a pencil, floating over the cell's end.
+    expect(cell.get("[data-inline-icon]").attributes("data-inline-icon")).toBe(
+      "pencil"
     );
-    // Typed values get no chevron.
-    expect(cell.find("[data-inline-chevron]").exists()).toBe(false);
   });
 
-  it("adds a chevron to cells whose editor picks a value", () => {
-    const { wrapper } = createCell({
-      row: { id: "1", status: "draft" },
-      column: {
-        id: "status",
-        header: "Status",
-        type: "select",
+  it("picks the hover icon from the cell's editor, as in React", () => {
+    const iconFor = (
+      type: ColumnDefinition["type"],
+      value: unknown,
+      extra: Record<string, unknown> = {}
+    ) => {
+      const icon = createCell({
+        row: { id: "1", field: value },
+        column: {
+          id: "field",
+          header: "Field",
+          type,
+          inlineEdit: true,
+          ...extra,
+        },
+      }).wrapper.find("[data-inline-icon]");
+      return icon.exists() ? icon.attributes("data-inline-icon") : undefined;
+    };
+    expect(
+      iconFor("select", "draft", {
         options: [{ value: "draft", label: "Draft" }],
-        inlineEdit: true,
-      },
+      })
+    ).toBe("chevron");
+    expect(
+      iconFor("multiSelect", ["a"], { options: [{ value: "a", label: "A" }] })
+    ).toBe("list");
+    expect(iconFor("number", 3)).toBe("hash");
+    expect(iconFor("date", "2026-10-10")).toBe("calendar");
+    expect(iconFor("url", "https://yayaw.app")).toBe("link");
+    // A switch needs no icon.
+    expect(iconFor("boolean", true)).toBeUndefined();
+  });
+
+  it("starts editing on a single click anywhere in the cell", async () => {
+    const { wrapper } = createCell({
+      row: { id: "1", name: "Ada" },
+      column: { id: "name", header: "Name", type: "text", inlineEdit: true },
     });
-    const cell = wrapper.get(".yayaw-cell");
-    expect(cell.attributes("data-inline-editor")).toBe("select");
-    expect(cell.find("[data-inline-chevron]").exists()).toBe(true);
+    await wrapper.get(".yayaw-cell").trigger("click");
+    expect(wrapper.find("input").exists()).toBe(true);
   });
 
   it("leaves read-only cells unmarked", () => {

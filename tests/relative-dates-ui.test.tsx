@@ -219,7 +219,7 @@ it("edits a date and time cell inline and commits an ISO instant", async () => {
   await act(() =>
     container
       .querySelector("button")
-      ?.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }))
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
   );
   const input = container.querySelector<HTMLInputElement>(
     'input[type="datetime-local"]'

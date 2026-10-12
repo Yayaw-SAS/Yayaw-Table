@@ -54,7 +54,7 @@ test.beforeEach(async ({ page }) => {
 test("a tag created on the fly in a cell is selected and saved", async ({
   page,
 }) => {
-  await tagsCell(page, "Office.jpg").dblclick();
+  await tagsCell(page, "Office.jpg").click();
   const input = page.getByRole("combobox", { name: "Tags" });
   await expect(input).toBeFocused();
   await input.fill("Summer");
@@ -71,7 +71,7 @@ test("a tag created on the fly in a cell is selected and saved", async ({
   ).toHaveLength(1);
 
   // The new tag is in the catalog: other cells offer it.
-  await tagsCell(page, "Workshop.jpg").dblclick();
+  await tagsCell(page, "Workshop.jpg").click();
   await page.getByRole("combobox", { name: "Tags" }).fill("sum");
   await expect(
     page.getByRole("option", { name: "Summer", exact: true })

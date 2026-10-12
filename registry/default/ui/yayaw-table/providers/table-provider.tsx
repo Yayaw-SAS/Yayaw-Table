@@ -675,7 +675,7 @@ export const defaultTranslations: DataTableTranslations = {
     save: "Save",
   },
   inline: {
-    edit_hint: "Double-click or press Enter to edit",
+    edit_hint: "Click or press Enter to edit",
     invalid_value: "Invalid value",
     missing_row_id: "Cannot save inline edit: missing row id.",
     missing_update_action:

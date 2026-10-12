@@ -190,7 +190,7 @@ it("edits a date and time cell inline and saves an ISO instant", async () => {
     global: { provide: { [tableContextKey as symbol]: context } },
   });
   mounted.push(wrapper);
-  await wrapper.trigger("dblclick");
+  await wrapper.trigger("click");
   await flushPromises();
   const input = wrapper.get<HTMLInputElement>('input[type="datetime-local"]');
   expect(input.element.value).toBe("2026-10-14T09:30");

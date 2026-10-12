@@ -86,7 +86,7 @@ for (const [type, value, selector] of [
     await act(() =>
       container
         .querySelector("button")
-        ?.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }))
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
     );
     expect(container.querySelector(selector)).toBeTruthy();
     if (type === "date") {

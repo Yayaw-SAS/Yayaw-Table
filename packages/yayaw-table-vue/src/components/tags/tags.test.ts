@@ -138,7 +138,7 @@ describe("tags columns backed by actions.tags", () => {
   it("creates a tag on the fly in a cell, selects it and saves the record", async () => {
     const { wrapper, tags, update } = mountTags();
     await settle();
-    await tagsCell(wrapper, 2)?.get(".yayaw-cell").trigger("dblclick");
+    await tagsCell(wrapper, 2)?.get(".yayaw-cell").trigger("click");
     await settle();
     const input = wrapper.get<HTMLInputElement>('input[aria-label="Tags"]');
     await input.setValue("Summer");

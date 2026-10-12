@@ -72,7 +72,7 @@ async function setup(
   );
   await act(async () => {
     required(container.querySelector("button")).dispatchEvent(
-      new MouseEvent("dblclick", { bubbles: true })
+      new MouseEvent("click", { bubbles: true })
     );
     await settle();
   });
