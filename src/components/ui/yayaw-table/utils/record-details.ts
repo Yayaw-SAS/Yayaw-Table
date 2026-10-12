@@ -405,7 +405,9 @@ const columnFormat = (column: DetailColumn): ColumnValueFormat => ({
   hour12: column.hour12,
 });
 
-const isFieldSection = (section: DetailSectionConfig): section is DetailSection =>
+const isFieldSection = (
+  section: DetailSectionConfig
+): section is DetailSection =>
   section.kind === undefined || section.kind === "fields";
 
 /** Related and custom sections alone keep the fields derived from the columns. */
@@ -426,9 +428,9 @@ export function detailSections(
   title: string
 ): DetailSection[] {
   const declared = config.sections?.filter(isFieldSection);
-  const sections: readonly DetailSection[] = (
-    derivesFields(config.sections) ? undefined : declared
-  ) ?? [
+  const sections: readonly DetailSection[] = (derivesFields(config.sections)
+    ? undefined
+    : declared) ?? [
     {
       id: "record",
       title,
@@ -488,7 +490,9 @@ export function detailLayout(
     }));
     return [...derived, ...otherSections(config.sections ?? [], row)];
   }
-  const resolved = new Map(fieldSections.map((section) => [section.id, section]));
+  const resolved = new Map(
+    fieldSections.map((section) => [section.id, section])
+  );
   const layout: DetailLayoutSection[] = [];
   for (const section of config.sections) {
     if (isFieldSection(section)) {
@@ -573,8 +577,7 @@ export function relatedView(
     const direction = sort.desc ? -1 : 1;
     sorted.sort(
       (a, b) =>
-        compareRelated(detailValue(a, field), detailValue(b, field)) *
-        direction
+        compareRelated(detailValue(a, field), detailValue(b, field)) * direction
     );
   }
   const limit =
@@ -623,8 +626,7 @@ export function detailTitle(
   fallback: string
 ): string {
   return (
-    config?.title?.(row) ??
-    String(row.name ?? row.title ?? row.id ?? fallback)
+    config?.title?.(row) ?? String(row.name ?? row.title ?? row.id ?? fallback)
   );
 }
 
