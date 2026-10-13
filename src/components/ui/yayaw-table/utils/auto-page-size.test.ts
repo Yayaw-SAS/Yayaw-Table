@@ -20,4 +20,7 @@ it('fits mixed row heights without multiplying the tallest row', () => {
   expect(fitMeasuredPageSize(360, [108, 41, 41])).toBe(7);
   expect(fitMeasuredPageSize(50, [108, 41])).toBe(1);
   expect(fitMeasuredPageSize(50, [])).toBe(1);
+  // A tall third row no longer stops the page at the two rows above it.
+  expect(fitMeasuredPageSize(500, [60, 60, 400, 60])).toBe(7);
+  expect(fitMeasuredPageSize(100, [60, 400])).toBe(1);
 });
