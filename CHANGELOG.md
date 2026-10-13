@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.20.4
+
+### Patch Changes
+
+- 570ac6c: Show a tooltip on every icon-only toolbar control in React and Vue: Vue's View settings and Data menus, the view tabs' New view and View actions buttons, and the compact search, facets, view and add-item buttons now name themselves on hover and keyboard focus.
+
 ## 3.20.3
 
 ### Patch Changes
