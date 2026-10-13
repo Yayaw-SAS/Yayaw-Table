@@ -642,37 +642,41 @@ function renderViewTrigger({
 }) {
   if (iconOnly) {
     return (
-      <Button
-        aria-label={t("views.viewActions")}
-        className="size-8 shrink-0 text-muted-foreground"
-        disabled={isLoading}
-        size="icon"
-        type="button"
-        variant="ghost"
-      >
-        <ChevronDown aria-hidden="true" className="size-4" />
-      </Button>
+      <TableTooltip label={t("views.viewActions")}>
+        <Button
+          aria-label={t("views.viewActions")}
+          className="size-8 shrink-0 text-muted-foreground"
+          disabled={isLoading}
+          size="icon"
+          type="button"
+          variant="ghost"
+        >
+          <ChevronDown aria-hidden="true" className="size-4" />
+        </Button>
+      </TableTooltip>
     );
   }
   if (compact) {
     // Phones keep the row for search: the icon opens the views, named for assistive tech.
     return (
-      <Button
-        aria-label={`${t("views.current")}: ${currentViewLabel}`}
-        className="relative size-11 shrink-0"
-        disabled={enabled && isLoading}
-        size="icon"
-        type="button"
-        variant="outline"
-      >
-        <LayoutList aria-hidden="true" className="size-4" />
-        {enabled && isActiveViewDirty ? (
-          <output
-            aria-label={t("views.modified")}
-            className="absolute top-1.5 right-1.5 size-2 rounded-full bg-blue-500"
-          />
-        ) : null}
-      </Button>
+      <TableTooltip label={`${t("views.current")}: ${currentViewLabel}`}>
+        <Button
+          aria-label={`${t("views.current")}: ${currentViewLabel}`}
+          className="relative size-11 shrink-0"
+          disabled={enabled && isLoading}
+          size="icon"
+          type="button"
+          variant="outline"
+        >
+          <LayoutList aria-hidden="true" className="size-4" />
+          {enabled && isActiveViewDirty ? (
+            <output
+              aria-label={t("views.modified")}
+              className="absolute top-1.5 right-1.5 size-2 rounded-full bg-blue-500"
+            />
+          ) : null}
+        </Button>
+      </TableTooltip>
     );
   }
   return (

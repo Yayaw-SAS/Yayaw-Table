@@ -85,15 +85,16 @@ const tabs = computed(() => [props.defaultTab, ...split.value.visible]);
         </DropdownMenuContent>
       </DropdownMenuPortal>
     </DropdownMenuRoot>
-    <button
-      v-if="canCreate"
-      type="button"
-      class="yayaw-button yayaw-button-ghost yayaw-icon-only yayaw-view-new"
-      :aria-label="labels.newView"
-      :disabled="disabled"
-      @click="emit('create')"
-    >
-      <Plus :size="16" aria-hidden="true" />
-    </button>
+    <TableTooltip v-if="canCreate" :label="labels.newView">
+      <button
+        type="button"
+        class="yayaw-button yayaw-button-ghost yayaw-icon-only yayaw-view-new"
+        :aria-label="labels.newView"
+        :disabled="disabled"
+        @click="emit('create')"
+      >
+        <Plus :size="16" aria-hidden="true" />
+      </button>
+    </TableTooltip>
   </div>
 </template>

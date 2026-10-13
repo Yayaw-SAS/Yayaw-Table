@@ -464,6 +464,21 @@ it("explains a clean saved view on keyboard focus without a native duplicate", a
   );
 });
 
+it("names every icon-only toolbar control in a tooltip on keyboard focus", async () => {
+  mountTable({ views: [saved], table: { viewTabs: true } });
+  await flushPromises();
+  for (const label of ["View settings", "Data", "View actions", "New view"]) {
+    const trigger = body().get(`button[aria-label="${label}"]`);
+    expect(trigger.attributes("title")).toBeUndefined();
+    (trigger.element as HTMLButtonElement).focus();
+    await flushPromises();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(body().get('[role="tooltip"]').text()).toBe(label);
+    (trigger.element as HTMLButtonElement).blur();
+    await flushPromises();
+  }
+});
+
 it("tracks density-only changes and restores a saved density or legacy default", async () => {
   const wrapper = mountTable({
     views: [
