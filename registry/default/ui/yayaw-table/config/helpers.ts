@@ -568,6 +568,15 @@ export interface TableBehaviorConfig extends GenericModeTableConfigs {
   deleteConfirmation?: import("../utils/record-details").DeleteConfirmationConfig;
 
   /**
+   * Where the multi-selection action bar shows: under the table, then pinned
+   * to the bottom of the screen (`"bottom"`, default), or pinned to the top of
+   * the screen (`"top"`), for short screens where the bottom bar gets cut off.
+   */
+  bulkActionsPosition?: "bottom" | "top";
+  /** Distance in px between the top of the screen and the `"top"` bar [24]. */
+  bulkActionsTopOffset?: number;
+
+  /**
    * Row-aware guard for selection checkboxes.
    * Return false to prevent selecting that row.
    */

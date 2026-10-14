@@ -154,7 +154,9 @@ Defaults in brackets. Flags only shape the interface; the server decides.
 - Tags: `canManageTags` [true]: "Manage tags" on tags columns when
   `actions.tags` can update, merge or remove.
 - Selection: `enableRowSelection`, `enableMultiRowSelection` [true]; pass
-  `getRowId` with stable record ids for server pagination.
+  `getRowId` with stable record ids for server pagination;
+  `bulkActionsPosition` [`"bottom"`; `"top"` pins the selection bar to the
+  top of the screen], `bulkActionsTopOffset` [24 px].
 - Views and URL: `enableViews` [true], `allowViewSave` [true],
   `allowViewSharing` [false], `viewTabs` [on, `{ maxVisible: 4 }`], `syncUrl`
   [true].

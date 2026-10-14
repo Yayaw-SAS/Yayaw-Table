@@ -10,6 +10,7 @@ export type {
   BulkActionHandlerResult,
   BulkActionVariant,
   BulkActionsMenuProps,
+  BulkActionsPosition,
   CustomBulkActionsInput,
 } from "./bulk-actions-menu";
 export type { BulkActionResult } from "../../hooks/use-bulk-actions";

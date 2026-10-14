@@ -182,6 +182,31 @@ describe("bulk action execution", () => {
     expect(wrapper.find(".yayaw-bulk-bar").exists()).toBe(false);
   });
 
+  it("pins the menu to the viewport top when bulkActionsPosition is top", async () => {
+    const wrapper = mountTable({
+      config: defineTableConfig({
+        ...config,
+        table: {
+          ...config.table,
+          bulkActionsPosition: "top",
+          bulkActionsTopOffset: 72,
+        },
+      }),
+    });
+    await selectRows(wrapper);
+    const menu = wrapper.get(".yayaw-bulk-menu-wrapper");
+    expect(menu.attributes("data-position")).toBe("top");
+    expect((menu.element as HTMLElement).style.top).toBe("72px");
+  });
+
+  it("keeps the menu at the bottom by default", async () => {
+    const wrapper = mountTable();
+    await selectRows(wrapper);
+    const menu = wrapper.get(".yayaw-bulk-menu-wrapper");
+    expect(menu.attributes("data-position")).not.toBe("top");
+    expect((menu.element as HTMLElement).style.top).toBe("");
+  });
+
   it("dismisses the menu independently and reopens it when the selection changes", async () => {
     const handler = vi.fn(async () => ({
       success: true,

@@ -20,6 +20,7 @@ const FIXED_INSET_PATTERN = /\binset-x-0\b/;
 const FIXED_POSITIONING_PATTERN = /\bfixed\b/;
 const ANCHORED_POSITIONING_PATTERN = /\bpx-0\b/;
 const VIEWPORT_OFFSET_PATTERN = /\bbottom-6\b/;
+const VIEWPORT_TOP_OFFSET_PATTERN = /\btop-6\b/;
 
 function createSelectedRows(ids: string[]): Row<Record<string, unknown>>[] {
   return ids.map(
@@ -59,6 +60,42 @@ describe("bulk confirmation flow", () => {
     assert.match(fixedClassName, FIXED_INSET_PATTERN);
     assert.match(fixedClassName, VIEWPORT_OFFSET_PATTERN);
     assert.doesNotMatch(anchoredClassName, VIEWPORT_OFFSET_PATTERN);
+  });
+
+  it("pins the menu to the viewport top when the table asks for it", () => {
+    assert.equal(getBulkActionsMenuPositionMode(true, "top"), "top");
+    assert.equal(getBulkActionsMenuPositionMode(false, "top"), "top");
+    assert.equal(getBulkActionsMenuPositionMode(true, "bottom"), "anchored");
+
+    const topClassName = getBulkActionsMenuWrapperClassName({
+      positionMode: "top",
+    });
+    assert.match(topClassName, FIXED_POSITIONING_PATTERN);
+    assert.match(topClassName, VIEWPORT_TOP_OFFSET_PATTERN);
+    assert.doesNotMatch(topClassName, VIEWPORT_OFFSET_PATTERN);
+  });
+
+  it("applies a viewport top offset only in top mode", () => {
+    assert.deepEqual(
+      getBulkActionsMenuWrapperStyle({
+        positionMode: "top",
+        viewportBottomOffset: 120,
+        viewportTopOffset: 72,
+      }),
+      { top: 72 }
+    );
+    assert.equal(
+      getBulkActionsMenuWrapperStyle({ positionMode: "top" }),
+      undefined
+    );
+    assert.deepEqual(
+      getBulkActionsMenuWrapperStyle({
+        positionMode: "fixed",
+        viewportBottomOffset: 120,
+        viewportTopOffset: 72,
+      }),
+      { bottom: 120 }
+    );
   });
 
   it("applies a viewport bottom offset only in fixed mode", () => {

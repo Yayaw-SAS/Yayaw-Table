@@ -109,6 +109,14 @@ export interface TableCatalogueTableConfig extends GenericModeTableConfigs {
    * word or, for bulk deletion, the number of records.
    */
   deleteConfirmation?: import("../utils/record-details").DeleteConfirmationConfig;
+  /**
+   * Where the multi-selection action bar shows: under the table, then pinned
+   * to the bottom of the screen (`"bottom"`, default), or pinned to the top of
+   * the screen (`"top"`), for short screens where the bottom bar gets cut off.
+   */
+  bulkActionsPosition?: "bottom" | "top";
+  /** Distance in px between the top of the screen and the `"top"` bar [24]. */
+  bulkActionsTopOffset?: number;
   showToolbar?: boolean;
   showToolbarHeader?: boolean;
   /** Show an icon in the toolbar to clear filters and global search. */
@@ -404,6 +412,8 @@ function resolveTableBehaviorConfig(
     ...pickGenericModeConfigs(mergedConfig),
     manualOrder: mergedConfig.manualOrder,
     viewTabs: mergedConfig.viewTabs,
+    bulkActionsPosition: mergedConfig.bulkActionsPosition,
+    bulkActionsTopOffset: mergedConfig.bulkActionsTopOffset,
     emptyState: {
       show: true,
       ...mergedConfig.emptyState,

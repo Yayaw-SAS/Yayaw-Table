@@ -32,7 +32,19 @@ import type {
 
 const context = useTableContext();
 const root = ref<HTMLElement>();
-const positionMode = ref<"anchored" | "fixed">("fixed");
+const isTopPosition = computed(
+  () => context.config.table.bulkActionsPosition === "top"
+);
+const observedPositionMode = ref<"anchored" | "fixed">("fixed");
+const positionMode = computed<"anchored" | "fixed" | "top">(() =>
+  isTopPosition.value ? "top" : observedPositionMode.value
+);
+const wrapperStyle = computed(() => {
+  const offset = context.config.table.bulkActionsTopOffset;
+  return isTopPosition.value && offset !== undefined
+    ? { top: `${offset}px` }
+    : undefined;
+});
 let anchorObserver: IntersectionObserver | undefined;
 const pending = ref<string>();
 const dismissedSelectionKey = ref<string>();
@@ -125,7 +137,7 @@ onMounted(() => {
     return;
   }
   anchorObserver = new IntersectionObserver(([entry]) => {
-    positionMode.value = entry?.isIntersecting ? "anchored" : "fixed";
+    observedPositionMode.value = entry?.isIntersecting ? "anchored" : "fixed";
   });
   anchorObserver.observe(anchor);
 });
@@ -469,6 +481,7 @@ const bulkExport = async (): Promise<void> => {
     ref="root"
     class="yayaw-bulk-menu-wrapper"
     :data-position="positionMode"
+    :style="wrapperStyle"
   >
     <div
       class="yayaw-bulk-bar"

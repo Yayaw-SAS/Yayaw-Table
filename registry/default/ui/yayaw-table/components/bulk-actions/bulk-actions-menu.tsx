@@ -163,7 +163,8 @@ export interface BulkActionsMenuProps<TData> {
   showBulkDelete?: boolean;
 
   /**
-   * Controls whether the menu is anchored to the table or fixed to the viewport.
+   * Controls whether the menu is anchored to the table, fixed to the bottom of
+   * the viewport or fixed to its top.
    */
   positionMode?: BulkActionsMenuPositionMode;
 
@@ -191,6 +192,11 @@ export interface BulkActionsMenuProps<TData> {
    * Additional offset from the viewport bottom when the menu is fixed.
    */
   viewportBottomOffset?: number;
+
+  /**
+   * Offset from the viewport top when the menu is fixed to the top.
+   */
+  viewportTopOffset?: number;
 
   /** "Add tags" and "Remove tags", for tables with tags columns. */
   tagActions?: BulkTagActions;
@@ -258,7 +264,10 @@ type ExecutableBulkActionId = Exclude<
   MenuActionId,
   "addTags" | "removeTags" | "selectAll"
 >;
-export type BulkActionsMenuPositionMode = "anchored" | "fixed";
+export type BulkActionsMenuPositionMode = "anchored" | "fixed" | "top";
+
+/** Where the table shows the bulk actions menu (`table.bulkActionsPosition`). */
+export type BulkActionsPosition = "bottom" | "top";
 
 interface BulkMenuOutsideClickState {
   hoveredAction: string | null;
@@ -333,8 +342,12 @@ const transition = {
 };
 
 export function getBulkActionsMenuPositionMode(
-  isTableBottomVisible: boolean
+  isTableBottomVisible: boolean,
+  position: BulkActionsPosition = "bottom"
 ): BulkActionsMenuPositionMode {
+  if (position === "top") {
+    return "top";
+  }
   return isTableBottomVisible ? "anchored" : "fixed";
 }
 
@@ -347,10 +360,12 @@ export function getBulkActionsMenuWrapperClassName({
 }): string {
   return cn(
     "z-50 flex w-full justify-center",
-    "fade-in-0 slide-in-from-bottom-2 pointer-events-none animate-in",
+    "fade-in-0 pointer-events-none animate-in",
+    positionMode === "top" ? "slide-in-from-top-2" : "slide-in-from-bottom-2",
     "duration-300 ease-out",
     positionMode === "anchored" && "px-0",
     positionMode === "fixed" && "fixed inset-x-0 bottom-6 px-4",
+    positionMode === "top" && "fixed inset-x-0 top-6 px-4",
     className
   );
 }
@@ -358,10 +373,18 @@ export function getBulkActionsMenuWrapperClassName({
 export function getBulkActionsMenuWrapperStyle({
   positionMode,
   viewportBottomOffset,
+  viewportTopOffset,
 }: {
   positionMode: BulkActionsMenuPositionMode;
   viewportBottomOffset?: number;
+  viewportTopOffset?: number;
 }): CSSProperties | undefined {
+  if (positionMode === "top") {
+    return viewportTopOffset === undefined
+      ? undefined
+      : { top: viewportTopOffset };
+  }
+
   if (positionMode !== "fixed" || viewportBottomOffset === undefined) {
     return;
   }
@@ -768,6 +791,7 @@ export function BulkActionsMenu<TData>({
   onSelectAll,
   isSelectingAll = false,
   viewportBottomOffset,
+  viewportTopOffset,
   tagActions,
   deleteConfirmation,
 }: BulkActionsMenuProps<TData>) {
@@ -1113,6 +1137,7 @@ export function BulkActionsMenu<TData>({
         style={getBulkActionsMenuWrapperStyle({
           positionMode,
           viewportBottomOffset,
+          viewportTopOffset,
         })}
       >
         <div className="pointer-events-auto flex flex-col items-center gap-4">

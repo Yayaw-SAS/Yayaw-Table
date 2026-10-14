@@ -148,6 +148,17 @@ describe("shouldRenderBulkActionsInFooter", () => {
       false
     );
   });
+
+  it("keeps a top bulk actions menu out of the pagination footer", () => {
+    assert.equal(
+      shouldRenderBulkActionsInFooter({
+        bulkActionsPosition: "top",
+        enablePagination: true,
+        isTableBottomVisible: true,
+      }),
+      false
+    );
+  });
 });
 
 describe("shouldRenderPaginationControls", () => {

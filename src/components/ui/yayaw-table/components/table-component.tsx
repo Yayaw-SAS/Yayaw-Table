@@ -115,6 +115,7 @@ import {
 import { DataTableGanttView } from "./gantt-view";
 import {
   BulkActionsMenu,
+  type BulkActionsPosition,
   type CustomBulkActionsInput,
   getBulkActionsMenuPositionMode,
 } from "./bulk-actions/bulk-actions-menu";
@@ -186,13 +187,17 @@ export const shouldShowCalculationsFooter = ({
 };
 
 export const shouldRenderBulkActionsInFooter = ({
+  bulkActionsPosition = "bottom",
   enablePagination,
   isTableBottomVisible,
 }: {
+  bulkActionsPosition?: BulkActionsPosition;
   enablePagination: boolean;
   isTableBottomVisible: boolean;
 }): boolean => {
-  return enablePagination && isTableBottomVisible;
+  return (
+    bulkActionsPosition !== "top" && enablePagination && isTableBottomVisible
+  );
 };
 
 export const shouldRenderPaginationControls = ({
@@ -3190,6 +3195,7 @@ function ModernDataTable<
     const renderBulkActionsInFooter =
       bulkActions.showBulkActions &&
       shouldRenderBulkActionsInFooter({
+        bulkActionsPosition: tableConfig.table.bulkActionsPosition,
         enablePagination,
         isTableBottomVisible: isBulkActionsAnchorVisible,
       });
@@ -3287,7 +3293,8 @@ function ModernDataTable<
               onClose={bulkActions.closeBulkActions}
               onSelectAll={bulkActions.handleSelectAll}
               positionMode={getBulkActionsMenuPositionMode(
-                isBulkActionsAnchorVisible
+                isBulkActionsAnchorVisible,
+                tableConfig.table.bulkActionsPosition
               )}
               selectAllCount={rowCount}
               selectedRows={bulkActions.selectedRows}
@@ -3296,6 +3303,7 @@ function ModernDataTable<
               showBulkExport={bulkActions.isBulkExportEnabled}
               tagActions={bulkTagActions}
               viewportBottomOffset={fixedBulkActionsViewportOffset}
+              viewportTopOffset={tableConfig.table.bulkActionsTopOffset}
             />
           )}
         </div>

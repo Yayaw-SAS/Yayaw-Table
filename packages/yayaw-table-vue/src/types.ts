@@ -313,6 +313,14 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord>
    * word or, for bulk deletion, the number of records.
    */
   deleteConfirmation?: import("./record-details").DeleteConfirmationConfig;
+  /**
+   * Where the multi-selection action bar shows: under the table, then pinned
+   * to the bottom of the screen (`"bottom"`, default), or pinned to the top of
+   * the screen (`"top"`), for short screens where the bottom bar gets cut off.
+   */
+  bulkActionsPosition?: "bottom" | "top";
+  /** Distance in px between the top of the screen and the `"top"` bar [24]. */
+  bulkActionsTopOffset?: number;
   showToolbar: boolean;
   showToolbarHeader: boolean;
   /** Clear search and filters while preserving display options. */
