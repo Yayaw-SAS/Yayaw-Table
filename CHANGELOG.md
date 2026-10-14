@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.21.0
+
+### Minor Changes
+
+- 2330884: Connector screens can work with the person's own account and the provider's picker, in React and Vue. `connector.account` (`status`, `connect`, `disconnect?`) shows "Connect your account" until the account is connected, then "Connected as …" with Disconnect; `connector.pickTarget` adds a "Browse…" button whose picker returns the target. Both are optional; existing connectors are unchanged.
+
+### Patch Changes
+
+- 948a2d6: Exports write the value of a column's `accessorFn` instead of the row field named after the column, in React and Vue. Server exports (`actions.exportFile`) still receive only the column's serializable settings.
+
 ## 3.20.4
 
 ### Patch Changes
