@@ -1594,6 +1594,7 @@ export function DataTableAdvancedToolbar<TData>({
             dateFormat: column.dateFormat,
             timeZone: column.timeZone,
             hour12: column.hour12,
+            value: column.accessorFn as ExportColumn["value"],
           },
         ];
       });

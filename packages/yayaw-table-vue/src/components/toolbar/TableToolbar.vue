@@ -450,6 +450,7 @@ const exportColumn = (column: ColumnDefinition): ExportColumn => ({
   dateFormat: column.dateFormat,
   timeZone: column.timeZone,
   hour12: column.hour12,
+  value: column.accessorFn as ExportColumn["value"],
 });
 // Built-in English or French labels, which `exportScreen.<key>` overrides.
 const exportT = computed(() => exportLabels(context.locale, (key, fallback) => translate(`exportScreen.${key}`, fallback)));
