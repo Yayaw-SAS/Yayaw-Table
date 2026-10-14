@@ -209,6 +209,10 @@ Select-like fields support:
 
 Nested collections validate item fields recursively. Errors include the item path and block submission. Field schemas run before the optional form schema. The validated result is passed through `transform(values, context)` before the action. In edit mode, `submitMode: "patch"` keeps only changes relative to the loaded initial values. Hidden and disabled fields are omitted. Explicit `false`, `0`, empty strings, empty arrays, and `null` are preserved; the schema can reject them when needed. Action `fieldErrors` remain attached to the form after failure.
 
+## Bulk actions position
+
+`table.bulkActionsPosition: "bottom" | "top"` (serializable, default `"bottom"`) places the multi-selection action bar in both editions. `"bottom"` keeps the existing behavior: anchored under the table (in the pagination footer when it is visible), otherwise fixed to the bottom of the viewport above a visible pagination. `"top"` always fixes the bar to the top of the viewport, enters from the top and never renders it in the pagination footer; `table.bulkActionsTopOffset` (px, default 24) moves it below a fixed application header. React applies it through `getBulkActionsMenuPositionMode`, `getBulkActionsMenuWrapperStyle` and `shouldRenderBulkActionsInFooter`; Vue sets `data-position="top"` and an inline `top` on `.yayaw-bulk-menu-wrapper`. Coverage: React `bulk-actions-menu.test.ts` and `table-component.test.ts`, Vue `bulk-actions.test.ts`.
+
 ## Bulk editing
 
 When `onBulkEdit` is absent, `actions.bulkUpdate(ids, patch)` opens the catalogue bulk editor in both frameworks. A supplied callback keeps precedence. The editor captures the selected IDs, starts with values common to all targets, and applies only added fields. It uses each row's edit permission and conditional field rules. Reserved identity/timestamp fields and fields with `bulkEdit: false` are excluded. Rows resolving to different form types cannot share an editor.
