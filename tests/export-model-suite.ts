@@ -97,6 +97,48 @@ export function exportModelSuite(
     );
   });
 
+  test("writes an `accessorFn` column's value, and never sends the function to the server", async () => {
+    const contact = {
+      id: "contact",
+      header: "Contact",
+      type: "text",
+      value: (row: Record<string, unknown>) => {
+        const person = row.contact as { first: string; last: string };
+        return `${person.first} ${person.last}`;
+      },
+    };
+    const people = [{ id: "1", contact: { first: "Ada", last: "Lovelace" } }];
+    for (const formatted of [true, false]) {
+      assert.deepEqual(
+        model.exportMatrix(people, [contact], { formatted }).rows,
+        [["Ada Lovelace"]]
+      );
+    }
+    const requests: { columns: Record<string, unknown>[] }[] = [];
+    await model.runExport({
+      settings: { ...settings, format: "xlsx" },
+      viewId: null,
+      query,
+      allColumns: [contact],
+      visibleColumns: [contact],
+      selectedRowIds: [],
+      selectedRows: [],
+      loadRows: () => Promise.resolve(people),
+      title: "People",
+      download: () => undefined,
+      print: () => undefined,
+      exportFile: (request) => {
+        requests.push(
+          request as unknown as { columns: Record<string, unknown>[] }
+        );
+        return Promise.resolve(undefined);
+      },
+    });
+    assert.deepEqual(requests[0]?.columns, [
+      { id: "contact", header: "Contact", type: "text" },
+    ]);
+  });
+
   test("escapes CSV cells and HTML", () => {
     const matrix = model.exportMatrix(rows, columns, { formatted: false });
     const csv = model.csvFromMatrix(matrix);

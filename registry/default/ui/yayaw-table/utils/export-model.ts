@@ -39,7 +39,16 @@ export interface ExportColumn {
   dateFormat?: string;
   timeZone?: string;
   hour12?: boolean;
+  /**
+   * The column's `accessorFn`: its value for a row, instead of the row field
+   * named after the column. Never sent to `actions.exportFile`.
+   */
+  value?: (row: Record<string, unknown>) => unknown;
 }
+
+/** A row's value for a column: its `accessorFn` when it has one. */
+const cellValue = (row: Record<string, unknown>, column: ExportColumn) =>
+  column.value ? column.value(row) : row[column.id];
 
 export type ExportCell = string | number | boolean | null;
 
@@ -275,7 +284,7 @@ const numericCell = (
   column: ExportColumn
 ): boolean =>
   isNumericExportValue(
-    row[column.id],
+    cellValue(row, column),
     resolveDataType(column.type, row, column.typeKey)
   );
 
@@ -319,8 +328,8 @@ export function exportMatrix(
     rows: rows.map((row) =>
       columns.map((column) =>
         formatted
-          ? formattedCell(row[column.id], column, format, row)
-          : rawCell(row[column.id], column)
+          ? formattedCell(cellValue(row, column), column, format, row)
+          : rawCell(cellValue(row, column), column)
       )
     ),
     // Option labels are text, even for numbers; raw places are coordinates.
@@ -454,7 +463,7 @@ export interface ExportFileRequest {
 
 /** A column as `actions.exportFile` receives it: only the fields it sets. */
 export type ExportRequestColumn = Pick<ExportColumn, "id" | "header"> &
-  Partial<Omit<ExportColumn, "id" | "header">>;
+  Partial<Omit<ExportColumn, "id" | "header" | "value">>;
 
 const exportRequestColumn = (column: ExportColumn): ExportRequestColumn => {
   const { id, header, type, typeKey, options } = column;
