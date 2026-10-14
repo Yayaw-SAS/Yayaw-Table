@@ -234,17 +234,15 @@ function calendarFieldColumns(
   settings: CalendarViewSettings,
   columns: readonly FieldTextColumnWithId[] | undefined
 ): CalendarFieldColumn[] {
-  return (settings.cardColumnIds ?? []).flatMap(
-    (id): CalendarFieldColumn[] => {
-      if (!columns) {
-        return [{ id, label: id }];
-      }
-      const column = columns.find((item) => item.id === id);
-      return column && id !== settings.titleColumn
-        ? [{ id, label: column.header ?? id, column }]
-        : [];
+  return (settings.cardColumnIds ?? []).flatMap((id): CalendarFieldColumn[] => {
+    if (!columns) {
+      return [{ id, label: id }];
     }
-  );
+    const column = columns.find((item) => item.id === id);
+    return column && id !== settings.titleColumn
+      ? [{ id, label: column.header ?? id, column }]
+      : [];
+  });
 }
 
 /**
