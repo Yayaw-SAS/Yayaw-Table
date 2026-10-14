@@ -7,7 +7,6 @@ import {
   isRowIdActive,
   resolveEffectiveRowClickMode,
   shouldIgnoreRowClickElement,
-  shouldRenderBulkActionsInFooter,
   shouldRenderTableEmptyState,
   shouldRenderPaginationControls,
   shouldShowCalculationsFooter,
@@ -115,49 +114,6 @@ describe("getRegularCellClassName", () => {
 
     assert.match(className, TEXT_CENTER_CLASS_PATTERN);
     assert.doesNotMatch(className, FLEX_CLASS_PATTERN);
-  });
-});
-
-describe("shouldRenderBulkActionsInFooter", () => {
-  it("returns true when pagination is enabled and the table footer is visible", () => {
-    assert.equal(
-      shouldRenderBulkActionsInFooter({
-        enablePagination: true,
-        isTableBottomVisible: true,
-      }),
-      true
-    );
-  });
-
-  it("returns false when the footer anchor is outside the viewport", () => {
-    assert.equal(
-      shouldRenderBulkActionsInFooter({
-        enablePagination: true,
-        isTableBottomVisible: false,
-      }),
-      false
-    );
-  });
-
-  it("returns false when pagination is disabled", () => {
-    assert.equal(
-      shouldRenderBulkActionsInFooter({
-        enablePagination: false,
-        isTableBottomVisible: true,
-      }),
-      false
-    );
-  });
-
-  it("keeps a top bulk actions menu out of the pagination footer", () => {
-    assert.equal(
-      shouldRenderBulkActionsInFooter({
-        bulkActionsPosition: "top",
-        enablePagination: true,
-        isTableBottomVisible: true,
-      }),
-      false
-    );
   });
 });
 

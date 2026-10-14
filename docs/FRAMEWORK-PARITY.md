@@ -211,7 +211,7 @@ Nested collections validate item fields recursively. Errors include the item pat
 
 ## Bulk actions position
 
-`table.bulkActionsPosition: "bottom" | "top"` (serializable, default `"bottom"`) places the multi-selection action bar in both editions. `"bottom"` keeps the existing behavior: anchored under the table (in the pagination footer when it is visible), otherwise fixed to the bottom of the viewport above a visible pagination. `"top"` always fixes the bar to the top of the viewport, enters from the top and never renders it in the pagination footer; `table.bulkActionsTopOffset` (px, default 24) moves it below a fixed application header. React applies it through `getBulkActionsMenuPositionMode`, `getBulkActionsMenuWrapperStyle` and `shouldRenderBulkActionsInFooter`; Vue sets `data-position="top"` and an inline `top` on `.yayaw-bulk-menu-wrapper`. Coverage: React `bulk-actions-menu.test.ts` and `table-component.test.ts`, Vue `bulk-actions.test.ts`.
+`table.bulkActionsPosition: "bottom" | "top"` (serializable, default `"bottom"`) places the multi-selection action bar in both editions. The bar always floats over the page and never sits under the table: `"bottom"` fixes it to the bottom of the viewport (above a visible pagination), `"top"` fixes it to the top of the viewport and enters from the top; `table.bulkActionsTopOffset` (px, default 24) moves it below a fixed application header. React applies it through `getBulkActionsMenuPositionMode`, and `getBulkActionsMenuWrapperStyle`; Vue sets `data-position="top"` and an inline `top` on `.yayaw-bulk-menu-wrapper`. Coverage: React `bulk-actions-menu.test.ts` and `table-component.test.ts`, Vue `bulk-actions.test.ts`.
 
 ## Bulk editing
 

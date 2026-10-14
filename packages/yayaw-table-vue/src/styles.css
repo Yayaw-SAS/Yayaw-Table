@@ -1497,14 +1497,6 @@
   padding-inline: 16px;
   animation-name: yayaw-bulk-enter-top;
 }
-.yayaw-bulk-menu-wrapper[data-position="anchored"] {
-  position: relative;
-  padding-inline: 0;
-}
-.yayaw-bulk-anchor {
-  width: 100%;
-  height: 0;
-}
 @keyframes yayaw-bulk-enter-top {
   from {
     transform: translateY(-8px);

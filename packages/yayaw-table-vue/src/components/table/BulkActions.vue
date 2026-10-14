@@ -13,7 +13,7 @@ import {
 } from "lucide-vue-next";
 import BulkTagsDialog from "../tags/BulkTagsDialog.vue";
 import TypedConfirmation from "../details/TypedConfirmation.vue";
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { deleteConfirmationMatches, deleteConfirmationValue, detailLabels } from "../../record-details";
 import {
   parseBulkEditPatch,
@@ -31,13 +31,12 @@ import type {
 } from "../../types";
 
 const context = useTableContext();
-const root = ref<HTMLElement>();
 const isTopPosition = computed(
   () => context.config.table.bulkActionsPosition === "top"
 );
-const observedPositionMode = ref<"anchored" | "fixed">("fixed");
-const positionMode = computed<"anchored" | "fixed" | "top">(() =>
-  isTopPosition.value ? "top" : observedPositionMode.value
+// The bar always floats over the page, at the viewport's bottom or top, never under the table.
+const positionMode = computed<"fixed" | "top">(() =>
+  isTopPosition.value ? "top" : "fixed"
 );
 const wrapperStyle = computed(() => {
   const offset = context.config.table.bulkActionsTopOffset;
@@ -45,7 +44,6 @@ const wrapperStyle = computed(() => {
     ? { top: `${offset}px` }
     : undefined;
 });
-let anchorObserver: IntersectionObserver | undefined;
 const pending = ref<string>();
 const dismissedSelectionKey = ref<string>();
 const isBusy = computed(
@@ -129,21 +127,6 @@ const closeBulkTags = (): void => {
 };
 const translate = (key: string, fallback: string): string =>
   String(context.translations.value[key] ?? fallback);
-onMounted(() => {
-  const anchor = root.value
-    ?.closest(".yayaw-table")
-    ?.querySelector(".yayaw-bulk-anchor");
-  if (!(anchor instanceof HTMLElement) || !globalThis.IntersectionObserver) {
-    return;
-  }
-  anchorObserver = new IntersectionObserver(([entry]) => {
-    observedPositionMode.value = entry?.isIntersecting ? "anchored" : "fixed";
-  });
-  anchorObserver.observe(anchor);
-});
-onBeforeUnmount(() => {
-  anchorObserver?.disconnect();
-});
 const customActionDisabled = (action: BulkAction): boolean => {
   const disabled =
     typeof action.disabled === "function"
@@ -478,7 +461,6 @@ const bulkExport = async (): Promise<void> => {
 <template>
   <div
     v-if="dismissedSelectionKey !== selectionKey"
-    ref="root"
     class="yayaw-bulk-menu-wrapper"
     :data-position="positionMode"
     :style="wrapperStyle"

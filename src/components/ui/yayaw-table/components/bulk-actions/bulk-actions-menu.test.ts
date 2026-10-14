@@ -37,12 +37,9 @@ function TestIcon(_props: { className?: string; size?: number }) {
 }
 
 describe("bulk confirmation flow", () => {
-  it("anchors the menu when the table bottom is visible", () => {
-    assert.equal(getBulkActionsMenuPositionMode(true), "anchored");
-  });
-
-  it("fixes the menu to the viewport when the table bottom is hidden", () => {
-    assert.equal(getBulkActionsMenuPositionMode(false), "fixed");
+  it("always floats the menu over the page, never under the table", () => {
+    assert.equal(getBulkActionsMenuPositionMode(), "fixed");
+    assert.equal(getBulkActionsMenuPositionMode("bottom"), "fixed");
   });
 
   it("uses fixed viewport classes only in fixed mode", () => {
@@ -63,9 +60,7 @@ describe("bulk confirmation flow", () => {
   });
 
   it("pins the menu to the viewport top when the table asks for it", () => {
-    assert.equal(getBulkActionsMenuPositionMode(true, "top"), "top");
-    assert.equal(getBulkActionsMenuPositionMode(false, "top"), "top");
-    assert.equal(getBulkActionsMenuPositionMode(true, "bottom"), "anchored");
+    assert.equal(getBulkActionsMenuPositionMode("top"), "top");
 
     const topClassName = getBulkActionsMenuWrapperClassName({
       positionMode: "top",
