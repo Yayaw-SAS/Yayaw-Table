@@ -103,7 +103,6 @@ import { getPrimaryGrouping } from "../utils/table-view-state";
 import { availableDisplayModes } from "../utils/view-menu";
 import {
   BulkActionsMenu,
-  type BulkActionsPosition,
   type CustomBulkActionsInput,
   getBulkActionsMenuPositionMode,
 } from "./bulk-actions/bulk-actions-menu";
@@ -157,9 +156,6 @@ const ROW_CLICK_INTERACTIVE_SELECTOR =
   "button, a, [role=checkbox], [role=menuitem], [role=option], [role=listbox], input, select, textarea, [data-location-editor]";
 const ROW_CLICK_SYSTEM_COLUMN_SELECTOR =
   '[data-column-id="select"], [data-column-id="actions"]';
-const BULK_ACTIONS_ANCHOR_VIEWPORT_OPTIONS = {
-  threshold: 0,
-} as const;
 const PAGINATION_VIEWPORT_OPTIONS = {
   threshold: 0,
 } as const;
@@ -172,20 +168,6 @@ export const shouldShowCalculationsFooter = ({
   isFooterVisible: boolean;
 }): boolean => {
   return enableCalculations === true && isFooterVisible;
-};
-
-export const shouldRenderBulkActionsInFooter = ({
-  bulkActionsPosition = "bottom",
-  enablePagination,
-  isTableBottomVisible,
-}: {
-  bulkActionsPosition?: BulkActionsPosition;
-  enablePagination: boolean;
-  isTableBottomVisible: boolean;
-}): boolean => {
-  return (
-    bulkActionsPosition !== "top" && enablePagination && isTableBottomVisible
-  );
 };
 
 export const shouldRenderPaginationControls = ({
@@ -1164,8 +1146,6 @@ function ModernDataTable<
   const paginationRootRef = useRef<HTMLDivElement>(null);
   const activeViewId = useAtomValue(activeViewIdAtom(tableId));
   const _previousRowsRef = useRef<Row<TData>[]>([]);
-  const { isVisible: isBulkActionsAnchorVisible, ref: bulkActionsAnchorRef } =
-    useOnScreen(BULK_ACTIONS_ANCHOR_VIEWPORT_OPTIONS);
   const { isVisible: isPaginationVisible, ref: paginationVisibilityRef } =
     useOnScreen(PAGINATION_VIEWPORT_OPTIONS);
   const [paginationControlsElement, setPaginationControlsElement] =
@@ -2928,11 +2908,6 @@ function ModernDataTable<
           )}
           table={table}
         />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
-          ref={bulkActionsAnchorRef}
-        />
       </div>
     );
   };
@@ -2991,11 +2966,6 @@ function ModernDataTable<
             })
           }
         />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
-          ref={bulkActionsAnchorRef}
-        />
       </div>
     );
   };
@@ -3007,11 +2977,6 @@ function ModernDataTable<
           <DisplayModeRendererView
             context={rendererContext}
             renderer={activeRenderer}
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
-            ref={bulkActionsAnchorRef}
           />
         </div>
       );
@@ -3044,11 +3009,6 @@ function ModernDataTable<
               handleInteractiveRowClick(row, event);
             }}
             table={table}
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
-            ref={bulkActionsAnchorRef}
           />
         </div>
       );
@@ -3091,11 +3051,6 @@ function ModernDataTable<
               handleInteractiveRowClick(row, event);
             }}
             table={table}
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
-            ref={bulkActionsAnchorRef}
           />
         </div>
       );
@@ -3145,11 +3100,6 @@ function ModernDataTable<
             )}
           </Table>
         </div>
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
-          ref={bulkActionsAnchorRef}
-        />
       </div>
     );
   };
@@ -3176,13 +3126,6 @@ function ModernDataTable<
     }
 
     // Otherwise render the full table
-    const renderBulkActionsInFooter =
-      bulkActions.showBulkActions &&
-      shouldRenderBulkActionsInFooter({
-        bulkActionsPosition: tableConfig.table.bulkActionsPosition,
-        enablePagination,
-        isTableBottomVisible: isBulkActionsAnchorVisible,
-      });
     const showPaginationControls =
       (enableAutoPageSize && rowCount > 0) ||
       shouldRenderPaginationControls({
@@ -3198,7 +3141,7 @@ function ModernDataTable<
       activeDisplayMode !== "filetree" &&
       activeDisplayMode !== "feed" &&
       enablePagination &&
-      (showPaginationControls || renderBulkActionsInFooter);
+      showPaginationControls;
     const fixedBulkActionsViewportOffset = getBulkActionsViewportBottomOffset({
       isPaginationVisible,
       paginationHeight,
@@ -3223,30 +3166,6 @@ function ModernDataTable<
                 containerRef={handlePaginationContainerRef}
                 controlsRef={handlePaginationControlsRef}
                 enableAutoPageSize={enableAutoPageSize}
-                footerSlot={
-                  renderBulkActionsInFooter ? (
-                    <BulkActionsMenu
-                      canSelectAll={bulkActions.canSelectAll}
-                      customBulkActions={customBulkActions}
-                      deleteConfirmation={tableConfig.table.deleteConfirmation}
-                      isSelectingAll={bulkActions.isSelectingAll}
-                      onBulkCopy={bulkActions.handleBulkCopy}
-                      onBulkDelete={bulkActions.handleBulkDelete}
-                      onBulkEdit={bulkActions.handleBulkEdit}
-                      onBulkExport={bulkActions.handleBulkExport}
-                      onClearSelection={bulkActions.clearSelection}
-                      onClose={bulkActions.closeBulkActions}
-                      onSelectAll={bulkActions.handleSelectAll}
-                      positionMode="anchored"
-                      selectAllCount={rowCount}
-                      selectedRows={bulkActions.selectedRows}
-                      showBulkDelete={bulkActions.isBulkDeleteEnabled}
-                      showBulkEdit={bulkActions.isBulkEditEnabled}
-                      showBulkExport={bulkActions.isBulkExportEnabled}
-                      tagActions={bulkTagActions}
-                    />
-                  ) : undefined
-                }
                 onPageSizeSelect={autoPageSizing.selectSize}
                 pageSizeOptions={
                   tableConfig.table.pageSizeOptions || [
@@ -3260,7 +3179,7 @@ function ModernDataTable<
             )}
           </div>
 
-          {bulkActions.showBulkActions && !renderBulkActionsInFooter && (
+          {bulkActions.showBulkActions && (
             <BulkActionsMenu
               canSelectAll={bulkActions.canSelectAll}
               customBulkActions={customBulkActions}
@@ -3274,7 +3193,6 @@ function ModernDataTable<
               onClose={bulkActions.closeBulkActions}
               onSelectAll={bulkActions.handleSelectAll}
               positionMode={getBulkActionsMenuPositionMode(
-                isBulkActionsAnchorVisible,
                 tableConfig.table.bulkActionsPosition
               )}
               selectAllCount={rowCount}
