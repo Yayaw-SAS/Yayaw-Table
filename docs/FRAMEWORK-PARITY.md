@@ -1276,7 +1276,13 @@ end, builds the `dateRange` scope of the visible range for `loadScopedRows`
 and writes moves back in the stored format (date-only stays date-only, ISO
 keeps its time). Both editions render their own toolbar (previous, today,
 next, title, Month/Week/List) and the same event pills with tag colors from
-`colorColumn`. Dragging calls `actions.update` and reverts on failure;
+`colorColumn`. `cardColumnIds` adds one line per column under the title
+(none by default; an empty list hides a table default), each read with
+`fieldText` as the table formats its column, and `showCardLabels` prefixes
+them with the column header; empty values add no line. Both settings panels
+offer them as the "Fields" properties list with "Show labels", like Kanban
+cards, and the event tooltip lists the title and every field. Dragging calls
+`actions.update` and reverts on failure;
 stretching needs `endColumn` or `durationColumn`; clicking a day opens the
 create form with the date (and end date, or `defaultDuration`) prefilled.
 Layout changes are view settings.
@@ -1307,8 +1313,10 @@ display mode. The rows keep the order `list` returns; `<tableId>-order` is the
 column order only (`tests/table-page-rows.test.tsx`, Vue
 `components/page-rows.test.ts`).
 React translation keys are `views.calendar.*`; Vue keys are
-`calendar.*` with English and French defaults. `tests/calendar-model-suite.ts`
-runs in both editions and `e2e/calendar.spec.ts` covers both demos.
+`calendar.*` with English and French defaults (`calendar.properties`
+« Champs affichés », `calendar.showLabels` « Afficher les libellés »).
+`tests/calendar-model-suite.ts` runs in both editions and
+`e2e/calendar.spec.ts` covers both demos, card fields included.
 
 ## Chart view
 

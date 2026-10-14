@@ -56,6 +56,73 @@ export function calendarModelSuite(
     );
   });
 
+  test("keeps the chosen card fields, an empty list included", () => {
+    assert.deepEqual(
+      calendar.normalizeCalendarViewConfig({
+        cardColumnIds: [" status ", "", 3, "status", "end"],
+        showCardLabels: true,
+      }),
+      { cardColumnIds: ["status", "end"], showCardLabels: true }
+    );
+    assert.deepEqual(
+      calendar.normalizeCalendarViewConfig({ cardColumnIds: [] }),
+      { cardColumnIds: [] }
+    );
+    assert.deepEqual(
+      modes.normalizeModeConfig("calendar", {
+        cardColumnIds: ["status"],
+        showCardLabels: false,
+      }),
+      { cardColumnIds: ["status"], showCardLabels: false }
+    );
+  });
+
+  test("shows the chosen fields under the title, as the table formats them", () => {
+    const columns = [
+      { id: "name", header: "Name", type: "text" },
+      {
+        id: "status",
+        header: "Status",
+        type: "select",
+        options: [{ value: "active", label: "Active" }],
+      },
+      { id: "start", header: "Start", type: "date" },
+      { id: "owner", header: "Owner", type: "text" },
+    ];
+    const [event, empty] = calendar.calendarEvents(
+      [
+        {
+          id: 1,
+          name: "Launch",
+          start: "2026-09-02",
+          status: "active",
+          owner: "Ana",
+        },
+        { id: 2, name: "Quiet", start: "2026-09-03", status: null, owner: "" },
+      ],
+      {
+        dateColumn: "start",
+        titleColumn: "name",
+        cardColumnIds: ["owner", "missing", "name", "status"],
+      },
+      rowId,
+      { columns, locale: "en-US" }
+    );
+    assert.deepEqual(event?.fields, [
+      { id: "owner", label: "Owner", text: "Ana" },
+      { id: "status", label: "Status", text: "Active" },
+    ]);
+    assert.deepEqual(empty?.fields, []);
+    assert.deepEqual(
+      calendar.calendarEvents(
+        [{ id: 1, name: "Launch", start: "2026-09-02" }],
+        { dateColumn: "start", titleColumn: "name" },
+        rowId
+      )[0]?.fields,
+      []
+    );
+  });
+
   test("defaults to the first date column and the first other column as title", () => {
     const settings = calendar.resolveCalendarSettings(COLUMNS, undefined, {});
     assert.equal(settings.dateColumn, "start");

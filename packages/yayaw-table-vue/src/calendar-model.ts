@@ -5,7 +5,7 @@
 import { type DateRangeScope, localDayKey } from "./scoped-rows";
 import { type FieldTextColumn, fieldText } from "./table-contracts";
 
-type FieldTextColumnWithId = FieldTextColumn & { id: string };
+type FieldTextColumnWithId = FieldTextColumn & { id: string; header?: string };
 
 export type CalendarLayout = "month" | "week" | "list";
 
@@ -31,6 +31,13 @@ export interface CalendarViewSettings {
   titleColumn?: string;
   /** Column whose tag color colors the event. */
   colorColumn?: string;
+  /**
+   * Columns shown under the title, one line each, in this order (none by
+   * default). An empty list hides the fields a table default chose.
+   */
+  cardColumnIds?: string[];
+  /** Prefix each field line with its column label. */
+  showCardLabels?: boolean;
   layout?: CalendarLayout;
   /** First day of the week, 0 = Sunday … 6 = Saturday (default Monday). */
   weekStartsOn?: number;
@@ -79,6 +86,7 @@ const STRING_KEYS = [
   "colorColumn",
 ] as const;
 const BOOLEAN_KEYS = [
+  "showCardLabels",
   "showWeekends",
   "allowDragUpdate",
   "allowResize",
@@ -118,6 +126,15 @@ export function normalizeCalendarViewConfig(
     if (typeof input[key] === "boolean") {
       normalized[key] = input[key];
     }
+  }
+  if (Array.isArray(input.cardColumnIds)) {
+    normalized.cardColumnIds = [
+      ...new Set(
+        input.cardColumnIds.flatMap((id) =>
+          typeof id === "string" && id.trim() ? [id.trim()] : []
+        )
+      ),
+    ];
   }
   if (LAYOUTS.has(input.layout as CalendarLayout)) {
     normalized.layout = input.layout as CalendarLayout;
@@ -166,9 +183,18 @@ export function resolveCalendarSettings(
   };
 }
 
+/** A field shown under an event title, as the table formats its column. */
+export interface CalendarEventField {
+  id: string;
+  label: string;
+  text: string;
+}
+
 export interface CalendarEvent {
   id: string;
   title: string;
+  /** Non-empty values of `cardColumnIds`, in order. */
+  fields: CalendarEventField[];
   /** Local calendar day (`YYYY-MM-DD`). */
   start: string;
   /** Exclusive end day, as calendar libraries expect for all-day events. */
@@ -197,6 +223,30 @@ export function daysBetween(from: string, to: string): number {
   return Math.round((toTime(to) - toTime(from)) / DAY_MS);
 }
 
+interface CalendarFieldColumn {
+  id: string;
+  label: string;
+  column?: FieldTextColumnWithId;
+}
+
+/** The columns of `cardColumnIds`; without the columns, ids stand for labels. */
+function calendarFieldColumns(
+  settings: CalendarViewSettings,
+  columns: readonly FieldTextColumnWithId[] | undefined
+): CalendarFieldColumn[] {
+  return (settings.cardColumnIds ?? []).flatMap(
+    (id): CalendarFieldColumn[] => {
+      if (!columns) {
+        return [{ id, label: id }];
+      }
+      const column = columns.find((item) => item.id === id);
+      return column && id !== settings.titleColumn
+        ? [{ id, label: column.header ?? id, column }]
+        : [];
+    }
+  );
+}
+
 /**
  * Rows with a start date become all-day events; an end before the start is
  * ignored. With the columns and locale, titles read as the table shows the
@@ -214,6 +264,7 @@ export function calendarEvents(
   const titleColumn = format.columns?.find(
     (column) => column.id === settings.titleColumn
   );
+  const fieldColumns = calendarFieldColumns(settings, format.columns);
   return rows.flatMap((row) => {
     const start = localDayKey(row[settings.dateColumn as string]);
     if (!start) {
@@ -229,6 +280,10 @@ export function calendarEvents(
       {
         id: getRowId(row),
         title: fieldText(title, titleColumn, format.locale, row),
+        fields: fieldColumns.flatMap(({ id, label, column }) => {
+          const text = fieldText(row[id], column, format.locale, row);
+          return text ? [{ id, label, text }] : [];
+        }),
         start,
         end: addDays(last, 1),
         allDay: true as const,

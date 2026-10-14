@@ -98,7 +98,8 @@ parent column lists the folders. `table.filetree.newFolderAction: false` and
 ## `calendar` (optional item)
 
 `table.calendar`: `dateColumn` (first date column by default), `endColumn`
-(inclusive), `titleColumn`, `colorColumn`, `layout` (month, week, list),
+(inclusive), `titleColumn`, `colorColumn`, `cardColumnIds` (fields shown
+under the title, none by default), `showCardLabels`, `layout` (month, week, list),
 `weekStartsOn`, `showWeekends`, `allowDragUpdate`, `allowResize`,
 `allowCreate`. The visible range is sent to `list` as
 `scope: { kind: "dateRange", field, endField, from, to }`; moves write back
