@@ -45,7 +45,7 @@ type ExtendedColumnDef = Column<Record<string, unknown>, unknown> & {
 interface SortableColumn {
   canHide?: boolean;
   canSort?: boolean;
-  displayVariant?: "default" | "tag";
+  displayVariant?: "default" | "tag" | "avatars";
   getCanSort: () => boolean;
   id: string;
   label: string;
@@ -99,7 +99,7 @@ interface TableColumnsMenuProps {
 // Get the appropriate icon for a column based on its type or ID
 const getColumnIcon = (column: {
   canSort?: boolean;
-  displayVariant?: "default" | "tag";
+  displayVariant?: "default" | "tag" | "avatars";
   getCanSort?: () => boolean;
   id: string;
   label?: string;
@@ -319,7 +319,7 @@ export function TableColumnsMenu({
           // Get column configuration from table config
           const columnConfig = config?.columns?.definitions?.find(
             (def: {
-              displayVariant?: "default" | "tag";
+              displayVariant?: "default" | "tag" | "avatars";
               id: string;
               type?: string;
               header?: string;

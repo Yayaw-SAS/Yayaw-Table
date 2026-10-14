@@ -38,6 +38,7 @@ or an `instanceId`.
 | `id`, `header`, `type` | Identity, label, type (below). Vue also takes `accessorKey` or `accessorFn`. |
 | `options` | `{ value, label, color? }[]` for select, tag and multi-select columns; values keep their primitive type. |
 | `displayVariant: "tag"`, `coloredTags`, `tagColorMap` | Tags instead of plain text; colors come from the stored value or `color`. |
+| `displayVariant: "avatars"` | People in a `select`/`multiSelect` column: each value as its option's `image`, or its initials, overlapping, with the label in a tooltip; past four, three and "+N" with the other names. |
 | `tags` | `true` or `{ create?, manage?, bulk? }`: a tags column whose options come from `actions.tags` (see [tag catalogs](server-contracts.md#tag-catalogs)); `bulk: "patch"` sends `{ add, remove }` to `bulkUpdate`. In `table.facets`, it lists the catalog's names. |
 | `numberFormat`, `dateDisplayPreset`, `dateFormat`, `timeZone`, `hour12` | Formats, see below. |
 | `withTime` | On a `date` column: values are instants (ISO 8601 strings). Cells default to the `dateTime` preset, forms and inline edits show a date and time input in the column's `timeZone`, and they save an ISO instant in UTC. Filters still compare whole days, in that zone. |

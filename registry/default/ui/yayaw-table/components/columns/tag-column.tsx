@@ -58,7 +58,7 @@ export interface TagColumnOptions {
  * Custom properties for our column definitions
  */
 interface CustomColumnProps {
-  displayVariant?: "default" | "tag";
+  displayVariant?: "default" | "tag" | "avatars";
   icon?: LucideIcon;
   type?: string;
 }

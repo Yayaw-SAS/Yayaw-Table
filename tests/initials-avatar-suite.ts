@@ -11,6 +11,7 @@ export function initialsAvatarSuite(
     | "avatarHue"
     | "avatarInitials"
     | "avatarNameOf"
+    | "avatarStack"
     | "initialsAvatar"
     | "normalizeAvatarOption"
     | "resolveAvatarConfig"
@@ -89,6 +90,22 @@ export function initialsAvatarSuite(
     );
     assert.deepEqual(settings.normalizeListViewConfig({ avatar: true }), {
       avatar: true,
+    });
+  });
+
+  test("a people stack shows up to four, else three and the rest behind +N", () => {
+    const people = ["A", "B", "C", "D", "E", "F"];
+    assert.deepEqual(avatar.avatarStack(people.slice(0, 4)), {
+      shown: ["A", "B", "C", "D"],
+      hidden: [],
+    });
+    assert.deepEqual(avatar.avatarStack(people), {
+      shown: ["A", "B", "C"],
+      hidden: ["D", "E", "F"],
+    });
+    assert.deepEqual(avatar.avatarStack(people, 2), {
+      shown: ["A"],
+      hidden: ["B", "C", "D", "E", "F"],
     });
   });
 }

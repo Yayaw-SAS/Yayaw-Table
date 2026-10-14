@@ -11,8 +11,19 @@ import { rowNumberFormat } from "../../utils/value-format";
 import { BooleanCell } from "./boolean-cell";
 import { CodeCell } from "./code-cell";
 import { DateCell } from "./date-cell";
-import { avatarNameOf, resolveAvatarConfig } from "../../utils/initials-avatar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/src/components/ui/tooltip";
+import {
+  avatarNameOf,
+  avatarStack,
+  resolveAvatarConfig,
+} from "../../utils/initials-avatar";
 import { ImageCell } from "./image-cell";
+import { RecordAvatar } from "./initials-avatar";
 import { JsonCell } from "./json-cell";
 import { LocationCell } from "./location-cell";
 import { NumberCell } from "./number-cell";
@@ -113,6 +124,9 @@ export function DataTypeCell({
     case "select":
     case "multiSelect":
     case "tag":
+      if (column.displayVariant === "avatars") {
+        return <OptionAvatars column={column} value={value} />;
+      }
       return (
         <OptionTags
           column={column}
@@ -133,6 +147,80 @@ const optionOf = (value: unknown, options: unknown) =>
         Object.is(option?.value, value)
       )
     : undefined;
+
+/**
+ * Option values as overlapping avatars (`displayVariant: "avatars"`): each
+ * option's `image`, or its initials, named by a tooltip and for screen readers.
+ */
+function OptionAvatars({
+  column,
+  value,
+}: {
+  column: ColumnDefinition;
+  value: unknown;
+}) {
+  const people = (Array.isArray(value) ? value : [value])
+    .filter((item) => item !== null && item !== undefined && item !== "")
+    .map((item) => {
+      const image = (optionOf(item, column.options) as { image?: unknown })
+        ?.image;
+      return {
+        key: `${typeof item}:${String(item)}`,
+        label: dataTypeOptionLabel(item, column.options),
+        image: typeof image === "string" ? image : undefined,
+      };
+    });
+  const { shown, hidden } = avatarStack(people);
+  const others = hidden.map((person) => person.label).join(", ");
+  return (
+    <TooltipProvider>
+      <span className="yayaw-avatar-stack" data-avatar-stack="">
+        {shown.map((person) => (
+          <Tooltip key={person.key}>
+            <TooltipTrigger
+              render={
+                <span
+                  aria-label={person.label}
+                  className="yayaw-avatar-stack-item"
+                  role="img"
+                  // biome-ignore lint/a11y/noNoninteractiveTabindex: keyboard users reach each name through its tooltip.
+                  tabIndex={0}
+                />
+              }
+            >
+              <RecordAvatar name={person.label} source={person.image} />
+            </TooltipTrigger>
+            <TooltipContent>{person.label}</TooltipContent>
+          </Tooltip>
+        ))}
+        {hidden.length > 0 ? (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <span
+                  aria-label={others}
+                  className="yayaw-avatar-stack-item"
+                  role="img"
+                  // biome-ignore lint/a11y/noNoninteractiveTabindex: keyboard users reach the other names through its tooltip.
+                  tabIndex={0}
+                />
+              }
+            >
+              <span
+                aria-hidden="true"
+                className="yayaw-avatar yayaw-avatar-stack-more"
+                data-avatar=""
+              >
+                +{hidden.length}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{others}</TooltipContent>
+          </Tooltip>
+        ) : null}
+      </span>
+    </TooltipProvider>
+  );
+}
 
 /** Option values as tags: their labels and their own colors. */
 function OptionTags({

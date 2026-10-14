@@ -62,6 +62,8 @@ export interface SelectOption {
   value: PrimitiveValue;
   color?: string;
   disabled?: boolean;
+  /** Picture of the option (a person's photo) for `displayVariant: "avatars"`; initials otherwise. */
+  image?: string;
 }
 
 export interface InlineEditColumnConfig {
@@ -141,7 +143,7 @@ export interface ColumnDefinition<TData extends TableRecord = TableRecord> {
   /** Allow the native column menu to change this column's pinned position. */
   enablePinning?: boolean;
   enableCalculation?: boolean;
-  displayVariant?: "default" | "tag";
+  displayVariant?: "default" | "tag" | "avatars";
   dateDisplayPreset?: DateDisplayPreset;
   dateFormat?: string;
   /** IANA zone used by date presets, e.g. "Europe/Paris". */

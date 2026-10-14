@@ -59,7 +59,7 @@ export interface DataTableColumnDef<
   /**
    * Visual rendering variant for option-like columns.
    */
-  displayVariant?: "default" | "tag";
+  displayVariant?: "default" | "tag" | "avatars";
 
   // Column type for specialized rendering and filtering
   type?: import("../utils/table-contracts").TableDataType;
