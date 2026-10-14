@@ -5,8 +5,8 @@
   "description": "Optional YaYaw Table font preset using Plus Jakarta Sans as the project sans font.",
   "meta": {
     "registryUrl": "https://table.yayaw.app/r/font-yayaw-sans.json",
-    "version": "3.20.4",
-    "versionedRegistryUrl": "https://table.yayaw.app/r/v3.20.4/font-yayaw-sans.json"
+    "version": "3.21.0",
+    "versionedRegistryUrl": "https://table.yayaw.app/r/v3.21.0/font-yayaw-sans.json"
   },
   "docs": "Installs the optional YaYaw Table sans font preset. This item is additive; installing `yayaw-table` does not require it.",
   "categories": ["font", "theme", "yayaw-table"],
