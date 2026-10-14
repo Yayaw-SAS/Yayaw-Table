@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.22.0
+
+### Minor Changes
+
+- 14e45b8: Calendar events can show more than their title, in React and Vue. `calendar.cardColumnIds` lists the columns shown under the title, one line each, formatted as the table shows them (option labels, currencies, dates), and `calendar.showCardLabels` prefixes each line with its column label. Users choose both in the calendar's view settings ("Fields" and "Show labels", as on Kanban cards), and saved views keep them. Without `cardColumnIds`, events keep their one-line title.
+- 91fea3d: `displayVariant: "avatars"` shows the values of a `select` or `multiSelect` column as people, in React and Vue: each option's new `image` (a photo), or its initials, overlapping, with the option's label in a tooltip and for screen readers. Past four people, three show and "+N" names the others.
+
+### Patch Changes
+
+- 495e55e: The multi-selection action bar always floats over the page, at the bottom of the viewport (or at its top with `table.bulkActionsPosition: "top"`), and no longer drops under the table or into the pagination footer when the table's end is in view. React and Vue.
+- 23a169e: The connector screen keeps a long "Connected as …" account name on one cut line, with the full name on hover, instead of widening the screen past its menu (React and Vue).
+
 ## 3.21.0
 
 ### Minor Changes

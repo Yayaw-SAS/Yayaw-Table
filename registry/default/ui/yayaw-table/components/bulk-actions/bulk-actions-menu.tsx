@@ -341,14 +341,11 @@ const transition = {
   duration: 0.6,
 };
 
+/** The table's bar always floats over the page, at the viewport's bottom or top, never under the table. */
 export function getBulkActionsMenuPositionMode(
-  isTableBottomVisible: boolean,
   position: BulkActionsPosition = "bottom"
 ): BulkActionsMenuPositionMode {
-  if (position === "top") {
-    return "top";
-  }
-  return isTableBottomVisible ? "anchored" : "fixed";
+  return position === "top" ? "top" : "fixed";
 }
 
 export function getBulkActionsMenuWrapperClassName({
