@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Eye, RefreshCw, Send, TriangleAlert } from "lucide-vue-next";
+import { Eye, FolderOpen, LogIn, RefreshCw, Send, TriangleAlert } from "lucide-vue-next";
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, useId } from "vue";
 import {
   applyConnectorField,
@@ -190,6 +190,11 @@ const resolveConflicts = (resolutions: PendingConflictResolution[]): void => {
 const run = (action: () => Promise<void>): void => {
   action().catch(() => undefined);
 };
+// Until the person's account is connected, the screen only offers to connect it.
+const accountGate = computed(() => Boolean(props.connector.account) && !state.value.account?.connected);
+const accountLabel = computed(() =>
+  state.value.account?.label ? t("connectedAs", { account: state.value.account.label }) : t("connected")
+);
 </script>
 
 <template>
@@ -199,6 +204,18 @@ const run = (action: () => Promise<void>): void => {
     </p>
     <ConnectorConflicts v-else-if="state.conflictsOpen" :view="conflicts" :busy="state.resolvingConflicts"
       :error="state.error" @resolve="resolveConflicts" @back="flow.showConflicts(false)" />
+    <div v-else-if="accountGate" class="yayaw-connector-account-gate" data-connector-account-gate>
+      <p class="yayaw-schedule-muted">{{ t("accountRequired") }}</p>
+      <p v-if="state.error" class="yayaw-connector-error" role="alert">{{ state.error }}</p>
+      <div class="yayaw-schedule-actions">
+        <button type="button" class="yayaw-button" :disabled="state.connecting" :aria-busy="state.connecting"
+          @click="run(flow.connectAccount)">
+          <span v-if="state.connecting" class="yayaw-spinner" aria-hidden="true" />
+          <LogIn v-else :size="16" aria-hidden="true" />
+          {{ state.connecting ? t("connectingAccount") : (connector.account?.connectLabel ?? t("connectAccount")) }}
+        </button>
+      </div>
+    </div>
     <div v-else-if="showResult" class="yayaw-connector-result" data-connector-result>
       <output class="yayaw-connector-summary" aria-live="polite">
         <p class="yayaw-connector-counts" data-connector-summary>{{ result.summary }}</p>
@@ -219,6 +236,19 @@ const run = (action: () => Promise<void>): void => {
     <ColumnMapping v-else :before="sections.before" :rows="sections.rows" :key-field="sections.keyField"
       :after="sections.after" @change="change">
       <template #after-target>
+        <div v-if="connector.account" class="yayaw-connector-account" data-connector-account>
+          <span class="yayaw-schedule-muted">{{ accountLabel }}</span>
+          <button v-if="connector.account.disconnect" type="button" class="yayaw-button yayaw-button-ghost"
+            :disabled="state.connecting" :aria-busy="state.connecting" @click="run(flow.disconnectAccount)">
+            {{ t("disconnectAccount") }}
+          </button>
+        </div>
+        <button v-if="connector.pickTarget" type="button" class="yayaw-button yayaw-button-outline yayaw-connector-pick"
+          data-connector-pick-target :disabled="state.resolving" :aria-busy="state.resolving" @click="run(flow.pickTarget)">
+          <span v-if="state.resolving" class="yayaw-spinner" aria-hidden="true" />
+          <FolderOpen v-else :size="16" aria-hidden="true" />
+          {{ connector.pickTarget.label ?? t("pickTarget") }}
+        </button>
         <form v-if="connector.allowTargetInput" class="yayaw-connector-input" data-connector-target-input
           @submit.prevent="resolveInput">
           <label :for="`${id}-input`">{{ connector.allowTargetInput.label }}</label>

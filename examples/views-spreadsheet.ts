@@ -512,3 +512,51 @@ export function createSpreadsheetConnector(table: DemoTable) {
     },
   };
 }
+
+/**
+ * The same spreadsheets through the person's own account: "Connect your
+ * account" first, then "Browse…" (a provider picker, here the team tracker)
+ * adds the spreadsheets this app may use.
+ */
+export function createDriveConnector(table: DemoTable) {
+  const spreadsheet = createSpreadsheetConnector(table);
+  let account: string | null = null;
+  const picked: ConnectorTarget[] = [];
+  return {
+    ...spreadsheet,
+    id: "drive",
+    label: "My Drive",
+    schedule: undefined,
+    connector: {
+      ...spreadsheet.connector,
+      allowTargetInput: undefined,
+      help: undefined,
+      targets: () => Promise.resolve([...picked]),
+      account: {
+        status: () =>
+          Promise.resolve(
+            account ? { connected: true, label: account } : { connected: false }
+          ),
+        connect: () => {
+          account = "ada@example.com";
+          return Promise.resolve();
+        },
+        disconnect: () => {
+          account = null;
+          picked.length = 0;
+          return Promise.resolve();
+        },
+      },
+      pickTarget: {
+        pick: async () => {
+          const all = await spreadsheet.connector.targets();
+          const target = all.find((item) => item.id === "team-tracker") ?? null;
+          if (target && !picked.some((item) => item.id === target.id)) {
+            picked.push(target);
+          }
+          return target;
+        },
+      },
+    },
+  };
+}

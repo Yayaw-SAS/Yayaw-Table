@@ -19,7 +19,10 @@ import {
 import { writeXlsx } from "../src/components/ui/yayaw-table-excel/xlsx-writer";
 import { createDemoFormLinks, demoFormResponses } from "./form-links";
 import { createNotionConnector } from "./views-notion";
-import { createSpreadsheetConnector } from "./views-spreadsheet";
+import {
+  createDriveConnector,
+  createSpreadsheetConnector,
+} from "./views-spreadsheet";
 
 const HOUR_MS = 3_600_000;
 /** Posted some hours before the page loaded, so the feed reads "2 hr. ago". */
@@ -614,6 +617,8 @@ export function createViewsActions(host: { aggregate?: boolean } = {}) {
       },
       // A connector: the row opens the table's send screens instead of `run`.
       createSpreadsheetConnector(sheetTable),
+      // The person's own account, then a provider picker ("Browse…").
+      createDriveConnector(sheetTable),
       // A Notion connector whose database drifted: see the target check.
       createNotionConnector(),
       {

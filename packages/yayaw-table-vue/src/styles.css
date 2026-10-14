@@ -3810,6 +3810,26 @@
   display: grid;
   gap: 4px;
 }
+.yayaw-connector-account-gate {
+  display: grid;
+  gap: 12px;
+}
+.yayaw-connector-account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 14px;
+}
+.yayaw-connector-account > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-connector-pick {
+  justify-self: start;
+}
 .yayaw-connector-refresh {
   justify-self: start;
   height: 28px;

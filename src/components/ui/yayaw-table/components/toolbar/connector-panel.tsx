@@ -3,6 +3,8 @@
 import {
   ArrowLeft,
   CircleCheck,
+  FolderOpen,
+  LogIn,
   Eye,
   Loader2,
   Lock,
@@ -176,6 +178,121 @@ function TargetTools({
         </p>
       ) : null}
     </div>
+  );
+}
+
+/** Until the person's account is connected, the screen only offers to connect it. */
+function AccountGate({
+  connector,
+  flow,
+  state,
+  t,
+}: {
+  connector: TableConnector;
+  flow: ConnectorFlow;
+  state: ConnectorFlowState;
+  t: ConnectorT;
+}) {
+  return (
+    <div className="grid gap-3" data-connector-account-gate>
+      <p className="text-muted-foreground text-sm">{t("accountRequired")}</p>
+      {state.error ? (
+        <p className="text-destructive text-sm" role="alert">
+          {state.error}
+        </p>
+      ) : null}
+      <Button
+        aria-busy={state.connecting}
+        className="justify-self-start"
+        disabled={state.connecting}
+        onClick={() => {
+          flow.connectAccount().catch(() => undefined);
+        }}
+        type="button"
+      >
+        {state.connecting ? (
+          <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+        ) : (
+          <LogIn aria-hidden="true" className="size-4" />
+        )}
+        {state.connecting
+          ? t("connectingAccount")
+          : (connector.account?.connectLabel ?? t("connectAccount"))}
+      </Button>
+    </div>
+  );
+}
+
+/** "Connected as …" with Disconnect, above the target. */
+function AccountBar({
+  connector,
+  flow,
+  state,
+  t,
+}: {
+  connector: TableConnector;
+  flow: ConnectorFlow;
+  state: ConnectorFlowState;
+  t: ConnectorT;
+}) {
+  const label = state.account?.label;
+  return (
+    <div
+      className="flex items-center justify-between gap-2 text-sm"
+      data-connector-account
+    >
+      <span className="min-w-0 truncate text-muted-foreground">
+        {label ? t("connectedAs", { account: label }) : t("connected")}
+      </span>
+      {connector.account?.disconnect ? (
+        <Button
+          aria-busy={state.connecting}
+          disabled={state.connecting}
+          onClick={() => {
+            flow.disconnectAccount().catch(() => undefined);
+          }}
+          size="sm"
+          type="button"
+          variant="ghost"
+        >
+          {t("disconnectAccount")}
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+/** "Browse…": the provider's own picker chooses the target. */
+function PickTargetButton({
+  pick,
+  flow,
+  state,
+  t,
+}: {
+  pick: NonNullable<TableConnector["pickTarget"]>;
+  flow: ConnectorFlow;
+  state: ConnectorFlowState;
+  t: ConnectorT;
+}) {
+  return (
+    <Button
+      aria-busy={state.resolving}
+      className="justify-self-start"
+      data-connector-pick-target
+      disabled={state.resolving}
+      onClick={() => {
+        flow.pickTarget().catch(() => undefined);
+      }}
+      type="button"
+      variant="outline"
+    >
+      {state.resolving ? (
+        <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+      ) : (
+        <FolderOpen aria-hidden="true" className="size-4" />
+      )}
+      {pick.label ?? t("pickTarget")}
+    </Button>
   );
 }
 
@@ -1220,8 +1337,26 @@ export function ConnectorPanel({
       </StackMenuContent>
     );
   }
+  if (connector.account && !state.account?.connected) {
+    return (
+      <StackMenuContent className="p-3" data-connector-panel>
+        <AccountGate connector={connector} flow={flow} state={state} t={t} />
+      </StackMenuContent>
+    );
+  }
   const targetInput = (
     <>
+      {connector.account ? (
+        <AccountBar connector={connector} flow={flow} state={state} t={t} />
+      ) : null}
+      {connector.pickTarget ? (
+        <PickTargetButton
+          flow={flow}
+          pick={connector.pickTarget}
+          state={state}
+          t={t}
+        />
+      ) : null}
       {connector.allowTargetInput ? (
         <TargetInput
           busy={state.resolving}

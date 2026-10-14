@@ -403,6 +403,8 @@ function runs host code; do the work on the server.
 | `connector.checkSchema` | Server-side target check; by default the screen checks the `describe` fields. |
 | `connector.prepareTarget` | `(fixes, settings, context)` applies fixable issues ("Prepare Notion database"). |
 | `connector.createTarget` | `{ label?, parents?, create }`: "Create one from this table's columns…". |
+| `connector.account` | `{ status(context), connect(context), disconnect?(context), connectLabel? }`: the person's own account (e.g. Google OAuth), connected from the screen before targets are listed; an `unauthorized` or `invalid_credentials` failure offers "Connect your account" again. |
+| `connector.pickTarget` | `{ label?, pick(context) }`: "Browse…" opens the provider's picker (e.g. Google Picker) and returns the chosen target, or `null`. |
 | `connector.labels` | `{ target?, child? }` names, such as "Spreadsheet" and "Tab". |
 | `connector.help` | `{ notShared?, missingTarget? }` messages. |
 
