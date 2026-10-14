@@ -155,8 +155,14 @@ test("a connector with an account connects first, then browses for its target", 
     .getByRole("button", { name: "Connect your account", exact: true })
     .click();
   await expect(panel.locator("[data-connector-account]")).toContainText(
-    "Connected as ada@example.com"
+    "Connected as ada.lovelace@analytical-engine-society.example.com"
   );
+  // A long account name is cut: the screen never grows wider than its menu.
+  expect(
+    await panel.evaluate(
+      (element) => element.scrollWidth <= element.clientWidth
+    )
+  ).toBe(true);
   await panel.getByRole("button", { name: "Browse…", exact: true }).click();
   await expect(panel.getByRole("combobox", { name: "Spreadsheet" })).toHaveText(
     TEAM_TRACKER

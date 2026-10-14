@@ -3819,6 +3819,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  /* A long account name is cut, never widens the screen past its menu. */
+  min-width: 0;
   font-size: 14px;
 }
 .yayaw-connector-account > span {
