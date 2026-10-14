@@ -9,7 +9,11 @@ import {
 import type { ColumnDefinition } from "../../config/helpers";
 import { useTagCatalog } from "../../providers/tag-catalog-provider";
 import type { DateDisplayPreset } from "../../types/date-types";
-import { avatarNameOf, resolveAvatarConfig } from "../../utils/initials-avatar";
+import {
+  avatarNameOf,
+  avatarStack,
+  resolveAvatarConfig,
+} from "../../utils/initials-avatar";
 import {
   dataTypeOptionLabel,
   resolveDataType,
@@ -156,38 +160,64 @@ function OptionAvatars({
   column: ColumnDefinition;
   value: unknown;
 }) {
-  const values = (Array.isArray(value) ? value : [value]).filter(
-    (item) => item !== null && item !== undefined && item !== ""
-  );
+  const people = (Array.isArray(value) ? value : [value])
+    .filter((item) => item !== null && item !== undefined && item !== "")
+    .map((item) => {
+      const image = (optionOf(item, column.options) as { image?: unknown })
+        ?.image;
+      return {
+        key: `${typeof item}:${String(item)}`,
+        label: dataTypeOptionLabel(item, column.options),
+        image: typeof image === "string" ? image : undefined,
+      };
+    });
+  const { shown, hidden } = avatarStack(people);
+  const others = hidden.map((person) => person.label).join(", ");
   return (
     <TooltipProvider>
       <span className="yayaw-avatar-stack" data-avatar-stack="">
-        {values.map((item) => {
-          const label = dataTypeOptionLabel(item, column.options);
-          const image = (optionOf(item, column.options) as { image?: unknown })
-            ?.image;
-          return (
-            <Tooltip key={`${typeof item}:${String(item)}`}>
-              <TooltipTrigger
-                render={
-                  <span
-                    aria-label={label}
-                    className="yayaw-avatar-stack-item"
-                    role="img"
-                    // biome-ignore lint/a11y/noNoninteractiveTabindex: keyboard users reach each name through its tooltip.
-                    tabIndex={0}
-                  />
-                }
-              >
-                <RecordAvatar
-                  name={label}
-                  source={typeof image === "string" ? image : undefined}
+        {shown.map((person) => (
+          <Tooltip key={person.key}>
+            <TooltipTrigger
+              render={
+                <span
+                  aria-label={person.label}
+                  className="yayaw-avatar-stack-item"
+                  role="img"
+                  // biome-ignore lint/a11y/noNoninteractiveTabindex: keyboard users reach each name through its tooltip.
+                  tabIndex={0}
                 />
-              </TooltipTrigger>
-              <TooltipContent>{label}</TooltipContent>
-            </Tooltip>
-          );
-        })}
+              }
+            >
+              <RecordAvatar name={person.label} source={person.image} />
+            </TooltipTrigger>
+            <TooltipContent>{person.label}</TooltipContent>
+          </Tooltip>
+        ))}
+        {hidden.length > 0 ? (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <span
+                  aria-label={others}
+                  className="yayaw-avatar-stack-item"
+                  role="img"
+                  // biome-ignore lint/a11y/noNoninteractiveTabindex: keyboard users reach the other names through its tooltip.
+                  tabIndex={0}
+                />
+              }
+            >
+              <span
+                aria-hidden="true"
+                className="yayaw-avatar yayaw-avatar-stack-more"
+                data-avatar=""
+              >
+                +{hidden.length}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{others}</TooltipContent>
+          </Tooltip>
+        ) : null}
       </span>
     </TooltipProvider>
   );

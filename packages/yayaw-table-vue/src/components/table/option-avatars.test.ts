@@ -65,6 +65,21 @@ it("shows people as avatars: the option's image, else initials, each named for s
   expect(wrapper.find(".yayaw-tag").exists()).toBe(false);
 });
 
+it("shows three people and +N with the others' names past four", () => {
+  const people = ["Ada", "Grace", "Hedy", "Katherine", "Margaret"].map(
+    (label, index) => ({ value: index, label })
+  );
+  const wrapper = mountCell({ ...owners, options: people }, [0, 1, 2, 3, 4]);
+  const items = wrapper.findAll(".yayaw-avatar-stack-item");
+  expect(items.map((item) => item.attributes("aria-label"))).toEqual([
+    "Ada",
+    "Grace",
+    "Hedy",
+    "Katherine, Margaret",
+  ]);
+  expect(items[3]?.text()).toBe("+2");
+});
+
 it("keeps tags for the other option columns", () => {
   const wrapper = mountCell({ ...owners, displayVariant: "tag" }, [2]);
   expect(wrapper.find(".yayaw-avatar-stack").exists()).toBe(false);

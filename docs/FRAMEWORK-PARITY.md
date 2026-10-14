@@ -2212,7 +2212,7 @@ and Vue).
 `displayVariant: "avatars"` on a `select`, `multiSelect` or `tag` column draws
 each value as an avatar instead of a tag: the option's `image` (a person's
 photo), or initials on a stable color from its label when there is none or it
-fails to load, overlapping with a ring of the background. Each avatar is
+fails to load, overlapping with a ring of the background. Up to four people show; past four, three show and "+N" names the others (`avatarStack`, `AVATAR_STACK_LIMIT`). Each avatar is
 keyboard-focusable, reads as the option's label (`role="img"`) and shows it in
 a tooltip. Options gain an optional `image`. Filters, editors and exports keep
 reading the option labels. React renders `OptionAvatars` in

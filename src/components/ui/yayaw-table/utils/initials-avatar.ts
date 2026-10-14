@@ -152,3 +152,19 @@ export function initialsAvatar(
     style: { "--yayaw-avatar-hue": String(hue) },
   };
 }
+
+/** Avatars a people cell shows before "+N" (`displayVariant: "avatars"`). */
+export const AVATAR_STACK_LIMIT = 4;
+
+/**
+ * The people a cell shows, and the rest behind "+N": all of them up to the
+ * limit, else one less than the limit so the counter takes the last place.
+ */
+export function avatarStack<T>(
+  people: readonly T[],
+  limit = AVATAR_STACK_LIMIT
+): { shown: T[]; hidden: T[] } {
+  const visible =
+    people.length > limit ? Math.max(limit - 1, 1) : people.length;
+  return { shown: people.slice(0, visible), hidden: people.slice(visible) };
+}

@@ -58,6 +58,12 @@
 .yayaw-avatar-stack-item > .yayaw-avatar {
   --yayaw-avatar-size: 1.5rem;
 }
+.yayaw-avatar-stack-more {
+  --yayaw-avatar-size: 1.5rem;
+  background: var(--yayaw-muted, var(--muted, #f4f4f5));
+  color: var(--yayaw-muted-foreground, var(--muted-foreground, #71717a));
+  font-size: 0.6875rem;
+}
 @media (forced-colors: active) {
   .yayaw-avatar {
     border: 1px solid CanvasText;

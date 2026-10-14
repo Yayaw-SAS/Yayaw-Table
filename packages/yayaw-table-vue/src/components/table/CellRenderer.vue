@@ -21,7 +21,7 @@ import { AlignLeft, Braces, Calendar, CalendarClock, Check, ChevronDown, Hash, I
 import CellActions from "./CellActions.vue";
 import InitialsAvatar from "../controls/InitialsAvatar.vue";
 import TableTooltip from "../toolbar/TableTooltip.vue";
-import { avatarInitials, avatarNameOf, resolveAvatarConfig } from "../../initials-avatar";
+import { avatarInitials, avatarNameOf, avatarStack, resolveAvatarConfig } from "../../initials-avatar";
 import InlineMultiSelect from "./InlineMultiSelect.vue";
 import TagPicker from "../tags/TagPicker.vue";
 import LocationEditor from "../location/LocationEditor.vue";
@@ -460,7 +460,9 @@ const createTag = computed(() => {
     : undefined;
 });
 /** Option values as avatars (`displayVariant: "avatars"`): each option's image, else initials of its label. */
-const avatarItems = computed(() =>
+const avatarItems = computed(() => avatarStack(avatarPeople.value));
+const avatarOthers = computed(() => avatarItems.value.hidden.map((person) => person.label).join(", "));
+const avatarPeople = computed(() =>
   tags.value
     .filter((item) => item !== null && item !== undefined && item !== "")
     .map((item) => {
@@ -670,10 +672,17 @@ const tagChip = (value: unknown) => {
       class="yayaw-avatar-stack"
       data-avatar-stack=""
     >
-      <TableTooltip v-for="person in avatarItems" :key="person.key" :label="person.label">
+      <TableTooltip v-for="person in avatarItems.shown" :key="person.key" :label="person.label">
         <span class="yayaw-avatar-stack-item" role="img" :aria-label="person.label" tabindex="0"
           ><InitialsAvatar :name="person.label" :source="person.image" decorative
         /></span>
+      </TableTooltip>
+      <TableTooltip v-if="avatarItems.hidden.length" :label="avatarOthers">
+        <span class="yayaw-avatar-stack-item" role="img" :aria-label="avatarOthers" tabindex="0"
+          ><span class="yayaw-avatar yayaw-avatar-stack-more" data-avatar="" aria-hidden="true"
+            >+{{ avatarItems.hidden.length }}</span
+          ></span
+        >
       </TableTooltip>
     </span>
     <span
