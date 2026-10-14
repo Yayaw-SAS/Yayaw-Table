@@ -46,6 +46,8 @@ export interface InlineEditOption {
   disabled?: boolean;
   label: string;
   value: boolean | number | string;
+  /** Picture of the option (a person's photo) for `displayVariant: "avatars"`; initials otherwise. */
+  image?: string;
 }
 
 /**
@@ -355,8 +357,10 @@ export interface ColumnDefinition {
   /**
    * Visual rendering variant for option-like columns.
    * Use "tag" to render a pill/badge style while keeping type as select/multiSelect.
+   * Use "avatars" for people: each value as its option's `image`, or its
+   * initials, overlapping, with the option's label in a tooltip.
    */
-  displayVariant?: "default" | "tag";
+  displayVariant?: "default" | "tag" | "avatars";
 
   /**
    * Date display preset for date columns

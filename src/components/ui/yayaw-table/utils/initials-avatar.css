@@ -37,6 +37,27 @@
 .yayaw-avatar[data-size="cell"] {
   --yayaw-avatar-size: 2.5rem;
 }
+/* Option values as avatars (`displayVariant: "avatars"`): overlapping, each named by its tooltip. */
+.yayaw-avatar-stack {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+.yayaw-avatar-stack-item {
+  display: inline-flex;
+  border-radius: 9999px;
+  box-shadow: 0 0 0 2px var(--yayaw-background, var(--background, #fff));
+}
+.yayaw-avatar-stack-item + .yayaw-avatar-stack-item {
+  margin-left: -0.375rem;
+}
+.yayaw-avatar-stack-item:focus-visible {
+  outline: 2px solid var(--yayaw-ring, var(--ring, currentColor));
+  outline-offset: 1px;
+}
+.yayaw-avatar-stack-item > .yayaw-avatar {
+  --yayaw-avatar-size: 1.5rem;
+}
 @media (forced-colors: active) {
   .yayaw-avatar {
     border: 1px solid CanvasText;

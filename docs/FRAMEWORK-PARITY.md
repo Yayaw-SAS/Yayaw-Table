@@ -2207,6 +2207,20 @@ chosen target, which joins the list and is described like a pasted link;
 editions) and `e2e/connectors.spec.ts` ("My Drive" demo destination, React
 and Vue).
 
+### People as avatars
+
+`displayVariant: "avatars"` on a `select`, `multiSelect` or `tag` column draws
+each value as an avatar instead of a tag: the option's `image` (a person's
+photo), or initials on a stable color from its label when there is none or it
+fails to load, overlapping with a ring of the background. Each avatar is
+keyboard-focusable, reads as the option's label (`role="img"`) and shows it in
+a tooltip. Options gain an optional `image`. Filters, editors and exports keep
+reading the option labels. React renders `OptionAvatars` in
+`data-type-cell.tsx` with `RecordAvatar`, Vue the same markup in
+`CellRenderer.vue` with `InitialsAvatar` and `TableTooltip`; the shared styles
+are in `initials-avatar.css`. Coverage: `tests/option-avatars.test.tsx` and
+`option-avatars.test.ts` (Vue).
+
 ## Sync in the connector screen
 
 A connector may declare `directions` (default `["push"]`), `conflictRules`

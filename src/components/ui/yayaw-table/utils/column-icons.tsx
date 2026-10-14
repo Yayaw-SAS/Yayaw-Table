@@ -68,7 +68,7 @@ const getSemanticSelectIcon = (
 export const getColumnTypeIcon = (
   columnType: string,
   columnId?: string,
-  displayVariant?: "default" | "tag"
+  displayVariant?: "default" | "tag" | "avatars"
 ): LucideIcon => {
   if (displayVariant === "tag") {
     return Tag;
@@ -99,7 +99,7 @@ export const ColumnIcon = ({
 }: {
   columnType: string;
   columnId?: string;
-  displayVariant?: "default" | "tag";
+  displayVariant?: "default" | "tag" | "avatars";
   className?: string;
 }) => {
   const IconComponent = getColumnTypeIcon(

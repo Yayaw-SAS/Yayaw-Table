@@ -20,6 +20,7 @@ import { inlineEditorIcon, type InlineEditorIcon, resolveDataType, resolveDataTy
 import { AlignLeft, Braces, Calendar, CalendarClock, Check, ChevronDown, Hash, Image as ImageIcon, Link, ListChecks, MapPin, PencilLine, Tag } from "lucide-vue-next";
 import CellActions from "./CellActions.vue";
 import InitialsAvatar from "../controls/InitialsAvatar.vue";
+import TableTooltip from "../toolbar/TableTooltip.vue";
 import { avatarInitials, avatarNameOf, resolveAvatarConfig } from "../../initials-avatar";
 import InlineMultiSelect from "./InlineMultiSelect.vue";
 import TagPicker from "../tags/TagPicker.vue";
@@ -458,6 +459,15 @@ const createTag = computed(() => {
     ? (name: string) => catalog.create(columnId, name)
     : undefined;
 });
+/** Option values as avatars (`displayVariant: "avatars"`): each option's image, else initials of its label. */
+const avatarItems = computed(() =>
+  tags.value
+    .filter((item) => item !== null && item !== undefined && item !== "")
+    .map((item) => {
+      const option = props.column.options?.find((entry) => Object.is(entry.value, item));
+      return { key: `${typeof item}:${String(item)}`, label: option?.label ?? String(item), image: option?.image };
+    })
+);
 /** How a value shows as a tag: its option's label and color. */
 const tagChip = (value: unknown) => {
   const option = props.column.options?.find((item) => Object.is(item.value, value));
@@ -650,6 +660,22 @@ const tagChip = (value: unknown) => {
       }}</template>
       <template v-else>{{ url }}</template>
     </a>
+    <span
+      v-else-if="
+        effectiveColumn.displayVariant === 'avatars' &&
+        (effectiveColumn.type === 'select' ||
+          effectiveColumn.type === 'multiSelect' ||
+          effectiveColumn.type === 'tag')
+      "
+      class="yayaw-avatar-stack"
+      data-avatar-stack=""
+    >
+      <TableTooltip v-for="person in avatarItems" :key="person.key" :label="person.label">
+        <span class="yayaw-avatar-stack-item" role="img" :aria-label="person.label" tabindex="0"
+          ><InitialsAvatar :name="person.label" :source="person.image" decorative
+        /></span>
+      </TableTooltip>
+    </span>
     <span
       v-else-if="
         effectiveColumn.type === 'select' ||
