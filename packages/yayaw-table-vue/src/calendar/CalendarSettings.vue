@@ -52,6 +52,22 @@ const durationOptions = computed(() =>
     .filter((column) => DURATION_TYPES.has(String(column.type ?? "text")))
     .map(option)
 );
+const fieldOptions = computed(() =>
+  columns.value
+    .filter((column) => column.id !== active.value.titleColumn)
+    .map(option)
+);
+const properties = computed(() => ({
+  label: label("properties", "Fields"),
+  options: fieldOptions.value,
+  value: (active.value.cardColumnIds ?? []).filter((id) =>
+    fieldOptions.value.some((item) => item.value === id)
+  ),
+  onChange: (cardColumnIds: string[]) => update({ cardColumnIds }),
+  showLabels: active.value.showCardLabels === true,
+  showLabelsLabel: label("showLabels", "Show labels"),
+  onShowLabelsChange: (showCardLabels: boolean) => update({ showCardLabels }),
+}));
 const none = computed(() => ({ value: NONE, label: label("none", "None") }));
 const update = (patch: CalendarViewSettings): void => {
   const next: Record<string, unknown> = { ...view.value, ...patch };
@@ -164,7 +180,7 @@ const fields = computed(() => [
 </script>
 
 <template>
-  <ViewSettingsPanel :fields="fields">
+  <ViewSettingsPanel :fields="fields" :properties="properties">
     <button
       type="button"
       class="yayaw-button yayaw-button-outline"

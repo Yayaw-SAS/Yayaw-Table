@@ -117,3 +117,19 @@
   background: var(--secondary, var(--yayaw-muted));
   color: var(--secondary-foreground, var(--yayaw-foreground));
 }
+.yayaw-calendar .yayaw-calendar-pill[data-fields] {
+  white-space: normal;
+}
+.yayaw-calendar-pill-title,
+.yayaw-calendar-pill-field {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-calendar-pill-title {
+  font-weight: 500;
+}
+.yayaw-calendar-pill-field {
+  opacity: 0.8;
+}

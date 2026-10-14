@@ -1144,6 +1144,8 @@ export const VIEW_MODE_SETTING_KEYS: Readonly<
     "defaultDuration",
     "titleColumn",
     "colorColumn",
+    "cardColumnIds",
+    "showCardLabels",
     "layout",
     "weekStartsOn",
     "showWeekends",

@@ -125,3 +125,39 @@ test("clicking an event opens its record view", async ({ page }) => {
   await event(page, "Bravo audit").click();
   await expect(page.getByText("Activity").first()).toBeVisible();
 });
+
+test("fields from a shared link show under the title, with their labels", async ({
+  page,
+}) => {
+  const settings = {
+    cardColumnIds: ["category", "price"],
+    showCardLabels: true,
+  };
+  await page.goto(
+    `${CALENDAR}&${SETTINGS_PARAM}=${encodeURIComponent(JSON.stringify(settings))}`
+  );
+  const alpha = event(page, "Alpha launch");
+  await expect(alpha.locator('[data-calendar-field="category"]')).toHaveText(
+    "Category: Software"
+  );
+  await expect(alpha.locator('[data-calendar-field="price"]')).toHaveText(
+    "Price: €49.00"
+  );
+});
+
+test("the fields shown on events are chosen in the calendar settings", async ({
+  page,
+}) => {
+  await page.goto(CALENDAR);
+  const alpha = event(page, "Alpha launch");
+  await expect(alpha.locator("[data-calendar-field]")).toHaveCount(0);
+  await page.getByRole("button", { name: "View settings" }).click();
+  const menu = page.getByRole("dialog", { name: "View settings" });
+  await menu.getByRole("button", { name: CARD_SETTINGS }).click();
+  await page.getByRole("button", { name: "Fields" }).click();
+  await page.getByRole("checkbox", { name: "Category" }).click();
+  await expect(alpha.locator('[data-calendar-field="category"]')).toHaveText(
+    "Software"
+  );
+  expect(settingsParam(page)).toMatchObject({ cardColumnIds: ["category"] });
+});

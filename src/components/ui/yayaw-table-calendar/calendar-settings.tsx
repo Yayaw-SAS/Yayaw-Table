@@ -79,6 +79,10 @@ export function CalendarSettings({
     context.updateSettings(next);
   };
 
+  const fieldOptions = columns
+    .filter((column) => column.id !== active.titleColumn)
+    .map(option);
+
   return (
     <ViewSettingsPanel
       fields={[
@@ -197,6 +201,17 @@ export function CalendarSettings({
           (allowCreate) => update({ allowCreate })
         ),
       ]}
+      properties={{
+        label: label("properties", "Fields"),
+        options: fieldOptions,
+        value: (active.cardColumnIds ?? []).filter((id) =>
+          fieldOptions.some((item) => item.value === id)
+        ),
+        onChange: (cardColumnIds) => update({ cardColumnIds }),
+        showLabels: active.showCardLabels === true,
+        showLabelsLabel: label("showLabels", "Show labels"),
+        onShowLabelsChange: (showCardLabels) => update({ showCardLabels }),
+      }}
     >
       <Button
         className="font-normal"

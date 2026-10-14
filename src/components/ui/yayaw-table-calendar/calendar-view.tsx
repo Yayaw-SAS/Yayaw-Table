@@ -29,6 +29,7 @@ import { Button } from "@/src/components/ui/button";
 import type { DisplayModeRenderContext } from "@/src/components/ui/yayaw-table/types/display-mode-renderer";
 import {
   addDays,
+  type CalendarEventField,
   type CalendarLayout,
   type CalendarViewSettings,
   calendarCanResize,
@@ -92,7 +93,12 @@ const THEME_STYLE = {
 interface EventMeta {
   row: RowRecord;
   appearance?: ReturnType<typeof tagAppearance>;
+  fields: CalendarEventField[];
+  showLabels: boolean;
 }
+
+const fieldLine = (field: CalendarEventField, showLabels: boolean) =>
+  showLabels ? `${field.label}: ${field.text}` : field.text;
 
 function useCalendarRows(
   context: DisplayModeRenderContext,
@@ -145,10 +151,12 @@ function useCalendarRows(
 function EventContent({ info }: { info: EventDisplayInfo }) {
   const meta = info.event.extendedProps as unknown as EventMeta;
   const appearance = meta.appearance;
+  const lines = meta.fields.map((field) => fieldLine(field, meta.showLabels));
   return (
     <span
       className={cn(
-        "yayaw-tag block w-full truncate px-1.5 py-0.5 text-xs",
+        "yayaw-tag block w-full px-1.5 py-0.5 text-xs",
+        lines.length ? "whitespace-normal" : "truncate",
         appearance?.colored
           ? appearance.className
           : "bg-secondary text-secondary-foreground",
@@ -157,9 +165,24 @@ function EventContent({ info }: { info: EventDisplayInfo }) {
       data-colored={appearance?.colored ? "true" : undefined}
       data-custom-color={appearance?.className ? "" : undefined}
       style={appearance?.style as CSSProperties | undefined}
-      title={info.event.title}
+      title={[info.event.title, ...lines].join("\n")}
     >
-      {info.event.title}
+      {lines.length ? (
+        <>
+          <span className="block truncate font-medium">{info.event.title}</span>
+          {meta.fields.map((field, index) => (
+            <span
+              className="block truncate opacity-80"
+              data-calendar-field={field.id}
+              key={field.id}
+            >
+              {lines[index]}
+            </span>
+          ))}
+        </>
+      ) : (
+        info.event.title
+      )}
     </span>
   );
 }
@@ -283,6 +306,8 @@ export function CalendarView({
           durationEditable: calendarCanResize(settings) && editable,
           extendedProps: {
             row,
+            fields: event.fields,
+            showLabels: settings.showCardLabels === true,
             appearance:
               event.colorValue === undefined
                 ? undefined

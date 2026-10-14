@@ -126,6 +126,10 @@ const events = computed<EventInput[]>(() =>
       startEditable: settings.value.allowDragUpdate && editable,
       durationEditable: calendarCanResize(settings.value) && editable,
       extendedProps: {
+        lines: event.fields.map((field) => ({
+          id: field.id,
+          text: settings.value.showCardLabels ? `${field.label}: ${field.text}` : field.text,
+        })),
         appearance:
           event.colorValue === undefined
             ? undefined
@@ -259,9 +263,21 @@ const options = computed<CalendarOptions>(() => ({
             :class="arg.event.extendedProps.appearance?.className"
             :data-colored="arg.event.extendedProps.appearance?.colored ? 'true' : undefined"
             :data-custom-color="arg.event.extendedProps.appearance?.className ? '' : undefined"
+            :data-fields="arg.event.extendedProps.lines.length ? 'true' : undefined"
             :style="arg.event.extendedProps.appearance?.style"
-            :title="arg.event.title"
-          >{{ arg.event.title }}</span>
+            :title="[arg.event.title, ...arg.event.extendedProps.lines.map((line: { text: string }) => line.text)].join('\n')"
+          >
+            <template v-if="arg.event.extendedProps.lines.length">
+              <span class="yayaw-calendar-pill-title">{{ arg.event.title }}</span>
+              <span
+                v-for="line in arg.event.extendedProps.lines"
+                :key="line.id"
+                class="yayaw-calendar-pill-field"
+                :data-calendar-field="line.id"
+              >{{ line.text }}</span>
+            </template>
+            <template v-else>{{ arg.event.title }}</template>
+          </span>
         </template>
       </FullCalendar>
     </div>
