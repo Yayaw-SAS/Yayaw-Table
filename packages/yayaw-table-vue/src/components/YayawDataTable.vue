@@ -861,7 +861,6 @@ defineExpose({ refresh, getViewConfig: () => viewConfig.value });
     </aside>
     </div>
 
-    <div class="yayaw-bulk-anchor" aria-hidden="true" />
     <BulkActions v-if="selectedRows.length" />
     <CatalogueForm v-if="form.open && !currentDetailRow">
       <template v-for="(_, name) in $slots" #[name]="scope"><slot :name="name" v-bind="scope" /></template>
