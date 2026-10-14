@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.20.4
+
+### Patch Changes
+
+- 0ddff9d: Add `table.bulkActionsPosition: "bottom" | "top"` (default `"bottom"`) and `table.bulkActionsTopOffset` (px, default 24) in React and Vue. With `"top"`, the multi-selection action bar is pinned to the top of the screen instead of under the table or at the bottom of the screen, for short screens where the bottom bar gets cut off; the offset clears a fixed application header.
+- 570ac6c: Show a tooltip on every icon-only toolbar control in React and Vue: Vue's View settings and Data menus, the view tabs' New view and View actions buttons, and the compact search, facets, view and add-item buttons now name themselves on hover and keyboard focus.
+
 ## 3.20.3
 
 ### Patch Changes
