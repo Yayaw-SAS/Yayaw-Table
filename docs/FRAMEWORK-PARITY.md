@@ -2184,6 +2184,29 @@ only updates, blocking without skipping errors, and the phone drawer, on both
 demos (`e2e/fixtures/import-projects.csv`). The views demo's `list` now
 returns copies of its records, as a server would.
 
+### The person's own account and the provider's picker
+
+`connector.account` (`status`, `connect`, `disconnect?`, `connectLabel?`)
+makes the connector work with the person's own account (e.g. Google OAuth
+with the `drive.file` scope) instead of a shared service account. The
+shared flow reads `status` before anything else: while the account is not
+connected, both editions show only "Connect your account to choose a
+destination." and a **Connect your account** button (`connectAccount`), and
+neither `targets` nor `load` is called. Once connected, "Connected as
+{account}" sits above the target with **Disconnect** when `disconnect` is
+set (`disconnectAccount` clears the targets and the settings on screen). An
+`unauthorized` or `invalid_credentials` failure while listing offers the
+connect button again. `connector.pickTarget` (`label?`, `pick`) adds
+**Browse…**: the provider's own picker (e.g. Google Picker) returns the
+chosen target, which joins the list and is described like a pasted link;
+`null` (picker closed) changes nothing. The flow state gains `account` and
+`connecting`, with the actions `connectAccount`, `disconnectAccount` and
+`pickTarget`. React renders `AccountGate`, `AccountBar` and
+`PickTargetButton` in `connector-panel.tsx`; Vue renders the same in
+`ConnectorPanel.vue`. Coverage: `tests/connector-flow-suite.ts` (both
+editions) and `e2e/connectors.spec.ts` ("My Drive" demo destination, React
+and Vue).
+
 ## Sync in the connector screen
 
 A connector may declare `directions` (default `["push"]`), `conflictRules`

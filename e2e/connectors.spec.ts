@@ -139,3 +139,33 @@ test("on phones, the connector screen chooses in the drawer", async ({
     "6 created"
   );
 });
+
+test("a connector with an account connects first, then browses for its target", async ({
+  page,
+}) => {
+  await page.getByRole("button", { name: "Data", exact: true }).click();
+  const data = page.getByRole("dialog", { name: "Data" });
+  await data.getByRole("button", { name: "Connect", exact: true }).click();
+  await page.getByRole("button", { name: "My Drive", exact: true }).click();
+  const panel = page.locator("[data-connector-panel]");
+  await expect(panel.locator("[data-connector-account-gate]")).toContainText(
+    "Connect your account to choose a destination."
+  );
+  await panel
+    .getByRole("button", { name: "Connect your account", exact: true })
+    .click();
+  await expect(panel.locator("[data-connector-account]")).toContainText(
+    "Connected as ada@example.com"
+  );
+  await panel.getByRole("button", { name: "Browse…", exact: true }).click();
+  await expect(panel.getByRole("combobox", { name: "Spreadsheet" })).toHaveText(
+    TEAM_TRACKER
+  );
+  await expect(panel.getByRole("combobox", { name: "Tab" })).toHaveText(
+    PROJECTS
+  );
+  await panel.getByRole("button", { name: "Disconnect", exact: true }).click();
+  await expect(
+    panel.getByRole("button", { name: "Connect your account", exact: true })
+  ).toBeVisible();
+});

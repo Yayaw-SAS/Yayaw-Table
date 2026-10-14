@@ -475,6 +475,74 @@ export function connectorFlowSuite(
     assert.equal(flow.state.targets.at(-1)?.label, "Sheet abc");
   });
 
+  test("an account connects before listing, a picker selects, an expired account reconnects", async () => {
+    let connected = false;
+    let listed = 0;
+    let expired = false;
+    const flow = model.createConnectorFlow({
+      connector: {
+        account: {
+          status: () =>
+            connected ? { connected, label: "ada@example.com" } : { connected },
+          connect: () => {
+            connected = true;
+          },
+          disconnect: () => {
+            connected = false;
+          },
+        },
+        targets: () => {
+          listed += 1;
+          return expired
+            ? Promise.reject({ error: { code: "unauthorized" } })
+            : Promise.resolve([]);
+        },
+        pickTarget: {
+          pick: () => ({
+            id: "picked",
+            label: "Budget",
+            children: [{ id: "0", label: "Sheet1" }],
+          }),
+        },
+        describe: () => ({ fields: [{ name: "Name" }] }),
+        push: () => result(),
+      },
+      context: {},
+      columns,
+      selectedCount: 0,
+      t: en,
+      pushContext: (scope) => ({ scope }),
+      onChange: () => undefined,
+    });
+    await flow.start();
+    assert.deepEqual(flow.state.account, { connected: false });
+    assert.equal(listed, 0);
+    assert.equal(en("connectAccount"), "Connect your account");
+
+    await flow.connectAccount();
+    assert.deepEqual(flow.state.account, {
+      connected: true,
+      label: "ada@example.com",
+    });
+    assert.equal(listed, 1);
+
+    await flow.pickTarget();
+    assert.equal(flow.state.targetId, "picked");
+    assert.equal(flow.state.childId, "0");
+    assert.equal(flow.state.targets.at(-1)?.label, "Budget");
+
+    await flow.disconnectAccount();
+    assert.deepEqual(flow.state.account, { connected: false });
+    assert.equal(flow.state.targetId, "");
+    assert.deepEqual(flow.state.targets, []);
+
+    connected = true;
+    expired = true;
+    await flow.connectAccount();
+    assert.deepEqual(flow.state.account, { connected: false });
+    assert.equal(flow.state.error, en("error_unauthorized"));
+  });
+
   test("both editions render the same screen fields and apply choices the same way", async () => {
     const connector = {
       labels: { target: "Spreadsheet", child: "Tab" },

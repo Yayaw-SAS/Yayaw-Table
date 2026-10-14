@@ -463,6 +463,35 @@ export interface ConnectorCreateTarget<TContext> {
   ) => MaybePromise<ConnectorTarget | ConnectorOutcomeError>;
 }
 
+/** Whether the person's own account is connected, and as whom. */
+export interface ConnectorAccountStatus {
+  connected: boolean;
+  /** Shown as "Connected as {account}", e.g. an email address. */
+  label?: string;
+}
+
+/**
+ * The person's own account the connector works with ("Connect Google"):
+ * until it is connected, the screen offers only the connect button.
+ */
+export interface ConnectorAccount<TContext> {
+  status: (context: TContext) => MaybePromise<ConnectorAccountStatus>;
+  /** Runs the provider's sign-in (e.g. an OAuth window) and resolves once it ended. */
+  connect: (context: TContext) => MaybePromise<void>;
+  /** Offers "Disconnect" when set. */
+  disconnect?: (context: TContext) => MaybePromise<void>;
+  /** Replaces "Connect your account". */
+  connectLabel?: string;
+}
+
+/** A "Browse…" button opening the provider's own picker (e.g. Google Picker). */
+export interface ConnectorPickTarget<TContext> {
+  /** Replaces "Browse…". */
+  label?: string;
+  /** The chosen target, or `null` when the person closed the picker. */
+  pick: (context: TContext) => MaybePromise<ConnectorTarget | null>;
+}
+
 /** Push context: the destination context plus what the screen chose to send. */
 export interface ConnectorPushScope {
   /** "selection" sends the selected records only. */
@@ -550,6 +579,10 @@ export interface DataDestinationConnector<
   ) => MaybePromise<{ applied: SchemaFix[] } | ConnectorOutcomeError>;
   /** Offers "Create one from this table’s columns…" in the target list. */
   createTarget?: ConnectorCreateTarget<TContext>;
+  /** The person's own account, connected from the screen before anything else. */
+  account?: ConnectorAccount<TContext>;
+  /** Offers "Browse…" next to the target list. */
+  pickTarget?: ConnectorPickTarget<TContext>;
   /** Names for the target and its children, e.g. "Spreadsheet" and "Tab". */
   labels?: { target?: string; child?: string };
   help?: ConnectorHelp;
@@ -778,6 +811,13 @@ export type SchemaLabelKey =
   | "createSubmit"
   | "creatingTarget"
   | "createNameRequired"
+  | "connectAccount"
+  | "connectingAccount"
+  | "connectedAs"
+  | "connected"
+  | "disconnectAccount"
+  | "accountRequired"
+  | "pickTarget"
   | `type_${string}`;
 
 const ENGLISH_LABELS: Record<ConnectorLabelKey, string> = {
@@ -1016,6 +1056,13 @@ const ENGLISH_LABELS: Record<ConnectorLabelKey, string> = {
   createSubmit: "Create",
   creatingTarget: "Creating…",
   createNameRequired: "Enter a name.",
+  connectAccount: "Connect your account",
+  connectingAccount: "Connecting…",
+  connectedAs: "Connected as {account}",
+  connected: "Connected",
+  disconnectAccount: "Disconnect",
+  accountRequired: "Connect your account to choose a destination.",
+  pickTarget: "Browse…",
   type_title: "Title",
   type_rich_text: "Text",
   type_text: "Text",
@@ -1290,6 +1337,13 @@ const FRENCH_LABELS: Record<ConnectorLabelKey, string> = {
   createSubmit: "Créer",
   creatingTarget: "Création…",
   createNameRequired: "Saisissez un nom.",
+  connectAccount: "Connecter votre compte",
+  connectingAccount: "Connexion…",
+  connectedAs: "Connecté en tant que {account}",
+  connected: "Connecté",
+  disconnectAccount: "Déconnecter",
+  accountRequired: "Connectez votre compte pour choisir une destination.",
+  pickTarget: "Parcourir…",
   type_title: "Titre",
   type_rich_text: "Texte",
   type_text: "Texte",
@@ -3287,6 +3341,10 @@ export interface ConnectorFlowState {
   creating: boolean;
   /** The target list is being read again. */
   refreshing: boolean;
+  /** The connector's `account`, `null` without one or before its status is read. */
+  account: ConnectorAccountStatus | null;
+  /** `account.connect` or `account.disconnect` is running. */
+  connecting: boolean;
 }
 
 export interface ConnectorFlowOptions<TContext, TPushContext> {
@@ -3361,6 +3419,12 @@ export interface ConnectorFlow {
   showCreate: (open: boolean) => Promise<void>;
   /** Creates a target from the table's columns and selects it. */
   createTarget: (input: { parentId?: string; title: string }) => Promise<void>;
+  /** Connects the person's account, then lists the targets. */
+  connectAccount: () => Promise<void>;
+  /** Disconnects the account and clears the targets. */
+  disconnectAccount: () => Promise<void>;
+  /** Opens the connector's picker and selects the chosen target. */
+  pickTarget: () => Promise<void>;
   dispose: () => void;
 }
 
@@ -3454,6 +3518,8 @@ const INITIAL_STATE: Omit<ConnectorFlowState, "scope"> = {
   createParents: null,
   creating: false,
   refreshing: false,
+  account: null,
+  connecting: false,
 };
 
 /**
@@ -3572,12 +3638,35 @@ export function createConnectorFlow<TContext, TPushContext>(
     }
   };
 
+  /** A refused or expired account offers "Connect your account" again. */
+  const accountExpired = (error: unknown): Partial<ConnectorFlowState> => {
+    const { code } = toConnectorFailure(error);
+    return connector.account &&
+      (code === "unauthorized" || code === "invalid_credentials")
+      ? { account: { connected: false } }
+      : {};
+  };
+
+  /** Reads the account first: nothing is listed before it is connected. */
+  const accountReady = async () => {
+    if (!connector.account) {
+      return true;
+    }
+    const account = await connector.account.status(context);
+    set({ account });
+    return account.connected;
+  };
+
   const start = async () => {
     if (started) {
       return;
     }
     started = true;
     try {
+      if (!(await accountReady())) {
+        set({ phase: "form" });
+        return;
+      }
       const [targets, saved] = await Promise.all([
         connector.targets(context),
         connector.load ? connector.load(context) : null,
@@ -3597,7 +3686,11 @@ export function createConnectorFlow<TContext, TPushContext>(
         await describe(saved.targetId, childFor(target, saved.childId));
       }
     } catch (error) {
-      set({ phase: "form", error: failureText(error) });
+      set({
+        phase: "form",
+        error: failureText(error),
+        ...accountExpired(error),
+      });
     }
   };
 
@@ -4122,6 +4215,67 @@ export function createConnectorFlow<TContext, TPushContext>(
     }
   };
 
+  const connectAccount = async () => {
+    if (!connector.account || state.connecting) {
+      return;
+    }
+    set({ connecting: true, error: null });
+    try {
+      await connector.account.connect(context);
+      set({ connecting: false });
+      started = false;
+      await start();
+    } catch (error) {
+      set({ connecting: false, error: failureText(error) });
+    }
+  };
+
+  const disconnectAccount = async () => {
+    const disconnect = connector.account?.disconnect;
+    if (!disconnect || state.connecting) {
+      return;
+    }
+    set({ connecting: true, error: null });
+    try {
+      await disconnect(context);
+      request += 1;
+      draft = null;
+      stored = null;
+      set({
+        ...INITIAL_STATE,
+        phase: "form",
+        scope: state.scope,
+        account: { connected: false },
+      });
+    } catch (error) {
+      set({ connecting: false, error: failureText(error) });
+    }
+  };
+
+  const pickTarget = async () => {
+    const pick = connector.pickTarget?.pick;
+    if (!pick || state.resolving) {
+      return;
+    }
+    set({ resolving: true, error: null });
+    try {
+      const target = await pick(context);
+      set({ resolving: false });
+      if (!target) {
+        return;
+      }
+      set({
+        targets: [
+          ...state.targets.filter((item) => item.id !== target.id),
+          target,
+        ],
+      });
+      await describe(target.id, childFor(target));
+    } catch (error) {
+      set({ resolving: false, error: failureText(error) });
+    }
+  };
+
   return {
     get state() {
       return state;
@@ -4150,6 +4304,9 @@ export function createConnectorFlow<TContext, TPushContext>(
     refreshTargets,
     showCreate,
     createTarget,
+    connectAccount,
+    disconnectAccount,
+    pickTarget,
     dispose: () => {
       notify = () => undefined;
       request += 1;
