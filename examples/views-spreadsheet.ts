@@ -538,7 +538,7 @@ export function createDriveConnector(table: DemoTable) {
             account ? { connected: true, label: account } : { connected: false }
           ),
         connect: () => {
-          account = "ada@example.com";
+          account = "ada.lovelace@analytical-engine-society.example.com";
           return Promise.resolve();
         },
         disconnect: () => {

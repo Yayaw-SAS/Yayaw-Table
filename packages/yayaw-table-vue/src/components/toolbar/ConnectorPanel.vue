@@ -237,7 +237,7 @@ const accountLabel = computed(() =>
       :after="sections.after" @change="change">
       <template #after-target>
         <div v-if="connector.account" class="yayaw-connector-account" data-connector-account>
-          <span class="yayaw-schedule-muted">{{ accountLabel }}</span>
+          <span class="yayaw-schedule-muted" :title="accountLabel">{{ accountLabel }}</span>
           <button v-if="connector.account.disconnect" type="button" class="yayaw-button yayaw-button-ghost"
             :disabled="state.connecting" :aria-busy="state.connecting" @click="run(flow.disconnectAccount)">
             {{ t("disconnectAccount") }}

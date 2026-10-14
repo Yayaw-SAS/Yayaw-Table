@@ -238,10 +238,13 @@ function AccountBar({
   const label = state.account?.label;
   return (
     <div
-      className="flex items-center justify-between gap-2 text-sm"
+      className="flex min-w-0 items-center justify-between gap-2 text-sm"
       data-connector-account
     >
-      <span className="min-w-0 truncate text-muted-foreground">
+      <span
+        className="min-w-0 truncate text-muted-foreground"
+        title={label ? t("connectedAs", { account: label }) : undefined}
+      >
         {label ? t("connectedAs", { account: label }) : t("connected")}
       </span>
       {connector.account?.disconnect ? (
