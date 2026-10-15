@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.24.0
+
+### Minor Changes
+
+- fae27f9: Footer calculations now follow the selection, in React and Vue: while rows are selected, each footer shows its calculation over the selected rows, labelled with their number ("Sum · Selection (2)"), per currency as before. The result's tooltip gives the other scopes: the page shown when the matching rows span several pages, and every matching row under a selection. New translation keys: `calculations.selection`, `calculations.page` and `calculations.all` (React `calcSelection`, `calcPage`, `calcAllRows`).
+- 8420838: The calendar and map modes are no longer offered on a table without a `date` (calendar) or `location` (map) column, in React and Vue. They used to open on an empty view; a host can now list every display mode on every table and let each table offer only the modes its columns can feed. A saved view or URL asking for a withheld mode falls back to the default mode, as for any mode the table does not offer.
+
+### Patch Changes
+
+- cdfdd84: An editable boolean cell now toggles on its first click, in React and Vue. The click used to open the editor without changing the value, so a second click was needed; the new value is saved as any inline edit (React keeps the switch open with its autosave delay, Vue saves at once as its checkbox does).
+
+  In Vue, the click that opens a cell editor no longer reaches the row: with `rowClickMode: "activate"`, clicking a boolean mark used to open the record over the editor, because the editor replaced the clicked mark before the row's guard saw it.
+
 ## 3.23.0
 
 ### Minor Changes

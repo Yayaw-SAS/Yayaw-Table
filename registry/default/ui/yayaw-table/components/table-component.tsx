@@ -1492,10 +1492,16 @@ function ModernDataTable<
   const configuredDisplayModes = useMemo(
     () =>
       availableDisplayModes(tableConfig.table.displayModes, {
+        columns: tableConfig.columns.definitions,
         planning: Boolean(planningSession),
         renderers: Object.keys(displayModeRenderers ?? {}),
       }),
-    [tableConfig.table.displayModes, displayModeRenderers, planningSession]
+    [
+      tableConfig.columns.definitions,
+      tableConfig.table.displayModes,
+      displayModeRenderers,
+      planningSession,
+    ]
   );
   const activeDisplayMode = resolveActiveDisplayMode({
     defaultDisplayMode: tableConfig.table.defaultDisplayMode,

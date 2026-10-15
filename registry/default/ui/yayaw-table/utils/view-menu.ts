@@ -2,6 +2,7 @@ import { normalizeDateFilterRule } from "./date-filter-days";
 import {
   DISPLAY_MODE_CONFIG_KEYS,
   DISPLAY_MODES,
+  type DisplayModeContext,
   resolveDisplayModes,
   type TableDisplayMode,
 } from "./display-modes";
@@ -28,7 +29,7 @@ export function getViewModeCapabilities(mode: TableDisplayMode) {
  */
 export function availableDisplayModes(
   displayModes: readonly unknown[] | undefined,
-  context: { planning: boolean; renderers?: readonly string[] }
+  context: DisplayModeContext
 ): TableDisplayMode[] {
   return resolveDisplayModes(displayModes, context);
 }
