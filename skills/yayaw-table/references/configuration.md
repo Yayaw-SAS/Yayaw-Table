@@ -49,6 +49,8 @@ or an `instanceId`.
 | `cellRenderer(value, row)` | Custom cell (React node, Vue VNode). |
 | `cellActions` | `{ id, label, icon?, href?(row), onClick?(row, value), count?(row), visible?(row), disabled?(row), reveal? }[]`: controls after the value, sized by the density in every view. `href` opens a new tab; `count` shows a number (hidden at 0); `reveal: "hover"` shows it on hover or focus (always on touch screens). Icons are React nodes or Vue components. Prefer them to buttons drawn in a `cellRenderer`. |
 | `copyable` | Adds a copy action (revealed on hover) that writes the cell's value. |
+| `tagItem(value, row)` | Tag columns: `{ label?, tone?, icon?, title? }` per tag, from the row's data. `tone` is `neutral`, `success`, `warning` or `danger` (theme colors, shown even with `coloredTags: false`); values may be records. |
+| `onTagClick(value, row)` | Tag columns: each tag becomes a button; its clicks never reach the row, inline editing or drag. |
 | `filterRenderer({ value, onChange })` | Custom control inside the column filter menu; writes the normal filter state. |
 | `urlDisplayMode` | `icon`, `domain`, `full` or `row-link` (the row opens the link). |
 | `typeKey` | With `type: "dynamicType"`, the row field holding each row's type. |

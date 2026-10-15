@@ -66,6 +66,11 @@ export const productRows = (): ProductRow[] =>
     image: picture(String(index + 1)),
   }));
 
+const STATUS_TONES: Record<string, "success" | "warning"> = {
+  active: "success",
+  draft: "warning",
+};
+
 const options = (values: [string, string][]) =>
   values.map(([value, label]) => ({ value, label }));
 
@@ -118,6 +123,10 @@ export const productColumns = [
       ["draft", "Draft"],
       ["archived", "Archived"],
     ]),
+    // A tone from the data: green when active, amber in draft, muted archived.
+    tagItem: (value: unknown) => ({
+      tone: STATUS_TONES[String(value)] ?? ("neutral" as const),
+    }),
   },
   {
     id: "price",

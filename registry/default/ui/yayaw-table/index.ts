@@ -329,6 +329,13 @@ export {
   tagColorValue,
 } from "./utils/tag-colors";
 export {
+  isTagTone,
+  TAG_TONES,
+  type TagItem,
+  type TagTone,
+  tagItemAppearance,
+} from "./utils/tag-items";
+export {
   dateTimeFromInput,
   dateTimeInputValue,
 } from "./utils/value-format";

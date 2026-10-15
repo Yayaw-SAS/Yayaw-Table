@@ -4,11 +4,13 @@
  */
 "use client";
 
+import type { ReactNode, SyntheticEvent } from "react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-
-import { tagAppearance } from "../../utils/tag-colors";
 import "../../utils/tag-colors.css";
+import { tagItemAppearance } from "../../utils/tag-items";
+
+const stop = (event: SyntheticEvent) => event.stopPropagation();
 
 function unwrapTagValue(value: unknown): unknown {
   if (value && typeof value === "object" && "set" in value) {
@@ -66,6 +68,13 @@ export interface TagCellProps {
    */
   tagColorMap?: Record<string, string>;
 
+  /** From `tagItem`: a semantic tone, an icon before the label, a tooltip. */
+  tone?: string;
+  icon?: ReactNode;
+  title?: string;
+  /** Draws each tag as a button; its clicks never reach the row or inline editing. */
+  onClick?: () => void;
+
   /**
    * The tag value to display
    */
@@ -83,6 +92,10 @@ export function TagCell({
   coloredTags = true,
   colorValue,
   color,
+  tone,
+  icon,
+  title,
+  onClick,
 }: TagCellProps) {
   const tagValues = toTagValues(value);
 
@@ -93,8 +106,9 @@ export function TagCell({
   return (
     <div className="flex flex-wrap items-center gap-1">
       {tagValues.map((tagValue) => {
-        const appearance = tagAppearance(
+        const appearance = tagItemAppearance(
           colorValue ?? tagValue,
+          tone,
           coloredTags,
           tagColorMap,
           color
@@ -108,9 +122,24 @@ export function TagCell({
             )}
             data-colored={appearance.colored}
             data-custom-color={appearance.className ? "" : undefined}
+            data-tag-button={onClick ? "" : undefined}
             key={tagValue}
             style={appearance.style}
+            title={title}
+            {...(onClick
+              ? {
+                  onClick: (event: SyntheticEvent) => {
+                    stop(event);
+                    onClick();
+                  },
+                  onDoubleClick: stop,
+                  onKeyDown: stop,
+                  onPointerDown: stop,
+                  render: <button type="button" />,
+                }
+              : {})}
           >
+            {icon}
             {tagValue}
           </Badge>
         );

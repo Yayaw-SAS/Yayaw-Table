@@ -26,6 +26,27 @@
   background: color-mix(in srgb, var(--yayaw-tag-color) 30%, transparent);
   color: color-mix(in srgb, var(--yayaw-tag-color) 45%, white);
 }
+/* A tag with an icon (`tagItem`) or a click (`onTagClick`). */
+.yayaw-tag > svg {
+  width: 0.75rem;
+  height: 0.75rem;
+  flex-shrink: 0;
+}
+.yayaw-tag:has(> svg) {
+  align-items: center;
+  gap: 0.25rem;
+}
+button.yayaw-tag {
+  font: inherit;
+  cursor: pointer;
+}
+button.yayaw-tag:hover {
+  filter: brightness(0.95);
+}
+button.yayaw-tag:focus-visible {
+  outline: 2px solid var(--yayaw-ring, var(--ring, currentColor));
+  outline-offset: 1px;
+}
 /* A tag whose catalog is still loading. */
 .yayaw-tag-pending {
   display: inline-block;

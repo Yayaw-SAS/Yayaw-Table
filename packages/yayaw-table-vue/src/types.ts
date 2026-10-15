@@ -128,6 +128,13 @@ export interface ColumnDefinition<TData extends TableRecord = TableRecord> {
   >[];
   /** Adds a copy action that writes the cell's value to the clipboard. */
   copyable?: boolean;
+  /**
+   * Tag columns: each tag's label, tone, icon and title from the row's data.
+   * See `tag-items.ts`.
+   */
+  tagItem?: import("./tag-items").TagItemColumn<TData, Component>["tagItem"];
+  /** Tag columns: each tag becomes a button calling this with its value and row. */
+  onTagClick?: (value: unknown, row: TData) => unknown;
   enableFiltering?: boolean;
   enableSorting?: boolean;
   enableGrouping?: boolean;

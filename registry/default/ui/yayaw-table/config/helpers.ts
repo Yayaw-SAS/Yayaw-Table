@@ -313,6 +313,18 @@ export interface ColumnDefinition {
   copyable?: boolean;
 
   /**
+   * Tag columns: each tag's label, tone, icon and title from the row's data.
+   * See `utils/tag-items.ts`.
+   */
+  tagItem?: import("../utils/tag-items").TagItemColumn<
+    Record<string, unknown>,
+    React.ReactNode
+  >["tagItem"];
+
+  /** Tag columns: each tag becomes a button calling this with its value and row. */
+  onTagClick?: (value: unknown, row: Record<string, unknown>) => unknown;
+
+  /**
    * Whether the column can be filtered
    */
   enableFiltering?: boolean;
