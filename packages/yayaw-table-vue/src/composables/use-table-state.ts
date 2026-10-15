@@ -294,6 +294,7 @@ export const useTableState = <TData extends TableRecord>({
       ? normalizeColumnSizing(value, columnIds)
       : {};
   const offeredDisplayModes = resolveDisplayModes(config.table.displayModes, {
+    columns: config.columns.definitions,
     planning,
     renderers,
   });
