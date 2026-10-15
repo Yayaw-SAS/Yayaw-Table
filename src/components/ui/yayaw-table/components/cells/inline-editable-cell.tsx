@@ -743,6 +743,10 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
               event.stopPropagation();
               if (!isLinkClick(event.target)) {
                 startEditing();
+                // A boolean cell toggles on the click that opens it, as its switch would.
+                if (resolvedEditor === "boolean" && !isSaving) {
+                  updateDraftValue(!draftValue);
+                }
               }
             }}
             onKeyDown={handleDisplayKeyDown}
