@@ -125,4 +125,7 @@ export const defaultTranslations = {
   calcMax: "Max",
   calcRange: "Range",
   calcCalculate: "Calculate",
+  calcSelection: "Selection",
+  calcPage: "This page",
+  calcAllRows: "All rows",
 };

@@ -6,12 +6,17 @@
  */
 "use client";
 
-import { type CSSProperties, memo, useMemo } from "react";
+import { type CSSProperties, memo, useMemo, useRef } from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { useGlobalColumnCalculations } from "../../hooks/use-global-column-calculations";
+import {
+  calculateRowsColumn,
+  useGlobalColumnCalculations,
+} from "../../hooks/use-global-column-calculations";
 import { useTableConfig } from "../../hooks/use-table-config";
-import type { Table } from "../../tanstack";
+import { useTableTranslations } from "../../hooks/use-table-translations";
+import { useLocale } from "../../providers/table-provider";
+import type { Row, Table } from "../../tanstack";
 import type { TableDensity } from "../../types/display-types";
 import type { CalculationType } from "../../types/footer-types";
 import { isCalculationValidForColumn } from "../../types/footer-types";
@@ -20,6 +25,9 @@ import { CalculationMenu } from "./calculation-menu";
 
 interface FooterRowProps<TData> {
   densityMode: TableDensity;
+  /** Rows of the page shown, and the selection: props, so the memoized footer follows them. */
+  pageRows: Row<TData>[];
+  rowSelection: Record<string, boolean>;
   table: Table<TData>;
   tableId: string;
   tableType: string;
@@ -38,6 +46,8 @@ const getColumnType = (def: {
 
 function FooterRowBase<TData>({
   densityMode,
+  pageRows,
+  rowSelection,
   table,
   tableId,
   tableType,
@@ -73,6 +83,7 @@ function FooterRowBase<TData>({
   );
 
   const {
+    activeCalculations,
     hasAnyCalculation,
     isLoading: isCalculationsLoading,
     resultsByColumn,
@@ -82,6 +93,82 @@ function FooterRowBase<TData>({
     columnDefinitions: tableConfig.columns.definitions,
     columnIds: visibleColumnIds,
   });
+
+  const translations = useTableTranslations(tableType);
+  const locale = useLocale();
+  // Records of the page shown, grouped rows included once.
+  const pageRecords = useMemo(
+    () => [
+      ...new Map(
+        pageRows
+          .flatMap((row) => (row.getIsGrouped() ? row.getLeafRows() : [row]))
+          .filter((row) => !row.getIsGrouped())
+          .map((row) => [row.id, row.original as Record<string, unknown>])
+      ).values(),
+    ],
+    [pageRows]
+  );
+  // Selected records stay known once their page is left, as in the Vue edition.
+  const selectedCache = useRef(new Map<string, Record<string, unknown>>());
+  const selectedRecords = useMemo(() => {
+    const cache = selectedCache.current;
+    for (const id of [...cache.keys()]) {
+      if (!rowSelection[id]) {
+        cache.delete(id);
+      }
+    }
+    for (const row of pageRows) {
+      if (rowSelection[row.id]) {
+        cache.set(row.id, row.original as Record<string, unknown>);
+      }
+    }
+    return [...cache.values()];
+  }, [pageRows, rowSelection]);
+  const definitionsById = useMemo(
+    () =>
+      Object.fromEntries(
+        tableConfig.columns.definitions.map((definition) => [
+          definition.id,
+          definition,
+        ])
+      ),
+    [tableConfig.columns.definitions]
+  );
+  /**
+   * The footer reads the selection when rows are selected, every matching row
+   * otherwise; its tooltip gives the page when there are several, and every
+   * matching row under a selection.
+   */
+  const footerCalculation = (columnId: string) => {
+    const calculation = activeCalculations[columnId];
+    const all = resultsByColumn[columnId];
+    if (!calculation) {
+      return { result: all };
+    }
+    const local = (records: Record<string, unknown>[]) =>
+      calculateRowsColumn(
+        records,
+        columnId,
+        calculation,
+        definitionsById[columnId] as Parameters<typeof calculateRowsColumn>[3],
+        definitionsById[columnId]?.type,
+        locale
+      );
+    const page =
+      table.getRowCount() > pageRecords.length
+        ? `${translations.calcPage}: ${local(pageRecords).label}`
+        : undefined;
+    if (!selectedRecords.length) {
+      return { result: all, detail: page };
+    }
+    return {
+      result: local(selectedRecords),
+      scopeLabel: `${translations.calcSelection} (${selectedRecords.length})`,
+      detail: [page, `${translations.calcAllRows}: ${all?.label ?? "—"}`]
+        .filter(Boolean)
+        .join(" | "),
+    };
+  };
 
   const firstCalculableColumnId = useMemo(() => {
     const firstCalculableColumn = visibleColumns.find((column) => {
@@ -197,8 +284,10 @@ function FooterRowBase<TData>({
                 columnType={colType}
                 defaultCalculation={validDefault}
                 isNumberColumn={numCol}
-                isResultLoading={isCalculationsLoading}
-                result={resultsByColumn[column.id]}
+                isResultLoading={
+                  isCalculationsLoading && !selectedRecords.length
+                }
+                {...footerCalculation(column.id)}
                 showEmptyLabel={
                   !hasAnyCalculation && column.id === firstCalculableColumnId
                 }
