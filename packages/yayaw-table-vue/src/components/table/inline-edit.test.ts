@@ -521,6 +521,18 @@ it("toggles and saves a boolean cell on its first click", async () => {
   await flushPromises();
   expect(update).toHaveBeenCalledWith("1", { active: true }, expect.anything());
 });
+it("keeps an editing click from reaching the row", async () => {
+  const { wrapper } = createCell({
+    row: { id: "1", active: false },
+    column: { id: "active", header: "Active", type: "boolean" },
+  });
+  const rowClick = vi.fn();
+  document.body.addEventListener("click", rowClick);
+  await wrapper.get(".yayaw-boolean").trigger("click");
+  await flushPromises();
+  document.body.removeEventListener("click", rowClick);
+  expect(rowClick).not.toHaveBeenCalled();
+});
 it("resolves the dynamic row type for both display and editing", async () => {
   const { wrapper } = createCell({
     row: { id: "1", kind: "url", value: "https://example.com" },
