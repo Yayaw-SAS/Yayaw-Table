@@ -131,6 +131,7 @@ export function DataTypeCell({
         <OptionTags
           column={column}
           coloredTags={column.coloredTags ?? coloredTags}
+          row={row}
           value={value}
         />
       );
@@ -222,14 +223,16 @@ function OptionAvatars({
   );
 }
 
-/** Option values as tags: their labels and their own colors. */
+/** Option values as tags: their labels and their own colors, or the row's `tagItem`. */
 function OptionTags({
   column,
   coloredTags,
+  row,
   value,
 }: {
   column: ColumnDefinition;
   coloredTags?: boolean;
+  row: Record<string, unknown>;
   value: unknown;
 }) {
   const catalog = useTagCatalog();
@@ -239,10 +242,12 @@ function OptionTags({
   const values = Array.isArray(value) ? value : [value];
   return (
     <span className="inline-flex flex-wrap items-center gap-1">
-      {values.map((item) => {
-        const key = `${typeof item}:${String(item)}`;
+      {values.map((item, index) => {
+        const key = `${index}:${typeof item}:${String(item)}`;
         const option = optionOf(item, column.options);
-        if (loading && !option && item !== null && item !== "") {
+        const tagItem = column.tagItem?.(item, row) ?? undefined;
+        const { onTagClick } = column;
+        if (loading && !option && !tagItem?.label && item !== null && item !== "") {
           return (
             <span className="yayaw-tag-pending" key={key}>
               <span className="sr-only">{catalog?.labels.loading}</span>
@@ -255,8 +260,12 @@ function OptionTags({
             coloredTags={coloredTags}
             colorValue={String(item)}
             key={key}
+            icon={tagItem?.icon}
+            onClick={onTagClick ? () => onTagClick(item, row) : undefined}
             tagColorMap={column.tagColorMap}
-            value={dataTypeOptionLabel(item, column.options)}
+            title={tagItem?.title}
+            tone={tagItem?.tone}
+            value={tagItem?.label ?? dataTypeOptionLabel(item, column.options)}
           />
         );
       })}

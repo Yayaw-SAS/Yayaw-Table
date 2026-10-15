@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { tagAppearance } from "../../tag-colors";
 import "../../tag-colors.css";
+import { tagItemAppearance } from "../../tag-items";
 import {
   computed,
   nextTick,
@@ -470,20 +470,39 @@ const avatarPeople = computed(() =>
       return { key: `${typeof item}:${String(item)}`, label: option?.label ?? String(item), image: option?.image };
     })
 );
-/** How a value shows as a tag: its option's label and color. */
+/** How a value shows as a tag: its option's label and color, or the row's `tagItem`. */
 const tagChip = (value: unknown) => {
   const option = props.column.options?.find((item) => Object.is(item.value, value));
-  const appearance = tagAppearance(
+  const item = props.column.tagItem?.(value, props.row) ?? undefined;
+  const appearance = tagItemAppearance(
     String(value),
+    item?.tone,
     coloredTags.value,
     effectiveColumn.value.tagColorMap,
     typeof option?.color === "string" ? option.color : undefined
   );
   return {
-    pending: tagsLoading.value && !option,
-    label: option?.label ?? String(value),
+    pending: tagsLoading.value && !option && !item?.label,
+    label: item?.label ?? option?.label ?? String(value),
+    icon: item?.icon,
+    title: item?.title,
+    colored: appearance.colored,
     className: appearance.className,
     style: appearance.style,
+  };
+};
+const stopEvent = (event: Event) => event.stopPropagation();
+const tagListeners = (value: unknown) => {
+  const onTagClick = props.column.onTagClick;
+  if (!onTagClick) return {};
+  return {
+    click: (event: Event) => {
+      stopEvent(event);
+      onTagClick(value, props.row);
+    },
+    dblclick: stopEvent,
+    pointerdown: stopEvent,
+    keydown: stopEvent,
   };
 };
 </script>
@@ -695,22 +714,28 @@ const tagChip = (value: unknown) => {
       class="yayaw-tags"
     >
       <template
-        v-for="tag in tags.filter(
+        v-for="(tag, index) in tags.filter(
           (item) => item !== null && item !== undefined && item !== ''
         )"
-        :key="String(tag)"
+        :key="`${index}:${String(tag)}`"
       >
         <span v-if="tagChip(tag).pending" class="yayaw-tag-pending"
           ><span class="yayaw-sr-only">{{ context.tags?.labels.value.loading }}</span></span
         >
-        <span
+        <!-- A clickable tag keeps its clicks: no row click, no inline edit, no drag. -->
+        <component
+          :is="column.onTagClick ? 'button' : 'span'"
           v-else
+          :type="column.onTagClick ? 'button' : undefined"
           class="yayaw-tag"
           :class="tagChip(tag).className"
           :style="tagChip(tag).style"
-          :data-colored="coloredTags"
+          :title="tagChip(tag).title"
+          :data-colored="tagChip(tag).colored"
           :data-custom-color="tagChip(tag).className ? '' : undefined"
-          >{{ tagChip(tag).label }}</span
+          :data-tag-button="column.onTagClick ? '' : undefined"
+          v-on="tagListeners(tag)"
+          ><component :is="tagChip(tag).icon" v-if="tagChip(tag).icon" aria-hidden="true" />{{ tagChip(tag).label }}</component
         >
       </template>
     </span>

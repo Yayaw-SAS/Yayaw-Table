@@ -1883,6 +1883,11 @@
           "target": "components/ui/yayaw-table/utils/tag-colors.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/tag-items.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/tag-items.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/value-format.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/value-format.ts"

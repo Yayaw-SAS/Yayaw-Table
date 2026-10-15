@@ -225,6 +225,13 @@ export {
   type TagColorName,
   tagColorValue,
 } from "./tag-colors";
+export {
+  isTagTone,
+  TAG_TONES,
+  type TagItem,
+  type TagTone,
+  tagItemAppearance,
+} from "./tag-items";
 export * from "./translations";
 export * from "./types";
 export {

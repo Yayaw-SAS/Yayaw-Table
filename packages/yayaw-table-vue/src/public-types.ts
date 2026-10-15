@@ -157,6 +157,13 @@ export {
   type TagColorName,
   tagColorValue,
 } from "./tag-colors";
+export {
+  isTagTone,
+  TAG_TONES,
+  type TagItem,
+  type TagTone,
+  tagItemAppearance,
+} from "./tag-items";
 export declare const GalleryView: DefineComponent;
 export declare const KanbanView: DefineComponent;
 export declare const YayawTablePlugin: Plugin;

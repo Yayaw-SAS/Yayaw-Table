@@ -330,6 +330,13 @@ export {
   type TagColorName,
   tagColorValue,
 } from "./utils/tag-colors";
+export {
+  isTagTone,
+  TAG_TONES,
+  type TagItem,
+  type TagTone,
+  tagItemAppearance,
+} from "./utils/tag-items";
 
 
 export type { ActionItem, ActionItem as RowActionItem } from "./components/columns/actions-column";

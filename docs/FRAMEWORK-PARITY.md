@@ -450,6 +450,16 @@ An inline-editable cell says so before it is clicked. Hovering it shows a pointe
 
 Verification: `tests/inline-edit-affordance.test.tsx` and the Vue `components/table/inline-edit.test.ts` ("editable cell affordance") assert the same markers for text, select and date cells and leave read-only cells unmarked. The hover field and chevron were checked in the Vue demo (Status) and the React Views example (Site).
 
+## Tag items
+
+Tag columns (`type: "tag"`, or `select`/`multiSelect` shown as tags) take `tagItem(value, row)` and `onTagClick(value, row)`, so a tag can follow its row's data instead of a fixed option: a deal's activations named after each activation, green once published. `tagItem` returns `{ label?, tone?, icon?, title? }` for each value; every field falls back to the option's label and color. Both editions resolve colors with the shared `tag-items.ts` (`tagItemAppearance`): a tone (`neutral`, `success`, `warning`, `danger`) wins over the option's `color`, `tagColorMap` and the automatic hue, and shows even with `coloredTags: false` since it carries meaning. `success`, `warning` and `danger` tint the tag like a catalog color, from `--yayaw-success`, `--yayaw-warning` and `--yayaw-danger` (falling back to green, amber and red), so they read in light and dark themes; `neutral` is the muted tag. Values may be records: keys use their position, and `tagItem` gives their label.
+
+With `onTagClick`, each tag is a `<button type="button">` marked `[data-tag-button]`. Clicks, double-clicks, pointer-downs and keys on a tag stay on it, as with cell actions: no row click, no inline editing, no drag. `title` is the tag's tooltip; the icon (a React node, a Vue component) is drawn before the label at 12 px. A "+" next to the tags is a `cellActions` entry.
+
+They apply wherever the table draws the cell: the grid and the List, Kanban and Gallery cards. Feed cards keep the option labels and colors.
+
+Verification: `utils/tag-items.test.ts` covers tones and fallbacks; `tests/tag-items.test.tsx` and the Vue `components/table/tag-items.test.ts` render the same record-valued column and assert the same labels, buttons, titles, colors, icons and click isolation. The shared Products example gives its Status tags a tone (active green, draft amber, archived muted).
+
 ## Automatic page size
 
 Both editions accept `table.enableAutoPageSize: true` (default: false). In table
