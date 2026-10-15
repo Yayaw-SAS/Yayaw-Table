@@ -3092,6 +3092,8 @@ function ModernDataTable<
               <TableFooter className="sticky bottom-0 z-10 overflow-hidden rounded-b-md bg-card">
                 <FooterRow
                   densityMode={densityMode}
+                  pageRows={table.getRowModel().rows}
+                  rowSelection={currentRowSelection}
                   table={table}
                   tableId={tableId}
                   tableType={resolvedTableType}

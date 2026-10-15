@@ -38,6 +38,10 @@ interface CalculationMenuProps {
   isNumberColumn?: boolean;
   isResultLoading?: boolean;
   result?: TableAggregateResultValue;
+  /** The rows the result covers when not every matching row, such as the selection. */
+  scopeLabel?: string;
+  /** The other scopes' results, shown in the tooltip. */
+  detail?: string;
   showEmptyLabel?: boolean;
   tableId: string;
   tableType: string;
@@ -78,6 +82,8 @@ function CalculationMenuBase({
   isNumberColumn = false,
   isResultLoading = false,
   result,
+  scopeLabel,
+  detail,
   showEmptyLabel = false,
   tableId,
   tableType,
@@ -108,10 +114,13 @@ function CalculationMenuBase({
 
   const shortLabel = useMemo(() => {
     const labelKey = CALC_LABEL_KEYS[currentCalc];
-    return labelKey
+    const calculationLabel = labelKey
       ? getTranslation(translations, labelKey, currentCalc)
       : currentCalc;
-  }, [currentCalc, translations]);
+    return scopeLabel
+      ? `${calculationLabel} · ${scopeLabel}`
+      : calculationLabel;
+  }, [currentCalc, scopeLabel, translations]);
 
   const resultLabel = useMemo(() => {
     if (currentCalc === "none") {
@@ -134,7 +143,13 @@ function CalculationMenuBase({
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger
           render={
-            <TableTooltip label={translations.calcCalculate}>
+            <TableTooltip
+              label={
+                currentCalc !== "none" && detail
+                  ? detail
+                  : translations.calcCalculate
+              }
+            >
               <button
                 aria-label={translations.calcCalculate}
                 className={cn(

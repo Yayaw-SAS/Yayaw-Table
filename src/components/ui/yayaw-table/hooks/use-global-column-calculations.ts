@@ -458,32 +458,52 @@ export const loadGlobalColumnCalculationResults = async ({
 
   const results: Record<string, TableAggregateResultValue> = {};
   for (const [columnId, calculationType] of Object.entries(calculations)) {
-    const column = columns[columnId];
-    // Read values as the cells do: the accessor first, then the id.
-    const values = rows.map((row) => {
-      if (column?.accessorFn) {
-        return (column.accessorFn as (record: typeof row) => unknown)(row);
-      }
-      return row[column?.accessorKey ?? columnId];
-    });
-    // Amounts in several currencies are kept per currency, never mixed.
-    const perCurrency = calculateCurrencyColumn(
+    results[columnId] = calculateRowsColumn(
+      rows,
+      columnId,
+      calculationType,
+      columns[columnId],
+      columnTypes[columnId],
+      locale
+    );
+  }
+
+  return results;
+};
+
+/**
+ * A calculation over rows the browser holds (every matching row, the page,
+ * the selection), read as the cells do: the accessor first, then the id.
+ */
+export const calculateRowsColumn = (
+  rows: Record<string, unknown>[],
+  columnId: string,
+  calculationType: CalculationType,
+  column: ColumnCalculationDefinition | undefined,
+  columnType: string | undefined,
+  locale: string
+): TableAggregateResultValue => {
+  const values = rows.map((row) => {
+    if (column?.accessorFn) {
+      return (column.accessorFn as (record: typeof row) => unknown)(row);
+    }
+    return row[column?.accessorKey ?? columnId];
+  });
+  // Amounts in several currencies are kept per currency, never mixed.
+  return (
+    calculateCurrencyColumn(
       values,
       rows,
       calculationType,
       formatOf(column),
       locale
-    );
-    results[columnId] =
-      perCurrency ??
-      calculateColumn(
-        values,
-        calculationType,
-        columnTypes[columnId],
-        locale,
-        formatOf(column)
-      );
-  }
-
-  return results;
+    ) ??
+    calculateColumn(
+      values,
+      calculationType,
+      columnType ?? column?.type,
+      locale,
+      formatOf(column)
+    )
+  );
 };

@@ -19,7 +19,8 @@ import type { CalculationType } from "../../types";
 const props = defineProps<{
   columnLabel: string;
   options: CalculationType[];
-  result?: string;
+  /** The result, the rows it covers when not every matching row, and the other scopes' results. */
+  summary?: { result: string; scope?: string; detail?: string };
 }>();
 const calculation = defineModel<CalculationType>({ default: "none" });
 const context = useTableContext();
@@ -57,13 +58,13 @@ const selectCalculation = (value: unknown): void => {
 <template>
   <DropdownMenuRoot :modal="false">
     <DropdownMenuTrigger as-child>
-      <button type="button" class="yayaw-calculation-trigger" :aria-label="label">
+      <button type="button" class="yayaw-calculation-trigger" :aria-label="label" :title="summary?.detail">
         <span v-if="calculation === 'none'" class="yayaw-calculation-empty">
           <Calculator :size="14" aria-hidden="true" />{{ translate("calculate") }}
         </span>
         <template v-else>
-          <small>{{ translate(calculation) }}</small>
-          <strong>{{ result }}</strong>
+          <small>{{ translate(calculation) }}<template v-if="summary?.scope"> · {{ summary.scope }}</template></small>
+          <strong>{{ summary?.result }}</strong>
         </template>
       </button>
     </DropdownMenuTrigger>

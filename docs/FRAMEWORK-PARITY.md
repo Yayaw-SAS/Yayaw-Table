@@ -1170,6 +1170,24 @@ metrics keep their own aggregation and are not currency-aware.
 `tests/currency-totals-suite.ts` runs in both editions, with edition tests of
 the React list/aggregate footer path and the Vue `calculateColumn` and cells.
 
+## Footer calculation scopes
+
+Both editions compute a footer calculation over every row matching the
+filters and search (local rows, `actions.aggregate`, or the list fallback).
+While rows are selected, the footer shows the calculation over the selected
+rows instead, labelled with the selection's size (`"Sum · Selection (2)"`),
+computed in the browser from the selected records and per currency like every
+local calculation. Selected records stay known after their page is left: Vue
+through its selection cache, React through the footer's own cache of the
+records it saw selected. The result's tooltip (Vue `title`, React
+`TableTooltip`) gives the other scopes, joined with " | ": the page shown when
+the matching rows span several pages (`"This page: 10"`), and every matching
+row under a selection (`"All rows: 40"`). Without either, React keeps its
+"Calculate" tooltip. Translation keys: `calculations.selection`,
+`calculations.page`, `calculations.all` (React `calcSelection`, `calcPage`,
+`calcAllRows`). Covered by `calculation-menu.test.ts` (Vue) and
+`tests/footer-calculation-menu.test.tsx` (React).
+
 ## Formats apply everywhere
 
 A format set on a column (`numberFormat`, `dateDisplayPreset`, `dateFormat`,

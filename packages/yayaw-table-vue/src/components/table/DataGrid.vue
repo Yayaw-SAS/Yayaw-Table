@@ -687,6 +687,53 @@ const unsubscribeAggregates = context.queryClient.getQueryCache().subscribe(even
   if (key[0] === "yayaw-table" && key[1] === context.config.id && key[2] === "aggregate" && event.type === "updated" && event.action.type === "invalidate") void refreshCalculations();
 });
 onBeforeUnmount(unsubscribeAggregates);
+/** A calculation over rows the browser holds (all rows of a local table, the page, the selection). */
+const localCalculation = (
+  rows: TableRecord[],
+  columnId: string,
+  calculation: CalculationType
+): string => {
+  const definition = sourceColumns.value.find((column) => column.id === columnId);
+  return calculationText(
+    calculateColumn(
+      definition?.accessorFn
+        ? rows.map((row) => ({ ...row, [columnId]: definition.accessorFn?.(row) }))
+        : rows,
+      definition?.accessorFn ? columnId : (definition?.accessorKey ?? columnId),
+      calculation,
+      definition?.type,
+      context.locale,
+      definition
+    ),
+    calculation,
+    definition
+  );
+};
+/** Records of the page shown, grouped rows included once. */
+const pageRecords = computed(() => [
+  ...new Map(visibleRows.value.flatMap(groupedLeafRows).map((row) => [row.id, row.original])).values(),
+]);
+/**
+ * The footer reads the selection when rows are selected, every matching row otherwise;
+ * its tooltip gives the page when there are several, and every matching row under a selection.
+ */
+const footerCalculation = (columnId: string, calculation: CalculationType) => {
+  const all = calculationFor(columnId, calculation);
+  const translate = (key: string) => String(context.translations.value[`calculations.${key}`] ?? key);
+  // A page holding every matching row adds nothing to the footer.
+  const page = context.matchingRowCount.value > pageRecords.value.length
+    ? `${translate("page")}: ${localCalculation(pageRecords.value, columnId, calculation)}`
+    : undefined;
+  const selected = context.selectedRows.value;
+  if (!selected.length) {
+    return { result: all, detail: page };
+  }
+  return {
+    result: localCalculation(selected, columnId, calculation),
+    scope: `${translate("selection")} (${selected.length})`,
+    detail: [page, `${translate("all")}: ${all}`].filter(Boolean).join(" | "),
+  };
+};
 const calculationFor = (
   columnId: string,
   calculation: CalculationType
@@ -695,26 +742,7 @@ const calculationFor = (
     (column) => column.id === columnId
   );
   if (!context.data.isServer.value) {
-    const localRows = table.getFilteredRowModel().rows.map((row) => row.original);
-    return calculationText(
-      calculateColumn(
-        definition?.accessorFn
-          ? localRows.map((row) => ({
-              ...row,
-              [columnId]: definition.accessorFn?.(row),
-            }))
-          : localRows,
-        definition?.accessorFn
-          ? columnId
-          : (definition?.accessorKey ?? columnId),
-        calculation,
-        definition?.type,
-        context.locale,
-        definition
-      ),
-      calculation,
-      definition
-    );
+    return localCalculation(table.getFilteredRowModel().rows.map((row) => row.original), columnId, calculation);
   }
   const value = aggregateResults.value[columnId];
   // A host's label is kept; its plain values read in the column's format.
@@ -879,7 +907,7 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
                   v-model="selectedCalculations[column.id]"
                   :column-label="String(column.columnDef.header ?? column.id)"
                   :options="availableCalculations(calculationColumns.find((item) => item.id === column.id)!)"
-                  :result="selectedCalculations[column.id] !== 'none' ? calculationFor(column.id, selectedCalculations[column.id]!) : undefined"
+                  :summary="selectedCalculations[column.id] !== 'none' ? footerCalculation(column.id, selectedCalculations[column.id]!) : undefined"
                 />
               </template>
             </td>
