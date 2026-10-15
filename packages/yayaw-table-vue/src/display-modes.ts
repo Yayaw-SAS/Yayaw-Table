@@ -43,6 +43,8 @@ export interface DisplayModeDefinition {
   maxGroups: number;
   /** The mode renders nothing useful without a planning session. */
   requiresPlanning?: boolean;
+  /** The mode places rows by a column of this type (a calendar needs dates). */
+  requiresColumnType?: string;
   /**
    * The mode is rendered by an optional registry item (its library stays out
    * of the base block); it is offered only when that renderer is plugged in.
@@ -96,6 +98,7 @@ export const DISPLAY_MODES = {
     configKey: "calendar",
     maxGroups: 0,
     normalizeConfig: normalizeCalendarViewConfig,
+    requiresColumnType: "date",
     requiresRenderer: true,
   },
   chart: {
@@ -118,6 +121,7 @@ export const DISPLAY_MODES = {
     configKey: "map",
     maxGroups: 0,
     normalizeConfig: normalizeMapViewConfig,
+    requiresColumnType: "location",
     requiresRenderer: true,
   },
   form: {
@@ -153,6 +157,8 @@ export function isTableDisplayMode(value: unknown): value is TableDisplayMode {
 }
 
 export interface DisplayModeContext {
+  /** Column definitions; modes needing a column type the table lacks are withheld. */
+  columns?: readonly { type?: string }[];
   /** Whether a planning session can feed planning modes such as Gantt. */
   planning?: boolean;
   /** Modes whose optional renderer is plugged into the table. */
@@ -165,6 +171,14 @@ function isModeUsable(
 ): boolean {
   const definition: DisplayModeDefinition = DISPLAY_MODES[mode];
   if (definition.requiresPlanning && !context.planning) {
+    return false;
+  }
+  const { requiresColumnType } = definition;
+  if (
+    requiresColumnType &&
+    context.columns &&
+    !context.columns.some((column) => column.type === requiresColumnType)
+  ) {
     return false;
   }
   return !(definition.requiresRenderer && !context.renderers?.includes(mode));

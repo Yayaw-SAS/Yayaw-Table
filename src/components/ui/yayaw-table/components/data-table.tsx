@@ -920,10 +920,16 @@ function DataTableContent({
   const offeredDisplayModes = useMemo(
     () =>
       availableDisplayModes(config.table.displayModes, {
+        columns: config.columns.definitions,
         planning: Boolean(planningSession),
         renderers: Object.keys(modeRenderers ?? {}),
       }),
-    [config.table.displayModes, modeRenderers, planningSession]
+    [
+      config.columns.definitions,
+      config.table.displayModes,
+      modeRenderers,
+      planningSession,
+    ]
   );
   const shouldShowDisplayModes = offeredDisplayModes.length > 1;
   const kanbanGroupingColumns = useMemo(

@@ -52,6 +52,7 @@ const moveActions = computed(() => showTabs.value
     ]);
 const defaultMode = computed(() => context.config.table.defaultDisplayMode ?? "table");
 const offeredModes = computed(() => availableDisplayModes(context.config.table.displayModes, {
+  columns: context.config.columns.definitions,
   planning: Boolean(context.planning),
   renderers: Object.keys(context.displayModeRenderers ?? {}),
 }));

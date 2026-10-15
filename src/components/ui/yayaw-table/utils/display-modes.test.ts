@@ -4,6 +4,7 @@ import {
   isTableDisplayMode,
   resolveDisplayMode,
   resolveDisplayModes,
+  type TableDisplayMode,
 } from "./display-modes";
 
 describe("display mode registry", () => {
@@ -42,6 +43,21 @@ describe("display mode registry", () => {
       "gantt",
     ]);
     expect(resolveDisplayModes(undefined)).toEqual(["table"]);
+  });
+
+  it("withholds modes whose column type the table lacks", () => {
+    const renderers = ["calendar", "map"];
+    const modes: TableDisplayMode[] = ["table", "calendar", "map"];
+    expect(
+      resolveDisplayModes(modes, { columns: [{ type: "text" }], renderers })
+    ).toEqual(["table"]);
+    expect(
+      resolveDisplayModes(modes, {
+        columns: [{ type: "date" }, { type: "location" }],
+        renderers,
+      })
+    ).toEqual(modes);
+    expect(resolveDisplayModes(modes, { renderers })).toEqual(modes);
   });
 
   it("falls back from a mode the table does not offer to its default", () => {

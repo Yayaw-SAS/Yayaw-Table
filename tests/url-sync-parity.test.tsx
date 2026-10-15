@@ -339,9 +339,10 @@ it("keeps a display mode's rows when back or forward keeps the query, as Vue doe
       definitions: [
         { id: "name", header: "Name", type: "text" },
         { id: "status", header: "Status", type: "text" },
+        { id: "due", header: "Due", type: "date" },
       ],
-      order: ["name", "status"],
-      visible: ["name", "status"],
+      order: ["name", "status", "due"],
+      visible: ["name", "status", "due"],
       mandatory: ["name"],
     },
     table: {

@@ -149,6 +149,7 @@ const search = computed({
 const activeRenderer = computed(() => context.displayModeRenderers?.[context.state.displayMode.value]);
 const modes = computed<TableDisplayMode[]>(() =>
   availableDisplayModes(context.config.table.displayModes, {
+    columns: context.config.columns.definitions,
     planning: Boolean(context.planning),
     renderers: Object.keys(context.displayModeRenderers ?? {}),
   })
