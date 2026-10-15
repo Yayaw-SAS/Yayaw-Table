@@ -389,6 +389,11 @@ const onCellClick = async (event: MouseEvent): Promise<void> => {
   if (editing.value) return;
   if (event.target instanceof Element && event.target !== event.currentTarget && event.target.closest("a[href],button,input,select,textarea,[role='option'],[data-location-editor],.yayaw-cell-actions")) return;
   await begin();
+  // A boolean cell toggles on the click that opens it, as its checkbox would.
+  if (editing.value && editor.value === "boolean") {
+    draft.value = !draft.value;
+    await save();
+  }
 };
 // Only editable cells listen for clicks; a read-only cell leaves the click to the row.
 const cellListeners = computed(() => (canEdit.value ? { click: onCellClick } : {}));

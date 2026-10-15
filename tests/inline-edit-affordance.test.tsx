@@ -112,3 +112,54 @@ it("starts editing on a single click anywhere in the cell", async () => {
   });
   expect(document.querySelector("input")).not.toBeNull();
 });
+
+it("toggles and saves a boolean cell on its first click, as in Vue", async () => {
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  roots.push(root);
+  const row = { id: "1", active: false };
+  const cell = {
+    getValue: () => false,
+    row: { original: row },
+    column: { id: "active", columnDef: { header: "Active" } },
+  } as unknown as ComponentProps<typeof InlineEditableCell>["cell"];
+  const commits: unknown[] = [];
+  const config = resolveInlineEditColumnConfig(
+    {
+      id: "active",
+      header: "Active",
+      type: "boolean",
+      inlineEdit: { enabled: true, debounceMs: 0 },
+    } as never,
+    { enabled: true }
+  );
+  await act(() =>
+    root.render(
+      <TableProvider
+        queryClient={new QueryClient()}
+        tableId="inline-boolean"
+        translations={defaultTranslations}
+      >
+        <InlineEditableCell
+          cell={cell}
+          displayValue="false"
+          inlineConfig={config}
+          onCommit={(value) => {
+            commits.push(value);
+            return Promise.resolve({ success: true });
+          }}
+          rowData={row}
+        />
+      </TableProvider>
+    )
+  );
+  await act(async () => {
+    container.querySelector<HTMLElement>("[data-inline-editor]")?.click();
+    await Promise.resolve();
+  });
+  expect(
+    container.querySelector('[role="switch"]')?.getAttribute("aria-checked")
+  ).toBe("true");
+  expect(commits).toEqual([true]);
+});

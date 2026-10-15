@@ -485,7 +485,6 @@ for (const [type, value, selector] of [
   ["text", "Alpha", 'input[type="text"]'],
   ["code", "const a = 1;", "textarea"],
   ["number", -12.5, 'input[type="number"]'],
-  ["boolean", false, 'input[type="checkbox"]'],
   ["date", new Date(2026, 8, 8), 'input[type="date"]'],
   ["url", "https://example.com", 'input[type="url"]'],
   ["image", "https://example.com/image.png", 'input[type="url"]'],
@@ -513,6 +512,15 @@ for (const [type, value, selector] of [
     }
   });
 }
+it("toggles and saves a boolean cell on its first click", async () => {
+  const { wrapper, update } = createCell({
+    row: { id: "1", active: false },
+    column: { id: "active", header: "Active", type: "boolean" },
+  });
+  await wrapper.trigger("click");
+  await flushPromises();
+  expect(update).toHaveBeenCalledWith("1", { active: true }, expect.anything());
+});
 it("resolves the dynamic row type for both display and editing", async () => {
   const { wrapper } = createCell({
     row: { id: "1", kind: "url", value: "https://example.com" },
