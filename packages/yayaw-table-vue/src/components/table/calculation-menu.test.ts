@@ -29,10 +29,14 @@ const config = defineTableConfig({
   translations: { namespace: "calculations", keys: {} },
   table: { enableCalculations: true, enableViews: false },
 });
-const mountTable = (locale = "en") =>
+const mountTable = (
+  locale = "en",
+  props: { config?: typeof config; rowSelection?: Record<string, boolean> } = {}
+) =>
   mount(YayawDataTable, {
     props: {
       config,
+      ...props,
       tableType: "calculations",
       locale,
       syncUrl: false,
@@ -158,4 +162,25 @@ it("keeps numeric, boolean and date choices limited to compatible columns", asyn
       .findAll('[role="menuitemradio"]')
       .map((option) => option.text())
   ).toEqual(["None", "Min", "Max", "Range"]);
+});
+
+it("totals the selected rows, with every matching row in the tooltip", async () => {
+  const wrapper = mountTable("en", { rowSelection: { "1": true } });
+  await settle();
+  const trigger = wrapper.get('[aria-label="Calculate: Amount"]');
+  expect(trigger.text()).toContain("Sum · Selection (1)");
+  expect(trigger.text()).toContain("10");
+  expect(trigger.attributes("title")).toBe("All rows: 40");
+});
+
+it("gives the page's result in the tooltip when the rows span several pages", async () => {
+  const paged = defineTableConfig({
+    ...config,
+    table: { ...config.table, defaultPageSize: 1, pageSizeOptions: [1] },
+  });
+  const wrapper = mountTable("fr", { config: paged });
+  await settle();
+  const trigger = wrapper.get('[aria-label="Calculer: Amount"]');
+  expect(trigger.text()).toContain("40");
+  expect(trigger.attributes("title")).toBe("Cette page: 10");
 });

@@ -165,6 +165,9 @@ export const defaultTranslations: Required<
   "columns.reorder": "Drag to reorder",
   "columns.resize": "Resize column",
   "calculations.calculate": "Calculate",
+  "calculations.selection": "Selection",
+  "calculations.page": "This page",
+  "calculations.all": "All rows",
   "calculations.none": "None",
   "calculations.count": "Count",
   "calculations.percent": "Percent",
@@ -345,6 +348,9 @@ export const defaultTranslations: Required<
 
 export const frenchTranslations: DataTableTranslations = {
   "calculations.calculate": "Calculer",
+  "calculations.selection": "Sélection",
+  "calculations.page": "Cette page",
+  "calculations.all": "Toutes les lignes",
   "calculations.none": "Aucun",
   "calculations.count": "Nombre",
   "calculations.percent": "Pourcentage",

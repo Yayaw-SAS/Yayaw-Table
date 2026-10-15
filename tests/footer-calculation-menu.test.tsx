@@ -5,6 +5,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { columnCalculationsAtom } from "../src/components/ui/yayaw-table/atoms/footer-atoms";
 import { CalculationMenu } from "../src/components/ui/yayaw-table/components/footer/calculation-menu";
+import { calculateRowsColumn } from "../src/components/ui/yayaw-table/hooks/use-global-column-calculations";
 import {
   defaultTranslations,
   TableProvider,
@@ -87,4 +88,68 @@ it("selects a calculation through a Shadcn submenu and clears a configured defau
     queryClient.clear();
     store.set(columnCalculationsAtom(tableId), {});
   }
+});
+
+it("names the rows a footer result covers and keeps the calculator tooltip otherwise", async () => {
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  const store = createStore();
+  const queryClient = new QueryClient();
+  const tableId = "footer-scope";
+  store.set(columnCalculationsAtom(tableId), {});
+  try {
+    await act(() =>
+      root.render(
+        <Provider store={store}>
+          <TableProvider
+            queryClient={queryClient}
+            tableId={tableId}
+            translations={defaultTranslations}
+          >
+            <CalculationMenu
+              columnId="amount"
+              columnType="number"
+              defaultCalculation="sum"
+              detail="This page: 10 | All rows: 40"
+              result={{ label: "10", raw: 10 }}
+              scopeLabel="Selection (1)"
+              tableId={tableId}
+              tableType={tableId}
+            />
+          </TableProvider>
+        </Provider>
+      )
+    );
+    const trigger = container.querySelector<HTMLButtonElement>("button");
+    expect(trigger?.textContent).toContain("Sum · Selection (1)");
+    expect(trigger?.textContent).toContain("10");
+  } finally {
+    await act(() => root.unmount());
+    container.remove();
+    queryClient.clear();
+    store.set(columnCalculationsAtom(tableId), {});
+  }
+});
+
+it("calculates held rows per currency, never mixing them", () => {
+  const result = calculateRowsColumn(
+    [
+      { amount: 10, currency: "EUR" },
+      { amount: 5, currency: "USD" },
+      { amount: 20, currency: "EUR" },
+    ],
+    "amount",
+    "sum",
+    {
+      id: "amount",
+      type: "number",
+      numberFormat: { currencyColumn: "currency" },
+    },
+    "number",
+    "en"
+  );
+  expect(result.label).toContain("30");
+  expect(result.label).toContain("5");
+  expect(result.label).not.toContain("35");
 });

@@ -154,6 +154,9 @@ export interface DataTableUiStrings {
   calcMax: string;
   calcRange: string;
   calcCalculate: string;
+  calcSelection: string;
+  calcPage: string;
+  calcAllRows: string;
 }
 
 /**
@@ -340,6 +343,9 @@ export const translationKeysMap: DataTableUiStrings = {
   calcMax: "calculations.max",
   calcRange: "calculations.range",
   calcCalculate: "calculations.calculate",
+  calcSelection: "calculations.selection",
+  calcPage: "calculations.page",
+  calcAllRows: "calculations.all",
 };
 
 /**
