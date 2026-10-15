@@ -4,6 +4,7 @@ import "./styles.css";
 
 export {
   type CellActionDefinition,
+  type CellActionPlacement,
   type CellActionReveal,
   cellCopyText,
   resolveCellActions,

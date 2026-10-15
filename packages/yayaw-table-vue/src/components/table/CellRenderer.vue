@@ -87,6 +87,8 @@ const cellActions = computed(() =>
   )
 );
 const hasActions = computed(() => cellActions.value.length > 0);
+const startActions = computed(() => cellActions.value.filter((action) => action.placement === "start"));
+const endActions = computed(() => cellActions.value.filter((action) => action.placement === "end"));
 const customNode = computed(
   () =>
     props.column.cellRenderer?.(props.value, props.row) ??
@@ -525,6 +527,7 @@ const tagListeners = (value: unknown) => {
     v-on="cellListeners"
     @keydown="onKeydown"
   >
+    <CellActions v-if="startActions.length && !editing" :actions="startActions" placement="start" />
     <template v-if="editing">
       <TagPicker
         v-if="tagColumn && context.tags"
@@ -771,7 +774,7 @@ const tagListeners = (value: unknown) => {
       aria-hidden="true"
       ><component :is="INLINE_EDITOR_ICON_COMPONENTS[editorIcon]"
     /></span>
-    <CellActions v-if="hasActions && !editing" :actions="cellActions" />
+    <CellActions v-if="endActions.length && !editing" :actions="endActions" />
     <span v-if="error && !editing" class="yayaw-inline-error" role="alert">{{
       error
     }}</span>

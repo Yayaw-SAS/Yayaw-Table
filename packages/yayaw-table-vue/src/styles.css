@@ -937,7 +937,7 @@
 .yayaw-cell.is-editing {
   cursor: auto;
 }
-/* Cell actions sit after the value at the density's control size, like row actions. */
+/* Cell actions sit after the value (or before it, `placement: "start"`) at the density's control size, like row actions. */
 .yayaw-cell.has-actions {
   display: flex;
   align-items: center;

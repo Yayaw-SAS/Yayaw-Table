@@ -136,3 +136,36 @@ it("ignores a disabled action's click without passing it to the row", async () =
   expect(rowClicks).toBe(0);
   document.body.removeEventListener("click", onRowClick);
 });
+
+it("draws a start action before the value and the others after it", async () => {
+  const container = await render(
+    <CellWithActions
+      column={{
+        id: "campaign",
+        header: "Campaign",
+        copyable: true,
+        cellActions: [
+          { id: "filter", label: "Show its records", placement: "start" },
+          { id: "open", label: "Open", href: () => "/campaigns/1" },
+        ],
+      }}
+      row={{ id: "1" }}
+      value="Spring"
+    >
+      Spring
+    </CellWithActions>
+  );
+  const parts = [...(container.firstElementChild?.children ?? [])];
+  expect(parts.map((part) => part.getAttribute("data-cell-actions"))).toEqual([
+    "start",
+    null,
+    "",
+  ]);
+  expect(parts[0]?.textContent).toBe("Show its records");
+  expect(parts[1]?.textContent).toBe("Spring");
+  expect(
+    [...(parts[2]?.querySelectorAll("[data-cell-action]") ?? [])].map(
+      (action) => action.getAttribute("data-cell-action")
+    )
+  ).toEqual(["open", "copy"]);
+});
