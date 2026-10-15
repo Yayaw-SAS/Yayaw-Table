@@ -321,6 +321,7 @@ export {
 } from "./utils/tag-catalog";
 export {
   type CellActionDefinition,
+  type CellActionPlacement,
   type CellActionReveal,
   cellCopyText,
   resolveCellActions,

@@ -1,11 +1,13 @@
 /**
- * Cell actions: small controls declared on a column and drawn after its value
- * (add a note, edit the contacts, open the record, copy the value). The engine
+ * Cell actions: small controls declared on a column and drawn after its value,
+ * or before it with `placement: "start"` (add a note, edit the contacts, open
+ * the record, show the records sharing the value, copy the value). The engine
  * renders them at the table's control size, so they follow the density like
  * row actions do. Framework-neutral: also copied into the Vue registry.
  */
 
 export type CellActionReveal = "always" | "hover";
+export type CellActionPlacement = "start" | "end";
 
 type CellActionRow = Record<string, unknown>;
 
@@ -27,6 +29,8 @@ export interface CellActionDefinition<
   disabled?: (row: TRow) => boolean;
   /** `hover` shows the action while the row is hovered or focused; touch screens always show it. Default `always`. */
   reveal?: CellActionReveal;
+  /** `start` draws the action before the value. Default `end`. */
+  placement?: CellActionPlacement;
 }
 
 export interface CellActionColumn<
@@ -46,6 +50,7 @@ export interface ResolvedCellAction<TIcon = unknown> {
   count?: number;
   disabled: boolean;
   reveal: CellActionReveal;
+  placement: CellActionPlacement;
   /** The text a copy action writes; absent on other actions. */
   copyText?: string;
   run?: () => unknown;
@@ -96,6 +101,7 @@ export function resolveCellActions<TRow extends CellActionRow, TIcon>(
       count: count && count > 0 ? count : undefined,
       disabled: action.disabled?.(row) ?? false,
       reveal: action.reveal ?? "always",
+      placement: action.placement ?? "end",
       run: href || !onClick ? undefined : () => onClick(row, value),
     });
   }
@@ -106,6 +112,7 @@ export function resolveCellActions<TRow extends CellActionRow, TIcon>(
       label: copyLabel,
       disabled: false,
       reveal: "hover",
+      placement: "end",
       copyText,
     });
   }

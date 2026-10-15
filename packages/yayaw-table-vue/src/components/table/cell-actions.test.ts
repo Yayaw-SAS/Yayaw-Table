@@ -122,3 +122,30 @@ it("ignores a disabled action's click without passing it to the row", async () =
   expect(onClick).not.toHaveBeenCalled();
   expect(parentClick).not.toHaveBeenCalled();
 });
+
+it("draws a start action before the value and the others after it", () => {
+  const { wrapper } = mountCell(
+    {
+      id: "campaign",
+      header: "Campaign",
+      copyable: true,
+      cellActions: [
+        { id: "filter", label: "Show its records", placement: "start" },
+        { id: "open", label: "Open", href: () => "/campaigns/1" },
+      ],
+    },
+    { id: "1" },
+    "Spring"
+  );
+  const cell = wrapper.find(".yayaw-cell").element;
+  const first = cell.firstElementChild;
+  expect(first?.getAttribute("data-cell-actions")).toBe("start");
+  expect(first?.textContent).toBe("Show its records");
+  expect(first?.nextElementSibling?.textContent).toBe("Spring");
+  const end = cell.querySelector('[data-cell-actions=""]');
+  expect(
+    [...(end?.querySelectorAll("[data-cell-action]") ?? [])].map((action) =>
+      action.getAttribute("data-cell-action")
+    )
+  ).toEqual(["open", "copy"]);
+});

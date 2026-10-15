@@ -8,7 +8,7 @@ import TableTooltip from "../toolbar/TableTooltip.vue";
 const COPIED_FEEDBACK_MS = 1500;
 
 /** Resolved by CellRenderer, which only mounts this when there is one. */
-defineProps<{ actions: ResolvedCellAction<Component>[] }>();
+defineProps<{ actions: ResolvedCellAction<Component>[]; placement?: "start" }>();
 const context = useTableContext();
 const copied = ref(false);
 let copiedTimer: ReturnType<typeof setTimeout> | undefined;
@@ -43,7 +43,7 @@ async function run(action: ResolvedCellAction<Component>) {
   <!-- Actions keep their clicks: no row click, no inline edit, no drag. -->
   <span
     class="yayaw-cell-actions"
-    data-cell-actions=""
+    :data-cell-actions="placement ?? ''"
     @click.stop
     @dblclick.stop
     @pointerdown.stop
