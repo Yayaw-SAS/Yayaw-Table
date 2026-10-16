@@ -13,8 +13,8 @@
   ],
   "meta": {
     "registryUrl": "https://table.yayaw.app/r/yayaw-table-excel.json",
-    "version": "3.25.0",
-    "versionedRegistryUrl": "https://table.yayaw.app/r/v3.25.0/yayaw-table-excel.json"
+    "version": "3.26.0",
+    "versionedRegistryUrl": "https://table.yayaw.app/r/v3.26.0/yayaw-table-excel.json"
   },
   "type": "registry:lib"
 }
