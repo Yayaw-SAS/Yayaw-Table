@@ -187,6 +187,17 @@ jobs:
           E2E_STATIC: "1"
         run: bunx playwright test --shard=${{ matrix.shard }}/4
 
+      # Traces of failed tests: open with `npx playwright show-trace <zip>` or
+      # drop the zip on trace.playwright.dev.
+      - name: Keep the failure traces
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-traces-${{ matrix.shard }}-attempt-${{ github.run_attempt }}
+          path: test-results
+          retention-days: 7
+          if-no-files-found: ignore
+
   # A skipped job counts as passed for a required check: run always, fail unless all passed.
   test-and-typecheck:
     needs: [quality, unit, e2e]

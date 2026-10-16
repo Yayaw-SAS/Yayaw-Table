@@ -1,6 +1,7 @@
-import { expect, type Locator, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 import { assetRows } from "../examples/assets";
 import { productRows } from "../examples/products";
+import { test } from "./fixtures/test";
 
 /**
  * The facet panel (`?example=products`, `?example=assets`), "New folder" and

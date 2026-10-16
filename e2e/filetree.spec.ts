@@ -1,4 +1,5 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+import { test } from "./fixtures/test";
 
 const ASSETS = "/?example=assets";
 const DRAG_LABEL = ".yayaw-ft-drag-label";

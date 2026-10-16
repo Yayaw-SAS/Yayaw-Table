@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { demoDay } from "../examples/dashboard";
 import {
   ANALYTICS_NOTICE,
@@ -9,6 +9,7 @@ import {
 } from "../examples/screen";
 import { formatNumberValue } from "../src/components/ui/yayaw-table/utils/value-format";
 import { nextWidgetId } from "../src/components/ui/yayaw-table-dashboard/dashboard-schema";
+import { test } from "./fixtures/test";
 
 const SCREEN = "/?example=screen";
 /** The demo host's saved dashboards, in the tab's session storage. */

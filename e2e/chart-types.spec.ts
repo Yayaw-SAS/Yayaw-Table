@@ -1,4 +1,5 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+import { test } from "./fixtures/test";
 
 const SETTINGS_PARAM = "views-chart";
 const CARD_SETTINGS = /^card settings/i;
