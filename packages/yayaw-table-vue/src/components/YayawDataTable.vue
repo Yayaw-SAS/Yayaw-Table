@@ -421,6 +421,7 @@ const detailReverted = async (): Promise<void> => {
   catch (cause) { status.value = { type: "error", message: cause instanceof Error ? cause.message : String(cause) }; }
 };
 const footerCalculationsVisible = state.footerCalculationsVisible;
+const footerCalculationsEditing = ref(false);
 const toolbarCompact = ref(false);
 const status = ref<{ type: "error" | "success"; message: string }>();
 // Use the host's single Sonner outlet, as React does; feedback must not move table content.
@@ -760,6 +761,7 @@ provide(tableContextKey, {
   toolbarActions,
   form,
   footerCalculationsVisible,
+  footerCalculationsEditing,
   toolbarCompact,
   facetsOpen,
   dataRevision,

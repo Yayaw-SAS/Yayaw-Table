@@ -7,7 +7,9 @@
 "use client";
 
 import type { Row, Table } from "@/components/ui/yayaw-table/tanstack";
+import { useAtomValue } from "jotai";
 import { memo, useMemo, useRef, type CSSProperties } from "react";
+import { footerEditingAtom } from "../../atoms/footer-atoms";
 import { cn } from "@/lib/utils";
 import { TABLE_DENSITY_CLASSES } from "../../utils/table-density";
 import type { TableDensity } from "../../types/display-types";
@@ -20,7 +22,10 @@ import {
 import { useTableTranslations } from "../../hooks/use-table-translations";
 import { useLocale } from "../../providers/table-provider";
 import type { CalculationType } from "../../types/footer-types";
-import { isCalculationValidForColumn } from "../../types/footer-types";
+import {
+  isCalculationLocked,
+  isCalculationValidForColumn,
+} from "../../types/footer-types";
 import { CalculationMenu } from "./calculation-menu";
 
 interface FooterRowProps<TData> {
@@ -53,6 +58,7 @@ function FooterRowBase<TData>({
   tableType,
 }: FooterRowProps<TData>) {
   const { config: tableConfig } = useTableConfig(tableType);
+  const isEditing = useAtomValue(footerEditingAtom(tableId));
 
   const columnDefMap = useMemo(() => {
     const map: Record<
@@ -60,6 +66,7 @@ function FooterRowBase<TData>({
       {
         defaultCalculation?: string;
         enableCalculation?: boolean;
+        lockCalculation?: boolean;
         type?: string;
       }
     > = {};
@@ -67,6 +74,7 @@ function FooterRowBase<TData>({
       map[def.id] = {
         defaultCalculation: def.defaultCalculation,
         enableCalculation: def.enableCalculation,
+        lockCalculation: def.lockCalculation,
         type: def.type,
       };
     }
@@ -92,6 +100,7 @@ function FooterRowBase<TData>({
       tableType,
       columnDefinitions: tableConfig.columns.definitions,
       columnIds: visibleColumnIds,
+      lockCalculations: tableConfig.table.lockCalculations,
     });
 
   const translations = useTableTranslations(tableType);
@@ -177,11 +186,14 @@ function FooterRowBase<TData>({
       }
 
       const configDef = columnDefMap[column.id];
-      return configDef?.enableCalculation !== false;
+      return (
+        configDef?.enableCalculation !== false &&
+        !isCalculationLocked(configDef, tableConfig.table.lockCalculations)
+      );
     });
 
     return firstCalculableColumn?.id;
-  }, [columnDefMap, visibleColumns]);
+  }, [columnDefMap, tableConfig.table.lockCalculations, visibleColumns]);
 
   const cellSizeStyle = (
     column: (typeof visibleColumns)[number]
@@ -219,6 +231,42 @@ function FooterRowBase<TData>({
     return style;
   };
 
+  /** What a column's footer cell offers: read-only columns without a calculation offer nothing. */
+  const footerCell = (column: (typeof visibleColumns)[number]) => {
+    const colType = getColumnType(column.columnDef);
+    const configDef = columnDefMap[column.id];
+    const isLocked = isCalculationLocked(
+      configDef,
+      tableConfig.table.lockCalculations
+    );
+    const rawDefault = configDef?.defaultCalculation as
+      | CalculationType
+      | undefined;
+    const validDefault =
+      rawDefault &&
+      rawDefault !== "none" &&
+      isCalculationValidForColumn(rawDefault, colType)
+        ? rawDefault
+        : undefined;
+    // Read-only, a column shows its calculation, and nothing without one.
+    const isReadOnly = isLocked || !isEditing;
+    const enableCalc =
+      configDef?.enableCalculation !== false &&
+      (!isReadOnly || Boolean(activeCalculations[column.id]));
+    return { colType, enableCalc, isLocked, isReadOnly, validDefault };
+  };
+
+  // Like the Vue edition, no footer row when no column offers a calculation.
+  const hasFooterCell = visibleColumns.some(
+    (column) =>
+      column.id !== "select" &&
+      column.id !== "actions" &&
+      footerCell(column).enableCalc
+  );
+  if (!hasFooterCell) {
+    return null;
+  }
+
   return (
     <TableRow
       className={cn(
@@ -252,19 +300,9 @@ function FooterRowBase<TData>({
         }
 
         const def = column.columnDef;
-        const colType = getColumnType(def);
         const numCol = isNumberColumnDef(def);
-
-        const configDef = columnDefMap[column.id];
-        const enableCalc = configDef?.enableCalculation !== false;
-
-        const rawDefault = configDef?.defaultCalculation as
-          | CalculationType
-          | undefined;
-        const validDefault =
-          rawDefault && isCalculationValidForColumn(rawDefault, colType)
-            ? rawDefault
-            : undefined;
+        const { colType, enableCalc, isLocked, isReadOnly, validDefault } =
+          footerCell(column);
 
         return (
           <TableCell
@@ -280,6 +318,8 @@ function FooterRowBase<TData>({
                 columnId={column.id}
                 columnType={colType}
                 defaultCalculation={validDefault}
+                isLocked={isLocked}
+                isReadOnly={isReadOnly}
                 isNumberColumn={numCol}
                 isResultLoading={
                   isCalculationsLoading && !selectedRecords.length

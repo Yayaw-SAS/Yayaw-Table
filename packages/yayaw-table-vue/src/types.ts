@@ -150,6 +150,12 @@ export interface ColumnDefinition<TData extends TableRecord = TableRecord> {
   /** Allow the native column menu to change this column's pinned position. */
   enablePinning?: boolean;
   enableCalculation?: boolean;
+  /**
+   * Freeze this column's footer calculation: the footer shows
+   * `defaultCalculation` without a menu to change it, and nothing at all (no
+   * "Calculate" button) without one. Overrides `table.lockCalculations`.
+   */
+  lockCalculation?: boolean;
   displayVariant?: "default" | "tag" | "avatars";
   dateDisplayPreset?: DateDisplayPreset;
   dateFormat?: string;
@@ -427,6 +433,12 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord>
   viewerId?: string | number;
   inlineEdit?: TableInlineEditConfig;
   enableCalculations?: boolean;
+  /**
+   * Freeze every column's footer calculation on its `defaultCalculation`;
+   * columns without one show no "Calculate" button. A column's
+   * `lockCalculation` overrides it. Default false.
+   */
+  lockCalculations?: boolean;
   enableGrouping?: boolean;
   /** Keep selected row IDs when search, filters, sorting, or grouping changes. */
   preserveSelectionOnQuery?: boolean;
@@ -1184,6 +1196,9 @@ export interface DataTableTranslations {
   calculations?: string;
   calculationsOn?: string;
   calculationsOff?: string;
+  editCalculations?: string;
+  editCalculationsOn?: string;
+  editCalculationsOff?: string;
   reset?: string;
   copyLink?: string;
   ascending?: string;

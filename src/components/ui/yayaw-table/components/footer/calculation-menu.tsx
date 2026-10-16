@@ -35,6 +35,10 @@ interface CalculationMenuProps {
   columnId: string;
   columnType?: string;
   defaultCalculation?: CalculationType;
+  /** Frozen by the developer: shows `defaultCalculation`, with no menu to change it. */
+  isLocked?: boolean;
+  /** Not editing calculations: shows the current calculation as plain text. */
+  isReadOnly?: boolean;
   isNumberColumn?: boolean;
   isResultLoading?: boolean;
   result?: TableAggregateResultValue;
@@ -75,10 +79,57 @@ const getTranslation = (
 ): string =>
   (translations as unknown as Record<string, string>)[key] || fallback;
 
+/** A calculation shown as plain text, while calculations are not edited or frozen. */
+function CalculationText({
+  detail,
+  isNumberColumn,
+  label,
+  result,
+}: {
+  detail?: string;
+  isNumberColumn: boolean;
+  label: string;
+  result: string;
+}) {
+  const text = (
+    <div
+      className={cn(
+        "flex h-auto w-full min-w-0 flex-col items-start justify-center gap-0.5 px-1 py-0.5 text-xs",
+        isNumberColumn && "items-end text-right"
+      )}
+      data-calculation-locked=""
+    >
+      <span className="max-w-full truncate text-muted-foreground text-[10px] font-medium leading-none">
+        {label}
+      </span>
+      <span
+        className={cn(
+          "max-w-full truncate font-medium tabular-nums text-foreground leading-none",
+          isNumberColumn && "font-mono"
+        )}
+      >
+        {result}
+      </span>
+    </div>
+  );
+  return (
+    <div
+      className={cn(
+        "flex h-full w-full items-center",
+        isNumberColumn && "justify-end"
+      )}
+    >
+      {detail ? <TableTooltip label={detail}>{text}</TableTooltip> : text}
+    </div>
+  );
+}
+
 function CalculationMenuBase({
   columnId,
   columnType,
   defaultCalculation,
+  isLocked = false,
+  isReadOnly = false,
   isNumberColumn = false,
   isResultLoading = false,
   result,
@@ -96,7 +147,7 @@ function CalculationMenuBase({
   // undefined → user hasn't touched it → use defaultCalculation
   // "none"   → user explicitly chose "none"
   // other    → user explicitly chose a calculation
-  const userChoice = calculations[columnId];
+  const userChoice = isLocked ? undefined : calculations[columnId];
   const currentCalc: CalculationType =
     userChoice ?? defaultCalculation ?? "none";
 
@@ -130,6 +181,17 @@ function CalculationMenuBase({
     return result?.label ?? "—";
   }, [currentCalc, isResultLoading, result]);
   const shouldShowEmptyLabel = currentCalc === "none" && showEmptyLabel;
+
+  if (isLocked || isReadOnly) {
+    return currentCalc === "none" ? null : (
+      <CalculationText
+        detail={detail}
+        isNumberColumn={isNumberColumn}
+        label={shortLabel}
+        result={resultLabel}
+      />
+    );
+  }
 
   return (
     <div

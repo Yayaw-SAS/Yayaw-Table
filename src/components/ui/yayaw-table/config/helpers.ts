@@ -464,6 +464,15 @@ export interface ColumnDefinition {
   enableCalculation?: boolean;
 
   /**
+   * Freeze this column's footer calculation: the footer shows
+   * `defaultCalculation` without a menu to change it, and nothing at all
+   * (no "Calculate" button) when the column has no `defaultCalculation`.
+   * Overrides `table.lockCalculations`.
+   * @default table.lockCalculations
+   */
+  lockCalculation?: boolean;
+
+  /**
    * Default calculation to show in the footer for this column.
    * If set, the footer will display this calculation on first load
    * (until the user explicitly changes it).
@@ -812,6 +821,14 @@ export interface TableBehaviorConfig
    * @default false
    */
   enableCalculations?: boolean;
+
+  /**
+   * Freeze every column's footer calculation: columns show their
+   * `defaultCalculation` without a menu, and columns without one show no
+   * "Calculate" button. A column's `lockCalculation` overrides it.
+   * @default false
+   */
+  lockCalculations?: boolean;
 
   /**
    * Enable grouping controls and grouped rows.

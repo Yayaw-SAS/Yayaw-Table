@@ -222,7 +222,7 @@ describe("YayawDataTable", () => {
     expect(menu.text()).toContain("Filter");
     expect(menu.text()).toContain("Sort");
     expect(menu.text()).toContain("Group");
-    expect(menu.text()).toContain("Footer calculations");
+    expect(menu.text()).toContain("Edit calculations");
 
     await menu
       .findAll(".yayaw-options-item")

@@ -30,6 +30,9 @@ export const defaultTranslations: Required<
     | "calculations"
     | "calculationsOn"
     | "calculationsOff"
+    | "editCalculations"
+    | "editCalculationsOn"
+    | "editCalculationsOff"
     | "reset"
     | "clearFilters"
     | "copyLink"
@@ -322,6 +325,9 @@ export const defaultTranslations: Required<
   calculations: "Footer calculations",
   calculationsOn: "Shown",
   calculationsOff: "Hidden",
+  editCalculations: "Edit calculations",
+  editCalculationsOn: "On",
+  editCalculationsOff: "Off",
   reset: "Reset",
   clearFilters: "Clear filters",
   copyLink: "Copy link",
@@ -624,6 +630,9 @@ export const frenchTranslations: DataTableTranslations = {
   calculations: "Calculs de pied de tableau",
   calculationsOn: "Affichés",
   calculationsOff: "Masqués",
+  editCalculations: "Éditer les calculs",
+  editCalculationsOn: "Activé",
+  editCalculationsOff: "Désactivé",
   reset: "Réinitialiser",
   clearFilters: "Effacer les filtres",
   copyLink: "Copier le lien",

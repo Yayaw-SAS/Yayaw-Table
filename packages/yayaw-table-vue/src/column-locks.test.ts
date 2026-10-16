@@ -134,11 +134,8 @@ describe("utility column locks", () => {
     expect(headers[3]?.attributes("draggable")).toBe("false");
     expect(wrapper.findAll("tbody td")[1]?.text()).toContain("42");
     expect(
-      wrapper
-        .findAll("tfoot td")[1]
-        ?.find('[aria-label="Calculate: Amount"]')
-        .exists()
-    ).toBe(true);
+      wrapper.findAll("tfoot td")[1]?.find("[data-calculation-locked]").text()
+    ).toContain("42");
     await headers[3]?.trigger("dragstart");
     await headers[1]?.trigger("drop");
     expect(wrapper.findAll("thead th").at(-1)?.text()).toContain("Actions");

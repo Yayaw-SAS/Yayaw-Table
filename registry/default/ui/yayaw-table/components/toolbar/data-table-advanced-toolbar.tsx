@@ -78,6 +78,7 @@ import type {
 import type { DateDisplayPreset } from "../../types/date-types";
 import { DATE_DISPLAY_PRESETS } from "../../types/date-types";
 import type { TableDisplayMode } from "../../types/display-types";
+import { isCalculationLocked } from "../../types/footer-types";
 import type { TableView } from "../../types/view-types";
 import { StackMenuContent, StackMenuItem } from "../../ui-custom/stack-menu";
 import {
@@ -1944,7 +1945,15 @@ export function DataTableAdvancedToolbar<TData>({
       columns={tableMenuColumns}
       compact={isMobile}
       defaultDisplayMode={tableConfig.table.defaultDisplayMode}
-      enableCalculations={tableConfig.table.enableCalculations === true}
+      enableCalculations={
+        tableConfig.table.enableCalculations === true &&
+        // Some column's calculation can change: not every one is frozen.
+        tableConfig.columns.definitions.some(
+          (column) =>
+            column.enableCalculation !== false &&
+            !isCalculationLocked(column, tableConfig.table.lockCalculations)
+        )
+      }
       enableColumnFilters={isColumnFiltersEnabled}
       enableGrouping={isGroupingEnabled}
       enableSorting={isSortingEnabled}

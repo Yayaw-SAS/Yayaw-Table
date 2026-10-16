@@ -14,6 +14,7 @@ import {
 } from "../providers/table-provider";
 import {
   type CalculationType,
+  isCalculationLocked,
   isCalculationValidForColumn,
 } from "../types/footer-types";
 import { calculateColumn } from "../utils/column-calculations";
@@ -39,6 +40,7 @@ interface ColumnCalculationDefinition extends ColumnValueFormat {
   id: string;
   type?: string;
   enableCalculation?: boolean;
+  lockCalculation?: boolean;
   defaultCalculation?: string;
   accessorKey?: string;
   accessorFn?: (row: never) => unknown;
@@ -154,12 +156,14 @@ const collectDefinitionCalculations = ({
   calculations,
   columnDefinitions,
   columnTypes,
+  lockCalculations,
   userCalculations,
 }: {
   allowedIds?: Set<string>;
   calculations: Record<string, CalculationType>;
   columnDefinitions: ColumnCalculationDefinition[];
   columnTypes: Record<string, string | undefined>;
+  lockCalculations?: boolean;
   userCalculations: Record<string, CalculationType>;
 }): Set<string> => {
   const seenIds = new Set<string>();
@@ -182,7 +186,10 @@ const collectDefinitionCalculations = ({
       defaultCalculation: definition.defaultCalculation as
         | CalculationType
         | undefined,
-      userCalculations,
+      // A frozen column ignores the viewer's choice.
+      userCalculations: isCalculationLocked(definition, lockCalculations)
+        ? {}
+        : userCalculations,
     });
     if (!selected) {
       continue;
@@ -240,10 +247,13 @@ const collectRemainingAllowedIdCalculations = ({
 export const resolveActiveColumnCalculations = ({
   columnDefinitions,
   columnIds,
+  lockCalculations,
   userCalculations,
 }: {
   columnDefinitions: ColumnCalculationDefinition[];
   columnIds?: string[];
+  /** The table's `lockCalculations`: columns follow it unless they set their own. */
+  lockCalculations?: boolean;
   userCalculations: Record<string, CalculationType>;
 }): ResolvedCalculations => {
   const calculations: Record<string, CalculationType> = {};
@@ -255,10 +265,12 @@ export const resolveActiveColumnCalculations = ({
     calculations,
     columnDefinitions,
     columnTypes,
+    lockCalculations,
     userCalculations,
   });
 
-  if (!allowedIds) {
+  // Columns without a definition follow the table: frozen, they have nothing to show.
+  if (!allowedIds || lockCalculations) {
     return { calculations, columnTypes };
   }
 
@@ -278,11 +290,13 @@ export const useGlobalColumnCalculations = ({
   tableType,
   columnDefinitions,
   columnIds,
+  lockCalculations,
 }: {
   tableId: string;
   tableType: string;
   columnDefinitions: ColumnCalculationDefinition[];
   columnIds?: string[];
+  lockCalculations?: boolean;
 }) => {
   const locale = useLocale();
   const userCalculations = useAtomValue(columnCalculationsAtom(tableId));
@@ -304,9 +318,10 @@ export const useGlobalColumnCalculations = ({
       resolveActiveColumnCalculations({
         columnDefinitions,
         columnIds,
+        lockCalculations,
         userCalculations,
       }),
-    [columnDefinitions, columnIds, userCalculations]
+    [columnDefinitions, columnIds, lockCalculations, userCalculations]
   );
 
   const columnsById = useMemo(

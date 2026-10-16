@@ -78,6 +78,8 @@ export interface TableContextValue<TData extends TableRecord = TableRecord> {
   /** The table's folders, for "New folder", the folder filter and folder facets. */
   folders: import("./composables/use-folder-directory").FolderDirectoryStore;
   footerCalculationsVisible: Ref<boolean>;
+  /** "Edit calculations": off, the footer shows calculations as plain text. Not saved. */
+  footerCalculationsEditing: Ref<boolean>;
   optionsRequest: Ref<TableOptionsRequest | undefined>;
   getRowId: (row: TData, index?: number) => string;
   getFormConfig?: (

@@ -75,6 +75,8 @@ export interface TableCatalogueColumnConfig extends ColumnDefinition {
   minSize?: number;
   maxSize?: number;
   enableCalculation?: boolean;
+  /** Freeze the footer on `defaultCalculation`; overrides `table.lockCalculations`. */
+  lockCalculation?: boolean;
   defaultCalculation?: CalculationType;
 }
 
@@ -182,6 +184,8 @@ export interface TableCatalogueTableConfig extends GenericModeTableConfigs {
   timeZone?: string;
   inlineEdit?: TableInlineEditConfig;
   enableCalculations?: boolean;
+  /** Freeze every column's footer calculation on its `defaultCalculation`. */
+  lockCalculations?: boolean;
   enableAdvancedFilters?: boolean;
   preserveSelectionOnQuery?: boolean;
   searchDebounceMs?: number;
@@ -276,6 +280,7 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
     pageSizeOptions: [10, 20, 50, 100, 200, 500],
     dateDisplayPreset: "localized-short",
     enableCalculations: false,
+    lockCalculations: false,
     preserveSelectionOnQuery: false,
     searchDebounceMs: 300,
     syncUrl: true,
@@ -445,6 +450,7 @@ function resolveTableBehaviorConfig(
     timeZone: mergedConfig.timeZone,
     inlineEdit: resolveInlineEditConfig(mergedConfig.inlineEdit),
     enableCalculations: mergedConfig.enableCalculations ?? false,
+    lockCalculations: mergedConfig.lockCalculations === true,
     preserveSelectionOnQuery: mergedConfig.preserveSelectionOnQuery ?? false,
     searchDebounceMs: mergedConfig.searchDebounceMs ?? 300,
     syncUrl: mergedConfig.syncUrl ?? true,

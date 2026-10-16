@@ -1355,6 +1355,9 @@
   font-size: 10px;
   text-transform: uppercase;
 }
+.yayaw-calculation-locked {
+  padding: 2px 4px;
+}
 .yayaw-calculation-trigger {
   display: block;
   width: 100%;

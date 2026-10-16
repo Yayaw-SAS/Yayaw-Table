@@ -19,6 +19,8 @@ import type { CalculationType } from "../../types";
 const props = defineProps<{
   columnLabel: string;
   options: CalculationType[];
+  /** Frozen by the developer: shows the calculation, with no menu to change it. */
+  locked?: boolean;
   /** The result, the rows it covers when not every matching row, and the other scopes' results. */
   summary?: { result: string; scope?: string; detail?: string };
 }>();
@@ -56,7 +58,11 @@ const selectCalculation = (value: unknown): void => {
 </script>
 
 <template>
-  <DropdownMenuRoot :modal="false">
+  <div v-if="locked" class="yayaw-calculation-locked" :title="summary?.detail" data-calculation-locked>
+    <small>{{ translate(calculation) }}<template v-if="summary?.scope"> · {{ summary.scope }}</template></small>
+    <strong>{{ summary?.result }}</strong>
+  </div>
+  <DropdownMenuRoot v-else :modal="false">
     <DropdownMenuTrigger as-child>
       <button type="button" class="yayaw-calculation-trigger" :aria-label="label" :title="summary?.detail">
         <span v-if="calculation === 'none'" class="yayaw-calculation-empty">

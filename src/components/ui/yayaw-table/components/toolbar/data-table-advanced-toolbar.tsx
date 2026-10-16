@@ -151,6 +151,8 @@ import {
   resolveToolbarActions,
   shouldRenderToolbarAction,
 } from "./toolbar-actions";
+import { isCalculationLocked } from "../../types/footer-types";
+
 
 // Debug flag to help track issues - activated for debugging
 
@@ -1937,7 +1939,15 @@ export function DataTableAdvancedToolbar<TData>({
       columns={tableMenuColumns}
       compact={isMobile}
       defaultDisplayMode={tableConfig.table.defaultDisplayMode}
-      enableCalculations={tableConfig.table.enableCalculations === true}
+      enableCalculations={
+        tableConfig.table.enableCalculations === true &&
+        // Some column's calculation can change: not every one is frozen.
+        tableConfig.columns.definitions.some(
+          (column) =>
+            column.enableCalculation !== false &&
+            !isCalculationLocked(column, tableConfig.table.lockCalculations)
+        )
+      }
       enableColumnFilters={isColumnFiltersEnabled}
       enableGrouping={isGroupingEnabled}
       enableSorting={isSortingEnabled}
