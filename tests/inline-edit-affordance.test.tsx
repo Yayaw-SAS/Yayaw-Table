@@ -3,6 +3,7 @@ import { afterEach, expect, it } from "bun:test";
 import { QueryClient } from "@tanstack/react-query";
 import { act, type ComponentProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { DataTypeCell } from "../src/components/ui/yayaw-table/components/cells/data-type-cell";
 import { InlineEditableCell } from "../src/components/ui/yayaw-table/components/cells/inline-editable-cell";
 import { resolveInlineEditColumnConfig } from "../src/components/ui/yayaw-table/hooks/use-inline-edit-runtime";
 import {
@@ -162,4 +163,36 @@ it("toggles and saves a boolean cell on its first click, as in Vue", async () =>
     container.querySelector('[role="switch"]')?.getAttribute("aria-checked")
   ).toBe("true");
   expect(commits).toEqual([true]);
+});
+
+it("draws a switch boolean column as a switch, as in Vue", async () => {
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  roots.push(root);
+  const column = {
+    id: "active",
+    header: "Active",
+    type: "boolean",
+    displayVariant: "switch",
+  } as const;
+  await act(() =>
+    root.render(
+      <TableProvider
+        queryClient={new QueryClient()}
+        tableId="boolean-switch"
+        translations={defaultTranslations}
+      >
+        <DataTypeCell
+          column={column as never}
+          row={{ id: "1", active: null }}
+          value={null}
+        />
+      </TableProvider>
+    )
+  );
+  expect(
+    container.querySelector(".yayaw-cell-switch")?.getAttribute("data-state")
+  ).toBe("unchecked");
+  expect(container.querySelector(".yayaw-boolean")).toBeNull();
 });

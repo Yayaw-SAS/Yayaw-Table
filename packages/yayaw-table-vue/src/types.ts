@@ -156,7 +156,8 @@ export interface ColumnDefinition<TData extends TableRecord = TableRecord> {
    * "Calculate" button) without one. Overrides `table.lockCalculations`.
    */
   lockCalculation?: boolean;
-  displayVariant?: "default" | "tag" | "avatars";
+  /** `switch`: a boolean column drawn as a switch, toggled by a click on the cell. */
+  displayVariant?: "default" | "tag" | "avatars" | "switch";
   dateDisplayPreset?: DateDisplayPreset;
   dateFormat?: string;
   /** IANA zone used by date presets, e.g. "Europe/Paris". */

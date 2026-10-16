@@ -119,7 +119,7 @@ const config = defineTableConfig<Product>({
       },
       { id: "tags", header: "Tags", type: "multiSelect", inlineEdit: true,
         options: ["Featured", "New", "Popular"].map(value => ({ label: value, value })) },
-      { id: "active", header: "Active", type: "boolean", inlineEdit: true },
+      { id: "active", header: "Active", type: "boolean", displayVariant: "switch", inlineEdit: true },
       { id: "imageUrl", header: "Image", type: "image", enableSorting: false },
       {
         id: "createdAt",

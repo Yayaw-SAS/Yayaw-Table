@@ -372,7 +372,7 @@ export interface ColumnDefinition {
    * Use "avatars" for people: each value as its option's `image`, or its
    * initials, overlapping, with the option's label in a tooltip.
    */
-  displayVariant?: "default" | "tag" | "avatars";
+  displayVariant?: "default" | "tag" | "avatars" | "switch";
 
   /**
    * Date display preset for date columns

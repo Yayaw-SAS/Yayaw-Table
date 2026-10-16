@@ -66,7 +66,7 @@ const debounceMs = computed(() => inlineConfig.value.debounceMs ?? context.confi
 const dirty = computed(() => !formValuesEqual(draft.value, committed.value));
 const delayProgress = computed(() => scheduledAt.value == null || debounceMs.value <= 0 ? 0 : Math.min(100, Math.max(0, 100 * (1 - (scheduledAt.value - currentTime.value) / debounceMs.value))));
 const error = ref<string>();
-const editorElement = ref<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>();
+const editorElement = ref<HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>();
 let closeRequested = false;
 const dynamicType = computed<ColumnType>(() => resolveDataType(props.column.type, props.row, props.column.typeKey));
 const effectiveColumn = computed<ColumnDefinition>(() => ({
@@ -545,6 +545,18 @@ const tagListeners = (value: unknown) => {
         @commit="save()"
         @cancel="cancel"
       />
+      <button
+        v-else-if="editor === 'boolean' && effectiveColumn.displayVariant === 'switch'"
+        ref="editorElement"
+        type="button"
+        role="switch"
+        class="yayaw-switch-root"
+        :data-state="draft ? 'checked' : 'unchecked'"
+        :aria-checked="Boolean(draft)"
+        :disabled="optionsLoading"
+        :aria-label="formField?.label ?? column.header"
+        @click="draft = !draft; save()"
+      ><span class="yayaw-switch-thumb" :data-state="draft ? 'checked' : 'unchecked'" /></button>
       <input
         v-else-if="editor === 'boolean'"
         ref="editorElement"
@@ -656,6 +668,14 @@ const tagListeners = (value: unknown) => {
       ><MapPin :size="14" aria-hidden="true" /><span>{{
         formatLocation(place)
       }}</span></span
+    >
+    <span
+      v-else-if="effectiveColumn.type === 'boolean' && effectiveColumn.displayVariant === 'switch'"
+      class="yayaw-switch-root yayaw-cell-switch"
+      :data-state="value ? 'checked' : 'unchecked'"
+      role="img"
+      :aria-label="value ? translateCell('common.true', 'True') : translateCell('common.false', 'False')"
+      ><span class="yayaw-switch-thumb" :data-state="value ? 'checked' : 'unchecked'" /></span
     >
     <span
       v-else-if="effectiveColumn.type === 'boolean'"

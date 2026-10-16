@@ -58,7 +58,7 @@ export interface TableCatalogueColumnConfig extends ColumnDefinition {
   enableSorting?: boolean;
   enablePinning?: boolean;
   enableColumnFilter?: boolean;
-  displayVariant?: "default" | "tag" | "avatars";
+  displayVariant?: "default" | "tag" | "avatars" | "switch";
   dateDisplayPreset?: DateDisplayPreset;
   dateFormat?: string;
   tagColorMap?: Record<string, string>;

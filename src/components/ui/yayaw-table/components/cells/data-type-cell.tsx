@@ -68,6 +68,10 @@ export function DataTypeCell({
       />
     );
   }
+  // A switch is always on or off: an empty value draws it off.
+  if (type === "boolean" && column.displayVariant === "switch") {
+    return <BooleanCell value={value === true} variant="switch" />;
+  }
   if (value == null) {
     return <span className="text-muted-foreground">—</span>;
   }
