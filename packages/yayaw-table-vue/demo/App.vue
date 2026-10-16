@@ -148,6 +148,8 @@ const config = defineTableConfig<Product>({
     // The facet panel beside the records: categories and tags with their counts.
     facets: { columns: ["category", "tags"] },
     filterBarColumns: ["category", "status", "tags"],
+    // The Created period stays in the toolbar, with its days.
+    toolbarDateFilter: "createdAt",
     enableAdvancedFilters: true,
     showClearFilters: true,
     showFilterBar: true,

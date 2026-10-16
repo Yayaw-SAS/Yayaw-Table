@@ -46,7 +46,9 @@ import type {
 import { fetchAllContractRows, TABLE_DENSITY_METRICS, tableFilterContext } from "../table-contracts";
 import type { TableListParams } from "../types";
 import CardPagination from "./table/CardPagination.vue";
+import FilterChipsBar from "./filters/FilterChipsBar.vue";
 import TableFilterBar from "./filters/TableFilterBar.vue";
+import { createFilterMenuStore } from "../composables/use-filter-menu";
 import CatalogueForm from "./forms/CatalogueForm.vue";
 import RecordDetails from "./details/RecordDetails.vue";
 import type { DetailRevertHandler, RecordDetailsConfig } from "../record-details";
@@ -478,6 +480,11 @@ const refresh = async (): Promise<void> => {
   await queryClient.invalidateQueries({ queryKey: ["yayaw-table", config.id, "aggregate"] });
 };
 const facetsOpen = ref<boolean>();
+const filterMenu = createFilterMenuStore({
+  config,
+  state: state.advancedFilters,
+  folderColumn: () => folders.tree?.parentColumn,
+});
 // The folders of a file tree: "New folder", the folder filter and folder facets.
 const folders = createFolderDirectoryStore({
   actions,
@@ -766,6 +773,7 @@ provide(tableContextKey, {
   facetsOpen,
   dataRevision,
   folders,
+  filterMenu,
   optionsRequest,
   getRowId,
   getFormConfig: props.getFormConfig,
@@ -833,6 +841,7 @@ defineExpose({ refresh, getViewConfig: () => viewConfig.value });
       :initial-views="initialViews"
       :toolbar-actions-placement="props.toolbarActionsPlacement ?? config.toolbarActionsPlacement"
     />
+    <FilterChipsBar v-if="config.table.showToolbar && config.table.enableColumnFilters !== false" />
 
 
     <div class="yayaw-records-layout" :data-facets="facetState.inline ? facetState.facets?.position : undefined">

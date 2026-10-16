@@ -206,14 +206,7 @@ it("filters a date column by a period from the bar, as one advanced rule every d
     .get('.yayaw-filter-bar [data-date-filter="due"]')
     .trigger("click");
   await flushPromises();
-  const period = document.querySelector<HTMLSelectElement>(
-    "[data-date-filter-period]"
-  );
-  if (!period) {
-    throw new Error("Missing period select");
-  }
-  period.value = "$last30Days";
-  period.dispatchEvent(new Event("change"));
+  await wrapper.get('[data-relative-date="$last30Days"]').trigger("click");
   await flushPromises();
   const rules = () =>
     (
@@ -227,24 +220,92 @@ it("filters a date column by a period from the bar, as one advanced rule every d
     ).advancedFilters;
   expect(rules()).toEqual([expect.objectContaining({ columnId: "due" })]);
   expect(
-    wrapper.get('[data-date-filter="due"] .yayaw-filter-count').text()
+    wrapper.get('[data-date-filter="due"] .yayaw-date-period-label').text()
   ).toBe("Last 30 days");
-  period.value = "fixed";
-  period.dispatchEvent(new Event("change"));
+  // The period is the bar's: no chip repeats it.
+  expect(wrapper.find('[data-filter-chip="due"]').exists()).toBe(false);
+  await wrapper
+    .findAll("[data-date-value-editor] .yayaw-segmented button")
+    .find((button) => button.text() === "Exact date")
+    ?.trigger("click");
   await flushPromises();
   expect(rules()).toEqual([
-    expect.objectContaining({
-      columnId: "due",
-      operator: "greaterThanOrEqual",
-    }),
+    expect.objectContaining({ columnId: "due", operator: "equals" }),
   ]);
-  [
-    ...document.querySelectorAll<HTMLButtonElement>(
-      "[data-yayaw-filter-picker] button"
-    ),
-  ]
-    .find((button) => button.textContent?.trim() === "Clear filters")
-    ?.click();
+  await wrapper.get("[data-date-period-clear]").trigger("click");
   await flushPromises();
   expect(rules() ?? []).toEqual([]);
+});
+
+it("keeps a date period in the toolbar with its days, and the Filter button opens it", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-14T10:00:00.000Z"));
+  try {
+    const list = vi.fn(async () => ({
+      data: [{ id: "1", name: "Deal" }],
+      meta: { totalCount: 1 },
+    }));
+    const dated = defineTableConfig({
+      id: "toolbar-dates",
+      columns: {
+        definitions: [
+          { id: "name", header: "Name" },
+          { id: "due", header: "Due", type: "date" },
+        ],
+        visible: ["name", "due"],
+        mandatory: ["name"],
+        order: ["name", "due"],
+      },
+      table: {
+        syncUrl: false,
+        enableAdvancedFilters: true,
+        toolbarDateFilter: "due",
+        timeZone: "Europe/Paris",
+      },
+      translations: { namespace: "test", keys: {} },
+    });
+    const wrapper = mount(YayawDataTable, {
+      props: {
+        tableType: dated.id,
+        config: dated,
+        getTableActions: () => ({ list }),
+      },
+      attachTo: document.body,
+      global: {
+        stubs: {
+          PopperArrow: true,
+          PopperContent: { template: "<div><slot /></div>" },
+        },
+      },
+    });
+    await flushPromises();
+    const button = () => wrapper.get('[data-table-toolbar] [data-date-filter="due"]');
+    expect(button().text()).toBe("All dates");
+    await wrapper.get("[data-filter-button]").trigger("click");
+    await flushPromises();
+    await wrapper.get('[data-filter-property="due"]').trigger("click");
+    await flushPromises();
+    // Picking the column opens its period rather than adding a second rule.
+    expect(wrapper.find('[data-filter-chip="due"]').exists()).toBe(false);
+    if (!wrapper.find("[data-date-period-editor]").exists()) {
+      await button().trigger("click");
+      await flushPromises();
+    }
+    await wrapper.get('[data-relative-date="$thisMonth"]').trigger("click");
+    await flushPromises();
+    expect(button().text()).toContain("This month");
+    expect(button().get(".yayaw-date-period-days").text()).toBe("Oct 1 – Oct 31");
+    expect(
+      (list.mock.lastCall as unknown as [{ advancedFilters: unknown[] }])[0]
+        .advancedFilters
+    ).toEqual([
+      expect.objectContaining({
+        columnId: "due",
+        operator: "between",
+        values: ["2026-10-01", "2026-10-31"],
+      }),
+    ]);
+  } finally {
+    vi.useRealTimers();
+  }
 });

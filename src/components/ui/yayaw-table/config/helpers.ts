@@ -618,6 +618,11 @@ export interface TableBehaviorConfig
   /** Show an icon in the toolbar to clear filters and global search. */
   /** Ordered static-option, boolean or date (a period) columns shown in the optional filter bar. */
   filterBarColumns?: string[];
+  /**
+   * A date column whose period stays in the toolbar, as a calendar button that
+   * shows it ("This month · 1 – 31 Oct") and edits it in one click.
+   */
+  toolbarDateFilter?: string;
   /** Show the filter bar by default; a component prop can override this. */
   showFilterBar?: boolean;
   /**

@@ -80,6 +80,8 @@ export interface TableContextValue<TData extends TableRecord = TableRecord> {
   footerCalculationsVisible: Ref<boolean>;
   /** "Edit calculations": off, the footer shows calculations as plain text. Not saved. */
   footerCalculationsEditing: Ref<boolean>;
+  /** The Filter button, the chips under the toolbar and their editors. */
+  filterMenu: import("./composables/use-filter-menu").FilterMenuStore;
   optionsRequest: Ref<TableOptionsRequest | undefined>;
   getRowId: (row: TData, index?: number) => string;
   getFormConfig?: (
