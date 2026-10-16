@@ -40,6 +40,7 @@ import type {
   ToolbarActionsPlacement,
 } from "../../types";
 import SavedViews from "./SavedViews.vue";
+import FilterBarDate from "../filters/FilterBarDate.vue";
 import OptionFilter from "../filters/OptionFilter.vue";
 import { filterBarColumns } from "../../filter-bar";
 import TableDensityMenu from "./TableDensityMenu.vue";
@@ -899,6 +900,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
               >
                 <span>{{ column.header }}</span>
                 <FilterContent v-if="column.filterRenderer" :node="column.filterRenderer({ value: columnFilterValue(column.id), onChange: value => setColumnFilter(column.id, value) })" />
+                <FilterBarDate v-else-if="quickFilterIds.has(column.id) && column.type === 'date'" :column="column" />
                 <OptionFilter v-else-if="quickFilterIds.has(column.id)" :column="column" />
                 <select
                   v-else-if="column.options?.length"

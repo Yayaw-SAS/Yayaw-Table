@@ -162,3 +162,89 @@ it("shares typed multi-selection with Options, retains hidden-column filters whe
 it("applies the saved-view control sizing rule to every filter-bar button", () => {
   expect(styles).toMatch(CONTROL_HEIGHT_PATTERN);
 });
+
+it("filters a date column by a period from the bar, as one advanced rule every display mode reads", async () => {
+  const list = vi.fn(async () => ({
+    data: [{ id: "1", name: "Deal" }],
+    meta: { totalCount: 1 },
+  }));
+  const dated = defineTableConfig({
+    id: "quick-dates",
+    columns: {
+      definitions: [
+        { id: "name", header: "Name" },
+        { id: "due", header: "Due", type: "date" },
+      ],
+      visible: ["name", "due"],
+      mandatory: ["name"],
+      order: ["name", "due"],
+    },
+    table: {
+      syncUrl: false,
+      enableAdvancedFilters: true,
+      filterBarColumns: ["due"],
+      showFilterBar: true,
+    },
+    translations: { namespace: "test", keys: {} },
+  });
+  const wrapper = mount(YayawDataTable, {
+    props: {
+      tableType: dated.id,
+      config: dated,
+      getTableActions: () => ({ list }),
+    },
+    attachTo: document.body,
+    global: {
+      stubs: {
+        PopperArrow: true,
+        PopperContent: { template: "<div><slot /></div>" },
+      },
+    },
+  });
+  await flushPromises();
+  await wrapper
+    .get('.yayaw-filter-bar [data-date-filter="due"]')
+    .trigger("click");
+  await flushPromises();
+  const period = document.querySelector<HTMLSelectElement>(
+    "[data-date-filter-period]"
+  );
+  if (!period) {
+    throw new Error("Missing period select");
+  }
+  period.value = "$last30Days";
+  period.dispatchEvent(new Event("change"));
+  await flushPromises();
+  const rules = () =>
+    (
+      (list.mock.lastCall as unknown[] | undefined)?.[0] as {
+        advancedFilters: {
+          columnId: string;
+          operator: string;
+          values: unknown;
+        }[];
+      }
+    ).advancedFilters;
+  expect(rules()).toEqual([expect.objectContaining({ columnId: "due" })]);
+  expect(
+    wrapper.get('[data-date-filter="due"] .yayaw-filter-count').text()
+  ).toBe("Last 30 days");
+  period.value = "fixed";
+  period.dispatchEvent(new Event("change"));
+  await flushPromises();
+  expect(rules()).toEqual([
+    expect.objectContaining({
+      columnId: "due",
+      operator: "greaterThanOrEqual",
+    }),
+  ]);
+  [
+    ...document.querySelectorAll<HTMLButtonElement>(
+      "[data-yayaw-filter-picker] button"
+    ),
+  ]
+    .find((button) => button.textContent?.trim() === "Clear filters")
+    ?.click();
+  await flushPromises();
+  expect(rules() ?? []).toEqual([]);
+});
