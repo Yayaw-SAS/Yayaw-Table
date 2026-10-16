@@ -983,7 +983,7 @@ function renderMenuDataActions({
 export function DataTableAdvancedToolbar<TData>({
   viewManagerProps,
   quickFiltersVisible,
-  modeSettings,
+  modeSettings: _modeSettings,
   cardSettings,
   className: _className,
   hideGlobalFilter: _hideGlobalFilter,
@@ -1824,7 +1824,7 @@ export function DataTableAdvancedToolbar<TData>({
       onClick={handleOpenCreateForm}
     />
   ) : null;
-  const mobileScreens = useMobileSettingsScreens({
+  const settingsScreens = useMobileSettingsScreens({
     enabled: isMobile,
     defaultDensity: tableConfig.table.density,
     defaultDisplayMode: tableConfig.table.defaultDisplayMode,
@@ -1975,9 +1975,8 @@ export function DataTableAdvancedToolbar<TData>({
         });
       }}
       modeSettings={
-        mobileScreens ? undefined : (
+        isMobile ? undefined : (
           <div className="space-y-2 px-2 py-2">
-            {modeSettings}
             <TableDensityMenu
               defaultDensity={tableConfig.table.density}
               defaultDisplayMode={tableConfig.table.defaultDisplayMode}
@@ -1987,7 +1986,7 @@ export function DataTableAdvancedToolbar<TData>({
           </div>
         )
       }
-      screens={mobileScreens}
+      screens={settingsScreens}
       setColumnFilters={finalSetColumnFilters}
       setColumnVisibility={finalSetColumnVisibility}
       setGrouping={finalSetGrouping}

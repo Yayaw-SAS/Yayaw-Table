@@ -285,12 +285,14 @@
   padding: 0;
   border: 0;
 }
+/* The screen's title already names the choice; the legend stays for assistive technology. */
 .yayaw-layout-picker legend {
-  grid-column: 1 / -1;
-  margin-bottom: 4px;
-  padding: 0;
-  color: var(--yayaw-muted-foreground);
-  font-size: 12px;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .yayaw-layout-tile {
   display: flex;
@@ -328,8 +330,14 @@
   outline: 2px solid var(--yayaw-ring);
   outline-offset: 2px;
 }
-.yayaw-view-write-actions .yayaw-layout-picker {
-  margin: 0 0 4px;
+.yayaw-layout-row-value {
+  margin-left: auto;
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-options-item-end:has(svg) {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 .yayaw-choice-inline {
   min-width: 0;

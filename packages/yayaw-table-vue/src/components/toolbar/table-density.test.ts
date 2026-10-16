@@ -89,12 +89,15 @@ it("uses the configured density, updates only its instance and retains it across
   );
   expect(config.table.density).toBe("extra-extra-large");
 
-  // Non-compact toolbars drive the display mode through a `TableSelect`
-  // rather than the segmented `fieldset` buttons (compact toolbars only).
+  // The display mode row opens the layout tiles; Back returns to the settings.
   await chooseDisplayMode(wrapper, "Galerie");
   await settle();
   expect(wrapper.find(".yayaw-density-inline").exists()).toBe(false);
   await chooseDisplayMode(wrapper, "Tableau");
+  await settle();
+  await wrapper
+    .get('.yayaw-toolbar-menu-header [aria-label="Retour"]')
+    .trigger("click");
   await settle();
   expect(wrapper.get(".yayaw-table").attributes("data-density")).toBe(
     "extra-small"
@@ -175,7 +178,10 @@ it("offers display choices as layout tiles in touch drawers", async () => {
   );
   const wrapper = mountTable();
   await openViewMenu(wrapper);
-  // A compact toolbar renders its settings dialog through a `DialogPortal`.
+  // A compact toolbar renders its settings dialog through a `DialogPortal`;
+  // its display mode row opens the tiles.
+  await body().get(".yayaw-layout-row").trigger("click");
+  await settle();
   const group = body().get("fieldset.yayaw-layout-picker");
   expect(group.get("legend").text()).toBe("Mode d’affichage");
   const tiles = group.findAll("button.yayaw-layout-tile");

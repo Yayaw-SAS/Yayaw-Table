@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
 import { useTranslations } from "../../providers/table-provider";
 import type { TableDisplayMode } from "../../types/display-types";
+import { StackMenuItem } from "../../ui-custom/stack-menu";
 import {
   resolveDisplayMode,
   resolveDisplayModes,
@@ -76,9 +77,7 @@ export function TableDisplayModeSwitcher({
         className
       )}
     >
-      <legend className="col-span-3 mb-1 text-muted-foreground text-xs">
-        {t("views.display.title")}
-      </legend>
+      <legend className="sr-only">{t("views.display.title")}</legend>
       {uniqueModes.map((mode) => {
         const Icon = DISPLAY_MODE_ICONS[mode];
         const isActive = activeMode === mode;
@@ -103,5 +102,43 @@ export function TableDisplayModeSwitcher({
         );
       })}
     </fieldset>
+  );
+}
+
+/** The row that opens the layout tiles in a screen of their own, as Notion's "Layout" row. */
+export function DisplayModeRow({
+  defaultDisplayMode,
+  displayModes = ["table"],
+  tableId,
+}: TableDisplayModeSwitcherProps) {
+  const { t } = useTranslations();
+  const { displayModeParam } = useTableUrlState({
+    defaultDisplayMode,
+    tableId,
+  });
+  const modes = resolveDisplayModes(displayModes);
+  if (modes.length <= 1) {
+    return null;
+  }
+  const activeMode = resolveDisplayMode({
+    allowed: modes,
+    fallback: defaultDisplayMode,
+    requested: displayModeParam,
+  });
+  const Icon = DISPLAY_MODE_ICONS[activeMode];
+  return (
+    <StackMenuItem
+      data-layout-row=""
+      endIcon={
+        <span className="text-muted-foreground text-xs">
+          {t(`views.display.${activeMode}`)}
+        </span>
+      }
+      icon={<Icon className="size-4" />}
+      navigateTitle={t("views.display.title")}
+      navigateTo="layout"
+    >
+      {t("views.display.title")}
+    </StackMenuItem>
   );
 }

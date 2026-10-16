@@ -623,13 +623,14 @@ describe("YayawDataTable", () => {
     expect(wrapper.find('[aria-label="Views"]').exists()).toBe(false);
     expect(wrapper.find(".yayaw-empty").exists()).toBe(false);
     await openViewMenu(wrapper);
-    // Only the Properties item stays in the settings once these features are
-    // off; Export and Share live in the separate Data menu.
+    // Only the display mode row and Properties stay in the settings once these
+    // features are off; Export and Share live in the separate Data menu.
     const menuItems = wrapper
       .findAll(".yayaw-options-list .yayaw-options-item")
       .map((item) => item.text());
-    expect(menuItems).toHaveLength(1);
-    expect(menuItems[0]).toContain("Properties");
+    expect(menuItems).toHaveLength(2);
+    expect(menuItems[0]).toContain("Display mode");
+    expect(menuItems[1]).toContain("Properties");
     await wrapper.get(".yayaw-data-trigger").trigger("click");
     await flushPromises();
     const dataItems = wrapper

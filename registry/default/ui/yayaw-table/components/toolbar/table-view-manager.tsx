@@ -88,7 +88,10 @@ import {
   viewPosition,
 } from "../../utils/view-order";
 import { resolveViewTabs, type ViewTabsConfig } from "../../utils/view-tabs";
-import { TableDisplayModeSwitcher } from "./table-display-mode-switcher";
+import {
+  DisplayModeRow,
+  TableDisplayModeSwitcher,
+} from "./table-display-mode-switcher";
 import { TableViewTabs } from "./table-view-tabs";
 
 /**
@@ -120,6 +123,8 @@ export interface ViewMenuParts {
   trigger: ReactElement;
   selection: ReactNode;
   actions: ReactNode;
+  /** The layout tiles, shown in the menu's "layout" screen. */
+  layout?: ReactNode;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -185,6 +190,11 @@ function renderViewsMenu({
         {showTabs ? null : parts.selection}
         {parts.actions}
       </StackMenuView>
+      {parts.layout ? (
+        <StackMenuView name="layout" title={t("views.display.title")}>
+          {parts.layout}
+        </StackMenuView>
+      ) : null}
     </StackMenu>
   );
 }
@@ -1489,6 +1499,14 @@ export function DataTableViewManager({
       isActiveViewDirty,
       iconOnly: showTabs,
     }),
+    layout: (
+      <TableDisplayModeSwitcher
+        className="p-2"
+        defaultDisplayMode={defaultDisplayMode}
+        displayModes={displayModes}
+        tableId={tableId}
+      />
+    ),
     selection: renderViewSelection({
       t,
       enabled,
@@ -1517,8 +1535,7 @@ export function DataTableViewManager({
         isActiveViewDirty={isActiveViewDirty}
         isMutating={isMutating}
         layout={
-          <TableDisplayModeSwitcher
-            className="pb-1"
+          <DisplayModeRow
             defaultDisplayMode={defaultDisplayMode}
             displayModes={displayModes}
             tableId={tableId}

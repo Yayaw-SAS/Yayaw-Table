@@ -379,7 +379,13 @@ it("hides write actions when view saving is disabled", async () => {
     body()
       .findAll(".yayaw-view-menu-item")
       .map((item) => item.text())
-  ).toEqual(["Default view", "My view", "Favorite view", "Reset view"]);
+  ).toEqual([
+    "Default view",
+    "My view",
+    expect.stringMatching(/^Display mode/),
+    "Favorite view",
+    "Reset view",
+  ]);
 });
 
 it("recovers from update and delete failures and applies server-normalized configurations", async () => {
@@ -909,21 +915,24 @@ it("changes the current view's display mode from the view menu and marks the vie
   });
   await openViewsMenu(wrapper);
   const tile = (name: string) =>
-    wrapper
-      .findAll(".yayaw-view-write-actions .yayaw-layout-tile")
-      .find((item) => item.text() === name);
-  const pressed = () =>
-    wrapper.get(
-      '.yayaw-view-write-actions .yayaw-layout-tile[aria-pressed="true"]'
-    );
-  expect(pressed().text()).toBe("Gallery");
+    wrapper.findAll(".yayaw-layout-tile").find((item) => item.text() === name);
+  const pressed = () => wrapper.get('.yayaw-layout-tile[aria-pressed="true"]');
   expect(
     wrapper.get('[aria-label="Save changes"]').attributes("aria-disabled")
   ).toBe("true");
+  // Like Notion, the display mode row opens the layout tiles.
+  expect(wrapper.get(".yayaw-layout-row").text()).toContain("Gallery");
+  await wrapper.get(".yayaw-layout-row").trigger("click");
+  await flushPromises();
+  expect(pressed().text()).toBe("Gallery");
 
   await tile("Table")?.trigger("click");
   await flushPromises();
   expect(pressed().text()).toBe("Table");
+  await wrapper
+    .get('.yayaw-toolbar-menu-header [aria-label="Back"]')
+    .trigger("click");
+  await flushPromises();
   // Like any other setting: the view is modified until "Save changes" keeps it.
   expect(
     wrapper.get('[aria-label="Save changes"]').attributes("aria-disabled")

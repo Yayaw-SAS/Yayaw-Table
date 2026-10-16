@@ -14,6 +14,7 @@ import {
   type LucideIcon,
   Table2,
 } from "lucide-react";
+import { StackMenuItem } from "@/components/ui/custom/stack-menu";
 import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
@@ -71,7 +72,7 @@ export function TableDisplayModeSwitcher({
   return (
     // Layout tiles as Notion offers them: icon over name, three per row, the current one marked.
     <fieldset className={cn("m-0 grid min-w-0 grid-cols-3 gap-1.5 border-0 p-0", className)}>
-      <legend className="col-span-3 mb-1 text-muted-foreground text-xs">
+      <legend className="sr-only">
         {t("views.display.title")}
       </legend>
       {uniqueModes.map((mode) => {
@@ -98,5 +99,36 @@ export function TableDisplayModeSwitcher({
         );
       })}
     </fieldset>
+  );
+}
+
+/** The row that opens the layout tiles in a screen of their own, as Notion's "Layout" row. */
+export function DisplayModeRow({
+  defaultDisplayMode,
+  displayModes = ["table"],
+  tableId,
+}: TableDisplayModeSwitcherProps) {
+  const { t } = useTranslations();
+  const { displayModeParam } = useTableUrlState({ defaultDisplayMode, tableId });
+  const modes = resolveDisplayModes(displayModes);
+  if (modes.length <= 1) {
+    return null;
+  }
+  const activeMode = resolveDisplayMode({
+    allowed: modes,
+    fallback: defaultDisplayMode,
+    requested: displayModeParam,
+  });
+  const Icon = DISPLAY_MODE_ICONS[activeMode];
+  return (
+    <StackMenuItem
+      data-layout-row=""
+      endIcon={<span className="text-muted-foreground text-xs">{t(`views.display.${activeMode}`)}</span>}
+      icon={<Icon className="size-4" />}
+      navigateTitle={t("views.display.title")}
+      navigateTo="layout"
+    >
+      {t("views.display.title")}
+    </StackMenuItem>
   );
 }

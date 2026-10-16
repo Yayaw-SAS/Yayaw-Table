@@ -323,6 +323,11 @@ it("changes the current view's display mode from the view menu and marks the vie
   });
   await openViewMenu();
   expect(button("Save changes").getAttribute("aria-disabled")).toBe("true");
+  // Like Notion, the display mode row opens the layout tiles.
+  const row = document.querySelector<HTMLElement>("[data-layout-row]");
+  expect(row?.textContent).toContain("Gallery");
+  await act(() => row?.click());
+  await settle();
   expect(
     document
       .querySelector('fieldset button[aria-pressed="true"]')
@@ -343,6 +348,10 @@ it("offers the display mode as buttons in the view menu on touch screens", async
       views: [view("a", { config: { displayMode: "gallery" } })],
     });
     await openViewMenu();
+    await act(() =>
+      document.querySelector<HTMLElement>("[data-layout-row]")?.click()
+    );
+    await settle();
     const pressed = () =>
       document
         .querySelector('fieldset button[aria-pressed="true"]')
@@ -354,6 +363,10 @@ it("offers the display mode as buttons in the view menu on touch screens", async
     await act(() => kanban?.click());
     await settle();
     expect(pressed()).toBe("Kanban");
+    await act(() =>
+      document.querySelector<HTMLElement>('button[aria-label="Back"]')?.click()
+    );
+    await settle();
     // Like any other setting: the view is modified until "Save changes" keeps it.
     expect(button("Save changes").getAttribute("aria-disabled")).toBeNull();
   } finally {

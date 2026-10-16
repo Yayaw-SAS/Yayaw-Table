@@ -68,14 +68,27 @@ export async function openViewSave(wrapper: VueWrapper): Promise<void> {
 
 export const menuBody = () => new DOMWrapper(document.body);
 
-// The view menu offers display modes as layout tiles (one button per mode,
-// as Notion's layout picker). `optionLabel` is the translated mode name.
+// Like Notion, the menu's display mode row opens a screen of layout tiles
+// (one button per mode). `optionLabel` is the translated mode name.
 export async function chooseDisplayMode(
   wrapper: VueWrapper,
   optionLabel: string
 ): Promise<void> {
   await openViewMenu(wrapper);
   await flushPromises();
+  const inMenu = (selector: string) => [
+    ...wrapper.findAll(selector),
+    ...menuBody().findAll(selector),
+  ];
+  // A menu still open on the layout screen already shows its tiles.
+  if (!inMenu(".yayaw-layout-tile").length) {
+    const row = inMenu(".yayaw-layout-row")[0];
+    if (!row) {
+      throw new Error("Missing display mode row");
+    }
+    await row.trigger("click");
+    await flushPromises();
+  }
   // Inline menus render in the wrapper, portalled ones in the document body.
   const tile = [
     ...wrapper.findAll(".yayaw-layout-tile"),
