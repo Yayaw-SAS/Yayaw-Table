@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { buildPlanningRows } from "../../planning/query";
+import { planningLabels } from "../../planning/labels";
 import { selectionAfterClick } from "../../selection-interaction";
 import { getRenderedRangeRows } from "../../row-selection-range";
 import TableEmptyState from "./TableEmptyState.vue";
@@ -17,7 +18,7 @@ import {
   type Updater,
   useYayawTable,
 } from "../../tanstack";
-import { ArrowDown, ArrowUp, GripVertical } from "lucide-vue-next";
+import { ArrowDown, ArrowUp, ChartGantt, GripVertical } from "lucide-vue-next";
 import { type CSSProperties, computed, h, ref, watch, onBeforeUnmount } from "vue";
 import { useTableContext } from "../../context";
 import { applyTableQuery, calculateColumn } from "../../core";
@@ -34,6 +35,12 @@ import ColumnMenu from "./ColumnMenu.vue";
 import RowActions from "./RowActions.vue";
 
 const context = useTableContext();
+// The task dialog edits dates, parents and dependencies: a read-only planning gets no button to open it.
+const planningEditable = computed(() => {
+  const config = context.planning?.config;
+  return Boolean(config && (config.allowDateEdit || config.allowHierarchyEdit || config.allowDependencyEdit));
+});
+const planningLabel = computed(() => planningLabels(context.locale).planning);
 const paginationRoot = ref<HTMLElement>();
 const { automatic, measurement, selectSize } = useAutoPageSize(paginationRoot);
 let isShiftSelectionClick = false;
@@ -889,10 +896,12 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
             </tr>
             <tr v-else :class="{ selected: row.getIsSelected() }" :data-row-id="row.id" @click="rowClick(row.original, $event)">
               <td v-for="cell in row.getVisibleCells()" :key="cell.id" :style="pinnedStyle(cell.column)" :data-column-id="cell.column.id" :data-align="columnAlign(cell.column.id)">
-                <span v-if="context.planning && cell.column.id === row.getVisibleCells().find(item => !['select', 'actions'].includes(item.column.id))?.column.id" :style="{paddingInlineStart: `${row.depth * 16}px`}">
+                <span v-if="context.planning && cell.column.id === row.getVisibleCells().find(item => !['select', 'actions'].includes(item.column.id))?.column.id" :style="{display: 'inline-flex', alignItems: 'center', gap: '4px', paddingInlineStart: `${row.depth * 16}px`}">
                   <button v-if="row.subRows.length" type="button" :aria-expanded="row.getIsExpanded()" :aria-label="`${row.getIsExpanded() ? 'Collapse' : 'Expand'} ${row.id}`" @click.stop="row.toggleExpanded()">{{ row.getIsExpanded() ? '▾' : '▸' }}</button>
                   <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
-                  <button type="button" :aria-label="`Planning ${row.id}`" @click.stop="context.planning.open({source: context.planning.config.sourceId, id: context.getRowId(row.original)})">↗</button>
+                  <TableTooltip v-if="planningEditable" :label="planningLabel">
+                    <button type="button" class="yayaw-icon-button" :aria-label="planningLabel" @click.stop="context.planning.open({source: context.planning.config.sourceId, id: context.getRowId(row.original)})"><ChartGantt :size="16" aria-hidden="true" /></button>
+                  </TableTooltip>
                 </span>
                 <FlexRender v-else :render="cell.column.columnDef.cell" :props="cell.getContext()" />
               </td>

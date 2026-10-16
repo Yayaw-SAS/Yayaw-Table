@@ -1489,6 +1489,13 @@ function ModernDataTable<
     tableId: tableId || "",
   });
   const { session: planningSession, state: planningState } = usePlanningState();
+  // The task dialog edits dates, parents and dependencies: a read-only planning gets no button to open it.
+  const planningEditable = Boolean(
+    planningSession &&
+      (planningSession.config.allowDateEdit ||
+        planningSession.config.allowHierarchyEdit ||
+        planningSession.config.allowDependencyEdit)
+  );
   const configuredDisplayModes = useMemo(
     () =>
       availableDisplayModes(tableConfig.table.displayModes, {
@@ -2583,22 +2590,24 @@ function ModernDataTable<
                 </Button>
               )}
               {renderRegularCellContent(row, cell)}
-              <Button
-                aria-label={ganttLabels.planning}
-                className="size-5 shrink-0 text-muted-foreground"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  planningSession.open({
-                    source: planningSession.config.sourceId,
-                    id: getRowId?.(row.original) ?? String(row.original.id),
-                  });
-                }}
-                size="icon"
-                type="button"
-                variant="ghost"
-              >
-                <ChartGantt aria-hidden="true" className="size-4" />
-              </Button>
+              {planningEditable && (
+                <Button
+                  aria-label={ganttLabels.planning}
+                  className="size-5 shrink-0 text-muted-foreground"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    planningSession.open({
+                      source: planningSession.config.sourceId,
+                      id: getRowId?.(row.original) ?? String(row.original.id),
+                    });
+                  }}
+                  size="icon"
+                  type="button"
+                  variant="ghost"
+                >
+                  <ChartGantt aria-hidden="true" className="size-4" />
+                </Button>
+              )}
             </span>
           ) : (
             renderRegularCellContent(row, cell)
@@ -2790,6 +2799,7 @@ function ModernDataTable<
     );
   }, [
     planningSession,
+    planningEditable,
     ganttLabels,
     getRowId,
     commitInlineEdit,

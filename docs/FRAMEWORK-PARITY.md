@@ -755,6 +755,10 @@ value" when empty) with a count, a read-only span bar and a chevron whose `aria-
 "Collapse/Expand Column: value" label match. Dependency paths skip headings and tasks of collapsed
 groups. Covered by the shared timeline suite, React `tests/gantt-grouping.test.tsx` and Vue
 `components/planning/gantt-view.test.ts`.
+In the table view, both editions put a planning button (Gantt icon, "Planning" label) after the
+first data cell to open the task dialog, only when the planning allows date, hierarchy or dependency
+edits: a read-only planning has nothing to edit there, so its rows show no button. Covered by React
+`tests/planning-grid-button.test.tsx` and Vue `components/table/planning-grid-button.test.ts`.
 
 Equivalent shared fixtures cover the four dependency types, signed/calendar offsets, summaries,
 source identity collisions, invalid/cyclic/incomplete graphs, flags, permissions, stale previews,
