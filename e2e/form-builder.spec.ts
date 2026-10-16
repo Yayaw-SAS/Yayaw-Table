@@ -1,5 +1,8 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
+/** As in Notion, the "Display mode" row shows the mode and opens the layout tiles. */
+const DISPLAY_MODE_ROW = /^Display mode/;
+
 const VIEWS = "/?example=views";
 const SETTINGS = "View settings";
 const FORM_SETTINGS = /^form settings/i;
@@ -256,8 +259,14 @@ test("a form without questions never asks system or read-only columns", async ({
 }) => {
   await page.getByRole("button", { name: SETTINGS }).click();
   const menu = page.getByRole("dialog", { name: SETTINGS });
-  await menu.getByRole("combobox", { name: "Display mode" }).click();
-  await page.getByRole("option", { name: FORM_MODE }).click();
+  await menu.getByRole("button", { name: DISPLAY_MODE_ROW }).click();
+  // The layout screen is titled after the display mode.
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: FORM_MODE })
+    .click();
+  // Back to the settings, where the other options are.
+  await page.getByRole("dialog").getByRole("button", { name: "Back" }).click();
   await page.keyboard.press("Escape");
   const view = page.locator("[data-form-view]");
   await expect(view.locator('[data-form-question="name"]')).toBeVisible();

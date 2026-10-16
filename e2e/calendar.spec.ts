@@ -1,11 +1,14 @@
 import { expect, type Page, test } from "@playwright/test";
 
+/** As in Notion, the "Display mode" row shows the mode and opens the layout tiles. */
+const DISPLAY_MODE_ROW = /^Display mode/;
+const CALENDAR_MODE = /calendar/i;
+
 const DUE_FIELD = /^Due/;
 
 const CALENDAR = "/?example=views&views-display=calendar";
 const SETTINGS_PARAM = "views-calendar";
 const CARD_SETTINGS = /^card settings/i;
-const CALENDAR_MODE = /^calendar/i;
 
 const event = (page: Page, title: string) =>
   page.locator(".yayaw-calendar-event", { hasText: title });
@@ -105,9 +108,9 @@ test("calendar settings are offered in the view menu", async ({ page }) => {
   await page.goto(CALENDAR);
   await page.getByRole("button", { name: "View settings" }).click();
   const menu = page.getByRole("dialog", { name: "View settings" });
-  await expect(menu.getByRole("combobox", { name: "Display mode" })).toHaveText(
-    CALENDAR_MODE
-  );
+  await expect(
+    menu.getByRole("button", { name: DISPLAY_MODE_ROW })
+  ).toContainText(CALENDAR_MODE);
   await menu.getByRole("button", { name: CARD_SETTINGS }).click();
   await expect(
     page.getByRole("combobox", { name: "Date", exact: true })

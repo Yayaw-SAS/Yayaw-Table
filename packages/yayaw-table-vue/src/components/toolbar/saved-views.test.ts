@@ -24,6 +24,8 @@ import YayawDataTable from "../YayawDataTable.vue";
 
 inlineTestPortals();
 
+/** As in Notion, the display mode row reads its label then the current mode. */
+const DISPLAY_MODE_ROW = /^Display mode/;
 const config = defineTableConfig({
   id: "view-test",
   translations: { namespace: "views", keys: {} },
@@ -382,7 +384,7 @@ it("hides write actions when view saving is disabled", async () => {
   ).toEqual([
     "Default view",
     "My view",
-    expect.stringMatching(/^Display mode/),
+    expect.stringMatching(DISPLAY_MODE_ROW),
     "Favorite view",
     "Reset view",
   ]);
