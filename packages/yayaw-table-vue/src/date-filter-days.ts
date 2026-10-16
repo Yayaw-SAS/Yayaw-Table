@@ -320,14 +320,25 @@ export const RELATIVE_DATE_TOKENS = [
   "$nextYear",
 ] as const;
 
+/** The units a rolling relative date counts in. */
+export const RELATIVE_DATE_UNITS = [
+  "Days",
+  "Weeks",
+  "Months",
+  "Years",
+] as const;
+
+export type RelativeDateUnit = (typeof RELATIVE_DATE_UNITS)[number];
+
 /**
- * A relative date: one of `RELATIVE_DATE_TOKENS`, or `$last<N>Days` /
- * `$next<N>Days` (N from 1 to 3660), such as `"$last7Days"`.
+ * A relative date: one of `RELATIVE_DATE_TOKENS`, or a rolling period
+ * `$last<N><Unit>` / `$next<N><Unit>` with a unit of `RELATIVE_DATE_UNITS`
+ * (up to ten years), such as `"$last7Days"` or `"$next3Months"`.
  */
 export type RelativeDateToken =
   | (typeof RELATIVE_DATE_TOKENS)[number]
-  | `$last${number}Days`
-  | `$next${number}Days`;
+  | `$last${number}${RelativeDateUnit}`
+  | `$next${number}${RelativeDateUnit}`;
 
 /** The relative choices date filter menus offer, in order. */
 export const RELATIVE_DATE_CHOICES: readonly RelativeDateToken[] = [
@@ -348,8 +359,15 @@ export const RELATIVE_DATE_CHOICES: readonly RelativeDateToken[] = [
   "$next30Days",
 ];
 
-const RELATIVE_DAY_COUNT = /^\$(last|next)([1-9]\d{0,3})Days$/;
-const MAX_RELATIVE_DAYS = 3660;
+const RELATIVE_DAY_COUNT =
+  /^\$(last|next)([1-9]\d{0,3})(Days|Weeks|Months|Years)$/;
+/** Rolling periods stop at about ten years, whatever their unit. */
+const MAX_RELATIVE_COUNT: Record<RelativeDateUnit, number> = {
+  Days: 3660,
+  Weeks: 522,
+  Months: 120,
+  Years: 10,
+};
 
 /** Whether a value is a relative date token such as `"$thisWeek"`. */
 export function isRelativeDateToken(
@@ -361,8 +379,12 @@ export function isRelativeDateToken(
   if ((RELATIVE_DATE_TOKENS as readonly string[]).includes(value)) {
     return true;
   }
-  const count = Number(RELATIVE_DAY_COUNT.exec(value)?.[2] ?? 0);
-  return count >= 1 && count <= MAX_RELATIVE_DAYS;
+  const match = RELATIVE_DAY_COUNT.exec(value);
+  const count = Number(match?.[2] ?? 0);
+  return (
+    count >= 1 &&
+    count <= MAX_RELATIVE_COUNT[(match?.[3] ?? "Days") as RelativeDateUnit]
+  );
 }
 
 /** A date rule value: a `YYYY-MM-DD` day or a relative token. */
@@ -481,10 +503,35 @@ const singleDay = (day: CalendarDay): CalendarDayRange => ({
 });
 
 /**
+ * `day` moved by `amount` units, then by `nudge` days: a rolling period of N
+ * units ending today starts the day after the same day N units earlier.
+ * Months and years keep the day of the month, the last one when it is shorter.
+ */
+function shiftDay(
+  day: CalendarDay,
+  unit: RelativeDateUnit,
+  amount: number,
+  nudge: number
+): CalendarDay {
+  if (unit === "Days" || unit === "Weeks") {
+    const days = unit === "Weeks" ? amount * DAYS_IN_WEEK : amount;
+    return addCalendarDays(day, days + nudge);
+  }
+  const months = unit === "Years" ? amount * 12 : amount;
+  const first = firstOfMonth(day, months);
+  const last = addCalendarDays(firstOfMonth(day, months + 1), -1);
+  const date = `${first.slice(0, 8)}${day.slice(8)}`;
+  const shifted = date > last ? last : date;
+  return addCalendarDays(shifted, nudge);
+}
+
+/**
  * The days a relative token names, both included, at `context.now` in
  * `context.timeZone`: `$today` is one day, `$thisWeek` the seven days of the
  * current week (starting on the locale's first weekday), `$last7Days` the
- * seven days ending today and `$next7Days` the seven days starting today.
+ * seven days ending today and `$next7Days` the seven days starting today;
+ * `$last3Months` runs from the day after the same day three months ago to
+ * today, and `$next2Weeks` the fourteen days starting today.
  * Undefined when the value is not a token.
  */
 export function resolveRelativeDate(
@@ -502,10 +549,11 @@ export function resolveRelativeDate(
   );
   const count = RELATIVE_DAY_COUNT.exec(token);
   if (count) {
-    const days = Number(count[2]) - 1;
+    const amount = Number(count[2]);
+    const unit = count[3] as RelativeDateUnit;
     return count[1] === "last"
-      ? { start: addCalendarDays(today, -days), end: today }
-      : { start: today, end: addCalendarDays(today, days) };
+      ? { start: shiftDay(today, unit, -amount, 1), end: today }
+      : { start: today, end: shiftDay(today, unit, amount, -1) };
   }
   const weekStart = contextWeekStart(context);
   const ranges: Record<string, () => CalendarDayRange> = {
@@ -590,6 +638,12 @@ const RELATIVE_LABELS: Record<
   Record<(typeof RELATIVE_DATE_TOKENS)[number], string> & {
     lastDays: string;
     nextDays: string;
+    lastWeeks: string;
+    nextWeeks: string;
+    lastMonths: string;
+    nextMonths: string;
+    lastYears: string;
+    nextYears: string;
   }
 > = {
   en: {
@@ -607,6 +661,12 @@ const RELATIVE_LABELS: Record<
     $nextYear: "Next year",
     lastDays: "Last {count} days",
     nextDays: "Next {count} days",
+    lastWeeks: "Last {count} weeks",
+    nextWeeks: "Next {count} weeks",
+    lastMonths: "Last {count} months",
+    nextMonths: "Next {count} months",
+    lastYears: "Last {count} years",
+    nextYears: "Next {count} years",
   },
   fr: {
     $today: "Aujourd’hui",
@@ -623,6 +683,12 @@ const RELATIVE_LABELS: Record<
     $nextYear: "L’année prochaine",
     lastDays: "{count} derniers jours",
     nextDays: "{count} prochains jours",
+    lastWeeks: "{count} dernières semaines",
+    nextWeeks: "{count} prochaines semaines",
+    lastMonths: "{count} derniers mois",
+    nextMonths: "{count} prochains mois",
+    lastYears: "{count} dernières années",
+    nextYears: "{count} prochaines années",
   },
 };
 
@@ -630,7 +696,8 @@ const RELATIVE_LABELS: Record<
  * A relative token as people read it, in English or French (`"fr"` locales):
  * `"$thisWeek"` reads "This week", `"$last14Days"` "Last 14 days".
  * `translate`, when given, wins for the keys `filters.relative.<token
- * without $>` (and `filters.relative.lastDays` / `nextDays`, with `{count}`).
+ * without $>` (and `filters.relative.lastDays` / `nextDays`, `lastWeeks`…
+ * `nextYears`, with `{count}`).
  */
 export function relativeDateLabel(
   token: RelativeDateToken,
@@ -641,9 +708,9 @@ export function relativeDateLabel(
     ? RELATIVE_LABELS.fr
     : RELATIVE_LABELS.en;
   const count = RELATIVE_DAY_COUNT.exec(token);
-  const key = count ? `${count[1]}Days` : token.slice(1);
+  const key = count ? `${count[1]}${count[3]}` : token.slice(1);
   const fallback = count
-    ? labels[count[1] === "last" ? "lastDays" : "nextDays"]
+    ? labels[key as `${"last" | "next"}${RelativeDateUnit}`]
     : labels[token as (typeof RELATIVE_DATE_TOKENS)[number]];
   const text = translate?.(`filters.relative.${key}`) || fallback;
   return count ? text.replace("{count}", count[2] ?? "") : text;

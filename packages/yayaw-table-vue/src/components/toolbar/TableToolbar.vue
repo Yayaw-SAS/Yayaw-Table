@@ -40,8 +40,11 @@ import type {
   ToolbarActionsPlacement,
 } from "../../types";
 import SavedViews from "./SavedViews.vue";
+import FilterBarDate from "../filters/FilterBarDate.vue";
 import OptionFilter from "../filters/OptionFilter.vue";
 import { filterBarColumns } from "../../filter-bar";
+import { filterMenuText } from "../../filter-menu";
+import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from "reka-ui";
 import TableDensityMenu from "./TableDensityMenu.vue";
 import ToolbarMenu from "./ToolbarMenu.vue";
 import ToolbarDataActions from "./ToolbarDataActions.vue";
@@ -97,7 +100,8 @@ import { displayModeIcons } from "./display-mode-icons";
 import LayoutPicker from "./LayoutPicker.vue";
 import DisplayModeRendererSettings from "./DisplayModeRendererSettings.vue";
 import KanbanSettings from "./KanbanSettings.vue";
-import AdvancedFilters from "../filters/AdvancedFilters.vue";
+import AdvancedFilterEditor from "../filters/AdvancedFilterEditor.vue";
+import FilterPropertyPicker from "../filters/FilterPropertyPicker.vue";
 import FacetsToggle from "../facets/FacetsToggle.vue";
 import NewFolderButton from "../folders/NewFolderButton.vue";
 import { useToolbarLayout } from "../../composables/use-toolbar-layout";
@@ -129,7 +133,6 @@ const toggleCalculationEditing = (): void => {
 };
 
 const optionsRoot = ref<HTMLElement>();
-const advancedFiltersPanel = ref<InstanceType<typeof AdvancedFilters>>();
 const savedViews = ref<InstanceType<typeof SavedViews>>();
 const optionsOpen = ref(false);
 const optionsView = ref<OptionsView>("main");
@@ -318,12 +321,16 @@ watch(
       context.optionsRequest.value = undefined;
       return;
     }
+    // A column's "Filter" opens its chip's editor, as the Filter button does.
+    if (request.columnId && props.enableAdvancedFilters && request.view === "filters") {
+      context.filterMenu.add(request.columnId);
+      context.optionsRequest.value = undefined;
+      return;
+    }
     optionsView.value = request.view;
     optionsOpen.value = true;
     await focusOptions();
-    if (request.columnId && props.enableAdvancedFilters && request.view === "filters") {
-      await advancedFiltersPanel.value?.add(request.columnId);
-    } else if (request.columnId) {
+    if (request.columnId) {
       const columnId = request.columnId;
       setTimeout(() => {
         const field = Array.from(
@@ -337,9 +344,25 @@ watch(
     context.optionsRequest.value = undefined;
   }
 );
-const addAdvancedFilter = async (): Promise<void> => {
-  await advancedFiltersPanel.value?.add();
+// Notion's Filter button: properties first, then the rule's chip opens.
+const filterButton = computed(() => props.enableAdvancedFilters && context.config.table.enableColumnFilters !== false && context.filterMenu.columns.value.length > 0);
+const filterPickerOpen = ref(false);
+// The tooltip wraps the trigger: the picker anchors to the button itself.
+const filterTrigger = ref<HTMLButtonElement>();
+const menuTranslate = (key: string): string | undefined => {
+  const value = context.translations.value[key];
+  return typeof value === "string" ? value : undefined;
 };
+const activeRuleCount = computed(() => context.state.advancedFilters.value.filters.filter((filter) => filter.isActive !== false).length);
+const pickFilterColumn = (columnId: string): void => {
+  filterPickerOpen.value = false;
+  context.filterMenu.add(columnId);
+};
+const toolbarDateColumn = computed(() => {
+  const id = context.config.table.toolbarDateFilter;
+  const column = id ? dataColumns.value.find((item) => item.id === id) : undefined;
+  return props.enableAdvancedFilters && column?.type === "date" && column.enableFiltering !== false ? column : undefined;
+});
 const panelFilterColumns = computed(() => props.enableAdvancedFilters
   ? filterableColumns.value.filter((column) =>
     Boolean(column.filterRenderer) || (compact.value && quickFilterIds.value.has(column.id)) ||
@@ -744,6 +767,22 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
       :search-label="translate('search', 'Search…')" :export-label="translate('export', 'Export')" :share-label="translate('url_state.share', 'Share')"
       :pending-action="pendingAction" :is-exporting="isExporting" :disabled="toolbarActionDisabled" :variant="toolbarActionVariant"
       @action="runAction" @share="shareLink" />
+    <FilterBarDate v-if="toolbarDateColumn" :column="toolbarDateColumn" variant="toolbar" :compact="compact" />
+    <PopoverRoot v-if="filterButton" v-model:open="filterPickerOpen">
+      <TableTooltip :label="filterMenuText('filter', context.locale, menuTranslate)">
+        <PopoverTrigger as-child>
+          <button ref="filterTrigger" type="button" class="yayaw-button yayaw-button-outline yayaw-icon-only yayaw-filter-button" :data-active="activeRuleCount > 0" :aria-label="filterMenuText('filter', context.locale, menuTranslate)" data-filter-button="">
+            <ListFilter :size="16" aria-hidden="true" />
+            <span v-if="activeRuleCount" class="yayaw-filter-button-count" aria-hidden="true">{{ activeRuleCount }}</span>
+          </button>
+        </PopoverTrigger>
+      </TableTooltip>
+      <PopoverPortal>
+        <PopoverContent :reference="filterTrigger" class="yayaw-filter-popover" :data-yayaw-filter-picker="context.config.id" align="end" :side-offset="6" :collision-padding="8" :aria-label="filterMenuText('filterBy', context.locale, menuTranslate)" @close-auto-focus.prevent>
+          <FilterPropertyPicker @pick="pickFilterColumn" @advanced="filterPickerOpen = false; context.filterMenu.openAdvanced()" />
+        </PopoverContent>
+      </PopoverPortal>
+    </PopoverRoot>
     <FacetsToggle :compact="compact" />
     <ToolbarMenu v-model:open="optionsOpen" :compact="compact" align="end"
       :title="optionsTitle"
@@ -889,8 +928,8 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
             </div>
 
             <div v-else-if="optionsView === 'filters'" class="yayaw-options-content">
-              <button v-if="[context.config.table.showClearFilters, context.config.table.showResetFilters].includes(true)" type="button" class="yayaw-button yayaw-button-outline" :aria-label="translate('clearFilters', 'Clear filters')" @click="context.state.resetFilters(); advancedFiltersPanel?.clearDrafts()"><FunnelX :size="16" />{{ translate('clearFilters', 'Clear filters') }}</button>
-              <AdvancedFilters v-if="props.enableAdvancedFilters" ref="advancedFiltersPanel" />
+              <button v-if="[context.config.table.showClearFilters, context.config.table.showResetFilters].includes(true)" type="button" class="yayaw-button yayaw-button-outline" :aria-label="translate('clearFilters', 'Clear filters')" @click="context.state.resetFilters(); context.filterMenu.clearDrafts()"><FunnelX :size="16" />{{ translate('clearFilters', 'Clear filters') }}</button>
+              <AdvancedFilterEditor v-if="props.enableAdvancedFilters" />
               <div
                 v-for="column in panelFilterColumns"
                 :key="column.id"
@@ -899,6 +938,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
               >
                 <span>{{ column.header }}</span>
                 <FilterContent v-if="column.filterRenderer" :node="column.filterRenderer({ value: columnFilterValue(column.id), onChange: value => setColumnFilter(column.id, value) })" />
+                <FilterBarDate v-else-if="quickFilterIds.has(column.id) && column.type === 'date'" :column="column" />
                 <OptionFilter v-else-if="quickFilterIds.has(column.id)" :column="column" />
                 <select
                   v-else-if="column.options?.length"
@@ -925,16 +965,6 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
                   @input="setColumnFilter(column.id, ($event.target as HTMLInputElement).value)"
                 />
               </div>
-              <button
-                v-if="props.enableAdvancedFilters"
-                type="button"
-                class="yayaw-button yayaw-button-outline"
-                :aria-label="translate('filters.add', 'Add filter')"
-                @click="addAdvancedFilter"
-              >
-                <Plus :size="15" aria-hidden="true" />
-                {{ translate("filters.add", "Add filter") }}
-              </button>
             </div>
 
             <div v-else-if="optionsView === 'sort'" class="yayaw-options-content">

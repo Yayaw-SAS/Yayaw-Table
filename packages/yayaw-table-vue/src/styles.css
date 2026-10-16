@@ -2661,6 +2661,7 @@
 }
 .yayaw-toolbar[data-compact="true"] .yayaw-toolbar-end {
   flex: 1;
+  flex-wrap: wrap;
   justify-content: flex-end;
 }
 .yayaw-toolbar[data-compact="true"] .yayaw-search-field {
@@ -6943,4 +6944,398 @@
   padding: 0 12px 12px;
   color: var(--yayaw-muted-foreground);
   font-size: 12px;
+}
+
+/* Notion's filter menu: the Filter button, chips under the toolbar, editors. */
+.yayaw-table,
+.yayaw-filter-popover,
+.yayaw-filter-menu-layer {
+  --yayaw-filter-accent: oklch(0.53 0.17 256);
+  --yayaw-filter-accent-soft: color-mix(
+    in oklch,
+    var(--yayaw-filter-accent) 10%,
+    var(--yayaw-background)
+  );
+  --yayaw-filter-accent-line: color-mix(
+    in oklch,
+    var(--yayaw-filter-accent) 35%,
+    var(--yayaw-background)
+  );
+}
+.dark .yayaw-table,
+.dark .yayaw-filter-popover,
+.dark .yayaw-filter-menu-layer {
+  --yayaw-filter-accent: oklch(0.72 0.13 256);
+}
+.yayaw-filter-menu-layer {
+  z-index: 3100;
+}
+.yayaw-filter-button,
+.yayaw-date-period {
+  gap: 6px;
+  font-weight: 400;
+}
+.yayaw-filter-button[data-active="true"],
+.yayaw-date-period[data-active="true"] {
+  border-color: var(--yayaw-filter-accent-line);
+  background: var(--yayaw-filter-accent-soft);
+  color: var(--yayaw-filter-accent);
+}
+.yayaw-filter-button {
+  position: relative;
+}
+/* The rule count sits on the funnel's corner, as on the facets toggle. */
+.yayaw-filter-button-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--yayaw-filter-accent);
+  color: var(--yayaw-background);
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.yayaw-date-period-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 14rem;
+}
+.yayaw-date-period-days {
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.yayaw-date-period[data-active="true"] .yayaw-date-period-days {
+  color: inherit;
+  opacity: 0.75;
+}
+.yayaw-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin: 8px 0 12px;
+}
+.yayaw-toolbar[data-compact="true"] ~ .yayaw-filter-chips {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.yayaw-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: min(22rem, 100%);
+  height: 28px;
+  flex-shrink: 0;
+  padding: 0 10px;
+  border: 1px solid var(--yayaw-filter-accent-line);
+  border-radius: 14px;
+  background: var(--yayaw-filter-accent-soft);
+  color: var(--yayaw-filter-accent);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.yayaw-filter-chip:hover {
+  border-color: var(--yayaw-filter-accent);
+}
+.yayaw-filter-chip:focus-visible,
+.yayaw-filter-chips-clear:focus-visible,
+.yayaw-menu-choice:focus-visible,
+.yayaw-rule-operator:focus-visible,
+.yayaw-segmented button:focus-visible {
+  outline: 2px solid var(--yayaw-ring);
+  outline-offset: 1px;
+}
+.yayaw-filter-chip[data-complete="false"] {
+  border-color: var(--yayaw-border);
+  background: var(--yayaw-background);
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-filter-chip-property {
+  color: var(--yayaw-foreground);
+  font-weight: 500;
+}
+.yayaw-filter-chip[data-complete="false"] .yayaw-filter-chip-property {
+  color: inherit;
+  font-weight: 400;
+}
+.yayaw-filter-chip-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.yayaw-filter-chip-add {
+  border-color: transparent;
+  background: transparent;
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-filter-chip-add:hover {
+  border-color: transparent;
+  background: var(--yayaw-muted);
+}
+.yayaw-filter-chips-clear {
+  margin-left: auto;
+  border: 0;
+  border-radius: var(--yayaw-radius);
+  background: transparent;
+  color: var(--yayaw-muted-foreground);
+  font: inherit;
+  font-size: 13px;
+  padding: 4px 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.yayaw-filter-chips-clear:hover {
+  background: var(--yayaw-muted);
+  color: var(--yayaw-foreground);
+}
+.yayaw-filter-popover {
+  z-index: 3000;
+  display: grid;
+  gap: 8px;
+  box-sizing: border-box;
+  grid-template-columns: minmax(0, 1fr);
+  width: min(22rem, calc(100vw - 1rem));
+  max-height: var(--reka-popover-content-available-height);
+  overflow: auto;
+  padding: 8px;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  background: var(--yayaw-background);
+  color: var(--yayaw-foreground);
+  box-shadow: var(--yayaw-shadow);
+  font-size: 13px;
+}
+.yayaw-filter-popover-wide {
+  width: min(44rem, calc(100vw - 1rem));
+}
+.yayaw-rule-editor,
+.yayaw-filter-value,
+.yayaw-date-editor,
+.yayaw-property-picker {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.yayaw-rule-editor-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 0 6px;
+  border-bottom: 1px solid var(--yayaw-border);
+  min-width: 0;
+}
+.yayaw-rule-editor-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.yayaw-rule-operator {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--yayaw-muted-foreground);
+  font: inherit;
+  cursor: pointer;
+}
+.yayaw-rule-operator:hover {
+  background: var(--yayaw-muted);
+  color: var(--yayaw-foreground);
+}
+.yayaw-rule-operator-select {
+  appearance: auto;
+}
+.yayaw-rule-editor-head > .yayaw-icon-button,
+.yayaw-rule-more {
+  margin-left: auto;
+  min-height: 28px;
+  padding: 4px;
+}
+.yayaw-segmented {
+  display: flex;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  overflow: hidden;
+}
+.yayaw-segmented button {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: none;
+  padding: 5px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--yayaw-muted-foreground);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.yayaw-segmented button + button {
+  border-left: 1px solid var(--yayaw-border);
+}
+.yayaw-segmented button[aria-pressed="true"] {
+  background: var(--yayaw-muted);
+  color: var(--yayaw-foreground);
+  font-weight: 500;
+}
+.yayaw-date-presets {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2px;
+}
+.yayaw-menu-choice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 30px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--yayaw-radius);
+  background: transparent;
+  color: var(--yayaw-foreground);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.yayaw-menu-choice > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Long names ("La semaine dernière") wrap rather than hide on a phone. */
+.yayaw-date-presets .yayaw-menu-choice {
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  text-align: start;
+}
+.yayaw-menu-choice:hover {
+  background: var(--yayaw-muted);
+}
+.yayaw-menu-choice[aria-pressed="true"] {
+  border-color: var(--yayaw-filter-accent-line);
+  background: var(--yayaw-filter-accent-soft);
+  color: var(--yayaw-filter-accent);
+}
+.yayaw-menu-choice > svg {
+  flex: none;
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-date-rolling {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.5rem minmax(0, 1fr);
+  gap: 6px;
+}
+.yayaw-date-rolling .yayaw-input,
+.yayaw-date-rolling .yayaw-select,
+.yayaw-filter-popover .yayaw-input,
+.yayaw-filter-popover .yayaw-select,
+.yayaw-advanced-row .yayaw-input,
+.yayaw-advanced-row .yayaw-select {
+  min-width: 0;
+  min-height: 32px;
+  height: 32px;
+  padding-block: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.yayaw-date-range {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.yayaw-date-sentence {
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.yayaw-filter-inputs {
+  display: grid;
+  gap: 6px;
+}
+.yayaw-filter-options-list {
+  display: grid;
+  max-height: 16rem;
+  overflow: auto;
+}
+.yayaw-property-list {
+  display: grid;
+  max-height: 18rem;
+  overflow: auto;
+}
+.yayaw-property-advanced {
+  border-top: 1px solid var(--yayaw-border);
+  border-radius: 0;
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-advanced-editor {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+}
+.yayaw-advanced-row {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(7rem, 1fr) minmax(7rem, 1fr) minmax(
+      8rem,
+      1.3fr
+    ) auto;
+  gap: 6px;
+  align-items: center;
+  min-width: 34rem;
+}
+.yayaw-options-content .yayaw-advanced-row {
+  grid-template-columns: 4rem minmax(0, 1fr) minmax(0, 1fr);
+  min-width: 0;
+}
+.yayaw-options-content .yayaw-advanced-row > :nth-child(4) {
+  grid-column: 2 / 4;
+}
+.yayaw-options-content .yayaw-advanced-row > :nth-child(5) {
+  grid-column: 3;
+  justify-self: end;
+}
+.yayaw-advanced-join {
+  padding-left: 4px;
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-advanced-value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  min-width: 0;
+  text-align: left;
+  cursor: pointer;
+}
+.yayaw-advanced-value > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-advanced-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--yayaw-border);
 }

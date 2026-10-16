@@ -280,7 +280,7 @@ Vue refreshes the active list after built-in mutations and table query invalidat
 
 ## Filter editing and keyboard interactions
 
-Vue advanced filters use the same operator families as React. A new rule starts inactive; changing the column resets its data type, operator, and values. Numeric/date ranges expose two inputs. Select and multi-select rules preserve multiple primitive values, including numeric zero and boolean false. Existing Vue operator aliases remain editable when loaded from saved views or URLs. Apply validates and commits the draft; Escape restores the last applied rule. Rules can be disabled without removing their values.
+Both editions share one filter menu modelled on Notion's: a toolbar Filter button with a searchable column list, one chip per rule under the toolbar, and an advanced filter that combines the rules with And / Or. The shared `utils/filter-menu.ts` (synced to Vue by `contracts:sync`) defines the operators per column type, rule completeness, chip summaries and the period sentences; `tests/filter-menu-suite.ts` runs it under both runners. React keeps the menu's state (incomplete rules, the open chip, the advanced view, the join) in jotai atoms keyed by table, so the toolbar, column menus and the settings screen share it; Vue keeps it in `createFilterMenuStore`. Incomplete rules are drafts: they show as dashed chips but never reach the query, the URL or a saved view. Typed text and numbers commit after a 500 ms pause, on Enter or on blur, and Escape restores the committed value. Date rules accept relative tokens, rolling ones (`$last2Weeks`, `$next3Months`) included, resolved to days when the query is sent. `table.toolbarDateFilter` and the date columns of `table.filterBarColumns` keep one period rule (`filter-bar-<column>`) each, outside the chips; choosing such a column from the Filter button opens its period. Vue's former `AdvancedFilters` and `FilterRule` components are removed. React `tests/filter-menu-ui.test.tsx`, Vue `advanced-filters.test.ts`, `filter-bar.test.ts` and `relative-dates-ui.test.ts`, and the `date-filter`, `facets`, `tags` and `views` e2e specs cover it. Select and multi-select rules preserve multiple primitive values, including numeric zero and boolean false, and existing operator aliases remain editable when loaded from saved views or URLs.
 
 Filter controls use the React `filters.*` translation keys, with English and French defaults. Table feedback and reusable field/collection controls inherit the table translations; standalone fields retain their English fallbacks. Date-only values from native inputs represent a local calendar date in both editions, including time zones west of UTC. The Options panel and row menus move focus when opened and restore it on dismissal. Row menus support arrow keys, skip disabled actions, and use a modal confirmation with trapped focus for deletion. A failed deletion retains its confirmation for retry.
 
@@ -332,10 +332,10 @@ Both editions accept relative tokens as date rule values: `$today`,
 `$yesterday`, `$tomorrow`, `$thisWeek`, `$lastWeek`, `$nextWeek`,
 `$thisMonth`, `$lastMonth`, `$nextMonth`, `$thisYear`, `$lastNDays` and
 `$nextNDays` (N from 1 to 3660, today included); `before` / `after` with
-`$today` reads "before / after today". The filter editors offer them in a
-"Date" select next to "Specific date" (React's shadcn select in the date
-filter and its compact popover, Vue's native `<select>` in `FilterRule`) and
-hide the day inputs while a token is set; chips show the translated label
+`$today` reads "before / after today". The filter menu's date editor offers them
+under "Relative", next to "Exact date" and "Date range", with a rolling
+"Last / Next N days, weeks, months or years" row (`$last2Weeks`), and hides
+the day inputs while a token is set; chips show the translated label
 (`filters.relative.<key>`, English and French built in).
 
 Tokens are kept as they are in table state, URLs, saved views,
@@ -534,7 +534,7 @@ browser interaction in both editions.
 
 ## Optional filter bar
 
-`table.filterBarColumns` declares an ordered subset of static-option or boolean columns. `table.showFilterBar` defaults to false, with a reactive `showFilterBar` component override in both frameworks. Column labels and choices come from the catalogue; disabled and unknown columns are excluded.
+`table.filterBarColumns` declares an ordered subset of static-option or boolean columns. `table.showFilterBar` defaults to false, with a reactive `showFilterBar` component override in both frameworks. Column labels and choices come from the catalogue; disabled and unknown columns are excluded. A `date` column listed there gets a period instead of choices (any date, the relative choices of date rules, or days from / to): it is kept as one advanced filter rule (`filter-bar-<columnId>`), so charts, calendars and every other display mode filter by it and hosts receive it as any date rule.
 
 In both editions the optional bar sits below the title and above the standard view, search and Options controls, with 16 px between each section. Both editions use filter icons, searchable checkbox pickers and native column-filter state. Multiple choices retain their original numeric, string or boolean IDs. Hidden columns may still be filtered; hiding the bar preserves the query. Options exposes the same controls even while the bar is hidden. Reset and saved-view changes update the pickers. Text, date, range and remotely loaded option filters remain in their existing filtering surfaces.
 
@@ -1777,7 +1777,7 @@ creation helpers. React: `components/folders/folder-picker.tsx`,
 `new-folder.tsx` (shadcn `Dialog`), `components/filters/folder-filter.tsx`,
 `hooks/use-folder-directory.ts` and `use-folder-filter-config.ts`. Vue:
 `components/folders/FolderPicker.vue`, `NewFolderButton.vue` (reka-ui
-`Dialog`), the picker in `FilterRule.vue` and
+`Dialog`), the picker in `FilterValueEditor.vue` and
 `composables/use-folder-directory.ts`. New EN/FR labels (`filetree.<key>`):
 "Root", "Parent folder", "In", "No folders", "The folder could not be
 created."

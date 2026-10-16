@@ -46,6 +46,11 @@ import {
   useDataTableAdvancedFilters,
   useTableAccessors,
 } from "../../hooks/use-data-table-advanced-filters";
+import {
+  type FilterMenu,
+  useFilterMenu,
+  useFilterMenuMounted,
+} from "../../hooks/use-filter-menu";
 import { useFolderFilterConfig } from "../../hooks/use-folder-filter-config";
 import { useTableConfig } from "../../hooks/use-table-config";
 import { useTableInstance } from "../../hooks/use-table-instance";
@@ -125,6 +130,9 @@ import { TableTooltip } from "../../utils/table-tooltip";
 import { tableViewDefaults } from "../../utils/table-view-state";
 import { sharePageUrl } from "../../utils/view-menu";
 import { FacetsToggle } from "../facets/facet-panel";
+import { FilterBarDate } from "../filters/filter-bar-date";
+import { FilterButton } from "../filters/menu/filter-button";
+import { FilterChipsBar } from "../filters/menu/filter-chips-bar";
 import { TableFilterBar } from "../filters/table-filter-bar";
 import { NewFolderButton } from "../folders/new-folder";
 import {
@@ -577,12 +585,15 @@ function ToolbarEnd({
   createButton,
   dataMenu,
   facetsToggle,
+  filterControls,
   isMobile,
   newFolderButton,
   renderToolbarAction,
   search,
   settingsMenu,
 }: {
+  /** The toolbar's date period and Filter button. */
+  filterControls?: ReactNode;
   /** Shows and hides the facet panel (a sheet on phones). */
   facetsToggle?: ReactNode;
   /** "New folder" outside the File tree. */
@@ -610,7 +621,7 @@ function ToolbarEnd({
     <div
       className={cn(
         "ml-auto flex shrink-0 items-center gap-2",
-        isMobile && "flex-1 justify-end [&>button]:size-11"
+        isMobile && "flex-1 flex-wrap justify-end [&>button]:size-11"
       )}
     >
       {search.enabled && !search.hidden ? (
@@ -629,6 +640,7 @@ function ToolbarEnd({
             ...applicationActions.betweenCreateAndExport,
             ...applicationActions.afterExport,
           ].map(renderToolbarAction)}
+      {filterControls}
       {facetsToggle}
       {settingsMenu}
       {dataMenu}
@@ -981,6 +993,63 @@ function renderMenuDataActions({
   );
 }
 
+/** The toolbar's filter menu, offered when advanced filters have columns. */
+function useToolbarFilterMenu({
+  enabled,
+  ...options
+}: Parameters<typeof useFilterMenu>[0] & { enabled: boolean[] }) {
+  const filterMenu = useFilterMenu(options);
+  const isFilterMenuEnabled =
+    enabled.every(Boolean) && filterMenu.columns.length > 0;
+  useFilterMenuMounted(options.tableId, isFilterMenuEnabled);
+  return { filterMenu, isFilterMenuEnabled };
+}
+
+/** The toolbar's date period (`table.toolbarDateFilter`) and Filter button. */
+function ToolbarFilterControls({
+  advanced,
+  compact,
+  config,
+  enabled,
+  menu,
+  tableId,
+  tableType,
+}: {
+  advanced: boolean;
+  compact: boolean;
+  config: ReturnType<typeof useTableConfig>["config"];
+  enabled: boolean;
+  menu: FilterMenu;
+  tableId: string;
+  tableType: string;
+}) {
+  const id = config.table.toolbarDateFilter;
+  const column = id
+    ? config.columns.definitions.find((item) => item.id === id)
+    : undefined;
+  const dated =
+    advanced && column?.type === "date" && column.enableFiltering !== false;
+  return (
+    <>
+      {dated && column ? (
+        <FilterBarDate
+          column={{
+            id: column.id,
+            header: column.header ?? column.id,
+            type: "date",
+          }}
+          compact={compact}
+          menu={menu}
+          tableId={tableId}
+          tableType={tableType}
+          variant="toolbar"
+        />
+      ) : null}
+      {enabled ? <FilterButton compact={compact} menu={menu} /> : null}
+    </>
+  );
+}
+
 export function DataTableAdvancedToolbar<TData>({
   viewManagerProps,
   quickFiltersVisible,
@@ -1270,6 +1339,13 @@ export function DataTableAdvancedToolbar<TData>({
   const isExportEnabled = tableConfig.table.export !== false;
   const isColumnFiltersEnabled =
     tableConfig.table.enableColumnFilters !== false;
+  // Notion's filters: the Filter button, the rules' chips and a date period.
+  const { filterMenu, isFilterMenuEnabled } = useToolbarFilterMenu({
+    columnsConfig: filterColumnsConfig,
+    enabled: [enableAdvancedFilters, isColumnFiltersEnabled],
+    tableId,
+    tableType,
+  });
   const isSortingEnabled = tableConfig.table.enableSorting !== false;
   const isGroupingEnabled = tableConfig.table.enableGrouping !== false;
   const createFormType = tableConfig.form?.createFormType ?? formType;
@@ -2073,6 +2149,17 @@ export function DataTableAdvancedToolbar<TData>({
               tableType={tableType}
             />
           }
+          filterControls={
+            <ToolbarFilterControls
+              advanced={enableAdvancedFilters}
+              compact={isMobile}
+              config={tableConfig}
+              enabled={isFilterMenuEnabled}
+              menu={filterMenu}
+              tableId={tableId}
+              tableType={tableType}
+            />
+          }
           isMobile={isMobile}
           newFolderButton={
             <NewFolderButton
@@ -2094,6 +2181,9 @@ export function DataTableAdvancedToolbar<TData>({
           settingsMenu={renderSettingsMenu()}
         />
       </div>
+      {isFilterMenuEnabled ? (
+        <FilterChipsBar compact={isMobile} menu={filterMenu} />
+      ) : null}
     </TooltipProvider>
   );
 }

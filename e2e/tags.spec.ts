@@ -107,17 +107,16 @@ test("bulk add puts a tag on three records, then the tag filters them", async ({
 
   // Filter the Tags column by the catalog tag.
   await openTableMenu(page, testInfo.project.name);
-  if (testInfo.project.name === "vue") {
-    await page.getByRole("menuitem", { name: "Filter column" }).click();
-    await page.getByLabel("Filter operator").selectOption("contains");
-    await page.getByRole("checkbox", { name: "Print" }).check();
-    await page.getByRole("button", { name: "Apply" }).click();
-  } else {
-    await page.getByRole("menuitem", { name: "Filter" }).click();
-    const editor = page.getByRole("dialog");
-    await editor.getByRole("option", { name: "Print" }).click();
-    await editor.getByRole("button", { name: "Done" }).click();
-  }
+  await page
+    .getByRole("menuitem", {
+      name: testInfo.project.name === "vue" ? "Filter column" : "Filter",
+    })
+    .click();
+  // The column's rule opens as a chip; a checked tag filters at once.
+  await page
+    .locator('[data-filter-rule="tags"]')
+    .getByRole("checkbox", { name: "Print" })
+    .check();
   for (const name of [
     "Team.jpg",
     "Office.jpg",

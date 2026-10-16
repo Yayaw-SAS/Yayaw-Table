@@ -8,9 +8,6 @@ import { test } from "./fixtures/test";
  */
 const EXAMPLE = "/?example=views";
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
-/** React's day buttons; a selected day's name ends with ", selected". */
-const FIRST_DAY = /September 5th, 2026/;
-const LAST_DAY = /September 12th, 2026/;
 const SHOWN = ["Bravo audit", "Charlie display", "Delta support"];
 const HIDDEN = ["Alpha launch", "Echo sensors", "Foxtrot portal"];
 const EXPECTED_RULE = {
@@ -66,32 +63,24 @@ const expectOnlyDays = async (page: Page) => {
 };
 
 /**
- * Filter the Due column from its header menu: React picks the days in its
- * calendar, Vue types them in native date inputs.
+ * Filter the Due column from its header menu: its rule opens as a chip,
+ * whose date editor takes the two days.
  */
 const filterDueBetween = async (page: Page, project: string) => {
   if (project === "vue") {
     await page.getByRole("button", { name: "Column options: Due" }).click();
     await page.getByRole("menuitem", { name: "Filter column" }).click();
-    await page.getByLabel("Filter operator").selectOption("between");
-    await page.getByLabel("Filter value", { exact: true }).fill("2026-09-05");
-    await page.getByLabel("Filter value to").fill("2026-09-12");
-    await page.getByRole("button", { name: "Apply" }).click();
-    return;
+  } else {
+    await page
+      .getByRole("columnheader")
+      .getByText("Due", { exact: true })
+      .click();
+    await page.getByRole("menuitem", { name: "Filter" }).click();
   }
-  await page
-    .getByRole("columnheader")
-    .getByText("Due", { exact: true })
-    .click();
-  await page.getByRole("menuitem", { name: "Filter" }).click();
-  const editor = page.getByRole("dialog");
-  // The operator; the calendar's month and year pickers are comboboxes too.
-  await editor.getByRole("combobox").filter({ hasText: "Equals" }).click();
-  await page.getByRole("option", { name: "Between" }).click();
-  // The calendar opens on today's month, September 2026 (see the clock).
-  await editor.getByRole("button", { name: FIRST_DAY }).click();
-  await editor.getByRole("button", { name: LAST_DAY }).click();
-  await editor.getByRole("button", { name: "Done" }).click();
+  const editor = page.locator('[data-filter-rule="dueDate"]');
+  await editor.getByRole("button", { name: "Date range" }).click();
+  await editor.locator("[data-date-from]").fill("2026-09-05");
+  await editor.locator("[data-date-to]").fill("2026-09-12");
 };
 
 for (const [timezoneId, instants] of [

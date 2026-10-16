@@ -243,6 +243,43 @@ and icon action modes, including on mobile. Its tooltip and accessible label use
 `filters.clear` from your translations. `showResetFilters` remains a supported
 alias and now has the same behavior in React and Vue.
 
+### Filter like in Notion
+
+With `table.enableAdvancedFilters: true`, the toolbar has a **Filter** button
+(a Lucide funnel with the number of active rules). It lists the filterable
+columns with a search; picking one adds a rule and opens its editor. Each rule
+shows as a chip under the toolbar ("Status is Active", "Due · Last 30 days"):
+click it to change the operator or the value, or to delete it. The operators
+follow the column type (text, number, date, select, multi-select, boolean,
+location, the file tree's folder). **Add advanced filter** shows the rules as
+one list combined with And / Or, as Notion does.
+
+Typed text and numbers filter once typing pauses (500 ms), on Enter or on
+leaving the field; Escape restores the value that filters. A rule without a
+value stays as a dashed chip and never reaches `list`, the URL or a saved view.
+
+Date rules offer relative periods (today, yesterday, tomorrow, this / last /
+next week, month and year, the last 7, 30 and 90 days), a rolling period
+("last 2 weeks", stored as `$last2Weeks`; units `Days`, `Weeks`, `Months`,
+`Years`), an exact day, or a range. Relative tokens are kept in the URL and
+saved views and resolved to `YYYY-MM-DD` days when the query is sent, so a
+saved "This month" moves with the calendar.
+
+To keep one date column's period at hand, name it in the table config:
+
+```ts
+table: {
+  enableAdvancedFilters: true,
+  toolbarDateFilter: "updatedAt",
+}
+```
+
+The toolbar then shows that period with the days it covers today ("This month ·
+Oct 1 – Oct 31"); picking the column from the Filter button opens it rather
+than adding a second rule. Date columns in `table.filterBarColumns` behave the
+same way in the filter bar. Labels come from `filters.menu.*` and
+`filters.menu.operators.*`, with English and French defaults.
+
 ### Date filters send calendar days
 
 Date rules compare whole days, so their values are days written `YYYY-MM-DD`

@@ -22,6 +22,8 @@ export interface ProductRow {
   price: number;
   available: boolean;
   image: string;
+  /** A calendar day, some days before today, for the date period. */
+  updatedAt: string;
 }
 
 type Seed = [
@@ -53,6 +55,12 @@ const SEEDS: Seed[] = [
 const picture = (seed: string) =>
   `https://picsum.photos/seed/yayaw-product-${seed}/640/480`;
 
+const daysAgo = (days: number): string => {
+  const day = new Date();
+  day.setDate(day.getDate() - days);
+  return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+};
+
 /** Fresh records. */
 export const productRows = (): ProductRow[] =>
   SEEDS.map(([name, category, tags, status, price, available], index) => ({
@@ -64,6 +72,7 @@ export const productRows = (): ProductRow[] =>
     price,
     available,
     image: picture(String(index + 1)),
+    updatedAt: daysAgo(index * 9),
   }));
 
 const STATUS_TONES: Record<string, "success" | "warning"> = {
@@ -136,6 +145,7 @@ export const productColumns = [
   },
   { id: "available", header: "Available", type: "boolean" as const },
   { id: "image", header: "Image", type: "image" as const },
+  { id: "updatedAt", header: "Updated", type: "date" as const },
 ];
 
 export const productVisibleColumns = [
@@ -145,11 +155,14 @@ export const productVisibleColumns = [
   "status",
   "price",
   "available",
+  "updatedAt",
 ];
 
 export const productTableOptions = {
   syncUrl: true,
   enableAdvancedFilters: true,
+  // The updated date's period stays in the toolbar.
+  toolbarDateFilter: "updatedAt",
   coloredTags: false,
   defaultDisplayMode: "table" as const,
   displayModes: ["table", "list", "gallery", "kanban"] as (

@@ -6,7 +6,7 @@ import {
 } from "@vue/test-utils";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { computed, reactive } from "vue";
-import { inlineTestPortals, openViewMenu } from "../../tests/menu-helpers";
+import { inlineTestPortals } from "../../tests/menu-helpers";
 import { defineTableConfig } from "../config";
 import { type TableContextValue, tableContextKey } from "../context";
 import { createTranslations } from "../translations";
@@ -80,16 +80,16 @@ beforeEach(() => {
 });
 
 const addDateRule = async (wrapper: Wrapper) => {
-  await openViewMenu(wrapper);
-  await wrapper
-    .findAll(".yayaw-options-item")
-    .find((item) => item.text().startsWith("Filter"))
-    ?.trigger("click");
-  await wrapper.get('[aria-label="Add filter"]').trigger("click");
   await flushPromises();
-  const rule = wrapper.get(".yayaw-filter-rule:last-child");
-  await rule.findAll("select")[0]?.setValue("due");
-  return rule;
+  await wrapper.get("[data-filter-button]").trigger("click");
+  await flushPromises();
+  await wrapper.get('[data-filter-property="due"]').trigger("click");
+  await flushPromises();
+  if (!wrapper.find('[data-filter-rule="due"]').exists()) {
+    await wrapper.get('[data-filter-chip="due"]').trigger("click");
+    await flushPromises();
+  }
+  return wrapper.get('[data-filter-rule="due"]');
 };
 const names = (wrapper: Wrapper) =>
   wrapper.findAll("tbody tr").map((row) => row.text());
@@ -97,21 +97,38 @@ const names = (wrapper: Wrapper) =>
 it("filters on a relative date picked by its label, with the table's first weekday", async () => {
   const wrapper = mountTable();
   const rule = await addDateRule(wrapper);
-  const relative = rule.get("[data-relative-date-select]");
-  expect(relative.findAll("option").map((option) => option.text())).toContain(
-    "This week"
-  );
-  await relative.setValue("$thisWeek");
-  // A token replaces the day inputs.
-  expect(rule.findAll('input[type="date"]')).toHaveLength(0);
-  await rule.trigger("submit");
+  // Relative dates come first, by name.
+  expect(rule.get('[data-relative-date="$thisWeek"]').text()).toBe("This week");
+  await rule.get('[data-relative-date="$thisWeek"]').trigger("click");
   await flushPromises();
   expect(names(wrapper)).toHaveLength(2);
   expect(wrapper.get("tbody").text()).not.toContain("Next week task");
-  // Back to a specific date: today's day input.
-  await relative.setValue("fixed");
-  expect(rule.get<HTMLInputElement>('input[type="date"]').element.value).toBe(
+  expect(wrapper.get('[data-filter-chip="due"]').text()).toContain("This week");
+  // Back to a specific date: today.
+  await wrapper
+    .findAll('[data-filter-rule="due"] .yayaw-segmented button')
+    .find((button) => button.text() === "Exact date")
+    ?.trigger("click");
+  await flushPromises();
+  expect(wrapper.get<HTMLInputElement>("[data-date-exact]").element.value).toBe(
     "2026-10-14"
+  );
+});
+
+it("filters on a rolling period of any length and unit", async () => {
+  const wrapper = mountTable();
+  await addDateRule(wrapper);
+  await wrapper.get("[data-rolling-direction]").setValue("next");
+  await wrapper.get("[data-rolling-count]").setValue("1");
+  await wrapper.get("[data-rolling-unit]").setValue("Weeks");
+  await wrapper.get("[data-rolling-unit]").trigger("change");
+  await flushPromises();
+  // Today through next Tuesday: Sunday's task, not the one after.
+  expect(names(wrapper)).toHaveLength(2);
+  expect(wrapper.get("tbody").text()).toContain("Next week task");
+  expect(wrapper.get("tbody").text()).not.toContain("Monday task");
+  expect(wrapper.get('[data-filter-chip="due"]').text()).toContain(
+    "Next 1 week"
   );
 });
 
@@ -122,8 +139,7 @@ it("sends list requests the days a relative rule names", async () => {
   }));
   const wrapper = mountTable({ getTableActions: () => ({ list }) });
   const rule = await addDateRule(wrapper);
-  await rule.get("[data-relative-date-select]").setValue("$last7Days");
-  await rule.trigger("submit");
+  await rule.get('[data-relative-date="$last7Days"]').trigger("click");
   await flushPromises();
   expect(list.mock.lastCall?.[0].advancedFilters).toEqual([
     expect.objectContaining({

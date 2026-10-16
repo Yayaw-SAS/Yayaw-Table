@@ -1,11 +1,10 @@
 "use client";
 
-import { useAtomValue, useSetAtom } from "jotai";
 import { Filter, X } from "lucide-react";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { tableMenuOpenFilterColumnIdAtom } from "../../../atoms/table-atoms";
+import { useFilterMenu } from "../../../hooks/use-filter-menu";
 import { useTableConfig } from "../../../hooks/use-table-config";
 import { useTranslations } from "../../../providers/table-provider";
 import type { ColumnFiltersState } from "../../../tanstack";
@@ -17,13 +16,26 @@ import type {
 import { StackMenuContent, StackMenuView } from "../../../ui-custom/stack-menu";
 import { filterBarColumns } from "../../../utils/filter-bar";
 import { fieldText } from "../../../utils/table-contracts";
-import { AdvancedFilterPanel } from "../../filters/advanced-filter-panel";
+import { AdvancedFilterEditor } from "../../filters/menu/advanced-filter-editor";
 import { TableFilterBar } from "../../filters/table-filter-bar";
+
+/** The view settings' filter screen: the advanced filter's rules. */
+function SettingsAdvancedFilter({
+  columnsConfig,
+  tableId,
+  tableType,
+}: {
+  columnsConfig: ColumnsFilterConfig;
+  tableId: string;
+  tableType: string;
+}) {
+  const menu = useFilterMenu({ columnsConfig, tableId, tableType });
+  return <AdvancedFilterEditor menu={menu} />;
+}
 
 // Debug flag - activated for debugging advanced filters
 const DEBUG = false;
 
-const EMPTY_FILTERS: never[] = [];
 const EMPTY_COLUMNS_CONFIG: Record<string, never> = {};
 
 export interface TableFiltersMenuProps {
@@ -54,7 +66,7 @@ export function TableFiltersMenu({
   setColumnFilters,
   tableId,
   tableType,
-  advancedFilters = EMPTY_FILTERS,
+  advancedFilters: _advancedFilters,
   advancedActions,
   advancedColumnsConfig = EMPTY_COLUMNS_CONFIG,
   useAdvancedFilters = false,
@@ -67,12 +79,6 @@ export function TableFiltersMenu({
   const quickColumns = filterBarColumns(
     config.columns.definitions,
     config.table.filterBarColumns
-  );
-  const openFilterForColumnId = useAtomValue(
-    tableMenuOpenFilterColumnIdAtom(tableId)
-  );
-  const setOpenFilterColumnId = useSetAtom(
-    tableMenuOpenFilterColumnIdAtom(tableId)
   );
 
   const customFilters = config.columns.definitions
@@ -114,21 +120,10 @@ export function TableFiltersMenu({
       <StackMenuView name="filters">
         <StackMenuContent>
           {customFilters}
-          <AdvancedFilterPanel
-            actions={advancedActions}
-            className="border-0"
+          <SettingsAdvancedFilter
             columnsConfig={advancedColumnsConfig}
-            enableAnimations={true}
-            filters={advancedFilters}
-            maxVisibleFilters={Number.POSITIVE_INFINITY}
-            onOpenFilterConsumed={() => setOpenFilterColumnId(null)}
-            openFilterForColumnId={openFilterForColumnId ?? undefined}
-            popularColumns={["name", "status", "category"]}
-            recentColumns={[]}
-            showAddButton={true}
-            showClearButton={false}
-            showPerformance={false}
-            variant="modern"
+            tableId={tableId}
+            tableType={tableType ?? tableId}
           />
         </StackMenuContent>
       </StackMenuView>

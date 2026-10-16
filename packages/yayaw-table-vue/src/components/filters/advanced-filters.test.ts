@@ -1,12 +1,7 @@
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import numericDrafts from "../../../../../tests/fixtures/numeric-filter-drafts.json";
-import {
-  inlineTestPortals,
-  menuBody,
-  openViewMenu,
-  openViewScreen,
-} from "../../../tests/menu-helpers";
+import { inlineTestPortals, menuBody } from "../../../tests/menu-helpers";
 import { defineTableConfig } from "../../config";
 import type {
   AdvancedFilter,
@@ -103,95 +98,115 @@ enableAutoUnmount((unmount) =>
   })
 );
 beforeEach(() => window.history.replaceState({}, "", "/"));
-const button = (wrapper: Wrapper, text: string) =>
-  wrapper.findAll("button").find((item) => item.text() === text);
-const add = async (wrapper: Wrapper) => {
-  await openViewMenu(wrapper);
-  await wrapper
-    .findAll(".yayaw-options-item")
-    .find((item) => item.text().startsWith("Filter"))
-    ?.trigger("click");
-  await wrapper.get('[aria-label="Add filter"]').trigger("click");
+const pick = async (wrapper: Wrapper, columnId: string) => {
   await flushPromises();
-  return wrapper.get(".yayaw-filter-rule:last-child");
+  const picker = wrapper.find("[data-filter-property-picker]");
+  if (!picker.exists()) {
+    await wrapper.get("[data-filter-button]").trigger("click");
+    await flushPromises();
+  }
+  await wrapper.get(`[data-filter-property="${columnId}"]`).trigger("click");
+  await flushPromises();
+  // jsdom can close the new chip's editor with the picker; a browser keeps it.
+  if (!wrapper.find(`[data-filter-rule="${columnId}"]`).exists()) {
+    await wrapper.get(`[data-filter-chip="${columnId}"]`).trigger("click");
+    await flushPromises();
+  }
+  return wrapper.get(`[data-filter-rule="${columnId}"]`);
+};
+const chooseOperator = async (wrapper: Wrapper, operator: string) => {
+  await wrapper.get("[data-filter-operator]").trigger("click");
+  await flushPromises();
+  await menuBody().get(`[data-operator="${operator}"]`).trigger("click");
+  await flushPromises();
+};
+const type = async (
+  input: {
+    setValue: (value: string) => Promise<void>;
+    trigger: (event: string, options?: object) => Promise<void>;
+  },
+  text: string
+) => {
+  await input.setValue(text);
+  await input.trigger("keydown", { key: "Enter" });
+  await flushPromises();
 };
 const names = (wrapper: Wrapper) =>
   wrapper.findAll("tbody tr").map((row) => row.text());
+const listing = () =>
+  vi.fn(async (_params: TableListParams) => ({
+    data: rows,
+    meta: { totalCount: rows.length },
+  }));
 
-it("edits numeric ranges as a draft, applies zero and resets type/operator on column change", async () => {
+it("offers the filterable properties and filters a number between two values", async () => {
   const wrapper = mountTable();
-  const rule = await add(wrapper);
-  const column = rule.get("label:nth-child(1) select");
-  expect(document.activeElement).toBe(column.element);
-  expect(column.findAll("option").map((option) => option.text())).not.toContain(
-    "Private"
-  );
-  await column.setValue("amount");
-  const operator = rule.get("label:nth-child(2) select");
-  expect(
-    operator.findAll("option").map((option) => option.attributes("value"))
-  ).not.toContain("contains");
-  await operator.setValue("between");
-  const values = rule.findAll('input[type="number"]');
-  expect(values).toHaveLength(2);
-  await values[0]?.setValue("0");
-  expect(
-    rule.get('button[type="submit"]').attributes("disabled")
-  ).toBeDefined();
-  await values[1]?.setValue("5");
-  expect(names(wrapper)).toHaveLength(3);
-  await rule.trigger("submit");
+  await wrapper.get("[data-filter-button]").trigger("click");
   await flushPromises();
+  const properties = wrapper
+    .findAll("[data-filter-property]")
+    .map((item) => item.text());
+  expect(properties).toContain("Amount");
+  expect(properties).not.toContain("Private");
+  await pick(wrapper, "amount");
+  await wrapper.get("[data-filter-operator]").trigger("click");
+  await flushPromises();
+  expect(
+    menuBody()
+      .findAll("[data-operator]")
+      .map((item) => item.attributes("data-operator"))
+  ).not.toContain("contains");
+  await menuBody().get('[data-operator="between"]').trigger("click");
+  await flushPromises();
+  const inputs = wrapper.findAll("[data-filter-input]");
+  expect(inputs).toHaveLength(2);
+  await type(inputs[0] as never, "0");
+  // One end alone does not filter yet.
+  expect(names(wrapper)).toHaveLength(3);
+  await type(wrapper.findAll("[data-filter-input]")[1] as never, "5");
   expect(names(wrapper)).toHaveLength(2);
   expect(wrapper.get("tbody").text()).not.toContain("Gamma");
-  await column.setValue("date");
-  expect(rule.findAll('input[type="date"]')).toHaveLength(1);
-  expect(rule.findAll<HTMLSelectElement>("select")[1]?.element.value).toBe(
-    "equals"
-  );
-  await rule.get('input[type="date"]').setValue("2026-09-07");
-  await rule.trigger("submit");
-  await flushPromises();
-  expect(wrapper.get("tbody").text()).toContain("Gamma");
-  expect(names(wrapper)).toHaveLength(1);
+  expect(wrapper.get('[data-filter-chip="amount"]').text()).toContain("0");
+  expect(wrapper.get("[data-filter-button]").text()).toContain("1");
 });
 
-it("supports date ranges and lets Escape discard edits without changing the active filter", async () => {
+it("filters a date range and removes the rule from its menu", async () => {
   const wrapper = mountTable();
-  const rule = await add(wrapper);
-  await rule.findAll("select")[0]?.setValue("date");
-  await rule.findAll("select")[1]?.setValue("between");
-  const inputs = rule.findAll('input[type="date"]');
-  await inputs[0]?.setValue("2026-09-04");
-  await inputs[1]?.setValue("2026-09-05");
-  await rule.trigger("submit");
+  const rule = await pick(wrapper, "date");
+  const range = rule
+    .findAll(".yayaw-segmented button")
+    .find((item) => item.text() === "Date range");
+  await range?.trigger("click");
+  await flushPromises();
+  await wrapper.get("[data-date-from]").setValue("2026-09-04");
+  await wrapper.get("[data-date-from]").trigger("change");
+  await wrapper.get("[data-date-to]").setValue("2026-09-05");
+  await wrapper.get("[data-date-to]").trigger("change");
   await flushPromises();
   expect(names(wrapper)).toHaveLength(2);
-  await inputs[1]?.setValue("2026-09-07");
-  await inputs[1]?.trigger("keydown", { key: "Escape" });
-  expect(
-    rule.findAll<HTMLInputElement>('input[type="date"]')[1]?.element.value
-  ).toBe("2026-09-05");
-  expect(document.activeElement).toBe(rule.findAll("select")[0]?.element);
-  await rule.get('[aria-label="Disable filter"]').trigger("click");
+  await wrapper
+    .get('[data-filter-rule="date"] .yayaw-rule-more')
+    .trigger("click");
+  await flushPromises();
+  await menuBody().get("[data-filter-delete]").trigger("click");
+  await flushPromises();
   expect(names(wrapper)).toHaveLength(3);
-  await rule.get('[aria-label="Enable filter"]').trigger("click");
-  expect(names(wrapper)).toHaveLength(2);
+  expect(wrapper.find("[data-filter-chips]").exists()).toBe(false);
 });
 
 it("sends date rules as calendar days, in order, and reads an older link's instants as days", async () => {
-  const list = vi.fn(async (_params: TableListParams) => ({
-    data: rows,
-    meta: { totalCount: 3 },
-  }));
+  const list = listing();
   const wrapper = mountTable({ getTableActions: () => ({ list }) });
-  const rule = await add(wrapper);
-  await rule.findAll("select")[0]?.setValue("date");
-  await rule.findAll("select")[1]?.setValue("between");
-  const inputs = rule.findAll('input[type="date"]');
-  await inputs[0]?.setValue("2026-09-07");
-  await inputs[1]?.setValue("2026-09-05");
-  await rule.trigger("submit");
+  const rule = await pick(wrapper, "date");
+  await rule
+    .findAll(".yayaw-segmented button")
+    .find((item) => item.text() === "Date range")
+    ?.trigger("click");
+  await flushPromises();
+  await wrapper.get("[data-date-from]").setValue("2026-09-07");
+  await wrapper.get("[data-date-from]").trigger("change");
+  await wrapper.get("[data-date-to]").setValue("2026-09-05");
+  await wrapper.get("[data-date-to]").trigger("change");
   await flushPromises();
   expect(list.mock.lastCall?.[0].advancedFilters).toEqual([
     expect.objectContaining({
@@ -226,29 +241,21 @@ it("sends date rules as calendar days, in order, and reads an older link's insta
   expect(list.mock.lastCall?.[0].advancedFilters).toEqual([
     expect.objectContaining({ values: ["2026-09-04", "2026-09-05"] }),
   ]);
-  await openViewScreen(restored, "Filter");
-  const inputsFromLink = restored
-    .get(".yayaw-filter-rule")
-    .findAll<HTMLInputElement>('input[type="date"]');
-  expect(inputsFromLink.map((input) => input.element.value)).toEqual([
-    "2026-09-04",
-    "2026-09-05",
-  ]);
+  await restored.get('[data-filter-chip="date"]').trigger("click");
+  await flushPromises();
+  expect([
+    restored.get<HTMLInputElement>("[data-date-from]").element.value,
+    restored.get<HTMLInputElement>("[data-date-to]").element.value,
+  ]).toEqual(["2026-09-04", "2026-09-05"]);
 });
 
 it("preserves multiple primitive options in server requests and combines rules with OR", async () => {
-  const list = vi.fn(async (_params: TableListParams) => ({
-    data: rows,
-    meta: { totalCount: 3 },
-  }));
+  const list = listing();
   const wrapper = mountTable({ getTableActions: () => ({ list }) });
-  const rule = await add(wrapper);
-  await rule.findAll("select")[0]?.setValue("status");
-  await rule.findAll("select")[1]?.setValue("isAnyOf");
-  const options = rule.findAll('input[type="checkbox"]');
+  const status = await pick(wrapper, "status");
+  const options = status.findAll('input[type="checkbox"]');
   await options[0]?.setValue(true);
   await options[1]?.setValue(true);
-  await rule.trigger("submit");
   await flushPromises();
   expect(list.mock.lastCall?.[0].advancedFilters).toEqual([
     expect.objectContaining({
@@ -259,13 +266,39 @@ it("preserves multiple primitive options in server requests and combines rules w
       isActive: true,
     }),
   ]);
-  const nextRule = await add(wrapper);
-  await nextRule.findAll("select")[0]?.setValue("tags");
-  await nextRule.findAll("select")[1]?.setValue("containsAll");
-  await nextRule.findAll('input[type="checkbox"]')[0]?.setValue(true);
-  await nextRule.findAll('input[type="checkbox"]')[1]?.setValue(true);
-  await nextRule.trigger("submit");
-  await wrapper.get('[aria-label="Filter combination"]').setValue("or");
+  await wrapper.get("[data-filter-chip-add]").trigger("click");
+  await flushPromises();
+  await pick(wrapper, "tags");
+  await chooseOperator(wrapper, "containsAll");
+  // jsdom closes the chip with the operator menu; a browser keeps it open.
+  if (!wrapper.find('[data-filter-rule="tags"]').exists()) {
+    await wrapper.get('[data-filter-chip="tags"]').trigger("click");
+    await flushPromises();
+  }
+  expect(wrapper.get("[data-filter-operator]").text()).toBe("Contains all");
+  await wrapper
+    .get('[data-filter-rule="tags"]')
+    .findAll('input[type="checkbox"]')[0]
+    ?.setValue(true);
+  await wrapper
+    .get('[data-filter-rule="tags"]')
+    .findAll('input[type="checkbox"]')[1]
+    ?.setValue(true);
+  await flushPromises();
+  // "Or" is the advanced filter's: the rules move into it.
+  await wrapper
+    .get('[data-filter-rule="tags"] .yayaw-rule-more')
+    .trigger("click");
+  await flushPromises();
+  const toAdvanced = menuBody()
+    .findAll('[role="menuitem"]')
+    .find((item) => item.text() === "Add to advanced filter");
+  await toAdvanced?.trigger("click");
+  await flushPromises();
+  expect(wrapper.get("[data-filter-chip-advanced]").text()).toContain(
+    "2 rules"
+  );
+  await wrapper.get("[data-advanced-join]").setValue("or");
   await flushPromises();
   expect(list.mock.lastCall?.[0]).toMatchObject({
     advancedFilterJoin: "or",
@@ -274,12 +307,9 @@ it("preserves multiple primitive options in server requests and combines rules w
       expect.objectContaining({ values: ["a", "b"] }),
     ],
   });
-  await nextRule.get('[aria-label="Remove filter"]').trigger("click");
-  expect(document.activeElement).toBe(rule.findAll("select")[0]?.element);
-  await rule.get('[aria-label="Remove filter"]').trigger("click");
-  expect(document.activeElement).toBe(
-    wrapper.get(".yayaw-settings-trigger").element
-  );
+  await wrapper.get("[data-advanced-delete]").trigger("click");
+  await flushPromises();
+  expect(list.mock.lastCall?.[0].advancedFilters ?? []).toEqual([]);
 });
 
 it("restores React multi-select operators and values from a saved URL", async () => {
@@ -297,10 +327,12 @@ it("restores React multi-select operators and values from a saved URL", async ()
   window.history.replaceState({}, "", `/?${params}`);
   const wrapper = mountTable({ syncUrl: true });
   await flushPromises();
-  await openViewScreen(wrapper, "Filter");
-  const rule = wrapper.get(".yayaw-filter-rule");
+  expect(wrapper.get('[data-filter-chip="tags"]').text()).toContain("A, B");
+  await wrapper.get('[data-filter-chip="tags"]').trigger("click");
+  await flushPromises();
   expect(
-    rule
+    wrapper
+      .get('[data-filter-rule="tags"]')
       .findAll<HTMLInputElement>('input[type="checkbox"]')
       .filter((input) => input.element.checked)
   ).toHaveLength(2);
@@ -308,73 +340,72 @@ it("restores React multi-select operators and values from a saved URL", async ()
   expect(wrapper.get("tbody").text()).toContain("Alpha");
 });
 
-it("uses French defaults and React translation keys in the filter controls", async () => {
+it("uses French defaults and the filter menu's translation keys", async () => {
   const wrapper = mountTable({
     locale: "fr",
     translations: {
-      "filters.apply": "Valider",
-      "filters.operators.between": "Intervalle",
+      "filters.menu.addFilter": "Nouveau filtre",
+      "filters.menu.operators.between": "Intervalle",
     },
   });
-  await openViewMenu(wrapper);
-  await button(wrapper, "Filtrer")?.trigger("click");
-  await wrapper.get('[aria-label="Ajouter un filtre"]').trigger("click");
-  const rule = wrapper.get(".yayaw-filter-rule");
-  await rule.findAll("select")[0]?.setValue("amount");
-  expect(rule.text()).toContain("Colonne du filtre");
-  expect(rule.text()).toContain("Intervalle");
-  expect(rule.get('button[type="submit"]').text()).toBe("Valider");
+  expect(wrapper.get("[data-filter-button]").attributes("aria-label")).toBe(
+    "Filtre"
+  );
+  await wrapper.get("[data-filter-button]").trigger("click");
+  await flushPromises();
   expect(
-    wrapper.get('[aria-label="Combinaison des filtres"]').text()
-  ).toContain("toutes les conditions");
+    wrapper.get<HTMLInputElement>("[data-filter-property-picker] input").element
+      .placeholder
+  ).toBe("Filtrer par…");
+  await pick(wrapper, "amount");
+  await wrapper.get("[data-filter-operator]").trigger("click");
+  await flushPromises();
+  expect(menuBody().get('[data-operator="between"]').text()).toBe("Intervalle");
+  expect(wrapper.get("[data-filter-chip-add]").text()).toBe("Nouveau filtre");
 });
 
 for (const fixture of numericDrafts) {
-  it(`keeps ${fixture.text} local until the numeric rule is submitted`, async () => {
-    const list = vi.fn(async (_params: TableListParams) => ({
-      data: rows,
-      meta: { totalCount: rows.length },
-    }));
-    const wrapper = mountTable({ getTableActions: () => ({ list }) });
-    await flushPromises();
-    const initialRequests = list.mock.calls.length;
-    const rule = await add(wrapper);
-    expect(list).toHaveBeenCalledTimes(initialRequests);
-    await rule.findAll("select")[0]?.setValue("amount");
-    await flushPromises();
-    const requests = list.mock.calls.length;
-    const field = rule.get<HTMLInputElement>('input[type="number"]');
-    for (let index = 1; index <= fixture.text.length; index += 1) {
-      await field.setValue(fixture.text.slice(0, index));
+  it(`keeps ${fixture.text} on screen and filters by it once typed`, async () => {
+    vi.useFakeTimers();
+    try {
+      const list = listing();
+      const wrapper = mountTable({ getTableActions: () => ({ list }) });
+      await flushPromises();
+      const initialRequests = list.mock.calls.length;
+      await pick(wrapper, "amount");
+      // An empty rule is a chip, not a filter.
+      expect(list).toHaveBeenCalledTimes(initialRequests);
+      const field = wrapper.get<HTMLInputElement>("[data-filter-input]");
+      for (let index = 1; index <= fixture.text.length; index += 1) {
+        await field.setValue(fixture.text.slice(0, index));
+      }
+      await flushPromises();
+      expect(field.element.value).toBe(fixture.text);
+      expect(list).toHaveBeenCalledTimes(initialRequests);
+      await vi.advanceTimersByTimeAsync(600);
+      await flushPromises();
+      expect(list).toHaveBeenCalledTimes(initialRequests + 1);
+      expect(list.mock.lastCall?.[0].advancedFilters).toEqual([
+        expect.objectContaining({
+          columnId: "amount",
+          values: fixture.value,
+          isActive: true,
+        }),
+      ]);
+      // Escape puts back the value that filters.
+      await field.setValue("9");
+      await field.trigger("keydown", { key: "Escape" });
+      expect(field.element.value).toBe(fixture.text);
+      await vi.advanceTimersByTimeAsync(600);
+      expect(list).toHaveBeenCalledTimes(initialRequests + 1);
+    } finally {
+      vi.useRealTimers();
     }
-    await flushPromises();
-    expect(field.element.value).toBe(fixture.text);
-    expect(list).toHaveBeenCalledTimes(requests);
-    await rule.trigger("submit");
-    await flushPromises();
-    expect(list).toHaveBeenCalledTimes(requests + 1);
-    expect(list.mock.lastCall?.[0].advancedFilters).toEqual([
-      expect.objectContaining({
-        columnId: "amount",
-        values: fixture.value,
-        isActive: true,
-      }),
-    ]);
-    await field.setValue("");
-    expect(
-      rule.get('button[type="submit"]').attributes("disabled")
-    ).toBeDefined();
-    expect(list).toHaveBeenCalledTimes(requests + 1);
-    await field.trigger("keydown", { key: "Escape" });
-    expect(field.element.value).toBe(fixture.text);
   });
 }
 
-it("opens a local advanced draft for the requested column from its header", async () => {
-  const list = vi.fn(async (_params: TableListParams) => ({
-    data: rows,
-    meta: { totalCount: rows.length },
-  }));
+it("opens the requested column's filter from its header without filtering", async () => {
+  const list = listing();
   const wrapper = mountTable({ getTableActions: () => ({ list }) });
   await flushPromises();
   const requests = list.mock.calls.length;
@@ -388,10 +419,11 @@ it("opens a local advanced draft for the requested column from its header", asyn
   await filterAction.trigger("click");
   await new Promise((resolve) => setTimeout(resolve, 10));
   await flushPromises();
-  const rule = wrapper.get(".yayaw-filter-rule");
-  expect(rule.findAll<HTMLSelectElement>("select")[0]?.element.value).toBe(
-    "amount"
-  );
-  expect(rule.find('input[type="number"]').exists()).toBe(true);
+  expect(
+    wrapper.get('[data-filter-chip="amount"]').attributes("data-complete")
+  ).toBe("false");
+  expect(
+    wrapper.find('[data-filter-rule="amount"] [data-filter-input]').exists()
+  ).toBe(true);
   expect(list).toHaveBeenCalledTimes(requests);
 });

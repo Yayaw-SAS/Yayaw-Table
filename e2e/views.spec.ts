@@ -256,7 +256,8 @@ test("advanced filters can match any rule instead of all rules", async ({
       .getByRole("dialog", { name: SETTINGS })
       .getByRole("button", { name: FILTERS })
       .click();
-    return page.getByRole("combobox", { name: "Filter combination" });
+    // The advanced filter's "And" / "Or", on its second rule.
+    return page.locator("[data-advanced-filter] [data-advanced-join]");
   };
 
   const select = await combination();

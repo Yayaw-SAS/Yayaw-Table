@@ -17,9 +17,11 @@ import {
 } from "../src/components/ui/yayaw-table/providers/table-provider";
 import {
   filterBarColumns,
+  filterBarDateValue,
   filterBarOptions,
   filterValues,
   replaceColumnFilter,
+  replaceFilterBarDateRule,
 } from "../src/components/ui/yayaw-table/utils/filter-bar";
 
 const config = defineTableConfig({
@@ -185,4 +187,50 @@ it("keeps React filter triggers at the saved-view selector height", () => {
       CONTROL_HEIGHT_PATTERN
     );
   }
+});
+
+it("keeps a date column's quick period as one advanced rule, beside the other rules", () => {
+  const other = {
+    id: "rule-1",
+    columnId: "name",
+    operator: "contains",
+    values: "a",
+  };
+  const date = { id: "due", header: "Due", type: "date" };
+  expect(filterBarColumns([date], ["due"])).toEqual([date]);
+  const relative = replaceFilterBarDateRule([other], "due", {
+    token: "$last30Days",
+  });
+  expect(relative).toEqual([
+    other,
+    {
+      id: "filter-bar-due",
+      columnId: "due",
+      type: "date",
+      isActive: true,
+      operator: "equals",
+      values: "$last30Days",
+    },
+  ]);
+  expect(filterBarDateValue(relative, "due")).toEqual({ token: "$last30Days" });
+  const range = replaceFilterBarDateRule(relative, "due", {
+    from: "2026-09-01",
+    to: "2026-09-30",
+  });
+  expect(range.at(-1)).toMatchObject({
+    operator: "between",
+    values: ["2026-09-01", "2026-09-30"],
+  });
+  expect(filterBarDateValue(range, "due")).toEqual({
+    from: "2026-09-01",
+    to: "2026-09-30",
+  });
+  expect(
+    filterBarDateValue(
+      replaceFilterBarDateRule(range, "due", { to: "2026-09-30" }),
+      "due"
+    )
+  ).toEqual({ to: "2026-09-30" });
+  expect(replaceFilterBarDateRule(range, "due", {})).toEqual([other]);
+  expect(filterBarDateValue([other], "due")).toEqual({});
 });

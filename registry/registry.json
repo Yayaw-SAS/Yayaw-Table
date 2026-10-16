@@ -428,6 +428,11 @@
           "target": "components/ui/yayaw-table/components/filters/enhanced-filter-chip.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/filters/filter-bar-date.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/filters/filter-bar-date.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/filters/filter-presets-panel.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/filters/filter-presets-panel.tsx"
@@ -461,6 +466,46 @@
           "path": "registry/default/ui/yayaw-table/components/filters/location-filter.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/filters/location-filter.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/filters/menu/advanced-filter-editor.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/filters/menu/advanced-filter-editor.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/filters/menu/date-value-editor.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/filters/menu/date-value-editor.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/filters/menu/filter-button.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/filters/menu/filter-button.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/filters/menu/filter-chip.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/filters/menu/filter-chip.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/filters/menu/filter-chips-bar.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/filters/menu/filter-chips-bar.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/filters/menu/filter-property-picker.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/filters/menu/filter-property-picker.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/filters/menu/filter-rule-editor.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/filters/menu/filter-rule-editor.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/filters/menu/filter-value-editor.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/filters/menu/filter-value-editor.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/filters/modern-add-filter-dropdown.tsx",
@@ -1203,6 +1248,11 @@
           "target": "components/ui/yayaw-table/hooks/use-data-table.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/hooks/use-filter-menu.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/hooks/use-filter-menu.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/hooks/use-filter-presets.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/hooks/use-filter-presets.ts"
@@ -1661,6 +1711,11 @@
           "path": "registry/default/ui/yayaw-table/utils/filter-bar.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/filter-bar.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/filter-menu.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/filter-menu.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/filtered-rows.ts",

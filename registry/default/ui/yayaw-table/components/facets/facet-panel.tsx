@@ -1,7 +1,7 @@
 "use client";
 
 import { useAtomValue } from "jotai";
-import { Check, ListFilter, PanelLeft, PanelRight, X } from "lucide-react";
+import { Check, PanelBottom, PanelLeft, PanelRight, X } from "lucide-react";
 import { type KeyboardEvent, type ReactNode, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
@@ -406,7 +406,7 @@ export function FacetsToggle({
             type="button"
             variant="outline"
           >
-            <ListFilter className="size-4" />
+            <PanelBottom className="size-4" />
             {badge}
           </Button>
         </TableTooltip>
