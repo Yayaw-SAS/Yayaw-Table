@@ -789,8 +789,9 @@ const openWidgetMenu = (page: Page, id: string) =>
     .first()
     .click();
 const WIDGET_OPTIONS = /^Widget options for /;
-/** The editor's chunk in each demo's dev server (React `dashboard-editor.tsx`, Vue `DashboardEditorLayer.vue`). */
-const EDITOR_CHUNK = /\/dashboard-editor\.tsx|\/DashboardEditorLayer\.vue/;
+/** The editor's module on each demo's dev server (React `dashboard-editor.tsx`, Vue `DashboardEditorLayer.vue`), or its chunk in a build. */
+const EDITOR_CHUNK =
+  /\/dashboard-editor\.tsx|\/DashboardEditorLayer\.vue|\/assets\/(dashboard-editor|DashboardEditorLayer)-[\w-]{8}\.js$/;
 const AUDIT_OPTION = /^Audit log/;
 const INVOICES_OPTION = /^Invoices/;
 const PAGES_OPTION = /^Pages/;
