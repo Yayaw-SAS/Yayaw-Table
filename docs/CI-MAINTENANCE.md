@@ -48,6 +48,11 @@ The end-to-end shards run against built examples (`bun run e2e:build`, served
 by `vite preview` when `E2E_STATIC` is set), never against dev servers: a dev
 server compiling on demand under the parallel suite could stop answering
 mid-run and turn every remaining test of its edition into a 30-second timeout.
+A broken page fails fast instead of timing out: in CI an action waits at
+most 10 s for its target, a shard stops after 15 failures, and every spec
+imports `test` from `e2e/fixtures/test.ts`, which adds the page's uncaught
+errors and `console.error` output to a failing test's report. The traces of a
+failed shard are kept as the `e2e-traces-<shard>-attempt-<n>` artifact.
 Shards do not cancel each other (`fail-fast: false`), so a red shard can be
 rerun alone with **Re-run failed jobs**. The Chromium download is cached per
 Playwright version; its system packages are still installed on each runner.

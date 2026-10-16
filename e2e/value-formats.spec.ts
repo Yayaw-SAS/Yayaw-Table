@@ -1,4 +1,5 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+import { test } from "./fixtures/test";
 
 /**
  * The format matrix (`examples/value-formats.ts`) in both editions, in

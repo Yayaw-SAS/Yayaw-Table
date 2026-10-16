@@ -1,4 +1,5 @@
-import { expect as baseExpect, type Page, test } from "@playwright/test";
+import { expect as baseExpect, type Page } from "@playwright/test";
+import { test } from "./fixtures/test";
 
 // WebGL through SwiftShader is slow in parallel runs: allow more time.
 const expect = baseExpect.configure({ timeout: 15_000 });

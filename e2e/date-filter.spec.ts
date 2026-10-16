@@ -1,4 +1,5 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+import { test } from "./fixtures/test";
 
 /**
  * Date rules name calendar days: the list action receives `YYYY-MM-DD`

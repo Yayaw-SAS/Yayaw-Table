@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
-import { expect, type Locator, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
+import { test } from "./fixtures/test";
 
 const EXAMPLE = "/?example=views";
 // Playwright runs from the repository root.
