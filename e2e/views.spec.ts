@@ -167,8 +167,8 @@ test("a link's page is kept on arrival, in the table and the URL", async ({
   // Neither edition writes the default column order: the URL carries only
   // what differs from the defaults. The link's page outlives the arrival.
   await page.waitForTimeout(300);
-  expect(urlParam(page, ORDER_PARAM)).toBeNull();
-  expect(urlParam(page, "views-page")).toBe("1");
+  await expect.poll(() => urlParam(page, ORDER_PARAM)).toBeNull();
+  await expect.poll(() => urlParam(page, "views-page")).toBe("1");
 });
 
 test("back and forward show the column order each URL names", async ({
@@ -213,7 +213,7 @@ test("a search from the second page starts on the first page", async ({
   await expect(rows.filter({ hasText: "Alpha launch" })).toBeVisible();
   await expect(rows.filter({ hasText: "Foxtrot portal" })).toHaveCount(0);
   await expect.poll(() => urlParam(page, "views-q")).toBe("2026");
-  expect(urlParam(page, "views-page")).toBeNull();
+  await expect.poll(() => urlParam(page, "views-page")).toBeNull();
 });
 
 test("a link past the last page opens the last page", async ({ page }) => {

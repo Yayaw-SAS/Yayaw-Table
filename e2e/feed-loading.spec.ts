@@ -3,7 +3,9 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 const EXAMPLE = "/?example=feed";
 const SETTINGS_PARAM = "news-feed";
 const UPDATE_NUMBER = /^Update (\d+)/;
-const FEED_VIEW_MODULE = /\/feed\/(feed-view\.tsx|FeedView\.vue)$/;
+/** The feed view's module on a dev server, or its chunk in a build (`bun run e2e:build`). */
+const FEED_VIEW_MODULE =
+  /\/feed\/(feed-view\.tsx|FeedView\.vue)$|\/assets\/(feed-view|FeedView)-[\w-]{8}\.js$/;
 const PICSUM = /picsum/;
 /** A 1×1 PNG: the demo's photos and poster come from picsum.photos. */
 const PIXEL = Buffer.from(

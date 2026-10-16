@@ -246,7 +246,7 @@ test("the page table keeps its URL state and saved views; the screen's view is i
   await expect(rows.first()).toContainText(ALPHABETICAL[0] ?? "");
   await page.reload();
   await expect(rows.first()).toContainText(ALPHABETICAL[0] ?? "");
-  expect(searchParam(page, "pages-sort")).toBe(BY_TITLE);
+  await expect.poll(() => searchParam(page, "pages-sort")).toBe(BY_TITLE);
   // A saved view of the source, kept in the URL.
   await page.goto(`${SCREEN}&view=drafts`);
   await expect(figure(page, "drafts")).toHaveText(String(count("draft")));
@@ -257,7 +257,7 @@ test("the page table keeps its URL state and saved views; the screen's view is i
   await expect(pageTable(page).locator("[data-row-id]")).toHaveCount(
     count("draft")
   );
-  expect(searchParam(page, "view")).toBe("drafts");
+  await expect.poll(() => searchParam(page, "view")).toBe("drafts");
   // The reader's favorite view comes before the screen's.
   await pageTable(page).getByRole("button", { name: "View actions" }).click();
   await page.getByRole("button", { name: FAVORITE }).click();
@@ -314,7 +314,9 @@ test("screen filters reach the table and the numbers as requiredFilters, and sta
         entry.params.requiredFilters?.some((rule) => rule.columnId === "author")
     )
   ).toBe(false);
-  expect(searchParam(page, "content-admin.author")).toBe("Ada Martin");
+  await expect
+    .poll(() => searchParam(page, "content-admin.author"))
+    .toBe("Ada Martin");
 
   // A relative period: the last 7 days, resolved in the reader's day.
   await clearRequests(page);
@@ -348,7 +350,9 @@ test("screen filters reach the table and the numbers as requiredFilters, and sta
       )
     )
     .toBe(true);
-  expect(searchParam(page, "content-admin.period")).toBe("last7Days");
+  await expect
+    .poll(() => searchParam(page, "content-admin.period"))
+    .toBe("last7Days");
   // A reload keeps the reader's values; the document never had them.
   await page.reload();
   await expect(figure(page, "published")).toHaveText(
@@ -789,8 +793,9 @@ const openWidgetMenu = (page: Page, id: string) =>
     .first()
     .click();
 const WIDGET_OPTIONS = /^Widget options for /;
-/** The editor's chunk in each demo's dev server (React `dashboard-editor.tsx`, Vue `DashboardEditorLayer.vue`). */
-const EDITOR_CHUNK = /\/dashboard-editor\.tsx|\/DashboardEditorLayer\.vue/;
+/** The editor's module on each demo's dev server (React `dashboard-editor.tsx`, Vue `DashboardEditorLayer.vue`), or its chunk in a build. */
+const EDITOR_CHUNK =
+  /\/dashboard-editor\.tsx|\/DashboardEditorLayer\.vue|\/assets\/(dashboard-editor|DashboardEditorLayer)-[\w-]{8}\.js$/;
 const AUDIT_OPTION = /^Audit log/;
 const INVOICES_OPTION = /^Invoices/;
 const PAGES_OPTION = /^Pages/;
