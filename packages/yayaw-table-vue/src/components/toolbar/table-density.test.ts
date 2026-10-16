@@ -68,7 +68,7 @@ it("uses the configured density, updates only its instance and retains it across
   const other = mountTable();
   await openViewMenu(wrapper);
   await settle();
-  const items = body().findAll(".yayaw-density-inline button");
+  const items = body().findAll(".yayaw-density-inline label");
   expect(items.map((item) => item.text())).toEqual([
     "2XS",
     "XS",
@@ -78,8 +78,22 @@ it("uses the configured density, updates only its instance and retains it across
     "XL",
     "2XL",
   ]);
-  expect(items[6]?.attributes("aria-pressed")).toBe("true");
-  await items[1]?.trigger("click");
+  // One segmented radio group: one name, the current density checked.
+  const radios = items.map(
+    (item) => item.get("input").element as HTMLInputElement
+  );
+  expect(radios.every((radio) => radio.type === "radio")).toBe(true);
+  expect(new Set(radios.map((radio) => radio.name)).size).toBe(1);
+  expect(radios.map((radio) => radio.checked)).toEqual([
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    true,
+  ]);
+  await items[1]?.get("input").setValue(true);
   await settle();
   expect(wrapper.get(".yayaw-table").attributes("data-density")).toBe(
     "extra-small"
@@ -131,10 +145,10 @@ for (const fixture of densityScale) {
     await openViewMenu(wrapper);
     await settle();
     const item = body()
-      .findAll(".yayaw-density-inline button")
+      .findAll(".yayaw-density-inline label")
       .find((option) => option.text() === fixture.label);
     expect(item).toBeDefined();
-    await item?.trigger("click");
+    await item?.get("input").setValue(true);
     await settle();
     expect(isTableDensity(fixture.value)).toBe(true);
     const table = wrapper.get(".yayaw-table").element as HTMLElement;

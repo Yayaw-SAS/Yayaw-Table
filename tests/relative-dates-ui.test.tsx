@@ -12,7 +12,6 @@ import { act, type ComponentProps, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { DataTypeCell } from "../src/components/ui/yayaw-table/components/cells/data-type-cell";
 import { InlineEditableCell } from "../src/components/ui/yayaw-table/components/cells/inline-editable-cell";
-import { DateFilter } from "../src/components/ui/yayaw-table/components/filters/date-filter";
 import { DateField } from "../src/components/ui/yayaw-table/components/forms/fields/date-field";
 import type {
   DateFieldDefinition,
@@ -56,28 +55,6 @@ const settle = async () => {
   await act(() => new Promise((resolve) => setTimeout(resolve, 40)));
 };
 
-/** Chooses an option of a select, as a mouse does. */
-const choose = async (trigger: Element, label: string) => {
-  await act(() => {
-    trigger.dispatchEvent(
-      new PointerEvent("pointerdown", { bubbles: true, pointerType: "mouse" })
-    );
-    trigger.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
-  });
-  await settle();
-  const item = [
-    ...document.querySelectorAll<HTMLElement>('[role="option"]'),
-  ].find((option) => option.textContent?.trim() === label);
-  if (!item) {
-    throw new Error(`Missing option: ${label}`);
-  }
-  await act(() => {
-    item.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
-  });
-  await act(() => item.click());
-  await settle();
-};
-
 /** Types into a controlled input, as React sees it. */
 const type = async (input: HTMLInputElement, value: string) => {
   const setter = Object.getOwnPropertyDescriptor(
@@ -98,47 +75,6 @@ afterEach(async () => {
   }
   setSystemTime();
   document.body.replaceChildren();
-});
-
-it("shows a relative rule by its label, without a calendar, and goes back to days", async () => {
-  const onValueChange = mock();
-  const container = await mount(
-    <DateFilter
-      inline
-      onOperatorChange={mock()}
-      onValueChange={onValueChange}
-      operator="between"
-      value="$thisWeek"
-    />
-  );
-  const relative = container.querySelector("[data-relative-date-select]");
-  expect(relative?.textContent).toContain("This week");
-  expect(container.querySelector('[role="grid"]')).toBeNull();
-  if (!relative) {
-    throw new Error("Missing relative select");
-  }
-  await choose(relative, "Specific date");
-  expect(onValueChange).toHaveBeenLastCalledWith(["2026-10-14", "2026-10-14"]);
-});
-
-it("picks a relative date instead of days", async () => {
-  const onValueChange = mock();
-  const container = await mount(
-    <DateFilter
-      inline
-      onOperatorChange={mock()}
-      onValueChange={onValueChange}
-      operator="equals"
-      value="2026-10-01"
-    />
-  );
-  const relative = container.querySelector("[data-relative-date-select]");
-  if (!relative) {
-    throw new Error("Missing relative select");
-  }
-  expect(relative.textContent).toContain("Specific date");
-  await choose(relative, "Last 7 days");
-  expect(onValueChange).toHaveBeenLastCalledWith("$last7Days");
 });
 
 it("labels relative rules in filter chips", () => {

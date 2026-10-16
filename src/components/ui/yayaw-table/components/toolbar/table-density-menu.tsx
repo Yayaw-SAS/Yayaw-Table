@@ -3,6 +3,7 @@
 import { getViewModeCapabilities } from "../../utils/view-menu";
 import { useAtom } from "jotai";
 import { Rows3 } from "lucide-react";
+import { useId } from "react";
 import { Button } from "@/src/components/ui/button";
 import {
   DropdownMenu,
@@ -40,6 +41,7 @@ export function TableDensityMenu({
     tableId,
   });
   const [override, setDensity] = useAtom(tableDensityAtom(tableId));
+  const name = useId();
   const density = override ?? defaultDensity;
   const translated = t("menu.density");
   const label = translated === "menu.density" ? "Table density" : translated;
@@ -52,22 +54,34 @@ export function TableDensityMenu({
   }
 
   if (inline) {
+    // One segmented control: native radios keep it one tab stop, moved with
+    // the arrow keys, whatever the host's button styles.
     return (
-      <fieldset className="flex flex-wrap items-center gap-1">
-        <legend className="mb-1 text-muted-foreground text-sm">{label}</legend>
-        {TABLE_DENSITY_OPTIONS.map((option) => (
-          <Button
-            aria-pressed={density === option.value}
-            className="min-w-9 flex-1 font-normal"
-            key={option.value}
-            onClick={() => setDensity(option.value)}
-            size="sm"
-            type="button"
-            variant={density === option.value ? "secondary" : "ghost"}
-          >
-            {option.label}
-          </Button>
-        ))}
+      <fieldset
+        className="m-0 min-w-0 border-0 p-0"
+        data-density-segments=""
+      >
+        <legend className="mb-1 p-0 text-muted-foreground text-sm">
+          {label}
+        </legend>
+        <div className="flex w-full rounded-md border bg-muted/60 p-0.5">
+          {TABLE_DENSITY_OPTIONS.map((option) => (
+            <label
+              className="relative inline-flex h-7 min-w-0 flex-1 cursor-pointer select-none items-center justify-center rounded-[calc(var(--radius-md)-2px)] px-1 text-muted-foreground text-sm transition-colors hover:text-foreground has-checked:bg-background has-checked:text-foreground has-checked:shadow-xs has-focus-visible:ring-2 has-focus-visible:ring-ring/50 dark:has-checked:bg-input/60"
+              key={option.value}
+            >
+              <input
+                checked={density === option.value}
+                className="sr-only"
+                name={name}
+                onChange={() => setDensity(option.value)}
+                type="radio"
+                value={option.value}
+              />
+              {option.label}
+            </label>
+          ))}
+        </div>
       </fieldset>
     );
   }

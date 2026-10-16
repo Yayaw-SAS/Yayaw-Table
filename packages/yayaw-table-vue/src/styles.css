@@ -355,6 +355,43 @@
   color: var(--yayaw-muted-foreground);
   font-size: 14px;
 }
+/* The density's segmented control: one track, the checked segment raised. */
+.yayaw-density-segments {
+  display: flex;
+  width: 100%;
+  padding: 2px;
+  border: 1px solid var(--yayaw-border);
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--yayaw-muted) 60%, transparent);
+}
+.yayaw-density-segments label {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  height: 28px;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border-radius: 4px;
+  color: var(--yayaw-muted-foreground);
+  font-size: 14px;
+  line-height: 20px;
+  cursor: pointer;
+  user-select: none;
+}
+.yayaw-density-segments label:hover {
+  color: var(--yayaw-foreground);
+}
+.yayaw-density-segments label:has(:checked) {
+  background: var(--yayaw-background);
+  color: var(--yayaw-foreground);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+}
+.yayaw-density-segments label:has(:focus-visible) {
+  outline: 2px solid var(--yayaw-primary);
+  outline-offset: 1px;
+}
 .yayaw-segmented {
   display: flex;
   flex-wrap: wrap;
@@ -6970,35 +7007,14 @@
 .yayaw-filter-menu-layer {
   z-index: 3100;
 }
-.yayaw-filter-button,
 .yayaw-date-period {
   gap: 6px;
   font-weight: 400;
 }
-.yayaw-filter-button[data-active="true"],
 .yayaw-date-period[data-active="true"] {
   border-color: var(--yayaw-filter-accent-line);
   background: var(--yayaw-filter-accent-soft);
   color: var(--yayaw-filter-accent);
-}
-.yayaw-filter-button {
-  position: relative;
-}
-/* The rule count sits on the funnel's corner, as on the facets toggle. */
-.yayaw-filter-button-count {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: 8px;
-  background: var(--yayaw-filter-accent);
-  color: var(--yayaw-background);
-  font-size: 10px;
-  line-height: 16px;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
 }
 .yayaw-date-period-label {
   overflow: hidden;
@@ -7196,11 +7212,6 @@
   color: var(--yayaw-foreground);
   font-weight: 500;
 }
-.yayaw-date-presets {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 2px;
-}
 .yayaw-menu-choice {
   display: flex;
   align-items: center;
@@ -7222,12 +7233,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* Long names ("La semaine dernière") wrap rather than hide on a phone. */
-.yayaw-date-presets .yayaw-menu-choice {
-  line-height: 1.2;
-  overflow-wrap: anywhere;
-  text-align: start;
-}
 .yayaw-menu-choice:hover {
   background: var(--yayaw-muted);
 }
@@ -7240,13 +7245,137 @@
   flex: none;
   color: var(--yayaw-muted-foreground);
 }
-.yayaw-date-rolling {
+.yayaw-date-modes {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.yayaw-date-mode-track {
+  display: flex;
+  padding: 2px;
+  border: 1px solid var(--yayaw-border);
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--yayaw-muted) 60%, transparent);
+}
+.yayaw-date-mode-track label {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  height: 28px;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0 8px;
+  border-radius: 4px;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+.yayaw-date-mode-track label:hover {
+  color: var(--yayaw-foreground);
+}
+.yayaw-date-mode-track label:has(:checked) {
+  background: var(--yayaw-background);
+  color: var(--yayaw-foreground);
+  font-weight: 500;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+}
+.yayaw-date-mode-track label:has(:focus-visible) {
+  outline: 2px solid var(--yayaw-primary);
+  outline-offset: 1px;
+}
+.yayaw-date-relative {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 4.5rem minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 6px;
 }
-.yayaw-date-rolling .yayaw-input,
-.yayaw-date-rolling .yayaw-select,
+.yayaw-date-relative[data-rolling="true"] {
+  grid-template-columns: minmax(0, 1fr) 4rem minmax(0, 1fr);
+}
+/* A month of days, the rule's highlighted and today marked, as in Notion. */
+.yayaw-date-calendar {
+  display: grid;
+  gap: 4px;
+}
+.yayaw-date-calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-inline-start: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+.yayaw-date-calendar-head .yayaw-icon-button {
+  min-height: 28px;
+  padding: 4px;
+}
+.yayaw-date-calendar table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.yayaw-date-calendar th {
+  height: 28px;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+  font-weight: 400;
+}
+.yayaw-date-calendar td {
+  padding: 0;
+  text-align: center;
+}
+.yayaw-date-calendar td[data-in-range="true"] {
+  background: var(--yayaw-filter-accent-soft);
+}
+.yayaw-date-calendar td[data-start="true"] {
+  border-start-start-radius: 6px;
+  border-end-start-radius: 6px;
+}
+.yayaw-date-calendar td[data-end="true"] {
+  border-start-end-radius: 6px;
+  border-end-end-radius: 6px;
+}
+.yayaw-date-calendar td button {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--yayaw-foreground);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.yayaw-date-calendar td button:hover {
+  background: var(--yayaw-muted);
+}
+.yayaw-date-calendar td button[data-outside="true"] {
+  color: color-mix(in oklab, var(--yayaw-muted-foreground) 60%, transparent);
+}
+.yayaw-date-calendar td button[data-today] {
+  color: oklch(0.58 0.22 27);
+  font-weight: 600;
+}
+.yayaw-date-calendar td button[data-edge="true"] {
+  background: var(--yayaw-filter-accent);
+  color: var(--yayaw-background);
+}
+.yayaw-date-calendar td button:focus-visible {
+  outline: 2px solid var(--yayaw-primary);
+  outline-offset: 1px;
+}
+.yayaw-date-relative .yayaw-input,
+.yayaw-date-relative .yayaw-select,
 .yayaw-filter-popover .yayaw-input,
 .yayaw-filter-popover .yayaw-select,
 .yayaw-advanced-row .yayaw-input,
@@ -7257,6 +7386,10 @@
   padding-block: 4px;
   font-variant-numeric: tabular-nums;
 }
+/* The date editor's fields line up with its lists. */
+.yayaw-date-editor .yayaw-input {
+  box-sizing: border-box;
+}
 .yayaw-date-range {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -7264,6 +7397,8 @@
 }
 .yayaw-date-sentence {
   margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--yayaw-border);
   color: var(--yayaw-muted-foreground);
   font-size: 12px;
   font-variant-numeric: tabular-nums;

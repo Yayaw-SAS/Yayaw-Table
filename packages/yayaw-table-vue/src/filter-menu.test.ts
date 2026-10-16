@@ -6,7 +6,9 @@ import {
   resolveRelativeDate,
 } from "./date-filter-days";
 import {
+  calendarMonthWeeks,
   changeFilterOperator,
+  dateRuleDays,
   dateRuleMode,
   defaultFilterOperator,
   filterChipsLayout,
@@ -17,12 +19,17 @@ import {
   filterRuleComplete,
   filterRuleSummary,
   filterRulesCountText,
+  pickRangeDay,
+  relativeDateParts,
+  relativeDatePartsToken,
   rollingDateOf,
   rollingDateToken,
 } from "./filter-menu";
 
 filterMenuSuite(test, {
+  calendarMonthWeeks,
   changeFilterOperator,
+  dateRuleDays,
   dateRuleMode,
   defaultFilterOperator,
   filterChipsLayout,
@@ -34,6 +41,9 @@ filterMenuSuite(test, {
   filterRuleSummary,
   filterRulesCountText,
   isRelativeDateToken,
+  pickRangeDay,
+  relativeDateParts,
+  relativeDatePartsToken,
   relativeDateLabel,
   resolveRelativeDate,
   rollingDateOf,

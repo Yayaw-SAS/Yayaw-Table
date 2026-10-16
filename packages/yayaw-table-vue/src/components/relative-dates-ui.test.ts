@@ -6,7 +6,7 @@ import {
 } from "@vue/test-utils";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { computed, reactive } from "vue";
-import { inlineTestPortals } from "../../tests/menu-helpers";
+import { inlineTestPortals, openViewScreen } from "../../tests/menu-helpers";
 import { defineTableConfig } from "../config";
 import { type TableContextValue, tableContextKey } from "../context";
 import { createTranslations } from "../translations";
@@ -81,8 +81,7 @@ beforeEach(() => {
 
 const addDateRule = async (wrapper: Wrapper) => {
   await flushPromises();
-  await wrapper.get("[data-filter-button]").trigger("click");
-  await flushPromises();
+  await openViewScreen(wrapper, "Filter");
   await wrapper.get('[data-filter-property="due"]').trigger("click");
   await flushPromises();
   if (!wrapper.find('[data-filter-rule="due"]').exists()) {
@@ -91,24 +90,25 @@ const addDateRule = async (wrapper: Wrapper) => {
   }
   return wrapper.get('[data-filter-rule="due"]');
 };
+// The date editor's calendar is a table too.
+const BODY = "table:not([data-date-calendar]) > tbody";
 const names = (wrapper: Wrapper) =>
-  wrapper.findAll("tbody tr").map((row) => row.text());
+  wrapper.findAll(`${BODY} tr`).map((row) => row.text());
 
 it("filters on a relative date picked by its label, with the table's first weekday", async () => {
   const wrapper = mountTable();
   const rule = await addDateRule(wrapper);
-  // Relative dates come first, by name.
-  expect(rule.get('[data-relative-date="$thisWeek"]').text()).toBe("This week");
-  await rule.get('[data-relative-date="$thisWeek"]').trigger("click");
+  // Relative dates come first: a direction, then a unit.
+  await rule.get("[data-relative-direction]").setValue("this");
+  await rule.get("[data-relative-unit]").setValue("Weeks");
   await flushPromises();
   expect(names(wrapper)).toHaveLength(2);
-  expect(wrapper.get("tbody").text()).not.toContain("Next week task");
+  expect(wrapper.get(BODY).text()).not.toContain("Next week task");
   expect(wrapper.get('[data-filter-chip="due"]').text()).toContain("This week");
   // Back to a specific date: today.
   await wrapper
-    .findAll('[data-filter-rule="due"] .yayaw-segmented button')
-    .find((button) => button.text() === "Exact date")
-    ?.trigger("click");
+    .get('[data-filter-rule="due"] [data-date-mode-option="exact"]')
+    .setValue(true);
   await flushPromises();
   expect(wrapper.get<HTMLInputElement>("[data-date-exact]").element.value).toBe(
     "2026-10-14"
@@ -118,15 +118,14 @@ it("filters on a relative date picked by its label, with the table's first weekd
 it("filters on a rolling period of any length and unit", async () => {
   const wrapper = mountTable();
   await addDateRule(wrapper);
-  await wrapper.get("[data-rolling-direction]").setValue("next");
-  await wrapper.get("[data-rolling-count]").setValue("1");
-  await wrapper.get("[data-rolling-unit]").setValue("Weeks");
-  await wrapper.get("[data-rolling-unit]").trigger("change");
+  await wrapper.get("[data-relative-direction]").setValue("coming");
+  await flushPromises();
+  await wrapper.get("[data-relative-unit]").setValue("Weeks");
   await flushPromises();
   // Today through next Tuesday: Sunday's task, not the one after.
   expect(names(wrapper)).toHaveLength(2);
-  expect(wrapper.get("tbody").text()).toContain("Next week task");
-  expect(wrapper.get("tbody").text()).not.toContain("Monday task");
+  expect(wrapper.get(BODY).text()).toContain("Next week task");
+  expect(wrapper.get(BODY).text()).not.toContain("Monday task");
   expect(wrapper.get('[data-filter-chip="due"]').text()).toContain(
     "Next 1 week"
   );
@@ -139,7 +138,7 @@ it("sends list requests the days a relative rule names", async () => {
   }));
   const wrapper = mountTable({ getTableActions: () => ({ list }) });
   const rule = await addDateRule(wrapper);
-  await rule.get('[data-relative-date="$last7Days"]').trigger("click");
+  await rule.get("[data-relative-direction]").setValue("past");
   await flushPromises();
   expect(list.mock.lastCall?.[0].advancedFilters).toEqual([
     expect.objectContaining({

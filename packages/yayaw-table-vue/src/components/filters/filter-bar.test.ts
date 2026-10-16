@@ -206,7 +206,10 @@ it("filters a date column by a period from the bar, as one advanced rule every d
     .get('.yayaw-filter-bar [data-date-filter="due"]')
     .trigger("click");
   await flushPromises();
-  await wrapper.get('[data-relative-date="$last30Days"]').trigger("click");
+  await wrapper.get("[data-relative-direction]").setValue("past");
+  await flushPromises();
+  await wrapper.get("[data-rolling-count]").setValue("30");
+  await wrapper.get("[data-relative-unit]").setValue("Days");
   await flushPromises();
   const rules = () =>
     (
@@ -225,9 +228,8 @@ it("filters a date column by a period from the bar, as one advanced rule every d
   // The period is the bar's: no chip repeats it.
   expect(wrapper.find('[data-filter-chip="due"]').exists()).toBe(false);
   await wrapper
-    .findAll("[data-date-value-editor] .yayaw-segmented button")
-    .find((button) => button.text() === "Exact date")
-    ?.trigger("click");
+    .get('[data-date-value-editor] [data-date-mode-option="exact"]')
+    .setValue(true);
   await flushPromises();
   expect(rules()).toEqual([
     expect.objectContaining({ columnId: "due", operator: "equals" }),
@@ -282,8 +284,7 @@ it("keeps a date period in the toolbar with its days, and the Filter button open
     const button = () =>
       wrapper.get('[data-table-toolbar] [data-date-filter="due"]');
     expect(button().text()).toBe("All dates");
-    await wrapper.get("[data-filter-button]").trigger("click");
-    await flushPromises();
+    await openViewScreen(wrapper, "Filter");
     await wrapper.get('[data-filter-property="due"]').trigger("click");
     await flushPromises();
     // Picking the column opens its period rather than adding a second rule.
@@ -292,7 +293,9 @@ it("keeps a date period in the toolbar with its days, and the Filter button open
       await button().trigger("click");
       await flushPromises();
     }
-    await wrapper.get('[data-relative-date="$thisMonth"]').trigger("click");
+    await wrapper.get("[data-relative-direction]").setValue("this");
+    await flushPromises();
+    await wrapper.get("[data-relative-unit]").setValue("Months");
     await flushPromises();
     expect(button().text()).toContain("This month");
     expect(button().get(".yayaw-date-period-days").text()).toBe(

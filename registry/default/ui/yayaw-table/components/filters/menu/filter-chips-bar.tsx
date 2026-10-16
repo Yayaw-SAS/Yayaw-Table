@@ -1,12 +1,14 @@
 "use client";
 
+import { useAtom } from "jotai";
 import { ChevronDown, Plus } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { filterMenuRequestAtom } from "../../../atoms/table-atoms";
 import type { FilterMenu } from "../../../hooks/use-filter-menu";
 import { filterBarDateRuleId } from "../../../utils/filter-bar";
 import {
@@ -21,7 +23,8 @@ import { FilterPropertyPicker } from "./filter-property-picker";
  * The rules under the toolbar, as Notion shows them: one chip per rule, or
  * one chip for the advanced filter, then "+ Filter" and "Clear". Date periods
  * pinned to the filter bar or the toolbar show there instead. Nothing shows
- * without rules: the toolbar's Filter button adds the first.
+ * without rules: the view settings' Filter screen or a column header's
+ * "Filter" adds the first, and its chip opens here.
  */
 export function FilterChipsBar({
   menu,
@@ -31,6 +34,14 @@ export function FilterChipsBar({
   compact?: boolean;
 }) {
   const [adding, setAdding] = useState(false);
+  const [request, setRequest] = useAtom(filterMenuRequestAtom(menu.tableId));
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once per header request
+  useEffect(() => {
+    if (request) {
+      setRequest(undefined);
+      menu.add(request);
+    }
+  }, [request]);
   const layout = filterChipsLayout(menu.rules, menu.joinOperator, {
     advanced: menu.advanced,
     pinnedColumns: menu.pinnedDates,

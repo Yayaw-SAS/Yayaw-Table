@@ -33,6 +33,25 @@ async function waitForRows(container: HTMLElement, expected: string[]) {
 const VIEW_MENU = "View settings";
 
 /** Close the settings, then open the actions of the active view. */
+/** Picks a density segment of the view settings. */
+async function chooseDensity(label: string) {
+  let radio: HTMLInputElement | undefined;
+  for (let attempt = 0; attempt < 50 && !radio; attempt += 1) {
+    radio = [
+      ...document.querySelectorAll<HTMLInputElement>(
+        '[role="dialog"] [data-density-segments] input[type="radio"]'
+      ),
+    ].find((element) => element.parentElement?.textContent?.trim() === label);
+    if (!radio) {
+      await act(() => new Promise((resolve) => setTimeout(resolve, 20)));
+    }
+  }
+  if (!radio) {
+    throw new Error(`Missing density: ${label}`);
+  }
+  await act(() => radio.click());
+}
+
 async function openViewActions() {
   await clickButton("Close", true);
   await clickButton("View actions");
@@ -144,9 +163,13 @@ it("renders only matching rows for a restored advanced filter and sorts those ro
     expect(
       document.querySelectorAll('[role="dialog"] button button')
     ).toHaveLength(0);
-    expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
-      "Open"
-    );
+    // The Filter screen offers the properties; the rule shows as its chip.
+    expect(
+      document.querySelector('[role="dialog"] [data-filter-property-picker]')
+    ).not.toBeNull();
+    expect(
+      document.querySelector("[data-filter-chips]")?.textContent
+    ).toContain("Open");
   } finally {
     await preview.cleanup();
   }
@@ -164,7 +187,7 @@ it("restores an ungrouped temporary view even when the application configures Ka
       )
     ).toHaveLength(2);
     await clickButton(VIEW_MENU);
-    await clickButton("XS", true);
+    await chooseDensity("XS");
     await openViewActions();
     await clickButton("Reset view", true);
     expect(
@@ -198,7 +221,7 @@ it("restores saved filters, grouping and density and clears the dirty indicator"
       preview.container.querySelector('[aria-label="Unsaved changes"]')
     ).toBeNull();
     await clickButton(VIEW_MENU);
-    await clickButton("XS", true);
+    await chooseDensity("XS");
     await clickButton("Group", true);
     await clickButton("Status", true);
     await waitForRows(preview.container, ["Atlas", "Current"]);

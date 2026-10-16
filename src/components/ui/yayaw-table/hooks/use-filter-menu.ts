@@ -42,8 +42,8 @@ export interface FilterMenuColumnDef extends FilterMenuColumn {
  * The filter menu's state beside the table's filters: rules still being
  * written (they show as chips but never reach the query or a saved view),
  * the chip whose editor is open, and whether the rules show as one advanced
- * filter. The toolbar's Filter button, column menus, the chips and the date
- * periods share it through the table's atoms.
+ * filter. The view settings' Filter screen, column menus, the chips and the
+ * date periods share it through the table's atoms.
  */
 export interface FilterMenu {
   /** Columns the menu offers, in the table's order. */

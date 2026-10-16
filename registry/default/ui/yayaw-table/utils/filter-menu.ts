@@ -1,17 +1,20 @@
 /**
- * The filter menu both editions draw, modelled on Notion's: a Filter button
- * that lists the properties, one chip per rule under the toolbar, an editor
- * per type whose changes filter at once, and an advanced filter for rules
- * joined with "or". This module holds what the editions share (operators per
- * type and their words, rule summaries, relative date choices, the chips a
- * filter state shows); it is copied into the Vue registry and runs on a
- * server too.
+ * The filter menu both editions draw, modelled on Notion's: a Filter screen
+ * in the view settings that lists the properties, one chip per rule under
+ * the toolbar, an editor per type whose changes filter at once, and an
+ * advanced filter for rules joined with "or". This module holds what the
+ * editions share (operators per type and their words, rule summaries,
+ * relative date choices, the date calendar, the chips a filter state shows);
+ * it is copied into the Vue registry and runs on a server too.
  */
 import {
+  addCalendarDays,
   type CalendarDay,
+  type CalendarDayRange,
   calendarDay,
   isDateFilterValue,
   isRelativeDateToken,
+  localeWeekStart,
   type RelativeDateContext,
   type RelativeDateToken,
   type RelativeDateUnit,
@@ -233,6 +236,20 @@ const TEXT = {
     rule: "1 rule",
     clear: "Clear",
     relative: "Relative",
+    relativeHint: "Relative to today: the filter updates every day.",
+    this: "This",
+    lastOne: "Last",
+    nextOne: "Next",
+    past: "Past",
+    coming: "Coming",
+    unit: "Unit",
+    choose: "Choose…",
+    day: "day",
+    week: "week",
+    month: "month",
+    year: "year",
+    previousMonth: "Previous month",
+    nextMonth: "Next month",
     exact: "Exact date",
     range: "Date range",
     custom: "Custom",
@@ -277,6 +294,21 @@ const TEXT = {
     rule: "1 règle",
     clear: "Effacer",
     relative: "Relative",
+    relativeHint:
+      "Relative à la date du jour : le filtre s’actualise chaque jour.",
+    this: "Ce(tte)",
+    lastOne: "Dernier(e)",
+    nextOne: "Prochain(e)",
+    past: "Les derniers",
+    coming: "Les prochains",
+    unit: "Unité",
+    choose: "Choisir…",
+    day: "jour",
+    week: "semaine",
+    month: "mois",
+    year: "année",
+    previousMonth: "Mois précédent",
+    nextMonth: "Mois suivant",
     exact: "Date exacte",
     range: "Période",
     custom: "Personnalisé",
@@ -480,6 +512,235 @@ export function rollingDateToken({
 }: RollingDate): RelativeDateToken | undefined {
   const token = `$${direction}${Math.trunc(count)}${unit}`;
   return isRelativeDateToken(token) ? token : undefined;
+}
+
+/**
+ * How Notion words a relative date: "This week", "Last month", "Next year"
+ * name a calendar day, week, month or year; "Past 30 days" and "Coming 2
+ * weeks" a rolling period ending or starting today.
+ */
+export type RelativeDateDirection =
+  | "this"
+  | "last"
+  | "next"
+  | "past"
+  | "coming";
+
+export const RELATIVE_DATE_DIRECTIONS: readonly RelativeDateDirection[] = [
+  "this",
+  "last",
+  "next",
+  "past",
+  "coming",
+];
+
+/** A relative date in the editor's two lists, and a count when it rolls. */
+export interface RelativeDateParts {
+  direction: RelativeDateDirection;
+  count: number;
+  unit: RelativeDateUnit;
+}
+
+const CALENDAR_TOKENS: Record<
+  "this" | "last" | "next",
+  Record<RelativeDateUnit, RelativeDateToken>
+> = {
+  this: {
+    Days: "$today",
+    Weeks: "$thisWeek",
+    Months: "$thisMonth",
+    Years: "$thisYear",
+  },
+  last: {
+    Days: "$yesterday",
+    Weeks: "$lastWeek",
+    Months: "$lastMonth",
+    Years: "$lastYear",
+  },
+  next: {
+    Days: "$tomorrow",
+    Weeks: "$nextWeek",
+    Months: "$nextMonth",
+    Years: "$nextYear",
+  },
+};
+
+/** The lists' choices for a relative token, or undefined for another value. */
+export function relativeDateParts(
+  value: unknown
+): RelativeDateParts | undefined {
+  const rolling = rollingDateOf(value);
+  if (rolling) {
+    return {
+      direction: rolling.direction === "last" ? "past" : "coming",
+      count: rolling.count,
+      unit: rolling.unit,
+    };
+  }
+  for (const [direction, tokens] of Object.entries(CALENDAR_TOKENS)) {
+    for (const [unit, token] of Object.entries(tokens)) {
+      if (token === value) {
+        return {
+          direction: direction as RelativeDateDirection,
+          count: 1,
+          unit: unit as RelativeDateUnit,
+        };
+      }
+    }
+  }
+  return;
+}
+
+/** The token the lists name: "this" + "Weeks" is `$thisWeek`. */
+export function relativeDatePartsToken({
+  direction,
+  count,
+  unit,
+}: RelativeDateParts): RelativeDateToken | undefined {
+  if (direction === "past" || direction === "coming") {
+    return rollingDateToken({
+      direction: direction === "past" ? "last" : "next",
+      count: Math.max(1, Math.trunc(Number(count)) || 1),
+      unit,
+    });
+  }
+  return CALENDAR_TOKENS[direction][unit];
+}
+
+const DAYS_PER_WEEK = 7;
+const CALENDAR_WEEKS = 6;
+
+/** A month as `YYYY-MM`. */
+export type CalendarMonth = string;
+
+/** The month `amount` months after `month` (before when negative). */
+export function addCalendarMonths(
+  month: CalendarMonth,
+  amount: number
+): CalendarMonth {
+  const date = new Date(`${month}-01T12:00:00Z`);
+  date.setUTCMonth(date.getUTCMonth() + amount);
+  return date.toISOString().slice(0, 7);
+}
+
+/**
+ * The six weeks a month calendar shows, each a row of seven days starting on
+ * `weekStartsOn` (0 Sunday … 6 Saturday), with the days of the months around.
+ */
+export function calendarMonthWeeks(
+  month: CalendarMonth,
+  weekStartsOn: number
+): CalendarDay[][] {
+  const first = `${month}-01`;
+  const weekday = new Date(`${first}T12:00:00Z`).getUTCDay();
+  const offset = (weekday - weekStartsOn + DAYS_PER_WEEK) % DAYS_PER_WEEK;
+  let day = addCalendarDays(first, -offset);
+  const weeks: CalendarDay[][] = [];
+  for (let week = 0; week < CALENDAR_WEEKS; week += 1) {
+    const row: CalendarDay[] = [];
+    for (let index = 0; index < DAYS_PER_WEEK; index += 1) {
+      row.push(day);
+      day = addCalendarDays(day, 1);
+    }
+    weeks.push(row);
+  }
+  return weeks;
+}
+
+/** The calendar's weekday names, in the week's order: "Mo", "Tu"… */
+export function calendarWeekdays(
+  locale: string | undefined,
+  weekStartsOn: number
+): string[] {
+  let format: Intl.DateTimeFormat;
+  try {
+    format = new Intl.DateTimeFormat(locale || undefined, {
+      weekday: "short",
+      timeZone: "UTC",
+    });
+  } catch {
+    format = new Intl.DateTimeFormat("en", {
+      weekday: "short",
+      timeZone: "UTC",
+    });
+  }
+  // 2023-01-01 is a Sunday.
+  return Array.from({ length: DAYS_PER_WEEK }, (_, index) =>
+    format
+      .format(
+        new Date(
+          Date.UTC(2023, 0, 1 + ((weekStartsOn + index) % DAYS_PER_WEEK), 12)
+        )
+      )
+      .replace(".", "")
+      .slice(0, 2)
+  );
+}
+
+/** A month's name and year: "October 2026". */
+export function calendarMonthTitle(
+  month: CalendarMonth,
+  locale?: string
+): string {
+  let format: Intl.DateTimeFormat;
+  try {
+    format = new Intl.DateTimeFormat(locale || undefined, {
+      month: "long",
+      year: "numeric",
+      timeZone: "UTC",
+    });
+  } catch {
+    format = new Intl.DateTimeFormat("en", {
+      month: "long",
+      year: "numeric",
+      timeZone: "UTC",
+    });
+  }
+  return format.format(new Date(`${month}-01T12:00:00Z`));
+}
+
+/**
+ * The days a date rule's calendar highlights: a relative token's days, one
+ * day, or a range's two days in order. Undefined without a day.
+ */
+export function dateRuleDays(
+  values: unknown,
+  context: RelativeDateContext = {}
+): CalendarDayRange | undefined {
+  const token = relativeDateTokenOf(values);
+  if (token) {
+    return resolveRelativeDate(token, context);
+  }
+  const list = (Array.isArray(values) ? values : [values])
+    .map((value) => calendarDay(value, context.timeZone))
+    .filter((value): value is CalendarDay => Boolean(value));
+  const start = list[0];
+  if (!start) {
+    return;
+  }
+  const end = list[1] ?? start;
+  return start <= end ? { start, end } : { start: end, end: start };
+}
+
+/** The first day of the week for a rule's context: the table's, or the locale's. */
+export function calendarWeekStart(context: RelativeDateContext = {}): number {
+  return context.weekStartsOn ?? localeWeekStart(context.locale);
+}
+
+/**
+ * A range after a click on `day`: the first click starts it, the next ends
+ * it (in either order), and a click on a finished range starts a new one.
+ */
+export function pickRangeDay(
+  range: readonly CalendarDay[],
+  day: CalendarDay,
+  pending: boolean
+): [CalendarDay, CalendarDay] {
+  const [start] = range;
+  if (!(pending && start)) {
+    return [day, day];
+  }
+  return start <= day ? [start, day] : [day, start];
 }
 
 /** How a date rule names its days in the editor. */

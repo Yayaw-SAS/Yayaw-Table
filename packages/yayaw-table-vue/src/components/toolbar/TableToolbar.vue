@@ -43,8 +43,6 @@ import SavedViews from "./SavedViews.vue";
 import FilterBarDate from "../filters/FilterBarDate.vue";
 import OptionFilter from "../filters/OptionFilter.vue";
 import { filterBarColumns } from "../../filter-bar";
-import { filterMenuText } from "../../filter-menu";
-import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from "reka-ui";
 import TableDensityMenu from "./TableDensityMenu.vue";
 import ToolbarMenu from "./ToolbarMenu.vue";
 import ToolbarDataActions from "./ToolbarDataActions.vue";
@@ -100,7 +98,6 @@ import { displayModeIcons } from "./display-mode-icons";
 import LayoutPicker from "./LayoutPicker.vue";
 import DisplayModeRendererSettings from "./DisplayModeRendererSettings.vue";
 import KanbanSettings from "./KanbanSettings.vue";
-import AdvancedFilterEditor from "../filters/AdvancedFilterEditor.vue";
 import FilterPropertyPicker from "../filters/FilterPropertyPicker.vue";
 import FacetsToggle from "../facets/FacetsToggle.vue";
 import NewFolderButton from "../folders/NewFolderButton.vue";
@@ -321,7 +318,7 @@ watch(
       context.optionsRequest.value = undefined;
       return;
     }
-    // A column's "Filter" opens its chip's editor, as the Filter button does.
+    // A column's "Filter" opens its chip's editor, as the Filter screen does.
     if (request.columnId && props.enableAdvancedFilters && request.view === "filters") {
       context.filterMenu.add(request.columnId);
       context.optionsRequest.value = undefined;
@@ -344,19 +341,25 @@ watch(
     context.optionsRequest.value = undefined;
   }
 );
-// Notion's Filter button: properties first, then the rule's chip opens.
-const filterButton = computed(() => props.enableAdvancedFilters && context.config.table.enableColumnFilters !== false && context.filterMenu.columns.value.length > 0);
-const filterPickerOpen = ref(false);
-// The tooltip wraps the trigger: the picker anchors to the button itself.
-const filterTrigger = ref<HTMLButtonElement>();
-const menuTranslate = (key: string): string | undefined => {
-  const value = context.translations.value[key];
-  return typeof value === "string" ? value : undefined;
-};
-const activeRuleCount = computed(() => context.state.advancedFilters.value.filters.filter((filter) => filter.isActive !== false).length);
+// Notion's Filter screen: properties first, then the settings close and the
+// new rule's chip opens under the toolbar, keeping the focus the settings
+// would return to their button.
+let keepPickedFilterFocus = false;
 const pickFilterColumn = (columnId: string): void => {
-  filterPickerOpen.value = false;
+  keepPickedFilterFocus = true;
+  optionsOpen.value = false;
   context.filterMenu.add(columnId);
+};
+const pickAdvancedFilter = (): void => {
+  keepPickedFilterFocus = true;
+  optionsOpen.value = false;
+  context.filterMenu.openAdvanced();
+};
+const keepFilterFocus = (event: Event): void => {
+  if (keepPickedFilterFocus) {
+    keepPickedFilterFocus = false;
+    event.preventDefault();
+  }
 };
 const toolbarDateColumn = computed(() => {
   const id = context.config.table.toolbarDateFilter;
@@ -768,23 +771,8 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
       :pending-action="pendingAction" :is-exporting="isExporting" :disabled="toolbarActionDisabled" :variant="toolbarActionVariant"
       @action="runAction" @share="shareLink" />
     <FilterBarDate v-if="toolbarDateColumn" :column="toolbarDateColumn" variant="toolbar" :compact="compact" />
-    <PopoverRoot v-if="filterButton" v-model:open="filterPickerOpen">
-      <TableTooltip :label="filterMenuText('filter', context.locale, menuTranslate)">
-        <PopoverTrigger as-child>
-          <button ref="filterTrigger" type="button" class="yayaw-button yayaw-button-outline yayaw-icon-only yayaw-filter-button" :data-active="activeRuleCount > 0" :aria-label="filterMenuText('filter', context.locale, menuTranslate)" data-filter-button="">
-            <ListFilter :size="16" aria-hidden="true" />
-            <span v-if="activeRuleCount" class="yayaw-filter-button-count" aria-hidden="true">{{ activeRuleCount }}</span>
-          </button>
-        </PopoverTrigger>
-      </TableTooltip>
-      <PopoverPortal>
-        <PopoverContent :reference="filterTrigger" class="yayaw-filter-popover" :data-yayaw-filter-picker="context.config.id" align="end" :side-offset="6" :collision-padding="8" :aria-label="filterMenuText('filterBy', context.locale, menuTranslate)" @close-auto-focus.prevent>
-          <FilterPropertyPicker @pick="pickFilterColumn" @advanced="filterPickerOpen = false; context.filterMenu.openAdvanced()" />
-        </PopoverContent>
-      </PopoverPortal>
-    </PopoverRoot>
     <FacetsToggle :compact="compact" />
-    <ToolbarMenu v-model:open="optionsOpen" :compact="compact" align="end"
+    <ToolbarMenu v-model:open="optionsOpen" :compact="compact" align="end" @close-auto-focus="keepFilterFocus"
       :title="optionsTitle"
       :back="optionsView !== 'main'" :back-label="translate('back', 'Back')" :close-label="translate('close', 'Close')" @back="optionsView = 'main'">
       <template #trigger>
@@ -929,7 +917,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
 
             <div v-else-if="optionsView === 'filters'" class="yayaw-options-content">
               <button v-if="[context.config.table.showClearFilters, context.config.table.showResetFilters].includes(true)" type="button" class="yayaw-button yayaw-button-outline" :aria-label="translate('clearFilters', 'Clear filters')" @click="context.state.resetFilters(); context.filterMenu.clearDrafts()"><FunnelX :size="16" />{{ translate('clearFilters', 'Clear filters') }}</button>
-              <AdvancedFilterEditor v-if="props.enableAdvancedFilters" />
+              <FilterPropertyPicker v-if="props.enableAdvancedFilters && context.filterMenu.columns.value.length" @pick="pickFilterColumn" @advanced="pickAdvancedFilter" />
               <div
                 v-for="column in panelFilterColumns"
                 :key="column.id"

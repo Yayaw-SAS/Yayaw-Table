@@ -506,9 +506,10 @@ it("tracks density-only changes and restores a saved density or legacy default",
   await openViewMenu(wrapper);
   await flushPromises();
   await body()
-    .findAll(".yayaw-density-inline button")
+    .findAll(".yayaw-density-inline label")
     .find((item) => item.text() === "XS")
-    ?.trigger("click");
+    ?.get("input")
+    .setValue(true);
   await flushPromises();
   expect((await saveButton(wrapper)).attributes("aria-disabled")).toBe("false");
   await openMenu(wrapper);
@@ -870,7 +871,7 @@ it.each([
   });
   await flushPromises();
   await openViewMenu(wrapper);
-  await wrapper.get(".yayaw-density-inline button").trigger("click");
+  await wrapper.get(".yayaw-density-inline input").setValue(true);
   await openViewScreen(wrapper, "Group");
   await wrapper.get(".yayaw-options-content > button").trigger("click");
   await flushPromises();

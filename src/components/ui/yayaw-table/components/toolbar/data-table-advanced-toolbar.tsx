@@ -143,7 +143,6 @@ import { ConnectorPanel } from "./connector-panel";
 import { importScreen } from "./import-screen";
 import { SearchBar } from "./sections/search-bar";
 import { FilterBarDate } from "../filters/filter-bar-date";
-import { FilterButton } from "../filters/menu/filter-button";
 import { FilterChipsBar } from "../filters/menu/filter-chips-bar";
 import {
   type FilterMenu,
@@ -599,7 +598,7 @@ function ToolbarEnd({
   search,
   settingsMenu,
 }: {
-  /** The toolbar's date period and Filter button. */
+  /** The toolbar's date period. */
   filterControls?: ReactNode;
   /** Shows and hides the facet panel (a sheet on phones). */
   facetsToggle?: ReactNode;
@@ -1006,12 +1005,14 @@ function useToolbarFilterMenu({
   return { filterMenu, isFilterMenuEnabled };
 }
 
-/** The toolbar's date period (`table.toolbarDateFilter`) and Filter button. */
+/**
+ * The toolbar's date period (`table.toolbarDateFilter`). Filters are added
+ * from the view settings' Filter screen and show as chips under the toolbar.
+ */
 function ToolbarFilterControls({
   advanced,
   compact,
   config,
-  enabled,
   menu,
   tableId,
   tableType,
@@ -1019,7 +1020,6 @@ function ToolbarFilterControls({
   advanced: boolean;
   compact: boolean;
   config: ReturnType<typeof useTableConfig>["config"];
-  enabled: boolean;
   menu: FilterMenu;
   tableId: string;
   tableType: string;
@@ -1032,20 +1032,18 @@ function ToolbarFilterControls({
     advanced &&
     column?.type === "date" &&
     column.enableFiltering !== false;
+  if (!(dated && column)) {
+    return null;
+  }
   return (
-    <>
-      {dated && column ? (
-        <FilterBarDate
-          column={{ id: column.id, header: column.header ?? column.id, type: "date" }}
-          compact={compact}
-          menu={menu}
-          tableId={tableId}
-          tableType={tableType}
-          variant="toolbar"
-        />
-      ) : null}
-      {enabled ? <FilterButton compact={compact} menu={menu} /> : null}
-    </>
+    <FilterBarDate
+      column={{ id: column.id, header: column.header ?? column.id, type: "date" }}
+      compact={compact}
+      menu={menu}
+      tableId={tableId}
+      tableType={tableType}
+      variant="toolbar"
+    />
   );
 }
 
@@ -1338,7 +1336,7 @@ export function DataTableAdvancedToolbar<TData>({
   const isExportEnabled = tableConfig.table.export !== false;
   const isColumnFiltersEnabled =
     tableConfig.table.enableColumnFilters !== false;
-  // Notion's filters: the Filter button, the rules' chips and a date period.
+  // Notion's filters: the settings' Filter screen, the rules' chips and a date period.
   const { filterMenu, isFilterMenuEnabled } = useToolbarFilterMenu({
     columnsConfig: filterColumnsConfig,
     enabled: [enableAdvancedFilters, isColumnFiltersEnabled],
@@ -2135,7 +2133,6 @@ export function DataTableAdvancedToolbar<TData>({
               advanced={enableAdvancedFilters}
               compact={isMobile}
               config={tableConfig}
-              enabled={isFilterMenuEnabled}
               menu={filterMenu}
               tableId={tableId}
               tableType={tableType}
