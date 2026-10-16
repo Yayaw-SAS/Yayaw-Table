@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.25.0
+
+### Minor Changes
+
+- c6d3900: Cell actions accept `placement: "start"` to draw before the cell's value, in React and Vue.
+- 37f1131: A `date` column listed in `table.filterBarColumns` now gets a period filter in the filter bar, in React and Vue: any date, the relative choices of date rules (this month, last 30 days…), or days from / to. The period is kept as one advanced filter rule, so it also filters charts, calendars and the other display modes that have no column headers, and hosts receive it as any date rule.
+- 745cb7d: Footer calculations are read-only until the viewer turns on the new View settings switch "Edit calculations" (not saved, off on each visit), which replaces the "Footer calculations" shown/hidden toggle: off, the footer shows each column's calculation as plain text and no "Calculate" button. Developers can freeze calculations with `lockCalculation` on a column or `table.lockCalculations` for every column. New translation keys: React `menu.edit_calculations`, `menu.edit_calculations_on`, `menu.edit_calculations_off`; Vue `editCalculations`, `editCalculationsOn`, `editCalculationsOff`. React and Vue.
+- 0768f1c: The display mode is now chosen as in Notion, in the view menu and the view settings, in React and Vue: a "Display mode" row showing the current mode opens a screen of layout tiles, three per row, the mode's icon over its name, the current one marked. Wide screens used to show a dropdown, which hid the available layouts behind a click; touch drawers already had buttons and now get the same tiles.
+- 70f8478: The filter menu now works like Notion's, in React and Vue. A **Filter** button in the toolbar adds a rule from a searchable list of columns; each rule shows as a chip under the toolbar with its own editor (operators by column type, then the value), and an advanced filter combines rules with And / Or. Date rules offer relative periods (today, this week, last 30 days…), rolling periods such as `$last2Weeks` or `$next3Months`, an exact day or a range. `table.toolbarDateFilter: "<dateColumn>"` keeps one date column's period in the toolbar, with the days it covers today ("This month · Oct 1 – Oct 31"). Typed text and numbers filter once typing pauses, on Enter or on leaving the field. Incomplete rules stay as chips but never reach the query or a saved view. New translation keys live under `filters.menu.*` and `filters.menu.operators.*`. Vue's `AdvancedFilters` and `FilterRule` components are replaced by the new menu.
+
+### Patch Changes
+
+- 6c888ab: Table view: the planning button after the first cell, which opens the task dialog, only shows when the planning allows date, hierarchy or dependency edits. A read-only planning no longer shows a button that opens a dialog with nothing to edit. In Vue, the button is now the Gantt icon with a "Planning" tooltip, on the cell's line, as in React.
+
 ## 3.24.0
 
 ### Minor Changes
