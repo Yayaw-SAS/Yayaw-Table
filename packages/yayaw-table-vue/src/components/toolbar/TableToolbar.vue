@@ -831,7 +831,11 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
                 </span>
                 <span class="yayaw-options-item-end">{{ context.footerCalculationsVisible.value ? translate("calculationsOn", "Shown") : translate("calculationsOff", "Hidden") }}</span>
               </button>
-              <button v-if="['kanban', 'gallery', 'gantt', 'list'].includes(context.state.displayMode.value) || activeRenderer?.settings" type="button" class="yayaw-options-item" @click="optionsView = 'cards'"><List :size="16" /><span>{{ cardSettingsTitle }}</span><ChevronRight :size="16" /></button>
+              <button v-if="['kanban', 'gallery', 'gantt', 'list'].includes(context.state.displayMode.value) || activeRenderer?.settings" type="button" class="yayaw-options-item" @click="optionsView = 'cards'">
+                <span class="yayaw-options-item-icon"><List :size="16" aria-hidden="true" /></span>
+                <span class="yayaw-options-item-copy"><span>{{ cardSettingsTitle }}</span></span>
+                <span class="yayaw-options-item-end"><ChevronRight :size="16" aria-hidden="true" /></span>
+              </button>
             </div>
 
 
