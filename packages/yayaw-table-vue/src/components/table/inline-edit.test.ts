@@ -533,6 +533,36 @@ it("keeps an editing click from reaching the row", async () => {
   document.body.removeEventListener("click", rowClick);
   expect(rowClick).not.toHaveBeenCalled();
 });
+it("draws a switch boolean column as a switch, toggled without a checkbox", async () => {
+  let finish: (result: { success: boolean }) => void = () => undefined;
+  const { wrapper, update } = createCell({
+    row: { id: "1", active: false },
+    column: {
+      id: "active",
+      header: "Active",
+      type: "boolean",
+      displayVariant: "switch",
+    },
+    update: () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  });
+  expect(wrapper.get(".yayaw-cell-switch").attributes("data-state")).toBe(
+    "unchecked"
+  );
+  expect(wrapper.find(".yayaw-boolean").exists()).toBe(false);
+  await wrapper.get(".yayaw-cell-switch").trigger("click");
+  await flushPromises();
+  // While the value saves, the cell shows the switch already on, never a checkbox.
+  expect(wrapper.find('input[type="checkbox"]').exists()).toBe(false);
+  expect(wrapper.get('[role="switch"]').attributes("aria-checked")).toBe(
+    "true"
+  );
+  expect(update).toHaveBeenCalledWith("1", { active: true }, expect.anything());
+  finish({ success: true });
+  await flushPromises();
+});
 it("resolves the dynamic row type for both display and editing", async () => {
   const { wrapper } = createCell({
     row: { id: "1", kind: "url", value: "https://example.com" },

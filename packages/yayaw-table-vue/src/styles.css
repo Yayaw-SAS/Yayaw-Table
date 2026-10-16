@@ -4600,6 +4600,11 @@
   cursor: not-allowed;
   opacity: 0.5;
 }
+/* A boolean cell drawn as a switch (`displayVariant: "switch"`): the cell's click toggles it. */
+.yayaw-cell-switch {
+  cursor: inherit;
+  vertical-align: middle;
+}
 .yayaw-switch-thumb {
   display: block;
   width: 16px;
