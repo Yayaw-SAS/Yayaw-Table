@@ -55,7 +55,9 @@ test("the layout is a view setting kept in the URL", async ({ page }) => {
     "data-calendar-layout",
     "list"
   );
-  expect(settingsParam(page)).toMatchObject({ layout: "list" });
+  await expect
+    .poll(() => settingsParam(page))
+    .toMatchObject({ layout: "list" });
   await page.reload();
   await expect(
     page.getByRole("button", { name: "List", exact: true })
@@ -162,5 +164,7 @@ test("the fields shown on events are chosen in the calendar settings", async ({
   await expect(alpha.locator('[data-calendar-field="category"]')).toHaveText(
     "Software"
   );
-  expect(settingsParam(page)).toMatchObject({ cardColumnIds: ["category"] });
+  await expect
+    .poll(() => settingsParam(page))
+    .toMatchObject({ cardColumnIds: ["category"] });
 });

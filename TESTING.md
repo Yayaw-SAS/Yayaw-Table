@@ -21,6 +21,10 @@ demos, which it starts on ports 5186 and 5187. Set `E2E_REACT_PORT` and
 instead of reusing running ones. `bun run release:check` runs the same checks
 in one command, after validating changesets; install Chromium first.
 
+`bun run e2e:static` runs the same suite the way CI does: it builds both
+demos into `dist/e2e` (`bun run e2e:build`) and serves them with `vite preview`
+instead of dev servers. Use it to reproduce a CI-only end-to-end failure.
+
 The final command rebuilds both registry editions and prepares the exact static artifact deployed by GitHub Pages under `dist/registry-pages/r`.
 
 ## Registry smoke tests
