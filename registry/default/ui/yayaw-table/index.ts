@@ -133,6 +133,7 @@ export type {
 export type { TableActivityRecord } from "./utils/activity-shortcuts";
 export {
   type CellActionDefinition,
+  type CellActionPlacement,
   type CellActionReveal,
   cellCopyText,
   resolveCellActions,

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import type { ColumnDefinition } from "../../config/helpers";
 import { useTranslations } from "../../providers/table-provider";
 import {
+  type CellActionPlacement,
   type ResolvedCellAction,
   resolveCellActions,
 } from "../../utils/cell-actions";
@@ -106,7 +107,7 @@ function CellActionControl({
   );
 }
 
-/** A cell's value followed by its column's `cellActions` (and copy). */
+/** A cell's value between its column's `cellActions` placed at its start and end (and copy). */
 export function CellWithActions({
   children,
   column,
@@ -123,11 +124,14 @@ export function CellWithActions({
   if (actions.length === 0) {
     return children;
   }
-  return (
-    <span className="group/cell-actions flex w-full min-w-0 items-center gap-1">
-      <span className="min-w-0 truncate">{children}</span>
-      <span className="flex shrink-0 items-center" data-cell-actions="">
-        {actions.map((action) => (
+  const group = (placement: CellActionPlacement) => {
+    const placed = actions.filter((action) => action.placement === placement);
+    return placed.length === 0 ? null : (
+      <span
+        className="flex shrink-0 items-center"
+        data-cell-actions={placement === "start" ? "start" : ""}
+      >
+        {placed.map((action) => (
           <CellActionControl
             action={action}
             copiedLabel={t("actions.copied")}
@@ -135,6 +139,13 @@ export function CellWithActions({
           />
         ))}
       </span>
+    );
+  };
+  return (
+    <span className="group/cell-actions flex w-full min-w-0 items-center gap-1">
+      {group("start")}
+      <span className="min-w-0 truncate">{children}</span>
+      {group("end")}
     </span>
   );
 }
