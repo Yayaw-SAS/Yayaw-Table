@@ -10,7 +10,9 @@ export interface FilterMenuApi
     >,
     Pick<
       typeof Menu,
+      | "calendarMonthWeeks"
       | "changeFilterOperator"
+      | "dateRuleDays"
       | "dateRuleMode"
       | "defaultFilterOperator"
       | "filterChipsLayout"
@@ -21,6 +23,9 @@ export interface FilterMenuApi
       | "filterRuleComplete"
       | "filterRuleSummary"
       | "filterRulesCountText"
+      | "pickRangeDay"
+      | "relativeDateParts"
+      | "relativeDatePartsToken"
       | "rollingDateOf"
       | "rollingDateToken"
     > {}
@@ -90,6 +95,71 @@ export function filterMenuSuite(
     assert.equal(
       api.relativeDateLabel("$last30Days", "fr"),
       "30 derniers jours"
+    );
+  });
+
+  test("names a relative date with Notion's two lists, and back", () => {
+    for (const [token, direction, count, unit] of [
+      ["$today", "this", 1, "Days"],
+      ["$thisWeek", "this", 1, "Weeks"],
+      ["$lastMonth", "last", 1, "Months"],
+      ["$nextYear", "next", 1, "Years"],
+      ["$last30Days", "past", 30, "Days"],
+      ["$next2Weeks", "coming", 2, "Weeks"],
+    ] as const) {
+      const parts = api.relativeDateParts(token);
+      assert.deepEqual(parts, { direction, count, unit });
+      assert.equal(parts && api.relativeDatePartsToken(parts), token);
+    }
+    assert.equal(api.relativeDateParts("2026-10-14"), undefined);
+    // A blank or broken count rolls over one unit.
+    assert.equal(
+      api.relativeDatePartsToken({ direction: "past", count: 0, unit: "Days" }),
+      "$last1Days"
+    );
+  });
+
+  test("lays a month out in six weeks from the week's first day", () => {
+    const monday = api.calendarMonthWeeks("2026-10", 1);
+    assert.equal(monday.length, 6);
+    assert.deepEqual(monday[0], [
+      "2026-09-28",
+      "2026-09-29",
+      "2026-09-30",
+      "2026-10-01",
+      "2026-10-02",
+      "2026-10-03",
+      "2026-10-04",
+    ]);
+    assert.equal(monday.at(-1)?.at(-1), "2026-11-08");
+    assert.equal(api.calendarMonthWeeks("2026-10", 0)[0]?.[0], "2026-09-27");
+  });
+
+  test("highlights a rule's days and picks a range in two clicks", () => {
+    assert.deepEqual(
+      api.dateRuleDays("$thisWeek", {
+        now: NOW,
+        timeZone: PARIS,
+        weekStartsOn: 1,
+      }),
+      { start: "2026-10-12", end: "2026-10-18" }
+    );
+    assert.deepEqual(api.dateRuleDays("2026-10-02"), {
+      start: "2026-10-02",
+      end: "2026-10-02",
+    });
+    assert.deepEqual(api.dateRuleDays(["2026-10-09", "2026-10-02"]), {
+      start: "2026-10-02",
+      end: "2026-10-09",
+    });
+    assert.equal(api.dateRuleDays(undefined), undefined);
+    assert.deepEqual(
+      api.pickRangeDay(["2026-10-02", "2026-10-09"], "2026-10-20", false),
+      ["2026-10-20", "2026-10-20"]
+    );
+    assert.deepEqual(
+      api.pickRangeDay(["2026-10-20", "2026-10-20"], "2026-10-05", true),
+      ["2026-10-05", "2026-10-20"]
     );
   });
 

@@ -60,7 +60,7 @@ const change = (next: { operator: string; values: unknown }): void =>
 const operators = ["equals", "before", "after", "lessThanOrEqual", "greaterThanOrEqual"];
 const clear = (): void => menu.remove(id.value);
 /**
- * Picking this column from the Filter button opens this period: the
+ * Picking this column from the Filter screen opens this period: the
  * toolbar's when the column is there, otherwise the filter bar's.
  */
 const owner = computed(() => props.variant === "toolbar" || context.config.table.toolbarDateFilter !== props.column.id);

@@ -18,7 +18,7 @@ import FilterPropertyPicker from "./FilterPropertyPicker.vue";
  * The rules under the toolbar, as Notion shows them: one chip per rule, or
  * one chip for the advanced filter, then "+ Filter" and "Clear". Date periods
  * pinned to the filter bar or the toolbar show there instead. Nothing shows
- * without rules: the toolbar's Filter button adds the first.
+ * without rules: the view settings' Filter screen adds the first.
  */
 const context = useTableContext();
 const menu = context.filterMenu;

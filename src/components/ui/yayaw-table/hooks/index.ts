@@ -13,7 +13,6 @@ export {
   useTableAccessors,
 } from "./use-data-table-advanced-filters";
 // Phase 5: Advanced Features hooks
-export { useFilterPresets } from "./use-filter-presets";
 export { useGlobalColumnCalculations } from "./use-global-column-calculations";
 export { useInlineEditRuntime } from "./use-inline-edit-runtime";
 export { useRowDnd } from "./use-row-dnd";

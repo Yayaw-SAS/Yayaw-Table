@@ -5,7 +5,9 @@ import {
   resolveRelativeDate,
 } from "../src/components/ui/yayaw-table/utils/date-filter-days";
 import {
+  calendarMonthWeeks,
   changeFilterOperator,
+  dateRuleDays,
   dateRuleMode,
   defaultFilterOperator,
   filterChipsLayout,
@@ -16,13 +18,18 @@ import {
   filterRuleComplete,
   filterRuleSummary,
   filterRulesCountText,
+  pickRangeDay,
+  relativeDateParts,
+  relativeDatePartsToken,
   rollingDateOf,
   rollingDateToken,
 } from "../src/components/ui/yayaw-table/utils/filter-menu";
 import { filterMenuSuite } from "./filter-menu-suite";
 
 filterMenuSuite(test, {
+  calendarMonthWeeks,
   changeFilterOperator,
+  dateRuleDays,
   dateRuleMode,
   defaultFilterOperator,
   filterChipsLayout,
@@ -34,6 +41,9 @@ filterMenuSuite(test, {
   filterRuleSummary,
   filterRulesCountText,
   isRelativeDateToken,
+  pickRangeDay,
+  relativeDateParts,
+  relativeDatePartsToken,
   relativeDateLabel,
   resolveRelativeDate,
   rollingDateOf,

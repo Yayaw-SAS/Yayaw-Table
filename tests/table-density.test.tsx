@@ -27,6 +27,59 @@ const TAILWIND_TEXT_SIZES: Record<number, string> = {
   18: "text-lg",
 };
 
+it("shows the inline density as one segmented radio group", async () => {
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  const store = createStore();
+  const queryClient = new QueryClient();
+  try {
+    await act(() => {
+      root.render(
+        <NuqsTestingAdapter>
+          <Provider store={store}>
+            <TableProvider
+              queryClient={queryClient}
+              tableId="segments"
+              translations={defaultTranslations}
+            >
+              <TableDensityMenu inline tableId="segments" />
+            </TableProvider>
+          </Provider>
+        </NuqsTestingAdapter>
+      );
+    });
+    const radios = container.querySelectorAll<HTMLInputElement>(
+      "[data-density-segments] input[type=radio]"
+    );
+    expect(
+      Array.from(radios, (radio) => radio.parentElement?.textContent)
+    ).toEqual(["2XS", "XS", "S", "M", "L", "XL", "2XL"]);
+    // One group: every segment shares a name, and only the current is checked.
+    expect(new Set(Array.from(radios, (radio) => radio.name)).size).toBe(1);
+    expect(Array.from(radios, (radio) => radio.checked)).toEqual([
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+    ]);
+    expect(
+      container.querySelector("[data-density-segments] button")
+    ).toBeNull();
+    await act(() => radios[2]?.click());
+    expect(store.get(tableDensityAtom("segments"))).toBe("small");
+    expect(radios[2]?.checked).toBe(true);
+    expect(radios[3]?.checked).toBe(false);
+  } finally {
+    await act(() => root.unmount());
+    container.remove();
+    queryClient.clear();
+  }
+});
+
 it("selects XS through the density menu without changing other tables or the configured default", async () => {
   const container = document.createElement("div");
   document.body.append(container);

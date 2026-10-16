@@ -540,6 +540,13 @@ export function TableMenu({
     tableMenuOpenFilterColumnIdAtom(tableId)
   );
 
+  const closeMenu = () => {
+    setOpen(false);
+    viewMenu?.onOpenChange(false);
+    setOpenToView(null);
+    setOpenFilterColumnId(null);
+  };
+
   // Derive open: menu opens when user toggles or when openToView is set (e.g. from column menu)
   const effectiveOpen = (viewMenu?.open ?? open) || Boolean(openToView);
 
@@ -790,6 +797,7 @@ export function TableMenu({
             columnFilters={state.columnFilters}
             columns={columns}
             invalidateTable={invalidateTable}
+            onDone={closeMenu}
             setColumnFilters={setColumnFilters}
             tableId={tableId}
             tableType={tableType}

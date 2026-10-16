@@ -403,44 +403,14 @@
           "target": "components/ui/yayaw-table/components/facets/facet-panel.tsx"
         },
         {
-          "path": "registry/default/ui/yayaw-table/components/filters/advanced-faceted-filter.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/filters/advanced-faceted-filter.tsx"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/components/filters/advanced-filter-panel.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/filters/advanced-filter-panel.tsx"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/components/filters/calendar.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/filters/calendar.tsx"
         },
         {
-          "path": "registry/default/ui/yayaw-table/components/filters/date-filter.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/filters/date-filter.tsx"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/components/filters/enhanced-filter-chip.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/filters/enhanced-filter-chip.tsx"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/components/filters/filter-bar-date.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/filters/filter-bar-date.tsx"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/components/filters/filter-presets-panel.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/filters/filter-presets-panel.tsx"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/components/filters/filter-value-input.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/filters/filter-value-input.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/filters/folder-filter.tsx",
@@ -451,16 +421,6 @@
           "path": "registry/default/ui/yayaw-table/components/filters/i18n-utils.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/filters/i18n-utils.ts"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/components/filters/index.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/filters/index.ts"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/components/filters/lazy-advanced-filter.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/filters/lazy-advanced-filter.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/filters/location-filter.tsx",
@@ -476,11 +436,6 @@
           "path": "registry/default/ui/yayaw-table/components/filters/menu/date-value-editor.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/filters/menu/date-value-editor.tsx"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/components/filters/menu/filter-button.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/filters/menu/filter-button.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/filters/menu/filter-chip.tsx",
@@ -508,29 +463,9 @@
           "target": "components/ui/yayaw-table/components/filters/menu/filter-value-editor.tsx"
         },
         {
-          "path": "registry/default/ui/yayaw-table/components/filters/modern-add-filter-dropdown.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/filters/modern-add-filter-dropdown.tsx"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/components/filters/modern-animations.css",
           "type": "registry:style",
           "target": "components/ui/yayaw-table/components/filters/modern-animations.css"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/components/filters/modern-filter-states.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/filters/modern-filter-states.tsx"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/components/filters/multi-select-filter.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/filters/multi-select-filter.tsx"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/components/filters/number-filter.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/filters/number-filter.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/filters/option-filter.tsx",
@@ -538,19 +473,9 @@
           "target": "components/ui/yayaw-table/components/filters/option-filter.tsx"
         },
         {
-          "path": "registry/default/ui/yayaw-table/components/filters/select-filter.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/filters/select-filter.tsx"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/components/filters/table-filter-bar.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/filters/table-filter-bar.tsx"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/components/filters/text-filter.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/filters/text-filter.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/folders/folder-picker.tsx",
@@ -943,11 +868,6 @@
           "target": "components/ui/yayaw-table/components/toolbar/schedule-panel.tsx"
         },
         {
-          "path": "registry/default/ui/yayaw-table/components/toolbar/sections/advanced-table-filters-menu.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/toolbar/sections/advanced-table-filters-menu.tsx"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/components/toolbar/sections/group-picker.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/sections/group-picker.tsx"
@@ -1251,11 +1171,6 @@
           "path": "registry/default/ui/yayaw-table/hooks/use-filter-menu.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/hooks/use-filter-menu.ts"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/hooks/use-filter-presets.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/hooks/use-filter-presets.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/hooks/use-folder-directory.ts",

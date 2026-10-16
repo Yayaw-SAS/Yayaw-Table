@@ -256,6 +256,7 @@ test("advanced filters can match any rule instead of all rules", async ({
       .getByRole("dialog", { name: SETTINGS })
       .getByRole("button", { name: FILTERS })
       .click();
+    await page.locator("[data-filter-add-advanced]").click();
     // The advanced filter's "And" / "Or", on its second rule.
     return page.locator("[data-advanced-filter] [data-advanced-join]");
   };
@@ -391,8 +392,9 @@ test("the list view follows the table density", async ({ page }) => {
   await page
     .getByRole("dialog", { name: SETTINGS })
     .getByRole("group", { name: DENSITY })
-    .getByRole("button", { name: "2XL" })
-    .click();
+    .getByRole("radio", { name: "2XL" })
+    // The label covers its visually hidden radio.
+    .check({ force: true });
   await expect.poll(height).toBeGreaterThan(medium);
 });
 
@@ -413,8 +415,9 @@ test("table text and rows follow the density scale", async ({ page }) => {
     await page
       .getByRole("dialog", { name: SETTINGS })
       .getByRole("group", { name: DENSITY })
-      .getByRole("button", { name: label, exact: true })
-      .click();
+      .getByRole("radio", { name: label, exact: true })
+      // The label covers its visually hidden radio.
+      .check({ force: true });
     await page.keyboard.press("Escape");
     await expect.poll(fontSize).toBe(size);
     await expect.poll(rowHeight).toBeGreaterThanOrEqual(minHeight);
@@ -430,8 +433,9 @@ test("the select-all checkbox stays centered in a 2XS header", async ({
   await page
     .getByRole("dialog", { name: SETTINGS })
     .getByRole("group", { name: DENSITY })
-    .getByRole("button", { name: "2XS", exact: true })
-    .click();
+    .getByRole("radio", { name: "2XS", exact: true })
+    // The label covers its visually hidden radio.
+    .check({ force: true });
   await page.keyboard.press("Escape");
   const header = page.locator("thead th").first();
   const checkbox = header.getByRole("checkbox");

@@ -183,9 +183,21 @@ const render = async () => {
   return { container, lists, lastRules };
 };
 
-it("adds a rule from the Filter button as a chip that filters once it has a value", async () => {
+/** The view settings' Filter screen, where the properties are picked. */
+const openFilterScreen = async () => {
+  await click($('[aria-label="View settings"]'));
+  await click(
+    [...document.querySelectorAll<HTMLElement>("[role=dialog] button")].find(
+      (button) => button.textContent?.trim().startsWith("Filter")
+    ) ?? null
+  );
+};
+
+it("adds a rule from the Filter screen as a chip that filters once it has a value", async () => {
   const { lastRules } = await render();
-  await click($("[data-filter-button]"));
+  // The toolbar has no Filter button of its own: the settings hold it.
+  expect($("[data-filter-button]")).toBeNull();
+  await openFilterScreen();
   const properties = [
     ...document.querySelectorAll("[data-filter-property]"),
   ].map((item) => item.textContent);
@@ -213,7 +225,7 @@ it("adds a rule from the Filter button as a chip that filters once it has a valu
   expect($('[data-filter-chip="status"]')?.textContent).toContain(
     "Status:Won, Open"
   );
-  expect($("[data-filter-count]")?.textContent).toBe("1");
+  expect(document.querySelectorAll("[data-filter-chip]")).toHaveLength(1);
   await click($("[data-filter-more]"));
   await click($("[data-filter-delete]"));
   await settle();
@@ -224,7 +236,7 @@ it("adds a rule from the Filter button as a chip that filters once it has a valu
 
 it("filters by a typed number once typing pauses", async () => {
   const { lists, lastRules } = await render();
-  await click($("[data-filter-button]"));
+  await openFilterScreen();
   await click($('[data-filter-property="amount"]'));
   const requests = lists.length;
   const input = $("[data-filter-input]");
@@ -242,17 +254,18 @@ it("filters by a typed number once typing pauses", async () => {
   ]);
 });
 
-it("keeps the toolbar's date period with its days, and the Filter button opens it", async () => {
+it("keeps the toolbar's date period with its days, and the Filter screen opens it", async () => {
   setSystemTime(new Date("2026-10-14T10:00:00.000Z"));
   const { lastRules } = await render();
   const period = () => $('[data-table-toolbar] [data-date-filter="due"]');
   expect(period()?.textContent).toBe("All dates");
-  await click($("[data-filter-button]"));
+  await openFilterScreen();
   await click($('[data-filter-property="due"]'));
   // The column has one period: no chip repeats it.
   expect($('[data-filter-chip="due"]')).toBeNull();
   expect($("[data-date-period-editor]")).not.toBeNull();
-  await click($('[data-relative-date="$thisMonth"]'));
+  await select($("[data-relative-direction]"), "this");
+  await select($("[data-relative-unit]"), "Months");
   await settle();
   expect(period()?.textContent).toContain("This month");
   expect($("[data-date-period-days]")?.textContent).toBe("Oct 1 – Oct 31");
@@ -263,7 +276,16 @@ it("keeps the toolbar's date period with its days, and the Filter button opens i
       values: ["2026-10-01", "2026-10-31"],
     }),
   ]);
-  await select($("[data-rolling-unit]"), "Weeks");
+  await select($("[data-relative-direction]"), "past");
+  await type($("[data-rolling-count]"), "30");
+  await act(async () => {
+    $("[data-rolling-count]")?.dispatchEvent(
+      new Event("focusout", { bubbles: true })
+    );
+    await Promise.resolve();
+  });
+  await settle();
+  await select($("[data-relative-unit]"), "Weeks");
   await settle();
   // Last 30 weeks, through today.
   expect(lastRules()).toEqual([
@@ -276,7 +298,7 @@ it("keeps the toolbar's date period with its days, and the Filter button opens i
 
 it("joins rules with or in the advanced filter", async () => {
   const { lastRules, lists } = await render();
-  await click($("[data-filter-button]"));
+  await openFilterScreen();
   await click($("[data-filter-add-advanced]"));
   await click($("[data-advanced-add]"));
   await select($("[data-advanced-join]"), "or");

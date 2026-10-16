@@ -14,7 +14,7 @@ watch(childView, async (view) => { if (view) { await nextTick(); backButton.valu
 provide(settingsNavigationKey, childView);
 
 const props = defineProps<{ open: boolean; compact?: boolean; title: string; back?: boolean; backLabel?: string; closeLabel?: string; align?: "start" | "end" }>();
-const emit = defineEmits<{ "update:open": [open: boolean]; back: [] }>();
+const emit = defineEmits<{ "update:open": [open: boolean]; back: []; closeAutoFocus: [event: Event] }>();
 provide(settingsMenuCloseKey, () => emit("update:open", false));
 const anchor = ref<HTMLElement>();
 const theme = ref<CSSProperties>({});
@@ -39,7 +39,7 @@ watch(() => props.open, (open) => {
       <component :is="compact ? DialogPortal : PopoverPortal">
         <DialogOverlay v-if="compact" class="yayaw-toolbar-backdrop" :style="theme" />
         <component :is="compact ? DialogContent : PopoverContent" class="yayaw-toolbar-menu" :data-compact="Boolean(compact)" :style="theme"
-          :aria-label="childView?.title ?? title" :aria-describedby="undefined" :align="compact ? undefined : (align ?? 'start')" :side-offset="compact ? undefined : 5" :collision-padding="8">
+          :aria-label="childView?.title ?? title" :aria-describedby="undefined" :align="compact ? undefined : (align ?? 'start')" :side-offset="compact ? undefined : 5" :collision-padding="8" @close-auto-focus="emit('closeAutoFocus', $event)">
           <div v-if="compact" class="yayaw-toolbar-handle" />
           <header class="yayaw-toolbar-menu-header">
             <button ref="backButton" v-if="back || childView" class="yayaw-icon-button" type="button" :aria-label="backLabel ?? 'Back'" @click="childView ? childView.back() : emit('back')"><ArrowLeft :size="16" /></button>

@@ -112,7 +112,7 @@ export function FilterBarDate({
       values: next.values,
       isActive: true,
     } as AdvancedFilterModel);
-  // Picking this column from the Filter button opens this period: the
+  // Picking this column from the Filter screen opens this period: the
   // toolbar's when the column is there, otherwise the filter bar's.
   const owner =
     variant === "toolbar" || config.table.toolbarDateFilter !== column.id;

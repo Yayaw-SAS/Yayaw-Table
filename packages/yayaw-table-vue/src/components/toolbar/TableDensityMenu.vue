@@ -11,12 +11,13 @@ import {
   DropdownMenuRoot,
   DropdownMenuTrigger,
 } from "reka-ui";
-import { computed } from "vue";
+import { computed, useId } from "vue";
 import { useTableContext } from "../../context";
 import { isTableDensity, TABLE_DENSITY_OPTIONS } from "../../table-contracts";
 
 const props = defineProps<{ inline?: boolean }>();
 const context = useTableContext();
+const name = useId();
 const label = computed(() => String(context.translations.value.density ?? "Table density"));
 const size = computed(() => TABLE_DENSITY_OPTIONS.find(
   (option) => option.value === context.state.density.value
@@ -30,8 +31,13 @@ const setDensity = (value: unknown): void => {
 
 <template>
   <fieldset v-if="props.inline" class="yayaw-density-inline yayaw-choice-inline">
-    <legend>{{ label }}</legend><div class="yayaw-segmented">
-      <button v-for="option in TABLE_DENSITY_OPTIONS" :key="option.value" type="button" :aria-pressed="context.state.density.value === option.value" :class="{ active: context.state.density.value === option.value }" @click="setDensity(option.value)">{{ option.label }}</button>
+    <legend>{{ label }}</legend>
+    <!-- One segmented control: native radios keep it one tab stop, moved with the arrow keys. -->
+    <div class="yayaw-density-segments">
+      <label v-for="option in TABLE_DENSITY_OPTIONS" :key="option.value">
+        <input type="radio" class="yayaw-sr-only" :name="name" :value="option.value" :checked="context.state.density.value === option.value" @change="setDensity(option.value)" />
+        {{ option.label }}
+      </label>
     </div>
   </fieldset>
   <DropdownMenuRoot v-else :modal="false">

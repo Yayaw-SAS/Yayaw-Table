@@ -275,7 +275,7 @@ table: {
 ```
 
 The toolbar then shows that period with the days it covers today ("This month ·
-Oct 1 – Oct 31"); picking the column from the Filter button opens it rather
+Oct 1 – Oct 31"); picking the column from the view settings' Filter screen opens it rather
 than adding a second rule. Date columns in `table.filterBarColumns` behave the
 same way in the filter bar. Labels come from `filters.menu.*` and
 `filters.menu.operators.*`, with English and French defaults.

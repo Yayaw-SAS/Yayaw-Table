@@ -9,6 +9,7 @@ import { test } from "./fixtures/test";
  * screen's facet list block is in `screen.spec.ts`.
  */
 const PRODUCTS = "/?example=products";
+const FILTER_SCREEN = /^filters?/i;
 const ASSETS_GALLERY = "/?example=assets&assets-display=gallery";
 const CATEGORY_EMPTY_RULE = /^Category\s*is empty/;
 const PRODUCTS_PAGE_SIZE = 10;
@@ -237,9 +238,13 @@ test("New folder from the gallery creates a folder under the chosen parent", asy
   ).toHaveCount(1);
 });
 
-/** Adds a rule for the Folder column from the Filter button: its folder picker. */
+/** Adds a rule for the Folder column from the settings' Filter screen: its folder picker. */
 async function filterFolder(page: Page): Promise<Locator> {
-  await page.locator("[data-filter-button]").click();
+  await page.getByRole("button", { name: "View settings" }).click();
+  await page
+    .getByRole("dialog", { name: "View settings" })
+    .getByRole("button", { name: FILTER_SCREEN })
+    .click();
   await page.locator('[data-filter-property="parentId"]').click();
   const picker = page.locator(
     '[data-filter-rule="parentId"] [data-folder-picker]'

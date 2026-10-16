@@ -16,21 +16,39 @@ import type {
 import { StackMenuContent, StackMenuView } from "../../../ui-custom/stack-menu";
 import { filterBarColumns } from "../../../utils/filter-bar";
 import { fieldText } from "../../../utils/table-contracts";
-import { AdvancedFilterEditor } from "../../filters/menu/advanced-filter-editor";
+import { FilterPropertyPicker } from "../../filters/menu/filter-property-picker";
 import { TableFilterBar } from "../../filters/table-filter-bar";
 
-/** The view settings' filter screen: the advanced filter's rules. */
-function SettingsAdvancedFilter({
+/**
+ * The view settings' filter screen, as Notion's Filter: the properties
+ * first; the new rule's chip then opens under the toolbar, the settings
+ * closed.
+ */
+function SettingsFilterPicker({
   columnsConfig,
+  onDone,
   tableId,
   tableType,
 }: {
   columnsConfig: ColumnsFilterConfig;
+  onDone?: () => void;
   tableId: string;
   tableType: string;
 }) {
   const menu = useFilterMenu({ columnsConfig, tableId, tableType });
-  return <AdvancedFilterEditor menu={menu} />;
+  return (
+    <FilterPropertyPicker
+      menu={menu}
+      onAdvanced={() => {
+        onDone?.();
+        menu.openAdvanced();
+      }}
+      onPick={(columnId) => {
+        onDone?.();
+        menu.add(columnId);
+      }}
+    />
+  );
 }
 
 // Debug flag - activated for debugging advanced filters
@@ -57,6 +75,8 @@ export interface TableFiltersMenuProps {
   advancedActions?: FilterActions;
   advancedColumnsConfig?: ColumnsFilterConfig;
   useAdvancedFilters?: boolean;
+  /** Closes the view settings once a filter is picked. */
+  onDone?: () => void;
 }
 
 export function TableFiltersMenu({
@@ -70,6 +90,7 @@ export function TableFiltersMenu({
   advancedActions,
   advancedColumnsConfig = EMPTY_COLUMNS_CONFIG,
   useAdvancedFilters = false,
+  onDone,
 }: TableFiltersMenuProps) {
   const { t, locale } = useTranslations();
   const { config } = useTableConfig(tableType ?? tableId);
@@ -120,8 +141,9 @@ export function TableFiltersMenu({
       <StackMenuView name="filters">
         <StackMenuContent>
           {customFilters}
-          <SettingsAdvancedFilter
+          <SettingsFilterPicker
             columnsConfig={advancedColumnsConfig}
+            onDone={onDone}
             tableId={tableId}
             tableType={tableType ?? tableId}
           />

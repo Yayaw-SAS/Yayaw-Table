@@ -78,7 +78,7 @@ const filterDueBetween = async (page: Page, project: string) => {
     await page.getByRole("menuitem", { name: "Filter" }).click();
   }
   const editor = page.locator('[data-filter-rule="dueDate"]');
-  await editor.getByRole("button", { name: "Date range" }).click();
+  await editor.getByText("Date range", { exact: true }).click();
   await editor.locator("[data-date-from]").fill("2026-09-05");
   await editor.locator("[data-date-to]").fill("2026-09-12");
 };

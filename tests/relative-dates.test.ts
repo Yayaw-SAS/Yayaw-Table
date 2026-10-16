@@ -1,14 +1,9 @@
 import { test } from "bun:test";
-import { isValidFilterValue } from "../src/components/ui/yayaw-table/components/filters/filter-value-input";
 import {
   type ColumnDefinition,
   defineTableConfig,
   type TableBehaviorConfig,
 } from "../src/components/ui/yayaw-table/config/helpers";
-import type {
-  FilterOperators,
-  FilterValues,
-} from "../src/components/ui/yayaw-table/types/filter-types";
 import {
   isDateFilterValue,
   isRelativeDateToken,
@@ -19,6 +14,10 @@ import {
   resolveRelativeDateRule,
 } from "../src/components/ui/yayaw-table/utils/date-filter-days";
 import { exportMatrix } from "../src/components/ui/yayaw-table/utils/export-model";
+import {
+  type FilterMenuRule,
+  filterRuleComplete,
+} from "../src/components/ui/yayaw-table/utils/filter-menu";
 import {
   compatibleListParams,
   generateDataTypeFields,
@@ -59,11 +58,13 @@ relativeDatesSuite(
   },
   {
     acceptsDateRule: (operator, values) =>
-      isValidFilterValue(
-        "date",
-        operator as FilterOperators["date"],
-        values as FilterValues<"date">
-      ),
+      filterRuleComplete({
+        id: "due",
+        columnId: "due",
+        type: "date",
+        operator,
+        values,
+      } as FilterMenuRule),
     configuredPreset: (column, table) =>
       defineTableConfig({
         id: "relative",

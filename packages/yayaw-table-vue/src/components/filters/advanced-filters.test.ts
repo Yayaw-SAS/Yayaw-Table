@@ -1,7 +1,11 @@
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import numericDrafts from "../../../../../tests/fixtures/numeric-filter-drafts.json";
-import { inlineTestPortals, menuBody } from "../../../tests/menu-helpers";
+import {
+  inlineTestPortals,
+  menuBody,
+  openViewScreen,
+} from "../../../tests/menu-helpers";
 import { defineTableConfig } from "../../config";
 import type {
   AdvancedFilter,
@@ -102,8 +106,7 @@ const pick = async (wrapper: Wrapper, columnId: string) => {
   await flushPromises();
   const picker = wrapper.find("[data-filter-property-picker]");
   if (!picker.exists()) {
-    await wrapper.get("[data-filter-button]").trigger("click");
-    await flushPromises();
+    await openViewScreen(wrapper, "Filter");
   }
   await wrapper.get(`[data-filter-property="${columnId}"]`).trigger("click");
   await flushPromises();
@@ -131,8 +134,10 @@ const type = async (
   await input.trigger("keydown", { key: "Enter" });
   await flushPromises();
 };
+// The date editor's calendar is a table too.
+const BODY = "table:not([data-date-calendar]) > tbody";
 const names = (wrapper: Wrapper) =>
-  wrapper.findAll("tbody tr").map((row) => row.text());
+  wrapper.findAll(`${BODY} tr`).map((row) => row.text());
 const listing = () =>
   vi.fn(async (_params: TableListParams) => ({
     data: rows,
@@ -141,8 +146,9 @@ const listing = () =>
 
 it("offers the filterable properties and filters a number between two values", async () => {
   const wrapper = mountTable();
-  await wrapper.get("[data-filter-button]").trigger("click");
-  await flushPromises();
+  // The toolbar has no Filter button of its own: the view settings hold it.
+  expect(wrapper.find("[data-filter-button]").exists()).toBe(false);
+  await openViewScreen(wrapper, "Filter");
   const properties = wrapper
     .findAll("[data-filter-property]")
     .map((item) => item.text());
@@ -165,18 +171,15 @@ it("offers the filterable properties and filters a number between two values", a
   expect(names(wrapper)).toHaveLength(3);
   await type(wrapper.findAll("[data-filter-input]")[1] as never, "5");
   expect(names(wrapper)).toHaveLength(2);
-  expect(wrapper.get("tbody").text()).not.toContain("Gamma");
+  expect(wrapper.get(BODY).text()).not.toContain("Gamma");
   expect(wrapper.get('[data-filter-chip="amount"]').text()).toContain("0");
-  expect(wrapper.get("[data-filter-button]").text()).toContain("1");
+  expect(wrapper.get(".yayaw-settings-badge").text()).toBe("1");
 });
 
 it("filters a date range and removes the rule from its menu", async () => {
   const wrapper = mountTable();
   const rule = await pick(wrapper, "date");
-  const range = rule
-    .findAll(".yayaw-segmented button")
-    .find((item) => item.text() === "Date range");
-  await range?.trigger("click");
+  await rule.get('[data-date-mode-option="range"]').setValue(true);
   await flushPromises();
   await wrapper.get("[data-date-from]").setValue("2026-09-04");
   await wrapper.get("[data-date-from]").trigger("change");
@@ -198,10 +201,7 @@ it("sends date rules as calendar days, in order, and reads an older link's insta
   const list = listing();
   const wrapper = mountTable({ getTableActions: () => ({ list }) });
   const rule = await pick(wrapper, "date");
-  await rule
-    .findAll(".yayaw-segmented button")
-    .find((item) => item.text() === "Date range")
-    ?.trigger("click");
+  await rule.get('[data-date-mode-option="range"]').setValue(true);
   await flushPromises();
   await wrapper.get("[data-date-from]").setValue("2026-09-07");
   await wrapper.get("[data-date-from]").trigger("change");
@@ -337,7 +337,7 @@ it("restores React multi-select operators and values from a saved URL", async ()
       .filter((input) => input.element.checked)
   ).toHaveLength(2);
   expect(names(wrapper)).toHaveLength(1);
-  expect(wrapper.get("tbody").text()).toContain("Alpha");
+  expect(wrapper.get(BODY).text()).toContain("Alpha");
 });
 
 it("uses French defaults and the filter menu's translation keys", async () => {
@@ -348,11 +348,7 @@ it("uses French defaults and the filter menu's translation keys", async () => {
       "filters.menu.operators.between": "Intervalle",
     },
   });
-  expect(wrapper.get("[data-filter-button]").attributes("aria-label")).toBe(
-    "Filtre"
-  );
-  await wrapper.get("[data-filter-button]").trigger("click");
-  await flushPromises();
+  await openViewScreen(wrapper, "Filtrer");
   expect(
     wrapper.get<HTMLInputElement>("[data-filter-property-picker] input").element
       .placeholder
