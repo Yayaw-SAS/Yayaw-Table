@@ -504,30 +504,6 @@ const rowClick = (row: TableRecord, event: MouseEvent): void => {
     context.activateRow(row, event);
   }
 };
-const calculationColumns = computed(() =>
-  sourceColumns.value.filter((column) => column.enableCalculation !== false)
-);
-const selectedCalculations = ref<Record<string, CalculationType>>(
-  Object.fromEntries(
-    calculationColumns.value.map((column) => [
-      column.id,
-      column.defaultCalculation ?? "none",
-    ])
-  )
-);
-const calculations = computed(() =>
-  calculationColumns.value.filter(
-    (column) => selectedCalculations.value[column.id] !== "none"
-  )
-);
-const activeCalculations = computed<Record<string, CalculationType>>(() =>
-  Object.fromEntries(
-    calculations.value.map((column) => [
-      column.id,
-      selectedCalculations.value[column.id] ?? "none",
-    ])
-  )
-);
 const availableCalculations = (column: ColumnDefinition): CalculationType[] => {
   const base: CalculationType[] = [
     "none",
@@ -556,6 +532,56 @@ const availableCalculations = (column: ColumnDefinition): CalculationType[] => {
   }
   return base;
 };
+const isCalculationLocked = (column: ColumnDefinition): boolean =>
+  column.lockCalculation ?? context.config.table.lockCalculations === true;
+/** A frozen column's calculation, when its type allows it. */
+const lockedCalculation = (column: ColumnDefinition): CalculationType =>
+  column.defaultCalculation &&
+  availableCalculations(column).includes(column.defaultCalculation)
+    ? column.defaultCalculation
+    : "none";
+// A frozen column without a calculation has nothing to offer.
+const calculableColumns = computed(() =>
+  sourceColumns.value.filter(
+    (column) =>
+      column.enableCalculation !== false &&
+      !(isCalculationLocked(column) && lockedCalculation(column) === "none")
+  )
+);
+const selectedCalculations = ref<Record<string, CalculationType>>(
+  Object.fromEntries(
+    calculableColumns.value.map((column) => [
+      column.id,
+      isCalculationLocked(column)
+        ? lockedCalculation(column)
+        : (column.defaultCalculation ?? "none"),
+    ])
+  )
+);
+/** Not editing calculations ("Edit calculations" off), or frozen: plain text. */
+const isCalculationReadOnly = (column: ColumnDefinition): boolean =>
+  isCalculationLocked(column) || !context.footerCalculationsEditing.value;
+// Read-only, a column shows its calculation, and nothing without one.
+const calculationColumns = computed(() =>
+  calculableColumns.value.filter(
+    (column) =>
+      !isCalculationReadOnly(column) ||
+      selectedCalculations.value[column.id] !== "none"
+  )
+);
+const calculations = computed(() =>
+  calculableColumns.value.filter(
+    (column) => selectedCalculations.value[column.id] !== "none"
+  )
+);
+const activeCalculations = computed<Record<string, CalculationType>>(() =>
+  Object.fromEntries(
+    calculations.value.map((column) => [
+      column.id,
+      selectedCalculations.value[column.id] ?? "none",
+    ])
+  )
+);
 const aggregateResults = ref<Record<string, unknown>>({});
 /** The row field holding each calculated column's currency, by column id. */
 const currencyColumns = computed<Record<string, string> | undefined>(() => {
@@ -905,6 +931,7 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
               <template v-if="calculationColumns.find((item) => item.id === column.id)">
                 <CalculationMenu
                   v-model="selectedCalculations[column.id]"
+                  :locked="isCalculationReadOnly(calculationColumns.find((item) => item.id === column.id)!)"
                   :column-label="String(column.columnDef.header ?? column.id)"
                   :options="availableCalculations(calculationColumns.find((item) => item.id === column.id)!)"
                   :summary="selectedCalculations[column.id] !== 'none' ? footerCalculation(column.id, selectedCalculations[column.id]!) : undefined"

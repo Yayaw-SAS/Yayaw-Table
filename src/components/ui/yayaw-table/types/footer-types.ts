@@ -235,3 +235,12 @@ export const getCalculationGroups = (
 
   return groups;
 };
+
+/**
+ * Whether a column's footer calculation is frozen: its own `lockCalculation`,
+ * else the table's `lockCalculations`.
+ */
+export const isCalculationLocked = (
+  column: { lockCalculation?: boolean } | undefined,
+  tableLock?: boolean
+): boolean => column?.lockCalculation ?? tableLock === true;

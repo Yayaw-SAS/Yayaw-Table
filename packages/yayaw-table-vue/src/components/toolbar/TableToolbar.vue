@@ -113,6 +113,21 @@ const context = useTableContext();
 type OptionsView = "columns" | "filters" | "group" | "main" | "sort" | "cards" | "layout" | "density";
 const { compact, mobile } = useToolbarLayout();
 const capabilities = computed(() => getViewModeCapabilities(context.state.displayMode.value));
+/** Some column's calculation can change: not every one is frozen. */
+const hasEditableCalculations = computed(() =>
+  context.config.columns.definitions.some(
+    (column) =>
+      column.enableCalculation !== false &&
+      !(column.lockCalculation ?? context.config.table.lockCalculations === true)
+  )
+);
+const toggleCalculationEditing = (): void => {
+  // Editing brings back a footer a saved view had hidden.
+  if (!context.footerCalculationsEditing.value) {
+    context.footerCalculationsVisible.value = true;
+  }
+  context.footerCalculationsEditing.value = !context.footerCalculationsEditing.value;
+};
 
 const optionsRoot = ref<HTMLElement>();
 const advancedFiltersPanel = ref<InstanceType<typeof AdvancedFilters>>();
@@ -825,18 +840,18 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
                 </span>
               </button>
               <button
-                v-if="capabilities.calculations && context.config.table.enableCalculations"
+                v-if="capabilities.calculations && context.config.table.enableCalculations && hasEditableCalculations"
                 type="button"
                 class="yayaw-options-item"
                 role="switch"
-                :aria-checked="context.footerCalculationsVisible.value"
-                @click="context.footerCalculationsVisible.value = !context.footerCalculationsVisible.value"
+                :aria-checked="context.footerCalculationsEditing.value"
+                @click="toggleCalculationEditing"
               >
                 <span class="yayaw-options-item-icon"><Calculator :size="16" aria-hidden="true" /></span>
                 <span class="yayaw-options-item-copy">
-                  <span>{{ translate("calculations", "Footer calculations") }}</span>
+                  <span>{{ translate("editCalculations", "Edit calculations") }}</span>
                 </span>
-                <span class="yayaw-options-item-end">{{ context.footerCalculationsVisible.value ? translate("calculationsOn", "Shown") : translate("calculationsOff", "Hidden") }}</span>
+                <span class="yayaw-options-item-end">{{ context.footerCalculationsEditing.value ? translate("editCalculationsOn", "On") : translate("editCalculationsOff", "Off") }}</span>
               </button>
               <button v-if="['kanban', 'gallery', 'gantt', 'list'].includes(context.state.displayMode.value) || activeRenderer?.settings" type="button" class="yayaw-options-item" @click="optionsView = 'cards'"><List :size="16" /><span>{{ cardSettingsTitle }}</span><ChevronRight :size="16" /></button>
             </div>

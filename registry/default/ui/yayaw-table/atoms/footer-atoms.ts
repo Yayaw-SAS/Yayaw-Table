@@ -40,6 +40,15 @@ export const hasActiveCalculationsAtom = atomFamily((tableId: string) =>
 );
 
 /**
+ * Whether the viewer is editing footer calculations ("Edit calculations"):
+ * off, the footer shows the chosen calculations as plain text, and nothing
+ * on columns without one. Not saved: every visit starts read-only.
+ */
+export const footerEditingAtom = atomFamily((_tableId: string) =>
+  atom<boolean>(false)
+);
+
+/**
  * Whether the footer row is visible (user can toggle it independently).
  * Persisted to localStorage.
  */

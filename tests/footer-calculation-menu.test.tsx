@@ -132,6 +132,97 @@ it("names the rows a footer result covers and keeps the calculator tooltip other
   }
 });
 
+it("shows a frozen calculation without a menu, and nothing when it has none", async () => {
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  const store = createStore();
+  const queryClient = new QueryClient();
+  const tableId = "footer-locked";
+  // A choice saved before the column was frozen no longer applies.
+  store.set(columnCalculationsAtom(tableId), { amount: "average" });
+  const render = (defaultCalculation?: "sum") =>
+    act(() =>
+      root.render(
+        <Provider store={store}>
+          <TableProvider
+            queryClient={queryClient}
+            tableId={tableId}
+            translations={defaultTranslations}
+          >
+            <CalculationMenu
+              columnId="amount"
+              columnType="number"
+              defaultCalculation={defaultCalculation}
+              isLocked
+              result={{ label: "60", raw: 60 }}
+              tableId={tableId}
+              tableType={tableId}
+            />
+          </TableProvider>
+        </Provider>
+      )
+    );
+  try {
+    await render("sum");
+    expect(container.querySelector("button")).toBeNull();
+    const locked = container.querySelector("[data-calculation-locked]");
+    expect(locked?.textContent).toContain("Sum");
+    expect(locked?.textContent).toContain("60");
+    expect(locked?.textContent).not.toContain("Average");
+    await render();
+    expect(container.textContent).toBe("");
+    expect(container.querySelector("button")).toBeNull();
+  } finally {
+    await act(() => root.unmount());
+    container.remove();
+    queryClient.clear();
+    store.set(columnCalculationsAtom(tableId), {});
+  }
+});
+
+it("shows the viewer's calculation as plain text while calculations are not edited", async () => {
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  const store = createStore();
+  const queryClient = new QueryClient();
+  const tableId = "footer-read-only";
+  store.set(columnCalculationsAtom(tableId), { amount: "average" });
+  try {
+    await act(() =>
+      root.render(
+        <Provider store={store}>
+          <TableProvider
+            queryClient={queryClient}
+            tableId={tableId}
+            translations={defaultTranslations}
+          >
+            <CalculationMenu
+              columnId="amount"
+              columnType="number"
+              defaultCalculation="sum"
+              isReadOnly
+              result={{ label: "20", raw: 20 }}
+              tableId={tableId}
+              tableType={tableId}
+            />
+          </TableProvider>
+        </Provider>
+      )
+    );
+    expect(container.querySelector("button")).toBeNull();
+    const text = container.querySelector("[data-calculation-locked]");
+    expect(text?.textContent).toContain("Average");
+    expect(text?.textContent).toContain("20");
+  } finally {
+    await act(() => root.unmount());
+    container.remove();
+    queryClient.clear();
+    store.set(columnCalculationsAtom(tableId), {});
+  }
+});
+
 it("calculates held rows per currency, never mixing them", () => {
   const result = calculateRowsColumn(
     [

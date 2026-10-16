@@ -670,7 +670,9 @@ Lucide ListRestart and never writes records. Legacy `showClearFilters` and
 save permission; failed or delayed saves preserve newer drafts.
 
 `footerCalculationsVisible?: boolean` is included in snapshots; omitted legacy
-values inherit the initial visible setting, subject to the feature flag.
+values inherit the initial visible setting, subject to the feature flag. No
+control sets it to `false` any more: "Edit calculations" (not saved) sets it back
+to `true`.
 Desktop sharing copies the current URL. Mobile uses native sharing when available,
 falls back to copying, and silently accepts cancellation. It does not change a
 saved view's organization visibility.
@@ -1187,6 +1189,30 @@ row under a selection (`"All rows: 40"`). Without either, React keeps its
 `calculations.page`, `calculations.all` (React `calcSelection`, `calcPage`,
 `calcAllRows`). Covered by `calculation-menu.test.ts` (Vue) and
 `tests/footer-calculation-menu.test.tsx` (React).
+
+## Editing and frozen footer calculations
+
+The View settings switch "Edit calculations" (React `menu.edit_calculations`,
+`_on`, `_off`; Vue `editCalculations`, `editCalculationsOn`,
+`editCalculationsOff`) replaces the former "Footer calculations"
+shown/hidden toggle. It starts off on every visit and is never saved in a view.
+Off, the footer shows each column's current calculation (the viewer's choice,
+else `defaultCalculation`) as plain text, and nothing on columns without one:
+no "Calculate" button. On, every calculable column offers its menu, as before.
+Turning it on also shows a footer that a legacy view saved hidden
+(`footerCalculationsVisible: false`).
+
+The developer can freeze calculations: a column's `lockCalculation: true`, or
+the table's `lockCalculations: true` for every column (a column's own
+`lockCalculation` wins, so `false` keeps one column editable), always shows the
+column's `defaultCalculation` as plain text, even while editing; a choice the
+viewer made before is ignored. A frozen column without a `defaultCalculation`,
+or with one its type does not allow, shows nothing. The switch is hidden when
+every calculable column is frozen. When no visible column has anything to show,
+neither edition draws the footer row. Selection and page scopes and their
+tooltip work as above. Covered by `calculation-menu.test.ts` and
+`saved-views.test.ts` (Vue), `tests/footer-calculation-menu.test.tsx` and
+`use-global-column-calculations.test.ts` (React).
 
 ## Formats apply everywhere
 

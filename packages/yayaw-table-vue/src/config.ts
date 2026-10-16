@@ -52,6 +52,7 @@ export const defaultTableBehavior: TableBehaviorConfig = {
     trigger: "doubleClickEnter",
   },
   enableCalculations: false,
+  lockCalculations: false,
   enableGrouping: true,
   enableAdvancedFilters: false,
   preserveSelectionOnQuery: false,

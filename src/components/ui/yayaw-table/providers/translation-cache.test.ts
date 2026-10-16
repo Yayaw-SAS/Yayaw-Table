@@ -95,6 +95,9 @@ describe("createTranslationFunction", () => {
     assert.equal(t("menu.footer_calculations"), "Footer calculations");
     assert.equal(t("menu.footer_calculations_on"), "On");
     assert.equal(t("menu.footer_calculations_off"), "Off");
+    assert.equal(t("menu.edit_calculations"), "Edit calculations");
+    assert.equal(t("menu.edit_calculations_on"), "On");
+    assert.equal(t("menu.edit_calculations_off"), "Off");
   });
 
   it("resolves backward-compatible action labels", () => {

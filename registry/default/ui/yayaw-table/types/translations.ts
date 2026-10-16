@@ -577,9 +577,15 @@ export interface DataTableTranslations {
     properties: string;
     reset_all: string;
     reset_all_description: string;
+    /** @deprecated The menu now shows the "Edit calculations" switch. */
     footer_calculations: string;
+    /** @deprecated */
     footer_calculations_on: string;
+    /** @deprecated */
     footer_calculations_off: string;
+    edit_calculations: string;
+    edit_calculations_on: string;
+    edit_calculations_off: string;
     sort: string;
     subgroup: string;
     title: string;

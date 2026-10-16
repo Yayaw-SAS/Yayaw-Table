@@ -814,7 +814,7 @@ it("keeps the old favorite if clearing it fails and retries from the default vie
   ).toBe("true");
 });
 
-it("compares legacy footer visibility and restores it without persisting the draft", async () => {
+it("keeps Edit calculations out of the saved view", async () => {
   const update = vi.fn();
   const wrapper = mountTable({
     views: [saved],
@@ -825,15 +825,27 @@ it("compares legacy footer visibility and restores it without persisting the dra
   await flushPromises();
   expect((await saveButton(wrapper)).attributes("aria-disabled")).toBe("true");
   await openViewMenu(wrapper);
-  const calculations = wrapper.get('[role="switch"]');
-  expect(calculations.attributes("aria-checked")).toBe("true");
-  await calculations.trigger("click");
-  expect((await saveButton(wrapper)).attributes("aria-disabled")).toBe("false");
-  await wrapper.get('[aria-label="Reset view"]').trigger("click");
-  await flushPromises();
-  expect(calculations.attributes("aria-checked")).toBe("true");
+  const editing = wrapper.get('[role="switch"]');
+  expect(editing.text()).toContain("Edit calculations");
+  expect(editing.attributes("aria-checked")).toBe("false");
+  await editing.trigger("click");
+  expect(editing.attributes("aria-checked")).toBe("true");
   expect((await saveButton(wrapper)).attributes("aria-disabled")).toBe("true");
   expect(update).not.toHaveBeenCalled();
+});
+
+it("shows a footer a legacy view hid once calculations are edited", async () => {
+  const wrapper = mountTable({
+    views: [{ ...saved, config: { footerCalculationsVisible: false } }],
+    active: saved.id,
+    table: { enableCalculations: true },
+  });
+  await flushPromises();
+  expect(wrapper.find("tfoot").exists()).toBe(false);
+  await openViewMenu(wrapper);
+  await wrapper.get('[role="switch"]').trigger("click");
+  await flushPromises();
+  expect(wrapper.find("tfoot").exists()).toBe(true);
 });
 
 it.each([

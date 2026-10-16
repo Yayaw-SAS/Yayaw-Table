@@ -43,7 +43,7 @@ or an `instanceId`.
 | `numberFormat`, `dateDisplayPreset`, `dateFormat`, `timeZone`, `hour12` | Formats, see below. |
 | `withTime` | On a `date` column: values are instants (ISO 8601 strings). Cells default to the `dateTime` preset, forms and inline edits show a date and time input in the column's `timeZone`, and they save an ISO instant in UTC. Filters still compare whole days, in that zone. |
 | `inlineEdit` | `true` or `{ enabled, editor, debounceMs, options, readonly }`; editing is opt-in per column or with `table.inlineEdit.enabled`. |
-| `enableSorting`, `enableFiltering`, `enableGrouping`, `enablePinning`, `enableResizing`, `enableCalculation`, `defaultCalculation` | Per-column capabilities and the default footer calculation. |
+| `enableSorting`, `enableFiltering`, `enableGrouping`, `enablePinning`, `enableResizing`, `enableCalculation`, `defaultCalculation`, `lockCalculation` | Per-column capabilities and the default footer calculation; `lockCalculation: true` freezes it (no menu even in "Edit calculations", and nothing shown without a `defaultCalculation`). Viewers change calculations only with the View settings switch "Edit calculations" (off on each visit, not saved); off, the footer shows calculations as plain text and no "Calculate" button. |
 | `enableExport` | `false` keeps the column in the table: never in the Export screen's lists, `actions.exportFile` requests, the bulk CSV, Connect destinations' `columns` or connector mappings. |
 | `size`, `minSize`, `maxSize` | Widths in pixels. |
 | `cellRenderer(value, row)` | Custom cell (React node, Vue VNode). |
@@ -153,6 +153,8 @@ Defaults in brackets. Flags only shape the interface; the server decides.
   `enableAutoPageSize`, `defaultAutoPageSize` [false], `enableColumnDnd`
   [true], `enableColumnDragDropByDefault` [false], `enableColumnResizing`
   [false], `enableColumnPinning` [true], `enableCalculations` [false],
+  `lockCalculations` [false] (every column's footer frozen on its
+  `defaultCalculation`),
   `coloredTags` [true], `presentation` (on the config, not `table`).
 - Tags: `canManageTags` [true]: "Manage tags" on tags columns when
   `actions.tags` can update, merge or remove.

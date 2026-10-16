@@ -5,6 +5,7 @@ import {
   mount,
 } from "@vue/test-utils";
 import { afterEach, beforeEach, expect, it } from "vitest";
+import { openViewMenu } from "../../../tests/menu-helpers";
 import { defineTableConfig } from "../../config";
 import YayawDataTable from "../YayawDataTable.vue";
 
@@ -65,7 +66,21 @@ const mountTable = (
       },
     },
   });
+const CALCULATIONS_SWITCH = /calcul/i;
 const body = () => new DOMWrapper(document.body);
+/** Turns on "Edit calculations" in the view settings. */
+const editCalculations = async (wrapper: ReturnType<typeof mountTable>) => {
+  await openViewMenu(wrapper);
+  const toggle = body()
+    .findAll('.yayaw-options-item[role="switch"]')
+    .find((button) => CALCULATIONS_SWITCH.test(button.text()));
+  if (!toggle) {
+    throw new Error("Missing Edit calculations switch");
+  }
+  await toggle.trigger("click");
+  await settle();
+  return toggle;
+};
 const settle = async () => {
   await flushPromises();
   await new Promise((resolve) => setTimeout(resolve, 0));
@@ -90,6 +105,7 @@ beforeEach(() => window.history.replaceState({}, "", "/"));
 it("uses a translated menu to change the result and clear the configured calculation", async () => {
   const wrapper = mountTable("fr");
   await settle();
+  await editCalculations(wrapper);
   const trigger = wrapper.get('[aria-label="Calculer: Amount"]');
   expect(wrapper.find("tfoot select").exists()).toBe(false);
   expect(trigger.text()).toContain("Somme");
@@ -115,6 +131,7 @@ it("uses a translated menu to change the result and clear the configured calcula
 it("closes on Escape and returns focus without changing the result", async () => {
   const wrapper = mountTable();
   await settle();
+  await editCalculations(wrapper);
   const trigger = wrapper.get('[aria-label="Calculate: Amount"]');
   (trigger.element as HTMLElement).focus();
   await trigger.trigger("keydown", { key: "Enter" });
@@ -133,6 +150,7 @@ it("closes on Escape and returns focus without changing the result", async () =>
 it("keeps numeric, boolean and date choices limited to compatible columns", async () => {
   const wrapper = mountTable();
   await settle();
+  await editCalculations(wrapper);
   await wrapper
     .get('[aria-label="Calculate: Name"]')
     .trigger("keydown", { key: "Enter" });
@@ -167,6 +185,7 @@ it("keeps numeric, boolean and date choices limited to compatible columns", asyn
 it("totals the selected rows, with every matching row in the tooltip", async () => {
   const wrapper = mountTable("en", { rowSelection: { "1": true } });
   await settle();
+  await editCalculations(wrapper);
   const trigger = wrapper.get('[aria-label="Calculate: Amount"]');
   expect(trigger.text()).toContain("Sum · Selection (1)");
   expect(trigger.text()).toContain("10");
@@ -180,7 +199,110 @@ it("gives the page's result in the tooltip when the rows span several pages", as
   });
   const wrapper = mountTable("fr", { config: paged });
   await settle();
+  await editCalculations(wrapper);
   const trigger = wrapper.get('[aria-label="Calculer: Amount"]');
   expect(trigger.text()).toContain("40");
   expect(trigger.attributes("title")).toBe("Cette page: 10");
+});
+
+it("freezes calculations: no menu, and no Calculate button where none is declared", async () => {
+  const locked = defineTableConfig({
+    ...config,
+    columns: {
+      ...config.columns,
+      definitions: config.columns.definitions.map((column) =>
+        column.id === "date" ? { ...column, lockCalculation: false } : column
+      ),
+    },
+    table: { ...config.table, lockCalculations: true },
+  });
+  const wrapper = mountTable("en", { config: locked });
+  await settle();
+  await editCalculations(wrapper);
+  expect(wrapper.find('[aria-label="Calculate: Amount"]').exists()).toBe(false);
+  const frozen = wrapper.get("tfoot [data-calculation-locked]");
+  expect(frozen.text()).toContain("Sum");
+  expect(frozen.text()).toContain("40");
+  expect(wrapper.find('[aria-label="Calculate: Name"]').exists()).toBe(false);
+  expect(wrapper.find('[aria-label="Calculate: Active"]').exists()).toBe(false);
+  expect(wrapper.find('[aria-label="Calculate: Date"]').exists()).toBe(true);
+  expect(wrapper.findAll("tfoot button")).toHaveLength(1);
+});
+
+it("freezes one column with lockCalculation and hides the footer when nothing is left", async () => {
+  const single = defineTableConfig({
+    ...config,
+    columns: {
+      ...config.columns,
+      definitions: config.columns.definitions.map((column) => ({
+        ...column,
+        lockCalculation: true,
+      })),
+    },
+  });
+  const wrapper = mountTable("en", { config: single });
+  await settle();
+  expect(wrapper.get("tfoot [data-calculation-locked]").text()).toContain("40");
+  expect(wrapper.findAll("tfoot button")).toHaveLength(0);
+  const empty = defineTableConfig({
+    ...single,
+    columns: {
+      ...single.columns,
+      definitions: single.columns.definitions.map(
+        ({ defaultCalculation: _ignored, ...column }) => column
+      ),
+    },
+  });
+  wrapper.unmount();
+  const bare = mountTable("en", { config: empty });
+  await settle();
+  expect(bare.find("tfoot").exists()).toBe(false);
+});
+
+it("shows calculations as plain text until Edit calculations is on", async () => {
+  const wrapper = mountTable("fr");
+  await settle();
+  expect(wrapper.findAll("tfoot button")).toHaveLength(0);
+  const total = wrapper.get("tfoot [data-calculation-locked]");
+  expect(total.text()).toContain("Somme");
+  expect(total.text()).toContain("40");
+  const toggle = await editCalculations(wrapper);
+  expect(toggle.text()).toContain("Éditer les calculs");
+  expect(toggle.attributes("aria-checked")).toBe("true");
+  expect(wrapper.find('[aria-label="Calculer: Amount"]').exists()).toBe(true);
+  expect(wrapper.find('[aria-label="Calculer: Name"]').exists()).toBe(true);
+  await toggle.trigger("click");
+  await settle();
+  expect(wrapper.findAll("tfoot button")).toHaveLength(0);
+});
+
+it("hides the footer and the switch when nothing can be edited", async () => {
+  const bare = defineTableConfig({
+    ...config,
+    columns: {
+      ...config.columns,
+      definitions: config.columns.definitions.map(
+        ({ defaultCalculation: _ignored, ...column }) => column
+      ),
+    },
+  });
+  const wrapper = mountTable("en", { config: bare });
+  await settle();
+  expect(wrapper.find("tfoot").exists()).toBe(false);
+  await editCalculations(wrapper);
+  expect(wrapper.find('[aria-label="Calculate: Amount"]').exists()).toBe(true);
+  wrapper.unmount();
+  const frozen = mountTable("en", {
+    config: defineTableConfig({
+      ...config,
+      table: { ...config.table, lockCalculations: true },
+    }),
+  });
+  await openViewMenu(frozen);
+  await settle();
+  expect(
+    body()
+      .findAll('.yayaw-options-item[role="switch"]')
+      .some((button) => CALCULATIONS_SWITCH.test(button.text()))
+  ).toBe(false);
 });

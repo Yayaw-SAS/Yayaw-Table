@@ -75,6 +75,54 @@ describe("resolveActiveColumnCalculations", () => {
   });
 });
 
+describe("resolveActiveColumnCalculations with frozen calculations", () => {
+  const columnDefinitions = [
+    { id: "price", type: "number", defaultCalculation: "sum" },
+    { id: "title", type: "text" },
+    {
+      id: "stock",
+      type: "number",
+      defaultCalculation: "sum",
+      lockCalculation: false,
+    },
+  ];
+  const userCalculations = {
+    price: "average",
+    title: "count_values",
+    stock: "average",
+    notDefined: "count_all",
+  } as const;
+
+  it("keeps a frozen column on its defaultCalculation", () => {
+    const resolved = resolveActiveColumnCalculations({
+      columnDefinitions: [
+        { ...columnDefinitions[0], lockCalculation: true },
+        columnDefinitions[1],
+      ],
+      userCalculations,
+    });
+
+    assert.deepEqual(resolved.calculations, {
+      price: "sum",
+      title: "count_values",
+    });
+  });
+
+  it("freezes every column from the table, unless a column opts out", () => {
+    const resolved = resolveActiveColumnCalculations({
+      columnDefinitions,
+      columnIds: ["price", "title", "stock", "notDefined"],
+      lockCalculations: true,
+      userCalculations,
+    });
+
+    assert.deepEqual(resolved.calculations, {
+      price: "sum",
+      stock: "average",
+    });
+  });
+});
+
 describe("loadGlobalColumnCalculationResults", () => {
   it("prioritizes aggregate action when available", async () => {
     let listCalls = 0;

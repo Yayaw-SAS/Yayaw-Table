@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import {
+  footerEditingAtom,
   footerVisibleAtom,
   tableMenuOpenFilterColumnIdAtom,
   tableMenuOpenToViewAtom,
@@ -326,7 +327,7 @@ function renderMainMenuView({
   activeGroupingCount,
   displayVisibleCount,
   footerCalculationsLabel,
-  isFooterCalculationsVisible,
+  isEditingCalculations,
   onToggleFooterCalculations,
   sectionState,
   t,
@@ -341,7 +342,7 @@ function renderMainMenuView({
   activeGroupingCount: number;
   displayVisibleCount: number;
   footerCalculationsLabel: string;
-  isFooterCalculationsVisible: boolean;
+  isEditingCalculations: boolean;
   onToggleFooterCalculations: () => void;
   sectionState: MenuSectionState;
   t: ReturnType<typeof useTranslations>["t"];
@@ -454,11 +455,11 @@ function renderMainMenuView({
               icon={<Calculator className="size-4" />}
               onClick={onToggleFooterCalculations}
             >
-              {t("menu.footer_calculations")}
+              {t("menu.edit_calculations")}
               <span className="sr-only">
-                {isFooterCalculationsVisible
-                  ? t("menu.footer_calculations_on")
-                  : t("menu.footer_calculations_off")}
+                {isEditingCalculations
+                  ? t("menu.edit_calculations_on")
+                  : t("menu.edit_calculations_off")}
               </span>
             </StackMenuItem>
           )}
@@ -530,9 +531,10 @@ export function TableMenu({
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const openToView = useAtomValue(tableMenuOpenToViewAtom(tableId));
-  const [isFooterCalculationsVisible, setFooterCalculationsVisible] = useAtom(
-    footerVisibleAtom(tableId)
+  const [isEditingCalculations, setEditingCalculations] = useAtom(
+    footerEditingAtom(tableId)
   );
+  const setFooterCalculationsVisible = useSetAtom(footerVisibleAtom(tableId));
   const setOpenToView = useSetAtom(tableMenuOpenToViewAtom(tableId));
   const setOpenFilterColumnId = useSetAtom(
     tableMenuOpenFilterColumnIdAtom(tableId)
@@ -653,12 +655,20 @@ export function TableMenu({
   const hasMenuBadgeCount =
     sectionState.effectiveActiveFiltersCount > 0 ||
     sectionState.effectiveActiveSortCount > 0;
-  const footerCalculationsLabel = isFooterCalculationsVisible
-    ? t("menu.footer_calculations_on")
-    : t("menu.footer_calculations_off");
+  const footerCalculationsLabel = isEditingCalculations
+    ? t("menu.edit_calculations_on")
+    : t("menu.edit_calculations_off");
   const toggleFooterCalculations = useCallback(() => {
-    setFooterCalculationsVisible((previous) => !previous);
-  }, [setFooterCalculationsVisible]);
+    // Editing brings back a footer a saved view had hidden.
+    if (!isEditingCalculations) {
+      setFooterCalculationsVisible(true);
+    }
+    setEditingCalculations(!isEditingCalculations);
+  }, [
+    isEditingCalculations,
+    setEditingCalculations,
+    setFooterCalculationsVisible,
+  ]);
 
   const defaultSorting = useTableDefaultSorting();
   const handleResetAll = useCallback(() => {
@@ -741,7 +751,7 @@ export function TableMenu({
         activeGroupingCount,
         displayVisibleCount,
         footerCalculationsLabel,
-        isFooterCalculationsVisible,
+        isEditingCalculations,
         onToggleFooterCalculations: toggleFooterCalculations,
         sectionState,
         t,
