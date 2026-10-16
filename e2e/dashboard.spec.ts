@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import {
   dashboardProjectRows,
   dashboardTaskRows,
@@ -10,6 +10,7 @@ import {
   dashboardComparisonText,
   dashboardLabel,
 } from "../src/components/ui/yayaw-table-dashboard/dashboard-model";
+import { test } from "./fixtures/test";
 
 const DASHBOARD = "/?example=dashboard";
 /** The demo's widgets in reading order. */

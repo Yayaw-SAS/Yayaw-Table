@@ -1,4 +1,5 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+import { test } from "./fixtures/test";
 
 // The same rows, list handler and config in both demos (examples/default-sort.ts).
 // Stored order: Desk, Lamp, Chair. The handler orders by `orderBy`, then by id.

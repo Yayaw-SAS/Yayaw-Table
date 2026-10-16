@@ -1,4 +1,5 @@
-import { expect, type Locator, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
+import { test } from "./fixtures/test";
 
 /** As in Notion, the "Display mode" row shows the mode and opens the layout tiles. */
 const DISPLAY_MODE_ROW = /^Display mode/;

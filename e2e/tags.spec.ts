@@ -1,5 +1,6 @@
-import { expect, type Locator, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 import { assetRows } from "../examples/assets";
+import { test } from "./fixtures/test";
 
 /**
  * Tags columns backed by the host's catalog (`actions.tags`) in the Assets

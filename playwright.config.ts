@@ -9,6 +9,8 @@ const ci = Boolean(process.env.CI);
 // dev server under a full parallel suite did and then stopped answering.
 const staticBuild = Boolean(process.env.E2E_STATIC);
 const SERVER_TIMEOUT = 120_000;
+const ACTION_TIMEOUT = 10_000;
+const MAX_FAILURES = 15;
 
 const reactServer = staticBuild
   ? `bunx vite preview --config examples/record-presentation-preview/vite.config.mjs --outDir ../../dist/e2e/react --host 127.0.0.1 --port ${REACT_PORT} --strictPort`
@@ -23,8 +25,16 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: ci,
   retries: ci ? 1 : 0,
-  reporter: ci ? "github" : "list",
-  use: { trace: "retain-on-failure" },
+  // A change that breaks a whole page fails every test of it: stop the shard
+  // after enough failures to read the pattern instead of timing out the rest.
+  maxFailures: ci ? MAX_FAILURES : 0,
+  reporter: ci ? [["github"], ["list"]] : "list",
+  use: {
+    trace: "retain-on-failure",
+    // Fail a click or a fill on missing UI quickly, not at the test timeout.
+    actionTimeout: ACTION_TIMEOUT,
+    navigationTimeout: ACTION_TIMEOUT,
+  },
   projects: [
     {
       name: "react",
