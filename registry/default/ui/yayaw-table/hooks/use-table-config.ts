@@ -124,6 +124,8 @@ export interface TableCatalogueTableConfig extends GenericModeTableConfigs {
   /** Show an icon in the toolbar to clear filters and global search. */
   /** Ordered static-option, boolean or date (a period) columns shown in the optional filter bar. */
   filterBarColumns?: string[];
+  /** A date column whose period stays in the toolbar. */
+  toolbarDateFilter?: string;
   /** Show the filter bar by default; a component prop can override this. */
   showFilterBar?: boolean;
   /** The facet panel beside the records (`false` turns it off). */
@@ -428,6 +430,7 @@ function resolveTableBehaviorConfig(
     rowClickMode: mergedConfig.rowClickMode ?? "default",
     enableColumnFilters: mergedConfig.enableColumnFilters ?? true,
     filterBarColumns: mergedConfig.filterBarColumns,
+    toolbarDateFilter: mergedConfig.toolbarDateFilter,
     showFilterBar: mergedConfig.showFilterBar === true,
     facets: mergedConfig.facets,
     enableAdvancedFilters: mergedConfig.enableAdvancedFilters ?? false,

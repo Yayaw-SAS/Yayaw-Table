@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ListFilter, PanelLeft, PanelRight } from "lucide-vue-next";
+import { PanelBottom, PanelLeft, PanelRight } from "lucide-vue-next";
 import { computed, ref } from "vue";
 import { useTableContext } from "../../context";
 import { useFacets } from "../../composables/use-facets";
@@ -23,7 +23,8 @@ const text = computed(() =>
       <template #trigger>
         <TableTooltip :label="text">
           <button type="button" class="yayaw-button yayaw-button-outline yayaw-icon-only yayaw-facets-toggle" data-facets-toggle="" :aria-label="text">
-            <ListFilter :size="16" aria-hidden="true" />
+            <!-- On phones the panel opens as a sheet; the Filter button keeps the funnel. -->
+            <PanelBottom :size="16" aria-hidden="true" />
             <span v-if="selectedCount" class="yayaw-settings-badge" aria-hidden="true">{{ selectedCount }}</span>
           </button>
         </TableTooltip>

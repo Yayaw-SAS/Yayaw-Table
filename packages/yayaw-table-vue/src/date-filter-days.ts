@@ -321,7 +321,12 @@ export const RELATIVE_DATE_TOKENS = [
 ] as const;
 
 /** The units a rolling relative date counts in. */
-export const RELATIVE_DATE_UNITS = ["Days", "Weeks", "Months", "Years"] as const;
+export const RELATIVE_DATE_UNITS = [
+  "Days",
+  "Weeks",
+  "Months",
+  "Years",
+] as const;
 
 export type RelativeDateUnit = (typeof RELATIVE_DATE_UNITS)[number];
 
@@ -354,7 +359,8 @@ export const RELATIVE_DATE_CHOICES: readonly RelativeDateToken[] = [
   "$next30Days",
 ];
 
-const RELATIVE_DAY_COUNT = /^\$(last|next)([1-9]\d{0,3})(Days|Weeks|Months|Years)$/;
+const RELATIVE_DAY_COUNT =
+  /^\$(last|next)([1-9]\d{0,3})(Days|Weeks|Months|Years)$/;
 /** Rolling periods stop at about ten years, whatever their unit. */
 const MAX_RELATIVE_COUNT: Record<RelativeDateUnit, number> = {
   Days: 3660,

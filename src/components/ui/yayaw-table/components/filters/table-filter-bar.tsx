@@ -5,13 +5,7 @@ import { toolbarCompactAtom } from "../../atoms/table-atoms";
 import { useTableConfig } from "../../hooks/use-table-config";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
 import { useTranslations } from "../../providers/table-provider";
-import type { AdvancedFiltersState } from "../../types";
-import {
-  filterBarColumns,
-  filterBarDateValue,
-  replaceColumnFilter,
-  replaceFilterBarDateRule,
-} from "../../utils/filter-bar";
+import { filterBarColumns, replaceColumnFilter } from "../../utils/filter-bar";
 import { FilterBarDate } from "./filter-bar-date";
 import { OptionFilter } from "./option-filter";
 
@@ -55,17 +49,8 @@ export function TableFilterBar({
           <FilterBarDate
             column={column}
             key={column.id}
-            onChange={(value) => {
-              state.setAdvancedFiltersParam(
-                replaceFilterBarDateRule(
-                  state.advancedFiltersParam,
-                  column.id,
-                  value
-                ) as AdvancedFiltersState
-              );
-              state.setPageParam("0");
-            }}
-            value={filterBarDateValue(state.advancedFiltersParam, column.id)}
+            tableId={tableId}
+            tableType={tableType}
           />
         ) : (
         <OptionFilter

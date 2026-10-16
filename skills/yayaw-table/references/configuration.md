@@ -145,7 +145,9 @@ Defaults in brackets. Flags only shape the interface; the server decides.
   `connectors`, `sync`, `schedule` [true], `emptyState` (`title`,
   `description`, `show`).
 - Query: `enableSorting`, `enableColumnFilters`, `enableGrouping` [true],
-  `enableAdvancedFilters` [false], `searchDebounceMs` [300], `manualOrder`
+  `enableAdvancedFilters` [false; the Notion-style Filter button, chips and
+  And / Or filter], `toolbarDateFilter` [none; a date column whose period
+  stays in the toolbar], `searchDebounceMs` [300], `manualOrder`
   (with `actions.reorder`), `preserveSelectionOnQuery` [false].
 - Layout: `density` [`"medium"`; `extra-extra-small`, `extra-small`,
   `small`, `large`, `extra-large`, `extra-extra-large`], `defaultPageSize` [10],

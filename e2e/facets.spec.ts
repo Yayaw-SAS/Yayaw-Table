@@ -9,9 +9,7 @@ import { productRows } from "../examples/products";
  */
 const PRODUCTS = "/?example=products";
 const ASSETS_GALLERY = "/?example=assets&assets-display=gallery";
-const SETTINGS = "View settings";
-const FILTERS = /^filters?/i;
-const CATEGORY_EMPTY_RULE = /^Category Is empty/;
+const CATEGORY_EMPTY_RULE = /^Category\s*is empty/;
 const PRODUCTS_PAGE_SIZE = 10;
 const SPRING_FILES = ["banner-1", "banner-10", "banner-2", "hero"];
 
@@ -74,22 +72,9 @@ const filterRules = (page: Page, tableId: string) => {
   return rules.map((rule) => [rule.columnId, rule.operator, rule.values]);
 };
 
-/** The view settings' filter page. */
-async function openFilters(page: Page): Promise<Locator> {
-  await page.getByRole("button", { name: SETTINGS }).click();
-  await page
-    .getByRole("dialog", { name: SETTINGS })
-    .getByRole("button", { name: FILTERS })
-    .click();
-  const menu = page.getByRole("dialog", { name: "Filters" });
-  await expect(menu).toBeVisible();
-  return menu;
-}
-
 test("facet counts match the data, a click filters and the selection is filter state", async ({
   page,
-}, testInfo) => {
-  const project = testInfo.project.name;
+}) => {
   await page.setViewportSize({ width: 1400, height: 1000 });
   await page.goto(PRODUCTS);
   const products = productRows();
@@ -177,15 +162,10 @@ test("facet counts match the data, a click filters and the selection is filter s
     "aria-pressed",
     "true"
   );
-  // The filter menus list the same rule.
-  const menu = await openFilters(page);
-  await expect(
-    project === "vue"
-      ? menu.getByRole("form", { name: "Filter for Category" })
-      : menu.getByRole("button", { name: CATEGORY_EMPTY_RULE })
-  ).toBeVisible();
-  await menu.getByRole("button", { name: "Close" }).click();
-  await expect(menu).toHaveCount(0);
+  // The filter menu shows the same rule as a chip.
+  await expect(page.locator('[data-filter-chip="category"]')).toHaveText(
+    CATEGORY_EMPTY_RULE
+  );
   // "Clear all".
   await page.locator("[data-facet-clear-all]").click();
   await expect.poll(() => rowIds(page)).toHaveLength(PRODUCTS_PAGE_SIZE);
@@ -256,37 +236,23 @@ test("New folder from the gallery creates a folder under the chosen parent", asy
   ).toHaveCount(1);
 });
 
-/** Opens the filter menus on a new rule for the Folder column: its folder picker. */
-async function filterFolder(page: Page, project: string): Promise<Locator> {
-  const menu = await openFilters(page);
-  if (project === "vue") {
-    await menu.getByRole("button", { name: "Add filter" }).click();
-    await menu.getByLabel("Filter column").last().selectOption("parentId");
-  } else {
-    await menu.getByRole("button", { name: "Folder", exact: true }).click();
-  }
-  const picker = menu.locator("[data-folder-picker]");
+/** Adds a rule for the Folder column from the Filter button: its folder picker. */
+async function filterFolder(page: Page): Promise<Locator> {
+  await page.locator("[data-filter-button]").click();
+  await page.locator('[data-filter-property="parentId"]').click();
+  const picker = page.locator(
+    '[data-filter-rule="parentId"] [data-folder-picker]'
+  );
   await expect(picker).toBeVisible();
   return picker;
 }
 
-/** Applies the rule being edited. */
-const applyRule = (page: Page, project: string) =>
-  page
-    .getByRole("dialog", { name: "Filters" })
-    .getByRole("button", {
-      name: project === "vue" ? "Apply" : "Done",
-      exact: true,
-    })
-    .click();
-
 test("the folder filter shows only that folder's files, or the root's", async ({
   page,
-}, testInfo) => {
+}) => {
   await page.setViewportSize({ width: 1400, height: 1000 });
   await page.goto(ASSETS_GALLERY);
-  const project = testInfo.project.name;
-  const picker = await filterFolder(page, project);
+  const picker = await filterFolder(page);
   // The root first; folders with their location.
   await expect(picker.locator("[data-folder-option]").first()).toHaveAttribute(
     "data-folder-root",
@@ -299,8 +265,8 @@ test("the folder filter shows only that folder's files, or the root's", async ({
   await expect(
     picker.locator("[data-folder-option]:not([data-folder-root])")
   ).toHaveCount(1);
+  // A pick filters at once.
   await picker.locator('[data-folder-option="f-spring"]').click();
-  await applyRule(page, project);
   await expect.poll(() => rowIds(page)).toEqual(SPRING_FILES);
   await expect
     .poll(() => filterRules(page, "assets"))
@@ -308,9 +274,8 @@ test("the folder filter shows only that folder's files, or the root's", async ({
 
   // The root: the top level only.
   await page.goto(ASSETS_GALLERY);
-  const root = await filterFolder(page, project);
+  const root = await filterFolder(page);
   await root.locator("[data-folder-root]").click();
-  await applyRule(page, project);
   await expect
     .poll(() => rowIds(page))
     .toEqual(idsOf(assetRows().filter((row) => row.parentId === null)));

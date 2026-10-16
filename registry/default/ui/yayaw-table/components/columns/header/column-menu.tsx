@@ -1,7 +1,7 @@
 "use client";
 
 import { flip, offset, shift, useFloating } from "@floating-ui/react-dom";
-import { useAtom, useSetAtom } from "jotai";
+import { useAtom, useSetAtom, useStore } from "jotai";
 import {
   ArrowDownIcon,
   ArrowLeftToLine,
@@ -30,6 +30,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   columnDragEnabledAtom,
+  filterMenuMountedAtom,
+  filterMenuRequestAtom,
   tableMenuOpenFilterColumnIdAtom,
   tableMenuOpenToViewAtom,
 } from "../../../atoms/table-atoms";
@@ -297,6 +299,7 @@ function ColumnMenuBase<TData, TValue>({
     columnDragEnabledAtom(tableId)
   );
   const setTableMenuOpenToView = useSetAtom(tableMenuOpenToViewAtom(tableId));
+  const store = useStore();
   const setTableMenuOpenFilterColumnId = useSetAtom(
     tableMenuOpenFilterColumnIdAtom(tableId)
   );
@@ -366,10 +369,21 @@ function ColumnMenuBase<TData, TValue>({
   }, [handleSort]);
 
   const handleOpenFilters = useCallback(() => {
-    setTableMenuOpenToView("filters");
-    setTableMenuOpenFilterColumnId(column.id);
+    // The toolbar's filter menu opens the column's rule as a chip.
+    if (store.get(filterMenuMountedAtom(tableId)) > 0) {
+      store.set(filterMenuRequestAtom(tableId), column.id);
+    } else {
+      setTableMenuOpenToView("filters");
+      setTableMenuOpenFilterColumnId(column.id);
+    }
     setIsOpen(false);
-  }, [column.id, setTableMenuOpenFilterColumnId, setTableMenuOpenToView]);
+  }, [
+    column.id,
+    setTableMenuOpenFilterColumnId,
+    setTableMenuOpenToView,
+    store,
+    tableId,
+  ]);
 
   const handleTriggerClick = useCallback(() => {
     setIsOpen((prev) => !prev);

@@ -1,4 +1,5 @@
 import { it as test } from "vitest";
+import { filterMenuSuite } from "../../../tests/filter-menu-suite";
 import {
   isRelativeDateToken,
   relativeDateLabel,
@@ -19,7 +20,6 @@ import {
   rollingDateOf,
   rollingDateToken,
 } from "./filter-menu";
-import { filterMenuSuite } from "../../../tests/filter-menu-suite";
 
 filterMenuSuite(test, {
   changeFilterOperator,

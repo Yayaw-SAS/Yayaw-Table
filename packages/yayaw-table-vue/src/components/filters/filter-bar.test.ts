@@ -279,7 +279,8 @@ it("keeps a date period in the toolbar with its days, and the Filter button open
       },
     });
     await flushPromises();
-    const button = () => wrapper.get('[data-table-toolbar] [data-date-filter="due"]');
+    const button = () =>
+      wrapper.get('[data-table-toolbar] [data-date-filter="due"]');
     expect(button().text()).toBe("All dates");
     await wrapper.get("[data-filter-button]").trigger("click");
     await flushPromises();
@@ -294,7 +295,9 @@ it("keeps a date period in the toolbar with its days, and the Filter button open
     await wrapper.get('[data-relative-date="$thisMonth"]').trigger("click");
     await flushPromises();
     expect(button().text()).toContain("This month");
-    expect(button().get(".yayaw-date-period-days").text()).toBe("Oct 1 – Oct 31");
+    expect(button().get(".yayaw-date-period-days").text()).toBe(
+      "Oct 1 – Oct 31"
+    );
     expect(
       (list.mock.lastCall as unknown as [{ advancedFilters: unknown[] }])[0]
         .advancedFilters

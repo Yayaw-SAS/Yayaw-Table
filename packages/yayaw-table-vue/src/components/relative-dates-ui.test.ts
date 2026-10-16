@@ -127,7 +127,9 @@ it("filters on a rolling period of any length and unit", async () => {
   expect(names(wrapper)).toHaveLength(2);
   expect(wrapper.get("tbody").text()).toContain("Next week task");
   expect(wrapper.get("tbody").text()).not.toContain("Monday task");
-  expect(wrapper.get('[data-filter-chip="due"]').text()).toContain("Next 1 week");
+  expect(wrapper.get('[data-filter-chip="due"]').text()).toContain(
+    "Next 1 week"
+  );
 });
 
 it("sends list requests the days a relative rule names", async () => {

@@ -16,6 +16,7 @@ import type {
   VisibilityState,
 } from "@/components/ui/yayaw-table/tanstack";
 import type { DataTableColumnDef } from "../types/column-types";
+import type { AdvancedFilterModel } from "../types/filter-types";
 import type { TableDensity } from "../types/display-types";
 
 /**
@@ -262,4 +263,40 @@ export const featuresAtom = atomFamily((_tableId: string) =>
     enableServerSide: true,
     enableSorting: true,
   })
+);
+
+/**
+ * The filter menu's state beside the table's filters (see `useFilterMenu`):
+ * rules still being written, which never reach the query or a saved view.
+ */
+export const filterMenuDraftsAtom = atomFamily((_tableId: string) =>
+  atom<AdvancedFilterModel[]>([])
+);
+/** The rule whose chip editor is open. */
+export const filterMenuOpenIdAtom = atomFamily((_tableId: string) =>
+  atom<string | undefined>(undefined)
+);
+/** The rules show as one advanced filter even while all must match. */
+export const filterMenuAdvancedAtom = atomFamily((_tableId: string) =>
+  atom(false)
+);
+/** The advanced filter's editor is open. */
+export const filterMenuAdvancedOpenAtom = atomFamily((_tableId: string) =>
+  atom(false)
+);
+/** The pinned date column whose period editor is open. */
+export const filterMenuPeriodOpenAtom = atomFamily((_tableId: string) =>
+  atom<string | undefined>(undefined)
+);
+/** How many filter menus are on screen: column menus then open a rule there. */
+export const filterMenuMountedAtom = atomFamily((_tableId: string) =>
+  atom(0)
+);
+/** A column a header menu asked to filter, for the mounted filter menu. */
+export const filterMenuRequestAtom = atomFamily((_tableId: string) =>
+  atom<string | undefined>(undefined)
+);
+/** "And" or "or" while the advanced filter has no complete rule to carry it. */
+export const filterMenuJoinAtom = atomFamily((_tableId: string) =>
+  atom<"and" | "or">("and")
 );

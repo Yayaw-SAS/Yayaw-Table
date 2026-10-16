@@ -144,7 +144,12 @@ function filterBarDateRule(
   columnId: string,
   { token, from, to }: FilterBarDateValue
 ): FilterBarDateRule | undefined {
-  const rule = { id: filterBarDateRuleId(columnId), columnId, type: "date", isActive: true } as const;
+  const rule = {
+    id: filterBarDateRuleId(columnId),
+    columnId,
+    type: "date",
+    isActive: true,
+  } as const;
   if (token) {
     return { ...rule, operator: "equals", values: token };
   }
@@ -152,7 +157,11 @@ function filterBarDateRule(
     return { ...rule, operator: "between", values: [from, to] };
   }
   if (from || to) {
-    return { ...rule, operator: from ? "greaterThanOrEqual" : "lessThanOrEqual", values: from ?? to };
+    return {
+      ...rule,
+      operator: from ? "greaterThanOrEqual" : "lessThanOrEqual",
+      values: from ?? to,
+    };
   }
   return;
 }

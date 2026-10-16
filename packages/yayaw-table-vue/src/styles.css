@@ -6951,8 +6951,16 @@
 .yayaw-filter-popover,
 .yayaw-filter-menu-layer {
   --yayaw-filter-accent: oklch(0.53 0.17 256);
-  --yayaw-filter-accent-soft: color-mix(in oklch, var(--yayaw-filter-accent) 10%, var(--yayaw-background));
-  --yayaw-filter-accent-line: color-mix(in oklch, var(--yayaw-filter-accent) 35%, var(--yayaw-background));
+  --yayaw-filter-accent-soft: color-mix(
+    in oklch,
+    var(--yayaw-filter-accent) 10%,
+    var(--yayaw-background)
+  );
+  --yayaw-filter-accent-line: color-mix(
+    in oklch,
+    var(--yayaw-filter-accent) 35%,
+    var(--yayaw-background)
+  );
 }
 .dark .yayaw-table,
 .dark .yayaw-filter-popover,
@@ -7280,7 +7288,10 @@
 }
 .yayaw-advanced-row {
   display: grid;
-  grid-template-columns: 4.5rem minmax(7rem, 1fr) minmax(7rem, 1fr) minmax(8rem, 1.3fr) auto;
+  grid-template-columns: 4.5rem minmax(7rem, 1fr) minmax(7rem, 1fr) minmax(
+      8rem,
+      1.3fr
+    ) auto;
   gap: 6px;
   align-items: center;
   min-width: 34rem;

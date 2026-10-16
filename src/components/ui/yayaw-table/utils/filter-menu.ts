@@ -76,7 +76,12 @@ export const FILTER_MENU_OPERATORS: Record<FilterMenuType, readonly string[]> =
       ...EMPTY_OPERATORS,
     ],
     select: ["isAnyOf", "isNoneOf", ...EMPTY_OPERATORS],
-    multiSelect: ["contains", "containsAll", "containsNone", ...EMPTY_OPERATORS],
+    multiSelect: [
+      "contains",
+      "containsAll",
+      "containsNone",
+      ...EMPTY_OPERATORS,
+    ],
     boolean: ["isTrue", "isFalse"],
     location: ["withinDistance", "withinBounds", ...EMPTY_OPERATORS],
   };
@@ -146,7 +151,9 @@ export function filterRuleComplete(rule: FilterMenuRule): boolean {
   if (rule.type === "location") {
     return (
       values.length === (LOCATION_SIZES[rule.operator] ?? 0) &&
-      values.every((value) => typeof value === "number" && Number.isFinite(value))
+      values.every(
+        (value) => typeof value === "number" && Number.isFinite(value)
+      )
     );
   }
   if (rule.type === "date" && relativeDateTokenOf(rule.values)) {
@@ -194,7 +201,9 @@ export function changeFilterOperator<T extends FilterMenuRule>(
   if (token) {
     values = operator === "between" ? undefined : token;
   } else if (operator === "between") {
-    values = present.length ? [present[0], present[1] ?? present[0]] : undefined;
+    values = present.length
+      ? [present[0], present[1] ?? present[0]]
+      : undefined;
   } else if (filterOperatorIsMultiple(type, operator)) {
     values = present;
   }
@@ -537,7 +546,8 @@ export function filterPeriodDates(
     return "";
   }
   const thisYear = String(new Date().getFullYear());
-  const withYear = start.slice(0, 4) !== thisYear || end.slice(0, 4) !== thisYear;
+  const withYear =
+    start.slice(0, 4) !== thisYear || end.slice(0, 4) !== thisYear;
   if (start === end) {
     return filterDayText(start, locale, withYear);
   }

@@ -120,7 +120,13 @@ const chooseOperator = async (wrapper: Wrapper, operator: string) => {
   await menuBody().get(`[data-operator="${operator}"]`).trigger("click");
   await flushPromises();
 };
-const type = async (input: { setValue: (value: string) => Promise<void>; trigger: (event: string, options?: object) => Promise<void> }, text: string) => {
+const type = async (
+  input: {
+    setValue: (value: string) => Promise<void>;
+    trigger: (event: string, options?: object) => Promise<void>;
+  },
+  text: string
+) => {
   await input.setValue(text);
   await input.trigger("keydown", { key: "Enter" });
   await flushPromises();
@@ -178,7 +184,9 @@ it("filters a date range and removes the rule from its menu", async () => {
   await wrapper.get("[data-date-to]").trigger("change");
   await flushPromises();
   expect(names(wrapper)).toHaveLength(2);
-  await wrapper.get('[data-filter-rule="date"] .yayaw-rule-more').trigger("click");
+  await wrapper
+    .get('[data-filter-rule="date"] .yayaw-rule-more')
+    .trigger("click");
   await flushPromises();
   await menuBody().get("[data-filter-delete]").trigger("click");
   await flushPromises();
@@ -235,12 +243,10 @@ it("sends date rules as calendar days, in order, and reads an older link's insta
   ]);
   await restored.get('[data-filter-chip="date"]').trigger("click");
   await flushPromises();
-  expect(
-    [
-      restored.get<HTMLInputElement>("[data-date-from]").element.value,
-      restored.get<HTMLInputElement>("[data-date-to]").element.value,
-    ]
-  ).toEqual(["2026-09-04", "2026-09-05"]);
+  expect([
+    restored.get<HTMLInputElement>("[data-date-from]").element.value,
+    restored.get<HTMLInputElement>("[data-date-to]").element.value,
+  ]).toEqual(["2026-09-04", "2026-09-05"]);
 });
 
 it("preserves multiple primitive options in server requests and combines rules with OR", async () => {
@@ -270,18 +276,28 @@ it("preserves multiple primitive options in server requests and combines rules w
     await flushPromises();
   }
   expect(wrapper.get("[data-filter-operator]").text()).toBe("Contains all");
-  await wrapper.get('[data-filter-rule="tags"]').findAll('input[type="checkbox"]')[0]?.setValue(true);
-  await wrapper.get('[data-filter-rule="tags"]').findAll('input[type="checkbox"]')[1]?.setValue(true);
+  await wrapper
+    .get('[data-filter-rule="tags"]')
+    .findAll('input[type="checkbox"]')[0]
+    ?.setValue(true);
+  await wrapper
+    .get('[data-filter-rule="tags"]')
+    .findAll('input[type="checkbox"]')[1]
+    ?.setValue(true);
   await flushPromises();
   // "Or" is the advanced filter's: the rules move into it.
-  await wrapper.get('[data-filter-rule="tags"] .yayaw-rule-more').trigger("click");
+  await wrapper
+    .get('[data-filter-rule="tags"] .yayaw-rule-more')
+    .trigger("click");
   await flushPromises();
   const toAdvanced = menuBody()
     .findAll('[role="menuitem"]')
     .find((item) => item.text() === "Add to advanced filter");
   await toAdvanced?.trigger("click");
   await flushPromises();
-  expect(wrapper.get("[data-filter-chip-advanced]").text()).toContain("2 rules");
+  expect(wrapper.get("[data-filter-chip-advanced]").text()).toContain(
+    "2 rules"
+  );
   await wrapper.get("[data-advanced-join]").setValue("or");
   await flushPromises();
   expect(list.mock.lastCall?.[0]).toMatchObject({
@@ -336,7 +352,8 @@ it("uses French defaults and the filter menu's translation keys", async () => {
   await wrapper.get("[data-filter-button]").trigger("click");
   await flushPromises();
   expect(
-    wrapper.get<HTMLInputElement>("[data-filter-property-picker] input").element.placeholder
+    wrapper.get<HTMLInputElement>("[data-filter-property-picker] input").element
+      .placeholder
   ).toBe("Filtrer par…");
   await pick(wrapper, "amount");
   await wrapper.get("[data-filter-operator]").trigger("click");
@@ -400,7 +417,11 @@ it("opens the requested column's filter from its header without filtering", asyn
   await filterAction.trigger("click");
   await new Promise((resolve) => setTimeout(resolve, 10));
   await flushPromises();
-  expect(wrapper.get('[data-filter-chip="amount"]').attributes("data-complete")).toBe("false");
-  expect(wrapper.find('[data-filter-rule="amount"] [data-filter-input]').exists()).toBe(true);
+  expect(
+    wrapper.get('[data-filter-chip="amount"]').attributes("data-complete")
+  ).toBe("false");
+  expect(
+    wrapper.find('[data-filter-rule="amount"] [data-filter-input]').exists()
+  ).toBe(true);
   expect(list).toHaveBeenCalledTimes(requests);
 });

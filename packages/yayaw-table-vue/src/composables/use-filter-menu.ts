@@ -1,4 +1,4 @@
-import { computed, type ComputedRef, type Ref, ref } from "vue";
+import { type ComputedRef, computed, type Ref, ref } from "vue";
 import { normalizeDateFilterRule } from "../date-filter-days";
 import { filterBarColumns } from "../filter-bar";
 import { filterType } from "../filter-config";
@@ -58,11 +58,15 @@ export interface FilterMenuStore {
   typeOf: (column: ColumnDefinition | undefined) => FilterMenuType;
   /** The file tree's parent column, filtered with a folder picker. */
   isFolderColumn: (column: ColumnDefinition | undefined) => boolean;
-  menuColumn: (column: ColumnDefinition, labels: { yes: string; no: string }) => FilterMenuColumn;
+  menuColumn: (
+    column: ColumnDefinition,
+    labels: { yes: string; no: string }
+  ) => FilterMenuColumn;
 }
 
 const newId = (): string =>
-  globalThis.crypto?.randomUUID?.() ?? `rule-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  globalThis.crypto?.randomUUID?.() ??
+  `rule-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 export function createFilterMenuStore({
   config,
@@ -80,10 +84,15 @@ export function createFilterMenuStore({
   const periodOpen = ref<string>();
   const pinnedDates = computed(() => [
     ...new Set([
-      ...filterBarColumns(config.columns.definitions, config.table.filterBarColumns)
+      ...filterBarColumns(
+        config.columns.definitions,
+        config.table.filterBarColumns
+      )
         .filter((column) => column.type === "date")
         .map((column) => column.id),
-      ...(config.table.toolbarDateFilter ? [config.table.toolbarDateFilter] : []),
+      ...(config.table.toolbarDateFilter
+        ? [config.table.toolbarDateFilter]
+        : []),
     ]),
   ]);
   const columns = computed(() =>
@@ -105,8 +114,15 @@ export function createFilterMenuStore({
     const column = columnId
       ? columns.value.find((item) => item.id === columnId)
       : columns.value[0];
-    if (!column) return;
-    if (open && pinnedDates.value.includes(column.id) && !advanced.value && state.value.joinOperator !== "or") {
+    if (!column) {
+      return;
+    }
+    if (
+      open &&
+      pinnedDates.value.includes(column.id) &&
+      !advanced.value &&
+      state.value.joinOperator !== "or"
+    ) {
       periodOpen.value = column.id;
       return;
     }
@@ -115,14 +131,21 @@ export function createFilterMenuStore({
       id: newId(),
       columnId: column.id,
       type,
-      operator: (isFolderColumn(column) ? "isAnyOf" : defaultFilterOperator(type)) as AdvancedFilterOperator,
+      operator: (isFolderColumn(column)
+        ? "isAnyOf"
+        : defaultFilterOperator(type)) as AdvancedFilterOperator,
       values: undefined,
       isActive: true,
     };
     drafts.value = [...drafts.value, rule];
-    if (!open) return rule;
-    if (advanced.value || state.value.joinOperator === "or") advancedOpen.value = true;
-    else openId.value = rule.id;
+    if (!open) {
+      return rule;
+    }
+    if (advanced.value || state.value.joinOperator === "or") {
+      advancedOpen.value = true;
+    } else {
+      openId.value = rule.id;
+    }
     return rule;
   };
   const update = (edited: AdvancedFilter): void => {
@@ -135,14 +158,19 @@ export function createFilterMenuStore({
       state.value = {
         ...state.value,
         filters: saved
-          ? state.value.filters.map((item) => (item.id === rule.id ? rule : item))
+          ? state.value.filters.map((item) =>
+              item.id === rule.id ? rule : item
+            )
           : [...state.value.filters, rule],
       };
       return;
     }
     // An emptied rule stops filtering but stays on screen until removed.
     if (saved) {
-      state.value = { ...state.value, filters: state.value.filters.filter((item) => item.id !== rule.id) };
+      state.value = {
+        ...state.value,
+        filters: state.value.filters.filter((item) => item.id !== rule.id),
+      };
     }
     drafts.value = drafts.value.some((item) => item.id === rule.id)
       ? drafts.value.map((item) => (item.id === rule.id ? rule : item))
@@ -151,9 +179,14 @@ export function createFilterMenuStore({
   const remove = (id: string): void => {
     drafts.value = drafts.value.filter((item) => item.id !== id);
     if (state.value.filters.some((item) => item.id === id)) {
-      state.value = { ...state.value, filters: state.value.filters.filter((item) => item.id !== id) };
+      state.value = {
+        ...state.value,
+        filters: state.value.filters.filter((item) => item.id !== id),
+      };
     }
-    if (openId.value === id) openId.value = undefined;
+    if (openId.value === id) {
+      openId.value = undefined;
+    }
     if (!rules.value.length) {
       advanced.value = false;
       advancedOpen.value = false;
@@ -165,7 +198,9 @@ export function createFilterMenuStore({
   const openAdvanced = (): void => {
     advanced.value = true;
     openId.value = undefined;
-    if (!rules.value.length) add(undefined, false);
+    if (!rules.value.length) {
+      add(undefined, false);
+    }
     advancedOpen.value = true;
   };
   const clear = (keep: readonly string[] = []): void => {
@@ -179,7 +214,10 @@ export function createFilterMenuStore({
     advancedOpen.value = false;
     openId.value = undefined;
   };
-  const menuColumn = (column: ColumnDefinition, labels: { yes: string; no: string }): FilterMenuColumn => ({
+  const menuColumn = (
+    column: ColumnDefinition,
+    labels: { yes: string; no: string }
+  ): FilterMenuColumn => ({
     id: column.id,
     header: column.header,
     type: typeOf(column),
