@@ -908,23 +908,22 @@ it("changes the current view's display mode from the view menu and marks the vie
     active: "mine",
   });
   await openViewsMenu(wrapper);
-  const mode = () =>
+  const tile = (name: string) =>
+    wrapper
+      .findAll(".yayaw-view-write-actions .yayaw-layout-tile")
+      .find((item) => item.text() === name);
+  const pressed = () =>
     wrapper.get(
-      '.yayaw-view-write-actions [role="combobox"][aria-label="Display mode"]'
+      '.yayaw-view-write-actions .yayaw-layout-tile[aria-pressed="true"]'
     );
-  expect(mode().text()).toContain("Gallery");
+  expect(pressed().text()).toBe("Gallery");
   expect(
     wrapper.get('[aria-label="Save changes"]').attributes("aria-disabled")
   ).toBe("true");
 
-  await mode().trigger("keydown", { key: "Enter" });
+  await tile("Table")?.trigger("click");
   await flushPromises();
-  const table = body()
-    .findAll('[role="option"]')
-    .find((item) => item.text() === "Table");
-  await table?.trigger("keydown", { key: "Enter" });
-  await flushPromises();
-  expect(mode().text()).toContain("Table");
+  expect(pressed().text()).toBe("Table");
   // Like any other setting: the view is modified until "Save changes" keeps it.
   expect(
     wrapper.get('[aria-label="Save changes"]').attributes("aria-disabled")

@@ -1889,9 +1889,10 @@ layout.
 Both editions resolve `rowClickMode: "default"` the same way: the edit form
 with `enableRowClickEdit`, the link of a row-link column, otherwise the record
 view (`onOpenDetails`, else the built-in details derived from the columns).
-`details: false` removes the built-in view. The view menu offers display modes
-in a select (React Base UI Select, Vue `TableSelect`); compact toolbars and
-touch drawers keep the wrapping buttons. The create button reads the
+`details: false` removes the built-in view. The view menu and the view settings
+offer display modes as layout tiles, as Notion's layout picker: three per row,
+the mode's icon over its name, the current one marked (`aria-pressed`), on every
+screen size (React `TableDisplayModeSwitcher`, Vue `LayoutPicker`). The create button reads the
 `add_an_item` key in both editions.
 
 ## View tabs

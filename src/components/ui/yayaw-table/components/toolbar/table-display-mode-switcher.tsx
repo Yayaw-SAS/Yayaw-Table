@@ -14,18 +14,8 @@ import {
   type LucideIcon,
   Table2,
 } from "lucide-react";
-import { useId } from "react";
-import { useStackMenu } from "@/components/ui/custom/stack-menu";
 import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/src/components/ui/select";
-import { useIsMobile } from "../../hooks/use-mobile";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
 import { useTranslations } from "../../providers/table-provider";
 import type { TableDisplayMode } from "../../types/display-types";
@@ -62,9 +52,6 @@ export function TableDisplayModeSwitcher({
   tableId,
 }: TableDisplayModeSwitcherProps) {
   const { t } = useTranslations();
-  const id = useId();
-  const isMobile = useIsMobile();
-  const { compact } = useStackMenu();
   const { displayModeParam, setDisplayModeFromUI } = useTableUrlState({
     defaultDisplayMode,
     tableId,
@@ -81,49 +68,10 @@ export function TableDisplayModeSwitcher({
     return null;
   }
 
-  // A menu scales with the number of modes; touch drawers keep the buttons.
-  if (!(isMobile || compact)) {
-    const options = uniqueModes.map((mode) => ({
-      value: mode,
-      label: t(`views.display.${mode}`),
-    }));
-    return (
-      <div className={cn("grid min-w-0 gap-1.5", className)}>
-        <label className="text-muted-foreground text-sm" htmlFor={id}>
-          {t("views.display.title")}
-        </label>
-        <Select
-          items={options}
-          onValueChange={(value) => {
-            if (value !== null) {
-              setDisplayModeFromUI(value);
-            }
-          }}
-          value={activeMode}
-        >
-          <SelectTrigger
-            aria-label={t("views.display.title")}
-            className="w-full min-w-0 font-normal"
-            id={id}
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent align="start" alignItemWithTrigger={false}>
-            {options.map(({ value, label }) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    );
-  }
-
   return (
-    // Three columns keep every layout readable in a phone-width drawer.
-    <fieldset className={cn("grid grid-cols-3 gap-1", className)}>
-      <legend className="col-span-3 mb-1 text-muted-foreground text-sm">
+    // Layout tiles as Notion offers them: icon over name, three per row, the current one marked.
+    <fieldset className={cn("m-0 grid min-w-0 grid-cols-3 gap-1.5 border-0 p-0", className)}>
+      <legend className="col-span-3 mb-1 text-muted-foreground text-xs">
         {t("views.display.title")}
       </legend>
       {uniqueModes.map((mode) => {
@@ -134,15 +82,18 @@ export function TableDisplayModeSwitcher({
         return (
           <Button
             aria-pressed={isActive}
-            className="min-w-0 gap-1.5 px-2 font-normal"
+            className={cn(
+              "h-16 min-w-0 flex-col gap-1.5 px-1 font-normal text-xs",
+              isActive && "font-semibold ring-1 ring-primary"
+            )}
+            data-layout={mode}
             key={mode}
             onClick={() => setDisplayModeFromUI(mode)}
-            size="sm"
             type="button"
-            variant={isActive ? "secondary" : "ghost"}
+            variant="outline"
           >
-            <Icon aria-hidden="true" className="size-4" />
-            <span>{label}</span>
+            <Icon aria-hidden="true" className="size-5" />
+            <span className="max-w-full truncate">{label}</span>
           </Button>
         );
       })}

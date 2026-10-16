@@ -73,7 +73,7 @@ it("keeps labelled display choices keyboard accessible and preserves pressed sta
   }
 });
 
-it("offers display modes in a labelled menu on wider screens", async () => {
+it("offers display modes as labelled layout tiles on wider screens", async () => {
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
@@ -97,10 +97,16 @@ it("offers display modes in a labelled menu on wider screens", async () => {
         </NuqsTestingAdapter>
       )
     );
-    const trigger = container.querySelector<HTMLElement>('[role="combobox"]');
-    expect(trigger?.getAttribute("aria-label")).toBe("Display mode");
-    expect(trigger?.textContent).toContain("Table");
-    expect(container.querySelector("fieldset")).toBeNull();
+    const group = container.querySelector("fieldset");
+    expect(group?.querySelector("legend")?.textContent).toBe("Display mode");
+    const tiles = [...container.querySelectorAll<HTMLElement>("[data-layout]")];
+    expect(tiles.map((tile) => tile.dataset.layout)).toEqual([
+      "table",
+      "kanban",
+      "gallery",
+      "calendar",
+    ]);
+    expect(tiles[0]?.getAttribute("aria-pressed")).toBe("true");
   } finally {
     await act(() => root.unmount());
     container.remove();

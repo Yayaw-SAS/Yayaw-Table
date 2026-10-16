@@ -6,8 +6,7 @@ import { areViewSettingsEqual, availableDisplayModes } from "../../view-menu";
 import { resolveViewTabs } from "../../view-tabs";
 import TableSelect from "../controls/TableSelect.vue";
 import ViewTabs from "./ViewTabs.vue";
-import MenuChoiceList from "./MenuChoiceList.vue";
-import { displayModeIcons } from "./display-mode-icons";
+import LayoutPicker from "./LayoutPicker.vue";
 import { computed, ref, useId } from "vue";
 import { useSavedViews } from "../../composables/use-saved-views";
 import type { TableDisplayMode, TableView } from "../../types";
@@ -133,12 +132,7 @@ defineExpose({ activeName: computed(() => active.value?.name) });
           </button>
         </div>
         <div class="yayaw-view-write-actions">
-          <div v-if="layoutOptions.length > 1 && !compact" class="yayaw-display-mode-select">
-            <TableSelect v-model="displayMode" :label="label('views.display.title', 'displayMode')" :options="layoutOptions" :disabled="busy" />
-          </div>
-          <MenuChoiceList v-else-if="layoutOptions.length > 1" :label="label('views.display.title', 'displayMode')" :model-value="displayMode"
-            :options="layoutOptions.map((option) => ({ ...option, icon: displayModeIcons[option.value] }))"
-            @update:model-value="(mode) => (displayMode = mode as TableDisplayMode)" />
+          <LayoutPicker v-if="layoutOptions.length > 1" v-model="displayMode" :label="label('views.display.title', 'displayMode')" :modes="layoutOptions" :disabled="busy" />
           <TableTooltip v-if="viewEnabled && active && context.config.table.allowViewSave" :label="!editable ? label('views.readOnly', 'views.readOnly') : !dirty ? label('views.upToDate', 'views.upToDate') : label('views.saveChangesTooltip', 'updateViewTooltip')">
             <button type="button" class="yayaw-view-menu-item" :aria-label="label('views.saveChanges', 'updateView')" :aria-disabled="busy || !editable || !dirty" @click="!busy && editable && dirty && update()">
               <Save :size="16" aria-hidden="true" /><span>{{ label('views.saveChanges', 'updateView') }}

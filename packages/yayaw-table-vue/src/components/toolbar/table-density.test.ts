@@ -91,10 +91,10 @@ it("uses the configured density, updates only its instance and retains it across
 
   // Non-compact toolbars drive the display mode through a `TableSelect`
   // rather than the segmented `fieldset` buttons (compact toolbars only).
-  await chooseDisplayMode(wrapper, "Galerie", "Mode d’affichage");
+  await chooseDisplayMode(wrapper, "Galerie");
   await settle();
   expect(wrapper.find(".yayaw-density-inline").exists()).toBe(false);
-  await chooseDisplayMode(wrapper, "Tableau", "Mode d’affichage");
+  await chooseDisplayMode(wrapper, "Tableau");
   await settle();
   expect(wrapper.get(".yayaw-table").attributes("data-density")).toBe(
     "extra-small"
@@ -163,8 +163,8 @@ it("names the density choices directly in the view menu without requiring a tool
   ).toBeUndefined();
 });
 
-it("offers display choices as a labelled radio list in touch drawers", async () => {
-  // Compact toolbars list the layout as a row that opens its choices.
+it("offers display choices as layout tiles in touch drawers", async () => {
+  // Compact toolbars show the same layout tiles at the top of their settings.
   vi.stubGlobal(
     "matchMedia",
     vi.fn(() => ({
@@ -176,31 +176,16 @@ it("offers display choices as a labelled radio list in touch drawers", async () 
   const wrapper = mountTable();
   await openViewMenu(wrapper);
   // A compact toolbar renders its settings dialog through a `DialogPortal`.
-  const row = body()
-    .findAll(".yayaw-options-item")
-    .find((item) => item.text().startsWith("Mode d’affichage"));
-  if (!row) {
-    throw new Error("Missing display mode row");
-  }
-  await row.trigger("click");
-  await settle();
-  const group = body().get("fieldset.yayaw-choice-list");
+  const group = body().get("fieldset.yayaw-layout-picker");
   expect(group.get("legend").text()).toBe("Mode d’affichage");
-  const radios = group.findAll<HTMLInputElement>('input[type="radio"]');
-  expect(radios).toHaveLength(2);
-  expect(radios[0]?.element.checked).toBe(true);
-  for (const radio of radios) {
-    radio.element.focus();
-    await settle();
-    expect(document.activeElement).toBe(radio.element);
-    await radio.setValue(true);
-    await settle();
-    expect(
-      body()
-        .findAll<HTMLInputElement>(
-          'fieldset.yayaw-choice-list input[type="radio"]'
-        )
-        .filter((input) => input.element.checked)
-    ).toHaveLength(1);
-  }
+  const tiles = group.findAll("button.yayaw-layout-tile");
+  expect(tiles).toHaveLength(2);
+  expect(tiles[0]?.attributes("aria-pressed")).toBe("true");
+  await tiles[1]?.trigger("click");
+  await settle();
+  const pressed = body().findAll(
+    'fieldset.yayaw-layout-picker button[aria-pressed="true"]'
+  );
+  expect(pressed).toHaveLength(1);
+  expect(pressed[0]?.text()).toBe(tiles[1]?.text());
 });

@@ -324,9 +324,10 @@ it("changes the current view's display mode from the view menu and marks the vie
   await openViewMenu();
   expect(button("Save changes").getAttribute("aria-disabled")).toBe("true");
   expect(
-    document.querySelector('[role="combobox"][aria-label="Display mode"]')
-      ?.textContent
-  ).toContain("Gallery");
+    document
+      .querySelector('fieldset button[aria-pressed="true"]')
+      ?.textContent?.trim()
+  ).toBe("Gallery");
 });
 
 it("offers the display mode as buttons in the view menu on touch screens", async () => {

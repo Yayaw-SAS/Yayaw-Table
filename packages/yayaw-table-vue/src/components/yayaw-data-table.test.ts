@@ -150,8 +150,7 @@ describe("YayawDataTable", () => {
         },
       },
     });
-    // Non-compact toolbars offer display modes through a `TableSelect`
-    // instead of the segmented `fieldset` buttons.
+    // The view settings offer display modes as layout tiles.
     await chooseDisplayMode(wrapper, "Kanban");
     expect(wrapper.find(".yayaw-kanban").exists()).toBe(true);
     await chooseDisplayMode(wrapper, "Gallery");
@@ -672,8 +671,7 @@ describe("YayawDataTable", () => {
     expect(wrapper.find(".yayaw-inline-editor").exists()).toBe(false);
     await wrapper.get("tbody tr").trigger("click");
     expect(wrapper.find(".yayaw-dialog-backdrop").exists()).toBe(false);
-    // Non-compact toolbars offer display modes through a `TableSelect`
-    // instead of the segmented `fieldset` buttons.
+    // The view settings offer display modes as layout tiles.
     await chooseDisplayMode(wrapper, "Kanban");
     expect(wrapper.get(".yayaw-kanban-card").attributes("draggable")).toBe(
       "false"
