@@ -13,6 +13,7 @@ import {
   DATE_PRESET_ROWS,
   type DateRuleMode,
   dateRuleMode,
+  filterDayText,
   filterMenuText,
   type FilterMenuTextKey,
   filterPeriodSentence,
@@ -84,9 +85,7 @@ const sentence = computed(() =>
 );
 const rangeSentence = computed(() => {
   if (mode.value !== "range" || !(day(0) && day(1))) return "";
-  const start = filterPeriodSentence(day(0), context.locale, translate);
-  const end = filterPeriodSentence(day(1), context.locale, translate);
-  return `${start} → ${end}`;
+  return text("period").replace("{start}", filterDayText(day(0), context.locale)).replace("{end}", filterDayText(day(1), context.locale));
 });
 </script>
 

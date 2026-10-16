@@ -6,7 +6,7 @@ import {
 } from "@vue/test-utils";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { computed, reactive } from "vue";
-import { inlineTestPortals, openViewMenu } from "../../tests/menu-helpers";
+import { inlineTestPortals } from "../../tests/menu-helpers";
 import { defineTableConfig } from "../config";
 import { type TableContextValue, tableContextKey } from "../context";
 import { createTranslations } from "../translations";

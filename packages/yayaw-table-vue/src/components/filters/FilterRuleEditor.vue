@@ -13,7 +13,7 @@ import {
 import type { AdvancedFilter } from "../../types";
 import FilterValueEditor from "./FilterValueEditor.vue";
 
-/** A chip's editor, as in Notion: the property, its operator, ⋯, then the value. */
+/** A chip's editor, as in Notion: the property, its operator, more actions, then the value. */
 const props = defineProps<{ rule: AdvancedFilter; autofocus?: boolean }>();
 const emit = defineEmits<{ update: [rule: AdvancedFilter]; remove: []; advanced: [] }>();
 const context = useTableContext();
@@ -52,7 +52,7 @@ const pickOperator = (operator: string): void =>
       </DropdownMenuRoot>
       <DropdownMenuRoot :modal="false">
         <DropdownMenuTrigger as-child>
-          <button type="button" class="yayaw-icon-button yayaw-rule-more" :aria-label="`${column?.header ?? rule.columnId}: ⋯`"><MoreHorizontal :size="16" aria-hidden="true" /></button>
+          <button type="button" class="yayaw-icon-button yayaw-rule-more" :aria-label="`${column?.header ?? rule.columnId}: ${text('more')}`"><MoreHorizontal :size="16" aria-hidden="true" /></button>
         </DropdownMenuTrigger>
         <DropdownMenuPortal>
           <DropdownMenuContent class="yayaw-column-menu yayaw-filter-menu-layer" align="end" :side-offset="4">
