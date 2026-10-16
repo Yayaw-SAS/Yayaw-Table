@@ -394,6 +394,21 @@ const handleDataTableRowClick = <TData,>({
  * (a planning row starts open, a group starts closed), so their keys stay distinct.
  */
 const planningExpansionKey = (rowId: string): string => `planning:${rowId}`;
+/** The task dialog edits dates, parents and dependencies: a read-only planning gets no button to open it. */
+const isPlanningEditable = (
+  config:
+    | {
+        allowDateEdit?: boolean;
+        allowDependencyEdit?: boolean;
+        allowHierarchyEdit?: boolean;
+      }
+    | undefined
+): boolean =>
+  Boolean(
+    config?.allowDateEdit ||
+      config?.allowHierarchyEdit ||
+      config?.allowDependencyEdit
+  );
 
 function resolveActiveDisplayMode({
   defaultDisplayMode,
@@ -1503,13 +1518,8 @@ function ModernDataTable<
     tableId: tableId || "",
   });
   const { session: planningSession, state: planningState } = usePlanningState();
-  // The task dialog edits dates, parents and dependencies: a read-only planning gets no button to open it.
-  const planningEditable = Boolean(
-    planningSession &&
-      (planningSession.config.allowDateEdit ||
-        planningSession.config.allowHierarchyEdit ||
-        planningSession.config.allowDependencyEdit)
-  );
+  const planningEditable = isPlanningEditable(planningSession?.config);
+
   const configuredDisplayModes = useMemo(
     () =>
       availableDisplayModes(tableConfig.table.displayModes, {
