@@ -607,7 +607,7 @@ export interface TableBehaviorConfig
   showToolbarHeader: boolean;
 
   /** Show an icon in the toolbar to clear filters and global search. */
-  /** Ordered static-option/boolean columns shown in the optional filter bar. */
+  /** Ordered static-option, boolean or date (a period) columns shown in the optional filter bar. */
   filterBarColumns?: string[];
   /** Show the filter bar by default; a component prop can override this. */
   showFilterBar?: boolean;

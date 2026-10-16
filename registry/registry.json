@@ -428,6 +428,11 @@
           "target": "components/ui/yayaw-table/components/filters/enhanced-filter-chip.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/filters/filter-bar-date.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/filters/filter-bar-date.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/filters/filter-presets-panel.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/filters/filter-presets-panel.tsx"
