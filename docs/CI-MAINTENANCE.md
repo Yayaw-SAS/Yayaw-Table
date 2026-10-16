@@ -32,16 +32,31 @@ GitHub-hosted Ubuntu runners; no Coolify host upgrade is needed for this change.
 ## Validate once, publish the same artifact
 
 `CI tests` runs only for opened, updated, or reopened PRs targeting `main`.
-It checks out the explicit PR head, cancels superseded runs for that PR, and
-keeps one `test-and-typecheck` job with a 35-minute timeout. Node 24 and
-Bun 1.4.2 (the version observed in successful runs) are explicit. The job
-retains Changeset validation, TypeScript, React tests, the intentional
-repeated-menu stability regression, Vue tests, the Playwright end-to-end
-suites in both editions (after installing Chromium), the Vue package build,
-and registry/example generation. The menu reruns detect lifecycle instability and are not redundant
-quality jobs.
+It checks out the explicit PR head and cancels superseded runs for that PR.
+Node 24 and Bun 1.4.2 are explicit. The checks run as parallel jobs, so the
+slowest one sets the run's duration rather than their sum:
 
-The job builds `dist/registry-pages` once, validates it, and uploads the Pages
+| Job | Runs |
+| --- | --- |
+| `quality` | CI release guards, changesets, lint, TypeScript, the Vue package build, the registry/example build and the Pages artifact |
+| `unit (react)` | React tests, then the intentional repeated-menu stability regression (lifecycle instability, not a redundant job) |
+| `unit (vue)` | Vue tests |
+| `e2e (n/4)` | One quarter of the Playwright suites, in both editions |
+| `test-and-typecheck` | The single required check: fails unless every job above passed |
+
+The end-to-end shards run against built examples (`bun run e2e:build`, served
+by `vite preview` when `E2E_STATIC` is set), never against dev servers: a dev
+server compiling on demand under the parallel suite could stop answering
+mid-run and turn every remaining test of its edition into a 30-second timeout.
+Shards do not cancel each other (`fail-fast: false`), so a red shard can be
+rerun alone with **Re-run failed jobs**. The Chromium download is cached per
+Playwright version; its system packages are still installed on each runner.
+
+`quality` keeps its name and its artifact; the Pages guard reads only
+`test-and-typecheck` and that artifact, so splitting jobs does not change
+publication.
+
+The `quality` job builds `dist/registry-pages` once, validates it, and uploads the Pages
 tarball as `registry-pages-<PR head SHA>-<run attempt>-<status>` for 30 days.
 The status is `versioned` only when all five generated registry files match
 the committed snapshot byte for byte and the root package, Vue package and

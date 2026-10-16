@@ -4,6 +4,18 @@ import { defineConfig, devices } from "@playwright/test";
 const REACT_PORT = Number(process.env.E2E_REACT_PORT ?? 5186);
 const VUE_PORT = Number(process.env.E2E_VUE_PORT ?? 5187);
 const ci = Boolean(process.env.CI);
+// CI serves the prebuilt examples (`bun run e2e:build`): a static server answers
+// at once and never recompiles or re-optimizes dependencies mid-run, which a
+// dev server under a full parallel suite did and then stopped answering.
+const staticBuild = Boolean(process.env.E2E_STATIC);
+const SERVER_TIMEOUT = 120_000;
+
+const reactServer = staticBuild
+  ? `bunx vite preview --config examples/record-presentation-preview/vite.config.mjs --outDir ../../dist/e2e/react --host 127.0.0.1 --port ${REACT_PORT} --strictPort`
+  : `bun run records:dev --port ${REACT_PORT} --strictPort`;
+const vueServer = staticBuild
+  ? `bunx vite preview --config vite.demo.config.ts --base / --outDir ../../dist/e2e/vue --host 127.0.0.1 --port ${VUE_PORT} --strictPort`
+  : `bun run dev --host 127.0.0.1 --port ${VUE_PORT} --strictPort`;
 
 /** One suite runs against both editions so their observable behavior stays aligned. */
 export default defineConfig({
@@ -31,15 +43,17 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: `bun run records:dev --port ${REACT_PORT} --strictPort`,
+      command: reactServer,
       url: `http://127.0.0.1:${REACT_PORT}`,
       reuseExistingServer: !ci,
+      timeout: SERVER_TIMEOUT,
     },
     {
-      command: `bun run dev --host 127.0.0.1 --port ${VUE_PORT} --strictPort`,
+      command: vueServer,
       cwd: "packages/yayaw-table-vue",
       url: `http://127.0.0.1:${VUE_PORT}`,
       reuseExistingServer: !ci,
+      timeout: SERVER_TIMEOUT,
     },
   ],
 });
