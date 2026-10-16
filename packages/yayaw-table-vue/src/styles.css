@@ -6981,15 +6981,22 @@
   background: var(--yayaw-filter-accent-soft);
   color: var(--yayaw-filter-accent);
 }
+.yayaw-filter-button {
+  position: relative;
+}
+/* The rule count sits on the funnel's corner, as on the facets toggle. */
 .yayaw-filter-button-count {
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 9px;
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
   background: var(--yayaw-filter-accent);
   color: var(--yayaw-background);
-  font-size: 11px;
-  line-height: 18px;
+  font-size: 10px;
+  line-height: 16px;
   text-align: center;
   font-variant-numeric: tabular-nums;
 }

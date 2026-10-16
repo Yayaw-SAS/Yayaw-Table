@@ -9,6 +9,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { filterMenuRequestAtom } from "../../../atoms/table-atoms";
 import type { FilterMenu } from "../../../hooks/use-filter-menu";
 import { FILTER_POPOVER } from "./filter-chip";
@@ -43,21 +44,21 @@ export function FilterButton({
         render={
           <Button
             aria-label={label}
-            className="relative"
+            className={cn("relative", compact && "size-11")}
             data-active={count > 0}
             data-filter-button=""
-            size={compact ? "icon" : "default"}
+            size="icon"
+            title={label}
             type="button"
             variant="outline"
           />
         }
       >
-        <ListFilter aria-hidden="true" />
-        {!compact && <span>{label}</span>}
+        <ListFilter aria-hidden="true" className="size-4" />
         {count > 0 && (
           <span
             aria-hidden="true"
-            className="inline-flex min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] text-white leading-4"
+            className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-blue-600 text-[10px] text-white"
             data-filter-count=""
           >
             {count}

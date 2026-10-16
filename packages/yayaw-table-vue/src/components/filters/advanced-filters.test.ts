@@ -348,7 +348,9 @@ it("uses French defaults and the filter menu's translation keys", async () => {
       "filters.menu.operators.between": "Intervalle",
     },
   });
-  expect(wrapper.get("[data-filter-button]").text()).toBe("Filtre");
+  expect(wrapper.get("[data-filter-button]").attributes("aria-label")).toBe(
+    "Filtre"
+  );
   await wrapper.get("[data-filter-button]").trigger("click");
   await flushPromises();
   expect(

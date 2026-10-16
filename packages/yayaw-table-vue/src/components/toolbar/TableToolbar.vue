@@ -771,9 +771,8 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
     <PopoverRoot v-if="filterButton" v-model:open="filterPickerOpen">
       <TableTooltip :label="filterMenuText('filter', context.locale, menuTranslate)">
         <PopoverTrigger as-child>
-          <button ref="filterTrigger" type="button" class="yayaw-button yayaw-button-outline yayaw-filter-button" :class="{ 'yayaw-icon-only': compact }" :data-active="activeRuleCount > 0" :aria-label="filterMenuText('filter', context.locale, menuTranslate)" data-filter-button="">
+          <button ref="filterTrigger" type="button" class="yayaw-button yayaw-button-outline yayaw-icon-only yayaw-filter-button" :data-active="activeRuleCount > 0" :aria-label="filterMenuText('filter', context.locale, menuTranslate)" data-filter-button="">
             <ListFilter :size="16" aria-hidden="true" />
-            <span v-if="!compact">{{ filterMenuText('filter', context.locale, menuTranslate) }}</span>
             <span v-if="activeRuleCount" class="yayaw-filter-button-count" aria-hidden="true">{{ activeRuleCount }}</span>
           </button>
         </PopoverTrigger>
