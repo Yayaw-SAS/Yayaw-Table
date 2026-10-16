@@ -381,6 +381,21 @@ const handleDataTableRowClick = <TData,>({
  * (a planning row starts open, a group starts closed), so their keys stay distinct.
  */
 const planningExpansionKey = (rowId: string): string => `planning:${rowId}`;
+/** The task dialog edits dates, parents and dependencies: a read-only planning gets no button to open it. */
+const isPlanningEditable = (
+  config:
+    | {
+        allowDateEdit?: boolean;
+        allowDependencyEdit?: boolean;
+        allowHierarchyEdit?: boolean;
+      }
+    | undefined
+): boolean =>
+  Boolean(
+    config?.allowDateEdit ||
+      config?.allowHierarchyEdit ||
+      config?.allowDependencyEdit
+  );
 
 function resolveActiveDisplayMode({
   defaultDisplayMode,
@@ -1489,6 +1504,8 @@ function ModernDataTable<
     tableId: tableId || "",
   });
   const { session: planningSession, state: planningState } = usePlanningState();
+  const planningEditable = isPlanningEditable(planningSession?.config);
+
   const configuredDisplayModes = useMemo(
     () =>
       availableDisplayModes(tableConfig.table.displayModes, {
@@ -2583,22 +2600,24 @@ function ModernDataTable<
                 </Button>
               )}
               {renderRegularCellContent(row, cell)}
-              <Button
-                aria-label={ganttLabels.planning}
-                className="size-5 shrink-0 text-muted-foreground"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  planningSession.open({
-                    source: planningSession.config.sourceId,
-                    id: getRowId?.(row.original) ?? String(row.original.id),
-                  });
-                }}
-                size="icon"
-                type="button"
-                variant="ghost"
-              >
-                <ChartGantt aria-hidden="true" className="size-4" />
-              </Button>
+              {planningEditable && (
+                <Button
+                  aria-label={ganttLabels.planning}
+                  className="size-5 shrink-0 text-muted-foreground"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    planningSession.open({
+                      source: planningSession.config.sourceId,
+                      id: getRowId?.(row.original) ?? String(row.original.id),
+                    });
+                  }}
+                  size="icon"
+                  type="button"
+                  variant="ghost"
+                >
+                  <ChartGantt aria-hidden="true" className="size-4" />
+                </Button>
+              )}
             </span>
           ) : (
             renderRegularCellContent(row, cell)
@@ -2790,6 +2809,7 @@ function ModernDataTable<
     );
   }, [
     planningSession,
+    planningEditable,
     ganttLabels,
     getRowId,
     commitInlineEdit,
