@@ -1,5 +1,8 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
+/** As in Notion, the "Display mode" row shows the mode and opens the layout tiles. */
+const DISPLAY_MODE_ROW = /^Display mode/;
+
 const EXAMPLE = "/?example=views";
 const DISPLAY_PARAM = "views-display";
 const SEARCH = /^search/i;
@@ -486,10 +489,12 @@ test("an existing view's layout changes from its chevron menu, and Back returns 
   ).toHaveAttribute("aria-selected", "true");
 
   await viewActions.click();
-  await page.getByRole("combobox", { name: "Display mode" }).click();
-  await page.getByRole("option", { name: "Calendar" }).click();
+  // As in Notion, the "Display mode" row opens the layout tiles; Back returns.
+  await page.getByRole("button", { name: DISPLAY_MODE_ROW }).click();
+  await page.getByRole("button", { name: "Calendar", exact: true }).click();
   await expect.poll(() => displayParam(page)).toBe("calendar");
   await expect(page.locator("[data-calendar-title]")).toBeVisible();
+  await page.getByRole("button", { name: "Back" }).click();
   await expect(
     page.getByRole("button", { name: "Save changes" })
   ).not.toHaveAttribute("aria-disabled", "true");

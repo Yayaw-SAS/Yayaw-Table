@@ -30,6 +30,7 @@ const TWO_RULES = [
   },
 ];
 const FEED_MODE = /^feed$/i;
+const DISPLAY_MODE_ROW = /^Display mode/;
 const MODE = {
   gallery: /^gallery$/i,
   kanban: /^kanban$/i,
@@ -42,15 +43,24 @@ const openViewMenu = async (page: Page) => {
   return page.getByRole("dialog", { name: SETTINGS });
 };
 
+/** As in Notion, the "Display mode" row shows the mode and opens the layout tiles. */
 const displayModes = (page: Page) =>
   page
     .getByRole("dialog", { name: SETTINGS })
-    .getByRole("combobox", { name: "Display mode" });
+    .getByRole("button", { name: DISPLAY_MODE_ROW });
 
 const chooseMode = async (page: Page, mode: RegExp) => {
+  const menu = page.getByRole("dialog", { name: SETTINGS });
+  if (await menu.isVisible()) {
+    await page.keyboard.press("Escape");
+    await expect(menu).toBeHidden();
+  }
   await openViewMenu(page);
   await displayModes(page).click();
-  await page.getByRole("option", { name: mode }).click();
+  // The layout screen is titled after the display mode.
+  await page.getByRole("dialog").getByRole("button", { name: mode }).click();
+  // Back to the settings, where the other options are.
+  await page.getByRole("dialog").getByRole("button", { name: "Back" }).click();
 };
 
 const expectMode = async (page: Page, mode: RegExp) => {
@@ -60,9 +70,9 @@ const expectMode = async (page: Page, mode: RegExp) => {
     await expect(menu).toBeHidden();
   }
   await openViewMenu(page);
-  // The trigger may add a chevron glyph after the label.
-  await expect(displayModes(page)).toHaveText(
-    new RegExp(mode.source.replace("$", ""), "i")
+  // The row reads "Display mode" then the current mode.
+  await expect(displayModes(page)).toContainText(
+    new RegExp(mode.source.replace("^", "").replace("$", ""), "i")
   );
   await page.keyboard.press("Escape");
 };

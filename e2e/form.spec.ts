@@ -1,5 +1,8 @@
 import { expect, type Page, test } from "@playwright/test";
 
+/** As in Notion, the "Display mode" row shows the mode and opens the layout tiles. */
+const DISPLAY_MODE_ROW = /^Display mode/;
+
 const EXAMPLE = "/?example=views";
 const STANDALONE = "/?example=form";
 const SETTINGS = "View settings";
@@ -16,8 +19,11 @@ const CONSENT = /^I agree that my request is processed/;
 const chooseMode = async (page: Page, mode: RegExp) => {
   await page.getByRole("button", { name: SETTINGS }).click();
   const menu = page.getByRole("dialog", { name: SETTINGS });
-  await menu.getByRole("combobox", { name: "Display mode" }).click();
-  await page.getByRole("option", { name: mode }).click();
+  await menu.getByRole("button", { name: DISPLAY_MODE_ROW }).click();
+  // The layout screen is titled after the display mode.
+  await page.getByRole("dialog").getByRole("button", { name: mode }).click();
+  // Back to the settings, where the other options are.
+  await page.getByRole("dialog").getByRole("button", { name: "Back" }).click();
   return menu;
 };
 

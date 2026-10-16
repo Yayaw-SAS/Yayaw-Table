@@ -1,7 +1,7 @@
 "use client";
 
 import { useAtom } from "jotai";
-import { LayoutGrid, Rows3 } from "lucide-react";
+import { Rows3 } from "lucide-react";
 import { tableDensityAtom } from "../../atoms/table-atoms";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
 import { useTranslations } from "../../providers/table-provider";
@@ -16,12 +16,16 @@ import {
 } from "../../utils/table-contracts";
 import { getViewModeCapabilities } from "../../utils/view-menu";
 import { MenuChoiceList } from "./menu-choice-list";
-import { DISPLAY_MODE_ICONS } from "./table-display-mode-switcher";
+import {
+  DISPLAY_MODE_ICONS,
+  TableDisplayModeSwitcher,
+} from "./table-display-mode-switcher";
 import type { SettingsScreen } from "./table-menu";
 
 /**
- * Layout and density as rows with their value in touch drawers, each opening
- * a list of choices, so the settings read as one list.
+ * Settings rows that open a screen of their own: the layout on every screen
+ * size (as Notion's "Layout" row opens its tiles) and, in touch drawers, the
+ * density, so the settings read as one list.
  */
 export function useMobileSettingsScreens({
   enabled,
@@ -37,14 +41,11 @@ export function useMobileSettingsScreens({
   tableId: string;
 }): SettingsScreen[] | undefined {
   const { t } = useTranslations();
-  const { displayModeParam, setDisplayModeFromUI } = useTableUrlState({
+  const { displayModeParam } = useTableUrlState({
     defaultDisplayMode,
     tableId,
   });
   const [override, setDensity] = useAtom(tableDensityAtom(tableId));
-  if (!enabled) {
-    return;
-  }
   const modes = resolveDisplayModes(displayModes ?? ["table"]);
   const activeMode = resolveDisplayMode({
     allowed: modes,
@@ -52,32 +53,26 @@ export function useMobileSettingsScreens({
     requested: displayModeParam,
   });
   const density = override ?? defaultDensity;
+  const ActiveIcon = DISPLAY_MODE_ICONS[activeMode];
   const screens: SettingsScreen[] = [];
   if (modes.length > 1) {
     const label = t("views.display.title");
     screens.push({
       id: "layout",
       label,
-      icon: <LayoutGrid className="size-4" />,
+      icon: <ActiveIcon className="size-4" />,
       value: t(`views.display.${activeMode}`),
       content: (
-        <MenuChoiceList
-          label={label}
-          onChange={setDisplayModeFromUI}
-          options={modes.map((mode) => {
-            const Icon = DISPLAY_MODE_ICONS[mode];
-            return {
-              value: mode,
-              label: t(`views.display.${mode}`),
-              icon: <Icon aria-hidden="true" className="size-4 shrink-0" />,
-            };
-          })}
-          value={activeMode}
+        <TableDisplayModeSwitcher
+          className="p-2"
+          defaultDisplayMode={defaultDisplayMode}
+          displayModes={modes}
+          tableId={tableId}
         />
       ),
     });
   }
-  if (getViewModeCapabilities(activeMode).density) {
+  if (enabled && getViewModeCapabilities(activeMode).density) {
     const translated = t("menu.density");
     const label = translated === "menu.density" ? "Table density" : translated;
     screens.push({
@@ -97,5 +92,5 @@ export function useMobileSettingsScreens({
       ),
     });
   }
-  return screens;
+  return screens.length ? screens : undefined;
 }

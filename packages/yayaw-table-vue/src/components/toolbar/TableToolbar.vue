@@ -5,7 +5,6 @@ import {
   FunnelX,
   Database,
   Download,
-  LayoutGrid,
   Link2,
   Plug,
   Rows3,
@@ -95,7 +94,7 @@ import { isManualOrder, MANUAL_ORDER_SORT_ID, manualOrderSorting } from "../../m
 import GallerySettings from "./GallerySettings.vue";
 import ListSettings from "./ListSettings.vue";
 import { displayModeIcons } from "./display-mode-icons";
-import TableSelect from "../controls/TableSelect.vue";
+import LayoutPicker from "./LayoutPicker.vue";
 import DisplayModeRendererSettings from "./DisplayModeRendererSettings.vue";
 import KanbanSettings from "./KanbanSettings.vue";
 import AdvancedFilters from "../filters/AdvancedFilters.vue";
@@ -758,22 +757,16 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
         </TableTooltip>
       </template>
       <div v-if="optionsView === 'main'" ref="optionsRoot">
-        <div v-if="modes.length > 1 && !compact" class="yayaw-display-mode-select">
-          <TableSelect
-            v-model="displayMode"
-            :label="translate('displayMode', 'Display mode')"
-            :options="modes.map((mode) => ({ value: mode, label: translate(`display.${mode}`, mode) }))"
-          />
-        </div>
         <TableDensityMenu v-if="capabilities.density && !compact" inline />
             <div v-if="optionsView === 'main'" class="yayaw-options-list">
-              <!-- Touch drawers read as one list: layout and density open their own choices. -->
+              <!-- Like Notion, the layout opens its tiles in a screen of its own. -->
+              <button v-if="modes.length > 1" type="button" class="yayaw-options-item yayaw-layout-row" @click="optionsView = 'layout'">
+                <span class="yayaw-options-item-icon"><component :is="displayModeIcons[displayMode]" :size="16" aria-hidden="true" /></span>
+                <span class="yayaw-options-item-copy"><span>{{ translate('displayMode', 'Display mode') }}</span></span>
+                <span class="yayaw-options-item-end">{{ translate(`display.${displayMode}`, displayMode) }}<ChevronRight :size="16" aria-hidden="true" /></span>
+              </button>
+              <!-- Touch drawers read as one list: density opens its own choices. -->
               <template v-if="compact">
-                <button v-if="modes.length > 1" type="button" class="yayaw-options-item" @click="optionsView = 'layout'">
-                  <span class="yayaw-options-item-icon"><LayoutGrid :size="16" aria-hidden="true" /></span>
-                  <span class="yayaw-options-item-copy"><span>{{ translate('displayMode', 'Display mode') }}</span></span>
-                  <span class="yayaw-options-item-end">{{ translate(`display.${displayMode}`, displayMode) }}</span>
-                </button>
                 <button v-if="capabilities.density" type="button" class="yayaw-options-item" @click="optionsView = 'density'">
                   <span class="yayaw-options-item-icon"><Rows3 :size="16" aria-hidden="true" /></span>
                   <span class="yayaw-options-item-copy"><span>{{ densityLabel }}</span></span>
@@ -853,15 +846,18 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
                 </span>
                 <span class="yayaw-options-item-end">{{ context.footerCalculationsEditing.value ? translate("editCalculationsOn", "On") : translate("editCalculationsOff", "Off") }}</span>
               </button>
-              <button v-if="['kanban', 'gallery', 'gantt', 'list'].includes(context.state.displayMode.value) || activeRenderer?.settings" type="button" class="yayaw-options-item" @click="optionsView = 'cards'"><List :size="16" /><span>{{ cardSettingsTitle }}</span><ChevronRight :size="16" /></button>
+              <button v-if="['kanban', 'gallery', 'gantt', 'list'].includes(context.state.displayMode.value) || activeRenderer?.settings" type="button" class="yayaw-options-item" @click="optionsView = 'cards'">
+                <span class="yayaw-options-item-icon"><List :size="16" aria-hidden="true" /></span>
+                <span class="yayaw-options-item-copy"><span>{{ cardSettingsTitle }}</span></span>
+                <span class="yayaw-options-item-end"><ChevronRight :size="16" aria-hidden="true" /></span>
+              </button>
             </div>
 
 
       </div>
       <div v-else ref="optionsRoot">
-            <MenuChoiceList v-if="optionsView === 'layout'" :label="translate('displayMode', 'Display mode')" :model-value="displayMode"
-              :options="modes.map((mode) => ({ value: mode, label: translate(`display.${mode}`, mode), icon: displayModeIcons[mode] }))"
-              @update:model-value="(mode) => (displayMode = mode as TableDisplayMode)" />
+            <LayoutPicker v-if="optionsView === 'layout'" v-model="displayMode" :label="translate('displayMode', 'Display mode')"
+              :modes="modes.map((mode) => ({ value: mode, label: translate(`display.${mode}`, mode) }))" />
             <MenuChoiceList v-else-if="optionsView === 'density'" :label="densityLabel" :model-value="context.state.density.value"
               :options="TABLE_DENSITY_OPTIONS.map((option) => ({ value: option.value, label: option.label }))"
               @update:model-value="(density) => (context.state.density.value = density as TableDensity)" />

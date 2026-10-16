@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import TableTooltip from "./TableTooltip.vue";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronDown, LayoutList, CopyPlus, ListRestart, Save, Star, Trash2, Users } from "lucide-vue-next";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronDown, ChevronRight, LayoutList, CopyPlus, ListRestart, Save, Star, Trash2, Users } from "lucide-vue-next";
 import ToolbarMenu from "./ToolbarMenu.vue";
 import { areViewSettingsEqual, availableDisplayModes } from "../../view-menu";
 import { resolveViewTabs } from "../../view-tabs";
 import TableSelect from "../controls/TableSelect.vue";
 import ViewTabs from "./ViewTabs.vue";
-import MenuChoiceList from "./MenuChoiceList.vue";
 import { displayModeIcons } from "./display-mode-icons";
+import LayoutPicker from "./LayoutPicker.vue";
 import { computed, ref, useId } from "vue";
 import { useSavedViews } from "../../composables/use-saved-views";
 import type { TableDisplayMode, TableView } from "../../types";
@@ -79,7 +79,9 @@ const openDialog = (): void => {
   menuChanged(false);
   openSave();
 };
-const menuChanged = (open: boolean): void => { menuOpen.value = open; };
+// Like Notion, the layout tiles open from a row of the menu, in their own screen.
+const layoutOpen = ref(false);
+const menuChanged = (open: boolean): void => { menuOpen.value = open; if (!open) layoutOpen.value = false; };
 // A user's choice: Back returns to the state it replaced.
 const selectView = (view?: TableView) => { select(view, { history: "push" }); menuChanged(false); };
 const focusName = (event: Event): void => {
@@ -99,8 +101,8 @@ defineExpose({ activeName: computed(() => active.value?.name) });
       :views="orderedViews.map((view) => ({ id: view.id, name: view.name, displayMode: view.config.displayMode ?? defaultMode }))"
       :labels="{ tabs: label('views.tabs', 'viewTabs'), more: label('views.more', 'moreViews'), newView: label('views.newView', 'newView'), modified: label('views.modified', 'viewModified') }"
       @select="selectTab" @create="openDialog" />
-    <ToolbarMenu :open="menuOpen" :compact="compact" :title="showTabs ? currentLabel : label('views.tabs', 'viewTabs')"
-      :close-label="label('views.close', 'close')" @update:open="menuChanged">
+    <ToolbarMenu :open="menuOpen" :compact="compact" :title="layoutOpen ? label('views.display.title', 'displayMode') : showTabs ? currentLabel : label('views.tabs', 'viewTabs')"
+      :back="layoutOpen" :back-label="label('back', 'back')" :close-label="label('views.close', 'close')" @back="layoutOpen = false" @update:open="menuChanged">
       <template #trigger>
         <TableTooltip v-if="showTabs" :label="label('views.viewActions', 'viewActions')">
           <button ref="trigger" type="button" class="yayaw-button yayaw-button-ghost yayaw-icon-only yayaw-view-actions" :id="`table-views-${context.config.id}`"
@@ -117,6 +119,8 @@ defineExpose({ activeName: computed(() => active.value?.name) });
           </button>
         </TableTooltip>
       </template>
+        <LayoutPicker v-if="layoutOpen" v-model="displayMode" :label="label('views.display.title', 'displayMode')" :modes="layoutOptions" :disabled="busy" />
+        <template v-else>
         <div v-if="!showTabs" class="yayaw-view-selection">
           <input v-if="views.length > VIEW_FILTER_THRESHOLD" v-model="viewFilter" type="search" class="yayaw-input yayaw-view-filter"
             :placeholder="label('views.filterViews', 'filterViews')" :aria-label="label('views.filterViews', 'filterViews')" />
@@ -133,12 +137,12 @@ defineExpose({ activeName: computed(() => active.value?.name) });
           </button>
         </div>
         <div class="yayaw-view-write-actions">
-          <div v-if="layoutOptions.length > 1 && !compact" class="yayaw-display-mode-select">
-            <TableSelect v-model="displayMode" :label="label('views.display.title', 'displayMode')" :options="layoutOptions" :disabled="busy" />
-          </div>
-          <MenuChoiceList v-else-if="layoutOptions.length > 1" :label="label('views.display.title', 'displayMode')" :model-value="displayMode"
-            :options="layoutOptions.map((option) => ({ ...option, icon: displayModeIcons[option.value] }))"
-            @update:model-value="(mode) => (displayMode = mode as TableDisplayMode)" />
+          <button v-if="layoutOptions.length > 1" type="button" class="yayaw-view-menu-item yayaw-layout-row" :disabled="busy" @click="layoutOpen = true">
+            <component :is="displayModeIcons[displayMode]" :size="16" aria-hidden="true" />
+            <span>{{ label('views.display.title', 'displayMode') }}</span>
+            <span class="yayaw-layout-row-value">{{ layoutOptions.find((option) => option.value === displayMode)?.label }}</span>
+            <ChevronRight :size="16" aria-hidden="true" />
+          </button>
           <TableTooltip v-if="viewEnabled && active && context.config.table.allowViewSave" :label="!editable ? label('views.readOnly', 'views.readOnly') : !dirty ? label('views.upToDate', 'views.upToDate') : label('views.saveChangesTooltip', 'updateViewTooltip')">
             <button type="button" class="yayaw-view-menu-item" :aria-label="label('views.saveChanges', 'updateView')" :aria-disabled="busy || !editable || !dirty" @click="!busy && editable && dirty && update()">
               <Save :size="16" aria-hidden="true" /><span>{{ label('views.saveChanges', 'updateView') }}
@@ -166,6 +170,7 @@ defineExpose({ activeName: computed(() => active.value?.name) });
           </TableTooltip>
           <button v-if="viewEnabled && deletable" type="button" class="yayaw-view-menu-item yayaw-view-menu-danger" :disabled="busy" @click="remove"><Trash2 :size="16" aria-hidden="true" />{{ label('views.delete', 'deleteView') }}</button>
         </div>
+        </template>
     </ToolbarMenu>
     </div>
     <div v-if="loadError" class="yayaw-view-error" role="alert">

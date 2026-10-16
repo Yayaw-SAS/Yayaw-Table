@@ -1,5 +1,8 @@
 import { expect, type Page, test } from "@playwright/test";
 
+/** As in Notion, the "Display mode" row shows the mode and opens the layout tiles. */
+const DISPLAY_MODE_ROW = /^Display mode/;
+
 const EXAMPLE = "/?example=views";
 const SETTINGS_PARAM = "views-feed";
 const CARD_SETTINGS = /^card settings/i;
@@ -42,8 +45,14 @@ test.beforeEach(async ({ page }) => {
 test("the display mode picker switches to the feed", async ({ page }) => {
   await page.getByRole("button", { name: "View settings" }).click();
   const menu = page.getByRole("dialog", { name: "View settings" });
-  await menu.getByRole("combobox", { name: "Display mode" }).click();
-  await page.getByRole("option", { name: FEED_MODE }).click();
+  await menu.getByRole("button", { name: DISPLAY_MODE_ROW }).click();
+  // The layout screen is titled after the display mode.
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: FEED_MODE })
+    .click();
+  // Back to the settings, where the other options are.
+  await page.getByRole("dialog").getByRole("button", { name: "Back" }).click();
   await expect(cards(page).first()).toBeVisible();
   await expect
     .poll(() => new URL(page.url()).searchParams.get("views-display"))

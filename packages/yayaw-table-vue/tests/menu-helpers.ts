@@ -68,26 +68,35 @@ export async function openViewSave(wrapper: VueWrapper): Promise<void> {
 
 export const menuBody = () => new DOMWrapper(document.body);
 
-// In a non-compact toolbar the view menu offers display modes through a
-// `TableSelect` (Reka UI Select) instead of the segmented `fieldset` buttons;
-// compact toolbars still render the buttons. `selectLabel` and `optionLabel`
-// are the translated strings shown for the active locale.
+// Like Notion, the menu's display mode row opens a screen of layout tiles
+// (one button per mode). `optionLabel` is the translated mode name.
 export async function chooseDisplayMode(
   wrapper: VueWrapper,
-  optionLabel: string,
-  selectLabel = "Display mode"
+  optionLabel: string
 ): Promise<void> {
   await openViewMenu(wrapper);
   await flushPromises();
-  const trigger = wrapper.get(`[role="combobox"][aria-label="${selectLabel}"]`);
-  await trigger.trigger("keydown", { key: "Enter" });
-  await flushPromises();
-  const option = menuBody()
-    .findAll('[role="option"]')
-    .find((item) => item.text() === optionLabel);
-  if (!option) {
-    throw new Error(`Missing display mode option: ${optionLabel}`);
+  const inMenu = (selector: string) => [
+    ...wrapper.findAll(selector),
+    ...menuBody().findAll(selector),
+  ];
+  // A menu still open on the layout screen already shows its tiles.
+  if (!inMenu(".yayaw-layout-tile").length) {
+    const row = inMenu(".yayaw-layout-row")[0];
+    if (!row) {
+      throw new Error("Missing display mode row");
+    }
+    await row.trigger("click");
+    await flushPromises();
   }
-  await option.trigger("keydown", { key: "Enter" });
+  // Inline menus render in the wrapper, portalled ones in the document body.
+  const tile = [
+    ...wrapper.findAll(".yayaw-layout-tile"),
+    ...menuBody().findAll(".yayaw-layout-tile"),
+  ].find((item) => item.text() === optionLabel);
+  if (!tile) {
+    throw new Error(`Missing display mode tile: ${optionLabel}`);
+  }
+  await tile.trigger("click");
   await flushPromises();
 }
