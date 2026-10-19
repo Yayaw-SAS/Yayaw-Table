@@ -19,23 +19,20 @@ test("moves a remote card by dragging, then recovers a failed keyboard move", as
     "draggable",
     "false"
   );
-  await expect(
-    page.locator('[data-row-id="2"]').getByRole("button", { name: MOVE_BUTTON })
-  ).toHaveCount(0);
+  await expect(page.getByRole("button", { name: MOVE_BUTTON })).toHaveCount(0);
   await card().getByRole("link").dragTo(lane("done"));
   await expect(lane("working").locator('[data-row-id="1"]')).toBeVisible();
   await expect(lane("done").locator('[data-row-id="1"]')).toHaveCount(0);
   await card().dragTo(lane("done"));
   await expect(lane("done").locator('[data-row-id="1"]')).toBeVisible();
   await expect(lane("working").locator('[data-row-id="1"]')).toHaveCount(0);
-  // The adjacent buttons are available to keyboard and assistive technology users.
-  const move = () =>
-    card().getByRole("button", { name: "Move Record 1 to Waiting" });
-  await move().focus();
-  await page.keyboard.press("Enter");
+  // Keyboard users move the focused card without extra visible controls.
+  await card().focus();
+  await page.keyboard.press("Alt+Shift+ArrowRight");
   await expect(page.getByRole("alert")).toBeVisible();
   await expect(lane("done").locator('[data-row-id="1"]')).toBeVisible();
-  await move().click();
+  await card().focus();
+  await page.keyboard.press("Alt+Shift+ArrowRight");
   await expect(lane("empty").locator('[data-row-id="1"]')).toBeVisible();
   await expect(page.getByRole("alert")).toHaveCount(0);
   expect(errors).toEqual([]);

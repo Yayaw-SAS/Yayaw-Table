@@ -230,7 +230,7 @@ export interface TableKanbanConfig {
   allowDragUpdate?: boolean;
   /**
    * With allowDragUpdate, drag a card from anywhere on it instead of only its
-   * grip handle. The move buttons stay the keyboard path. Defaults to false.
+   * grip handle. Focused cards move with Alt+Shift+Left/Right. Defaults to false.
    */
   dragFromCard?: boolean;
   /**

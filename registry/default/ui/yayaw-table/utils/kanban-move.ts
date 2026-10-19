@@ -74,3 +74,31 @@ export function isKanbanDragControl(target: EventTarget | null): boolean {
     )
   );
 }
+
+/** Keyboard movement is scoped to a focused card, never one of its controls. */
+export function kanbanKeyboardDirection(
+  event: Pick<
+    KeyboardEvent,
+    | "key"
+    | "altKey"
+    | "shiftKey"
+    | "ctrlKey"
+    | "metaKey"
+    | "target"
+    | "currentTarget"
+  >
+): -1 | 0 | 1 {
+  if (
+    event.target !== event.currentTarget ||
+    !event.altKey ||
+    !event.shiftKey ||
+    event.ctrlKey ||
+    event.metaKey
+  ) {
+    return 0;
+  }
+  if (event.key === "ArrowLeft") {
+    return -1;
+  }
+  return event.key === "ArrowRight" ? 1 : 0;
+}

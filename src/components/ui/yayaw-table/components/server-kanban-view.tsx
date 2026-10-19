@@ -1,7 +1,7 @@
 "use client";
-import { ArrowLeft, ArrowRight, GripVertical } from "lucide-react";
-import { isKanbanDragControl } from "../utils/kanban-move";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { GripVertical } from "lucide-react";
+import { isKanbanDragControl, kanbanKeyboardDirection } from "../utils/kanban-move";
+import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { TableCatalogueColumnConfig } from "../hooks/use-table-config";
 import { useLocale, useTranslations } from "../providers/table-provider";
 import {
@@ -94,6 +94,17 @@ export function ServerKanbanView({
   const move = (row: Record<string, unknown>, target: string) => {
     if (canMove(row) && onMoveRow) { session.current?.move(rowId(row), target, onMoveRow); }
   };
+  const keyboardMove = (row: Record<string, unknown>, laneIndex: number, event: KeyboardEvent<HTMLElement>) => {
+    const direction = kanbanKeyboardDirection(event);
+    const target = arranged.visible[laneIndex + direction];
+    if (!direction || !target || !canMove(row) || busy) { return; }
+    event.preventDefault();
+    move(row, target.value);
+  };
+  const cardKeyboardProps = (row: Record<string, unknown>, laneIndex: number) => {
+    if (!canMove(row)) { return {}; }
+    return { tabIndex: 0, "aria-keyshortcuts": "Alt+Shift+ArrowLeft Alt+Shift+ArrowRight", onKeyDown: (event: KeyboardEvent<HTMLElement>) => keyboardMove(row, laneIndex, event) };
+  };
   const drop = (target: string) => {
     const row = state.lanes.flatMap(lane => lane.rows).find(item => rowId(item) === dragged.current);
     dragged.current = undefined;
@@ -124,7 +135,7 @@ export function ServerKanbanView({
       {state.moveError ? <p role="alert">{state.moveError}</p> : null}
       <div className="flex gap-3 overflow-x-auto p-3" data-kanban-board="">
         {arranged.visible.map((lane, laneIndex) => (
-          // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Native drop target; adjacent move buttons provide keyboard access.
+          // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Native drop target; focused cards provide keyboard movement.
           <section
             aria-label={lane.label}
             className="w-72 shrink-0 rounded-md border bg-muted/20 p-3"
@@ -138,9 +149,11 @@ export function ServerKanbanView({
               <span>{lane.totalCount}</span>
             </h3>
             {lane.rows.map((row) => (
-              // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Native draggable card; adjacent move buttons provide keyboard access.
+              // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Native draggable card; focused cards provide keyboard movement.
               <article
                 className="mb-3 rounded-md border bg-background p-3"
+                {...cardKeyboardProps(row, laneIndex)}
+                aria-label={nameOf(row, titleId)}
                 data-row-id={rowId(row)}
                 key={rowId(row)}
                 aria-busy={state.moving === rowId(row) || undefined}
@@ -172,13 +185,7 @@ export function ServerKanbanView({
                   {fieldText(value(row, titleId), columnOf(titleId), locale, row) ||
                     String(row.id ?? "")}
                 </button>
-                {canMove(row) ? <div className="flex gap-1">
-                  {[laneIndex - 1, laneIndex + 1].map(index => {
-                    const target = arranged.visible[index];
-                    return target ? <button key={target.value} type="button" disabled={busy} aria-label={`${translatedOr(t, "views.kanban.move", "Move")} ${nameOf(row, titleId)} ${translatedOr(t, "views.kanban.to", "to")} ${target.label}`} onClick={() => move(row, target.value)}>{index < laneIndex ? <ArrowLeft aria-hidden="true" size={16} /> : <ArrowRight aria-hidden="true" size={16} />}</button> : null;
-                  })}
-                  {!dragFromCard ? <span aria-hidden="true" data-kanban-drag-handle="" className="cursor-grab"><GripVertical size={16} /></span> : null}
-                </div> : null}
+                {canMove(row) && !dragFromCard ? <span aria-hidden="true" data-kanban-drag-handle="" className="cursor-grab"><GripVertical size={16} /></span> : null}
                 <dl>
                   {propertyIds
                     .filter((id) => id !== titleColumn)

@@ -1,5 +1,5 @@
 import { expect, it } from "bun:test";
-import { canMoveKanbanRows, canUpdateKanbanColumn, kanbanMovePatch } from "./kanban-move";
+import { canMoveKanbanRows, canUpdateKanbanColumn, kanbanKeyboardDirection, kanbanMovePatch } from "./kanban-move";
 
 it("allows inline-only moves only on an editable grouping column", () => {
   const inline = { allowEdit: false, allowInlineEdit: true, inlineEdit: { enabled: true } };
@@ -24,4 +24,16 @@ it("requires opt-in, an update action and the configured remote grouping field",
   expect(canMoveKanbanRows(table, {}, "owner", true)).toBe(false);
   expect(canMoveKanbanRows(table, {}, "status", false)).toBe(false);
   expect(canMoveKanbanRows({ ...table, kanban: { allowDragUpdate: false } }, {}, "status", true)).toBe(false);
+});
+
+it("moves only a focused card with the dedicated keyboard shortcut", () => {
+  const target = document.createElement("article");
+  const event = { key: "ArrowRight", altKey: true, shiftKey: true, ctrlKey: false, metaKey: false, target, currentTarget: target };
+  expect(kanbanKeyboardDirection(event)).toBe(1);
+  expect(kanbanKeyboardDirection({ ...event, key: "ArrowLeft" })).toBe(-1);
+  expect(kanbanKeyboardDirection({ ...event, shiftKey: false })).toBe(0);
+  expect(kanbanKeyboardDirection({ ...event, altKey: false })).toBe(0);
+  expect(kanbanKeyboardDirection({ ...event, metaKey: true })).toBe(0);
+  expect(kanbanKeyboardDirection({ ...event, ctrlKey: true })).toBe(0);
+  expect(kanbanKeyboardDirection({ ...event, target: document.createElement("input") })).toBe(0);
 });

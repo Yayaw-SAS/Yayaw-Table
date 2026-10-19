@@ -264,8 +264,8 @@ it("moves Kanban cards without a pointer", async () => {
   });
   await flushPromises();
   await wrapper
-    .get('button[aria-label="Move Alpha to Closed"]')
-    .trigger("click");
+    .get('article[data-row-id="one"]')
+    .trigger("keydown", { key: "ArrowRight", altKey: true, shiftKey: true });
   await flushPromises();
   expect(update).toHaveBeenCalledWith(
     "one",

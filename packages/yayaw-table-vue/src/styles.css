@@ -1820,8 +1820,7 @@
 }
 .yayaw-select-trigger:focus-visible,
 .yayaw-card-control-button:focus-visible,
-.yayaw-checkbox:focus-visible,
-.yayaw-kanban-move-actions button:focus-visible {
+.yayaw-checkbox:focus-visible {
   outline: 2px solid var(--yayaw-primary);
   outline-offset: 2px;
 }
@@ -1979,10 +1978,6 @@
   flex: 1;
   font-size: 14px;
   font-weight: 500;
-}
-.yayaw-kanban-move-actions {
-  display: inline-flex;
-  gap: 2px;
 }
 .yayaw-kanban-drag-handle {
   display: inline-flex;
