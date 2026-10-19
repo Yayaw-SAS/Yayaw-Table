@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.29.0
+
+### Minor Changes
+
+- 61cdd31: Enable Notion-style filters by default with a hidden filter row when no rules are present. Replace the legacy native filter controls and support remote option searches in the native rule editor.
+
+### Patch Changes
+
+- 6f891ec: Keep Connect open while external provider pickers or account popups take focus, in React and Vue. Use ID as the default record key while preserving saved key fields.
+
 ## 3.28.0
 
 ### Minor Changes
