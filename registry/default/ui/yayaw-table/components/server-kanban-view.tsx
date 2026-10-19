@@ -1,4 +1,5 @@
 "use client";
+import { ArrowLeft, ArrowRight, GripVertical } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { TableCatalogueColumnConfig } from "../hooks/use-table-config";
 import { useLocale, useTranslations } from "../providers/table-provider";
@@ -12,6 +13,7 @@ import {
   arrangeKanbanLanes,
   type KanbanLaneSettings,
 } from "../utils/kanban-lanes";
+import { isKanbanDragControl } from "../utils/kanban-move";
 import {
   createServerKanban,
   type ServerKanbanSource,
@@ -23,6 +25,9 @@ import { RecordAvatar } from "./cells/initials-avatar";
 
 export function ServerKanbanView({
   avatar,
+  canMoveRow,
+  onMoveRow,
+  dragFromCard,
   lanes,
   source,
   columns,
@@ -31,6 +36,9 @@ export function ServerKanbanView({
 }: {
   /** Avatar before each card title (`kanban.avatar`). */
   avatar?: AvatarOption;
+  canMoveRow?: (row: Record<string, unknown>) => boolean;
+  onMoveRow?: (row: Record<string, unknown>, target: string) => Promise<void>;
+  dragFromCard?: boolean;
   /** Lane order and hidden lanes of the grouping column (`kanban.lanes`). */
   lanes?: KanbanLaneSettings;
   source: ServerKanbanSource;
@@ -44,6 +52,9 @@ export function ServerKanbanView({
     lanes: [],
     loading: true,
   });
+  const [pressedHandle, setPressedHandle] = useState<string>();
+  const [pressedControl, setPressedControl] = useState(false);
+  const dragged = useRef<string | undefined>(undefined);
   const sourceRef = useRef(source);
   sourceRef.current = source;
   const session = useRef<ReturnType<typeof createServerKanban> | null>(null);
@@ -79,6 +90,28 @@ export function ServerKanbanView({
     [lanes, state.lanes]
   );
   const avatarConfig = resolveAvatarConfig(avatar);
+  const rowId = (row: Record<string, unknown>) =>
+    source.getRowId?.(row) ?? String(row.id);
+  const busy = Boolean(
+    state.loading || state.moving || state.lanes.some((lane) => lane.loading)
+  );
+  const canMove = (row: Record<string, unknown>) =>
+    Boolean(onMoveRow && canMoveRow?.(row));
+  const move = (row: Record<string, unknown>, target: string) => {
+    if (canMove(row) && onMoveRow) {
+      session.current?.move(rowId(row), target, onMoveRow);
+    }
+  };
+  const drop = (target: string) => {
+    const row = state.lanes
+      .flatMap((lane) => lane.rows)
+      .find((item) => rowId(item) === dragged.current);
+    dragged.current = undefined;
+    if (row) {
+      move(row, target);
+    }
+  };
+
   const nameOf = (row: Record<string, unknown>, id: string) =>
     fieldText(value(row, id), columnOf(id), locale, row);
   return (
@@ -100,23 +133,63 @@ export function ServerKanbanView({
       {!(state.loading || state.error || state.lanes.length) && (
         <p>{labels.empty}</p>
       )}
+      {state.moveError ? <p role="alert">{state.moveError}</p> : null}
       <div className="flex gap-3 overflow-x-auto p-3" data-kanban-board="">
-        {arranged.visible.map((lane) => (
+        {arranged.visible.map((lane, laneIndex) => (
+          // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Native drop target; adjacent move buttons provide keyboard access.
           <section
             aria-label={lane.label}
             className="w-72 shrink-0 rounded-md border bg-muted/20 p-3"
             data-kanban-lane={lane.value}
             key={lane.value}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => {
+              event.preventDefault();
+              drop(lane.value);
+            }}
           >
             <h3 className="mb-3 flex justify-between font-medium">
               <span>{lane.label}</span>
               <span>{lane.totalCount}</span>
             </h3>
             {lane.rows.map((row) => (
+              // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Native draggable card; adjacent move buttons provide keyboard access.
               <article
+                aria-busy={state.moving === rowId(row) || undefined}
                 className="mb-3 rounded-md border bg-background p-3"
-                data-row-id={source.getRowId?.(row) ?? String(row.id)}
-                key={source.getRowId?.(row) ?? String(row.id)}
+                data-row-id={rowId(row)}
+                draggable={
+                  !(busy || pressedControl) &&
+                  canMove(row) &&
+                  (dragFromCard === true || pressedHandle === rowId(row))
+                }
+                key={rowId(row)}
+                onDragEnd={() => {
+                  dragged.current = undefined;
+                  setPressedHandle(undefined);
+                }}
+                onDragStart={(event) => {
+                  if (
+                    !canMove(row) ||
+                    busy ||
+                    pressedControl ||
+                    isKanbanDragControl(event.target) ||
+                    !(dragFromCard || pressedHandle === rowId(row))
+                  ) {
+                    event.preventDefault();
+                    return;
+                  }
+                  dragged.current = rowId(row);
+                }}
+                onPointerDown={(event) => {
+                  setPressedControl(isKanbanDragControl(event.target));
+                  setPressedHandle(
+                    event.target instanceof Element &&
+                      event.target.closest("[data-kanban-drag-handle]")
+                      ? rowId(row)
+                      : undefined
+                  );
+                }}
               >
                 {avatarConfig ? (
                   <RecordAvatar
@@ -145,6 +218,35 @@ export function ServerKanbanView({
                     row
                   ) || String(row.id ?? "")}
                 </button>
+                {canMove(row) ? (
+                  <div className="flex gap-1">
+                    {[laneIndex - 1, laneIndex + 1].map((index) => {
+                      const target = arranged.visible[index];
+                      return target ? (
+                        <button
+                          aria-label={`${translatedOr(t, "views.kanban.move", "Move")} ${nameOf(row, titleId)} ${translatedOr(t, "views.kanban.to", "to")} ${target.label}`}
+                          disabled={busy}
+                          key={target.value}
+                          onClick={() => move(row, target.value)}
+                          type="button"
+                        >
+                          {index < laneIndex ? (
+                            <ArrowLeft aria-hidden="true" size={16} />
+                          ) : (
+                            <ArrowRight aria-hidden="true" size={16} />
+                          )}
+                        </button>
+                      ) : null;
+                    })}
+                    <span
+                      aria-hidden="true"
+                      className="cursor-grab"
+                      data-kanban-drag-handle=""
+                    >
+                      <GripVertical size={16} />
+                    </span>
+                  </div>
+                ) : null}
                 <dl>
                   {propertyIds
                     .filter((id) => id !== titleColumn)

@@ -80,6 +80,7 @@ for (const file of [
   "value-format.ts",
   "server-kanban.ts",
   "kanban-lanes.ts",
+  "kanban-move.ts",
   "initials-avatar.ts",
   "initials-avatar.css",
   "selection-interaction.ts",

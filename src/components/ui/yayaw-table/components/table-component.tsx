@@ -1,4 +1,5 @@
 "use client";
+import { canMoveKanbanRows, kanbanMovePatch } from "../utils/kanban-move";
 import {
   buildPlanningRows,
   comparePlanningTasks,
@@ -466,25 +467,6 @@ function resolvePrimaryGroupingDisplay({
       columnDefinitions.find((definition) => definition.id === groupBy)
         ?.header ?? groupBy,
   };
-}
-
-function canUpdateKanbanRows({
-  allowDragUpdate,
-  allowEdit,
-  hasUpdateAction,
-  isKanbanMode,
-}: {
-  allowDragUpdate?: boolean;
-  allowEdit?: boolean;
-  hasUpdateAction: boolean;
-  isKanbanMode: boolean;
-}): boolean {
-  return Boolean(
-    isKanbanMode &&
-      allowDragUpdate === true &&
-      allowEdit !== false &&
-      hasUpdateAction
-  );
 }
 
 interface ColumnSizingDefinition {
@@ -1922,12 +1904,10 @@ function ModernDataTable<
     }),
     [listParam, tableConfig.table.list]
   );
-  const canDragKanbanRows = canUpdateKanbanRows({
-    allowDragUpdate: tableConfig.table.kanban?.allowDragUpdate,
-    allowEdit: tableConfig.table.allowEdit,
-    hasUpdateAction: typeof providerTableActions?.update === "function",
-    isKanbanMode,
-  });
+  const kanbanColumn = tableConfig.columns.definitions.find(column => column.id === kanbanGroupBy);
+  const canDragKanbanRows = canMoveKanbanRows(tableConfig.table, kanbanColumn, kanbanGroupBy, typeof providerTableActions?.update === "function");
+  const canMoveKanbanRecord = (row: Record<string, unknown>) => canDragKanbanRows && tableConfig.table.canEditRow?.(row) !== false;
+
 
   const handleRowLinkClick = useCallback(
     (row: Row<TData>, event: React.MouseEvent) => {
@@ -2059,30 +2039,27 @@ function ModernDataTable<
     ]
   );
 
-  const handleKanbanMoveRow = useCallback(
-    async (row: Row<TData>, nextValue: string) => {
-      if (!(canDragKanbanRows && kanbanGroupBy)) {
-        return;
-      }
-
-      const rowId = resolveRowEntityId(row);
-      const success = await dataTableResult.actions.edit(
-        {
-          ...(row.original as Record<string, unknown>),
-          id: rowId,
-        } as TData & { id: string },
-        { [kanbanGroupBy]: nextValue } as Partial<TData>
-      );
-
-      if (!success) {
-        toast.error(t("common.error"));
-        return;
-      }
-
+  const handleKanbanMoveRecord = async (record: Record<string, unknown>, nextValue: string) => {
+    const update = providerTableActions?.update;
+    if (!canMoveKanbanRecord(record) || !kanbanColumn || !update) { throw new Error("Move not allowed"); }
+    const rowId = kanbanConfig.server?.getRowId?.(record) ?? String(record.id ?? record._id ?? "");
+    const result = await update(
+      rowId,
+      kanbanMovePatch(kanbanColumn, kanbanGroupBy, nextValue),
+      { row: record }
+    );
+    if (!result.success) { throw new Error(result.error ?? t("common.error")); }
+  };
+  const handleKanbanMoveRow = async (row: Row<TData>, nextValue: string) => {
+    try {
+      await handleKanbanMoveRecord({ ...row.original, id: resolveRowEntityId(row) }, nextValue);
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : String(cause));
+      throw cause;
+    } finally {
       await refetch();
-    },
-    [canDragKanbanRows, dataTableResult.actions.edit, kanbanGroupBy, refetch, t]
-  );
+    }
+  };
 
   const activeRenderer = displayModeRenderers?.[activeDisplayMode];
   const canCreateRows = canCreateTableRows(
@@ -3033,6 +3010,8 @@ function ModernDataTable<
           {isLoading && data && data.length > 0 && loadingOverlay}
           <DataTableKanbanView
             canDragUpdate={canDragKanbanRows}
+            canMoveRecord={canMoveKanbanRecord}
+            onMoveRecord={handleKanbanMoveRecord}
             cardColumnIds={kanbanConfig.cardColumnIds}
             className={className}
             columnDefinitions={tableConfig.columns.definitions}

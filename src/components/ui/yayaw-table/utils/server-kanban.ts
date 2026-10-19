@@ -1,4 +1,4 @@
-/** Read-oriented remote boards load each lane independently of grid pagination. */
+/** Remote boards load each lane independently of grid pagination. */
 export interface ServerKanbanGroup {
   value: string;
   label: string;
@@ -36,6 +36,8 @@ export interface ServerKanbanState {
   lanes: ServerKanbanLane[];
   loading: boolean;
   error?: string;
+  moving?: string;
+  moveError?: string;
 }
 
 /** Every publication is immutable; aborted or superseded reads cannot restore another scope. */
@@ -65,6 +67,7 @@ export function createServerKanban(
     const lane = state.lanes.find((item) => item.value === value);
     if (
       !lane ||
+      state.moving ||
       lane.loading ||
       (lane.rows.length && lane.nextCursor === null)
     ) {
@@ -138,5 +141,50 @@ export function createServerKanban(
       emit();
     }
   };
-  return { load, loadLane, dispose: () => controller.abort() };
+  // ponytail: serialize board writes; use per-row locks if concurrent moves become necessary.
+  const move = async (
+    rowId: string,
+    target: string,
+    write: (row: Record<string, unknown>, target: string) => Promise<void>
+  ) => {
+    if (
+      controller.signal.aborted ||
+      state.loading ||
+      state.moving ||
+      state.lanes.some((lane) => lane.loading)
+    ) {
+      return;
+    }
+    const from = state.lanes.find((lane) =>
+      lane.rows.some((row) => id(row) === rowId)
+    );
+    const row = from?.rows.find((item) => id(item) === rowId);
+    if (
+      !row ||
+      from?.value === target ||
+      !state.lanes.some((lane) => lane.value === target)
+    ) {
+      return;
+    }
+    state = { ...state, moving: rowId, moveError: undefined };
+    emit();
+    try {
+      await write(row, target);
+      // Re-read counts, filters and cursors from the server after a confirmed write.
+      if (!controller.signal.aborted) {
+        await load();
+      }
+    } catch (cause) {
+      if (!controller.signal.aborted) {
+        state = {
+          ...state,
+          moveError: cause instanceof Error ? cause.message : String(cause),
+        };
+      }
+    } finally {
+      state = { ...state, moving: undefined };
+      emit();
+    }
+  };
+  return { load, loadLane, move, dispose: () => controller.abort() };
 }
