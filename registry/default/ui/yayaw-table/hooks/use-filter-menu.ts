@@ -9,6 +9,7 @@ import {
   filterMenuJoinAtom,
   filterMenuMountedAtom,
   filterMenuOpenIdAtom,
+  filterMenuOptionsAtom,
   filterMenuPeriodOpenAtom,
 } from "../atoms/table-atoms";
 import { useTranslations } from "../providers/table-provider";
@@ -25,6 +26,7 @@ import {
   type FilterMenuColumn,
   type FilterMenuTranslate,
   type FilterMenuType,
+  filterMenuOperators,
   filterMenuText,
   filterRuleComplete,
 } from "../utils/filter-menu";
@@ -37,6 +39,7 @@ import { useTableUrlState } from "./use-table-url-state";
 
 /** A column as the filter menu offers it. */
 export interface FilterMenuColumnDef extends FilterMenuColumn {
+  staticOptions?: FilterMenuColumn["options"];
   /** The file tree's parent column filters with a folder picker. */
   folder?: FolderFilterConfig;
 }
@@ -52,6 +55,10 @@ export interface FilterMenu {
   /** Columns the menu offers, in the table's order. */
   columns: FilterMenuColumnDef[];
   column: (id: string) => FilterMenuColumnDef | undefined;
+  rememberOptions: (
+    columnId: string,
+    options: { value: unknown; label: string }[]
+  ) => void;
   /** Every rule: the table's, then the incomplete ones being written. */
   rules: AdvancedFilterModel[];
   joinOperator: "and" | "or";
@@ -110,6 +117,24 @@ export function useFilterMenu({
     tableId,
     enabled: config.table.syncUrl !== false,
   });
+  const [resolvedOptions, setResolvedOptions] = useAtom(
+    filterMenuOptionsAtom(tableId)
+  );
+  const rememberOptions = useCallback(
+    (columnId: string, options: { value: unknown; label: string }[]) => {
+      setResolvedOptions((current) => ({
+        ...current,
+        [columnId]: [
+          ...(current[columnId] ?? []).filter(
+            (known) =>
+              !options.some((option) => Object.is(option.value, known.value))
+          ),
+          ...options,
+        ].slice(-500),
+      }));
+    },
+    [setResolvedOptions]
+  );
   const [drafts, setDrafts] = useAtom(filterMenuDraftsAtom(tableId));
   const [openId, setOpenId] = useAtom(filterMenuOpenIdAtom(tableId));
   const [advanced, setAdvanced] = useAtom(filterMenuAdvancedAtom(tableId));
@@ -141,12 +166,13 @@ export function useFilterMenu({
           const columnOptions = column.options as FilterMenuColumn["options"];
           const type = folder
             ? "select"
-            : (dataTypeFilter(
+            : (column.filterType ??
+              (dataTypeFilter(
                 column.type,
                 Boolean(columnOptions?.length)
-              ) as FilterMenuType);
+              ) as FilterMenuType));
           const options =
-            column.type === "boolean" && !columnOptions?.length
+            type === "boolean" && !columnOptions?.length
               ? [
                   {
                     value: true,
@@ -157,16 +183,35 @@ export function useFilterMenu({
                     label: filterMenuText("unchecked", locale, translate),
                   },
                 ]
-              : columnOptions;
+              : [
+                  ...(columnOptions ?? []),
+                  ...(resolvedOptions[column.id] ?? []).filter(
+                    (option) =>
+                      !columnOptions?.some((known) =>
+                        Object.is(known.value, option.value)
+                      )
+                  ),
+                ];
           return {
             id: column.id,
             header: column.header ?? column.id,
             type,
             options,
+            staticOptions: columnOptions,
+            filterOperators: column.filterOperators,
+            optionsLoader: column.optionsLoader,
+            optionsSearchMinLength: column.optionsSearchMinLength,
+            optionsSearchDebounceMs: column.optionsSearchDebounceMs,
             folder,
           };
         }),
-    [columnsConfig, config.columns.definitions, locale, translate]
+    [
+      columnsConfig,
+      config.columns.definitions,
+      locale,
+      translate,
+      resolvedOptions,
+    ]
   );
   const envelope = normalizeFilterEnvelope(url.advancedFiltersParam);
   const saved = envelope.filters as unknown as AdvancedFilterModel[];
@@ -221,7 +266,13 @@ export function useFilterMenu({
       id: newId(),
       columnId: target.id,
       type: target.type,
-      operator: target.folder ? "isAnyOf" : defaultFilterOperator(target.type),
+      operator: target.folder
+        ? "isAnyOf"
+        : (filterMenuOperators(
+            target.type,
+            undefined,
+            target.filterOperators
+          )[0] ?? defaultFilterOperator(target.type)),
       values: undefined,
       isActive: true,
       createdAt: now,
@@ -288,6 +339,7 @@ export function useFilterMenu({
     setOpenId(undefined);
   };
   return {
+    rememberOptions,
     columns,
     column,
     rules,

@@ -1059,7 +1059,7 @@ export function DataTableAdvancedToolbar<TData>({
   menuButtonProps: _menuButtonProps,
   table,
   viewOptions: _viewOptions,
-  enableAdvancedFilters = false,
+  enableAdvancedFilters = true,
   data = EMPTY_DATA,
   columnTypeMapping = EMPTY_COLUMN_TYPE_MAPPING,
   onExport,

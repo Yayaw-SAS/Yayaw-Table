@@ -366,11 +366,9 @@ const toolbarDateColumn = computed(() => {
   const column = id ? dataColumns.value.find((item) => item.id === id) : undefined;
   return props.enableAdvancedFilters && column?.type === "date" && column.enableFiltering !== false ? column : undefined;
 });
-const panelFilterColumns = computed(() => props.enableAdvancedFilters
-  ? filterableColumns.value.filter((column) =>
-    Boolean(column.filterRenderer) || (compact.value && quickFilterIds.value.has(column.id)) ||
-    context.state.filters.value.some((filter) => filter.id === column.id))
-  : filterableColumns.value);
+const panelFilterColumns = computed(() => filterableColumns.value.filter(column =>
+  Boolean(column.filterRenderer) || (compact.value && quickFilterIds.value.has(column.id))
+));
 const FilterContent = defineComponent({ props: { node: { type: null as unknown as PropType<VNodeChild> } }, setup: props => () => props.node });
 const setColumnFilter = (columnId: string, value: unknown): void => {
   const otherFilters = context.state.filters.value.filter(
@@ -384,13 +382,6 @@ const setColumnFilter = (columnId: string, value: unknown): void => {
 const columnFilterValue = (columnId: string): unknown =>
   context.state.filters.value.find((filter) => filter.id === columnId)?.value ??
   "";
-const setOptionFilter = (columnId: string, event: Event): void => {
-  const rawValue = (event.target as HTMLSelectElement).value;
-  const option = dataColumns.value
-    .find((column) => column.id === columnId)
-    ?.options?.find((item) => String(item.value) === rawValue);
-  setColumnFilter(columnId, rawValue === "" ? "" : (option?.value ?? rawValue));
-};
 const setVisible = (column: ColumnDefinition, visible: boolean): void => {
   if (
     context.config.columns.mandatory.includes(column.id) ||
@@ -928,30 +919,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
                 <FilterContent v-if="column.filterRenderer" :node="column.filterRenderer({ value: columnFilterValue(column.id), onChange: value => setColumnFilter(column.id, value) })" />
                 <FilterBarDate v-else-if="quickFilterIds.has(column.id) && column.type === 'date'" :column="column" />
                 <OptionFilter v-else-if="quickFilterIds.has(column.id)" :column="column" />
-                <select
-                  v-else-if="column.options?.length"
-                  class="yayaw-select"
-                  :aria-label="column.header"
-                  :value="columnFilterValue(column.id)"
-                  @change="setOptionFilter(column.id, $event)"
-                >
-                  <option value="">{{ translate("all", "All") }}</option>
-                  <option
-                    v-for="option in column.options"
-                    :key="String(option.value)"
-                    :value="option.value"
-                  >
-                    {{ option.label }}
-                  </option>
-                </select>
-                <input
-                  v-else
-                  class="yayaw-input"
-                  :aria-label="column.header"
-                  :type="column.type === 'number' ? 'number' : 'search'"
-                  :value="columnFilterValue(column.id)"
-                  @input="setColumnFilter(column.id, ($event.target as HTMLInputElement).value)"
-                />
+
               </div>
             </div>
 

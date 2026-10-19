@@ -42,7 +42,13 @@ export function AdvancedFilterEditor({ menu }: { menu: FilterMenu }) {
       ...rule,
       columnId,
       type: column.type,
-      operator: column.folder ? "isAnyOf" : defaultFilterOperator(column.type),
+      operator: column.folder
+        ? "isAnyOf"
+        : (filterMenuOperators(
+            column.type,
+            undefined,
+            column.filterOperators
+          )[0] ?? defaultFilterOperator(column.type)),
       values: undefined,
     } as unknown as AdvancedFilterModel);
   };
@@ -187,7 +193,11 @@ export function AdvancedFilterEditor({ menu }: { menu: FilterMenu }) {
                 }
                 value={rule.operator}
               >
-                {filterMenuOperators(type, rule.operator).map((operator) => (
+                {filterMenuOperators(
+                  type,
+                  rule.operator,
+                  column?.filterOperators
+                ).map((operator) => (
                   <option key={operator} value={operator}>
                     {filterOperatorLabel(
                       type,

@@ -61,7 +61,11 @@ export function FilterRuleEditor({
               aria-label={menu.text("operator")}
               className="w-auto min-w-44"
             >
-              {filterMenuOperators(type, rule.operator).map((operator) => (
+              {filterMenuOperators(
+                type,
+                rule.operator,
+                column?.filterOperators
+              ).map((operator) => (
                 <DropdownMenuItem
                   data-operator={operator}
                   key={operator}

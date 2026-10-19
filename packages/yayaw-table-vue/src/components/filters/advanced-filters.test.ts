@@ -46,7 +46,6 @@ const config = defineTableConfig({
   id: "filters",
   translations: { namespace: "filters", keys: {} },
   table: {
-    enableAdvancedFilters: true,
     enableViews: false,
     syncUrl: false,
   },
@@ -146,8 +145,8 @@ const listing = () =>
 
 it("offers the filterable properties and filters a number between two values", async () => {
   const wrapper = mountTable();
-  // The toolbar has no Filter button of its own: the view settings hold it.
-  expect(wrapper.find("[data-filter-button]").exists()).toBe(false);
+  expect(wrapper.find("[data-filter-chips]").exists()).toBe(false);
+  expect(wrapper.find("[data-filter-chips-clear]").exists()).toBe(false);
   await openViewScreen(wrapper, "Filter");
   const properties = wrapper
     .findAll("[data-filter-property]")
@@ -195,6 +194,7 @@ it("filters a date range and removes the rule from its menu", async () => {
   await flushPromises();
   expect(names(wrapper)).toHaveLength(3);
   expect(wrapper.find("[data-filter-chips]").exists()).toBe(false);
+  expect(wrapper.find("[data-filter-chips-clear]").exists()).toBe(false);
 });
 
 it("sends date rules as calendar days, in order, and reads an older link's instants as days", async () => {
@@ -422,4 +422,54 @@ it("opens the requested column's filter from its header without filtering", asyn
     wrapper.find('[data-filter-rule="amount"] [data-filter-input]').exists()
   ).toBe(true);
   expect(list).toHaveBeenCalledTimes(requests);
+});
+
+it("searches remote choices only after the minimum and keeps the selected label", async () => {
+  const search = vi.fn(async (query: string) =>
+    query === "re"
+      ? [{ value: "remote", label: "Remote option" }]
+      : [{ value: "other", label: "Other option" }]
+  );
+  const remote = {
+    ...config,
+    columns: {
+      ...config.columns,
+      definitions: config.columns.definitions.map((column) =>
+        column.id === "status"
+          ? {
+              ...column,
+              type: "text" as const,
+              filterType: "select" as const,
+              options: [],
+              optionsLoader: search,
+              optionsSearchMinLength: 2,
+              optionsSearchDebounceMs: 0,
+            }
+          : column
+      ),
+    },
+  };
+  const wrapper = mountTable({ config: remote });
+  await pick(wrapper, "status");
+  expect(search).not.toHaveBeenCalled();
+  await wrapper.get('[aria-label="Search for an option…"]').setValue("re");
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  await flushPromises();
+  expect(search).toHaveBeenCalledOnce();
+  await wrapper.get('[aria-label="Search for an option…"]').setValue("ot");
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  await flushPromises();
+  expect(wrapper.get('[data-filter-rule="status"]').text()).not.toContain(
+    "Remote option"
+  );
+  await wrapper.get('[aria-label="Search for an option…"]').setValue("re");
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  await flushPromises();
+  await wrapper
+    .get('[data-filter-rule="status"] .yayaw-filter-choice input')
+    .setValue(true);
+  await flushPromises();
+  expect(wrapper.get('[data-filter-chip="status"]').text()).toContain(
+    "Remote option"
+  );
 });

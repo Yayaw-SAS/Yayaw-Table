@@ -269,6 +269,11 @@ export const featuresAtom = atomFamily((_tableId: string) =>
  * The filter menu's state beside the table's filters (see `useFilterMenu`):
  * rules still being written, which never reach the query or a saved view.
  */
+/** Option labels resolved by this table's native filter editors. */
+export const filterMenuOptionsAtom = atomFamily((_tableId: string) =>
+  atom<Record<string, { value: unknown; label: string }[]>>({})
+);
+
 export const filterMenuDraftsAtom = atomFamily((_tableId: string) =>
   atom<AdvancedFilterModel[]>([])
 );

@@ -84,8 +84,7 @@ export interface TableCatalogueColumnConfig extends ColumnDefinition {
 /**
  * Configuration for table behavior in the catalogue
  */
-export interface TableCatalogueTableConfig
-  extends GenericModeTableConfigs {
+export interface TableCatalogueTableConfig extends GenericModeTableConfigs {
   coloredTags?: boolean;
   /** Offer "Manage tags" on tags columns when `actions.tags` can; default true. */
   canManageTags?: boolean;
@@ -270,7 +269,7 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
     enableRowClickEdit: false,
     rowClickMode: "default",
     enableColumnFilters: true,
-    enableAdvancedFilters: false,
+    enableAdvancedFilters: true,
     enableColumnPinning: true,
     enableSorting: true,
     enableGrouping: true,
@@ -435,7 +434,7 @@ function resolveTableBehaviorConfig(
     toolbarDateFilter: mergedConfig.toolbarDateFilter,
     showFilterBar: mergedConfig.showFilterBar === true,
     facets: mergedConfig.facets,
-    enableAdvancedFilters: mergedConfig.enableAdvancedFilters ?? false,
+    enableAdvancedFilters: mergedConfig.enableAdvancedFilters ?? true,
     enableColumnPinning: mergedConfig.enableColumnPinning ?? true,
     enableSorting: mergedConfig.enableSorting ?? true,
     enableGrouping: mergedConfig.enableGrouping,

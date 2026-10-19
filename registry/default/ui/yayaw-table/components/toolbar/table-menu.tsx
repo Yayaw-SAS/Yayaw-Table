@@ -783,20 +783,12 @@ export function TableMenu({
         <StackMenuView name="filters">
           {filterExtras}
           <TableFiltersMenu
-            advancedActions={
-              useAdvancedFilters ? advancedFiltersConfig?.actions : undefined
-            }
             advancedColumnsConfig={
               useAdvancedFilters
                 ? advancedFiltersConfig?.columnsConfig
                 : undefined
             }
-            advancedFilters={
-              useAdvancedFilters ? advancedFiltersConfig?.filters : undefined
-            }
             columnFilters={state.columnFilters}
-            columns={columns}
-            invalidateTable={invalidateTable}
             onDone={closeMenu}
             setColumnFilters={setColumnFilters}
             tableId={tableId}

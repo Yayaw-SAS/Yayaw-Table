@@ -320,7 +320,7 @@ const defaultTableConfig: DataTableConfig = {
   enableColumnResizing: false,
   enableColumnDnd: true,
   enableColumnFilters: true,
-  enableAdvancedFilters: false,
+  enableAdvancedFilters: true,
   enableColumnPinning: true,
   enableMultiRowSelection: true,
   enablePagination: true,

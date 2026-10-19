@@ -245,9 +245,11 @@ alias and now has the same behavior in React and Vue.
 
 ### Filter like in Notion
 
-With `table.enableAdvancedFilters: true`, the toolbar has a **Filter** button
-(a Lucide funnel with the number of active rules). It lists the filterable
-columns with a search; picking one adds a rule and opens its editor. Each rule
+Filters use the Notion-style menu by default. The filter row stays hidden
+until a rule is added from view settings or a column menu. **+ Filter** then lists the filterable
+columns with a search; picking one adds a rule and opens its editor. The same
+picker is available from View settings → Filter. Set
+`table.enableAdvancedFilters: false` to withhold the rule editor. Each rule
 shows as a chip under the toolbar ("Status is Active", "Due · Last 30 days"):
 click it to change the operator or the value, or to delete it. The operators
 follow the column type (text, number, date, select, multi-select, boolean,

@@ -239,7 +239,7 @@ function resolveToolbarRuntime({
       "between-create-export",
     // Facet clicks are advanced rules: tables with facets show their menu.
     shouldEnableAdvancedFilters:
-      (enableAdvancedFilters ?? config.table.enableAdvancedFilters ?? false) ||
+      (enableAdvancedFilters ?? config.table.enableAdvancedFilters ?? true) ||
       Boolean(
         resolveFacets(config.table.facets, config.columns.definitions, {
           folderColumn: folderTreeOf(

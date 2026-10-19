@@ -31,7 +31,7 @@ export const defaultTableConfig = {
   emptyState: {
     show: true,
   },
-  enableAdvancedFilters: false,
+  enableAdvancedFilters: true,
   enableColumnDnd: true,
   enableColumnDragDropByDefault: false,
   enableColumnResizing: false,

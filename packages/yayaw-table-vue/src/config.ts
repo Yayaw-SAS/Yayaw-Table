@@ -54,7 +54,7 @@ export const defaultTableBehavior: TableBehaviorConfig = {
   enableCalculations: false,
   lockCalculations: false,
   enableGrouping: true,
-  enableAdvancedFilters: false,
+  enableAdvancedFilters: true,
   preserveSelectionOnQuery: false,
   searchDebounceMs: 300,
   syncUrl: true,

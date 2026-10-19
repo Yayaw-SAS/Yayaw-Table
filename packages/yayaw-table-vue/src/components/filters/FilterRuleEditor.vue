@@ -26,7 +26,7 @@ const text = (key: FilterMenuTextKey): string => filterMenuText(key, context.loc
 const column = computed(() => context.config.columns.definitions.find((item) => item.id === props.rule.columnId));
 const type = computed(() => menu.typeOf(column.value));
 const folder = computed(() => menu.isFolderColumn(column.value));
-const operators = computed(() => filterMenuOperators(type.value, props.rule.operator));
+const operators = computed(() => filterMenuOperators(type.value, props.rule.operator, column.value?.filterOperators));
 const operatorText = (operator: string): string => filterOperatorLabel(type.value, operator, context.locale, translate);
 const pickOperator = (operator: string): void =>
   emit("update", { ...changeFilterOperator(props.rule, operator, type.value), type: type.value });

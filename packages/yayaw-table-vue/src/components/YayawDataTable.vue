@@ -293,7 +293,7 @@ const tagCatalogs = useTagCatalogs({
 // Facet clicks are advanced rules: tables with facets show their menu.
 const advancedFiltersEnabled = computed(
   () =>
-    (props.enableAdvancedFilters ?? config.table.enableAdvancedFilters ?? false) ||
+    (props.enableAdvancedFilters ?? config.table.enableAdvancedFilters ?? true) ||
     Boolean(
       resolveFacets(config.table.facets, config.columns.definitions, {
         folderColumn: folderTreeOf(config.table.filetree, config.columns.definitions)?.parentColumn,
@@ -851,7 +851,7 @@ defineExpose({ refresh, getViewConfig: () => viewConfig.value });
       :initial-views="initialViews"
       :toolbar-actions-placement="props.toolbarActionsPlacement ?? config.toolbarActionsPlacement"
     />
-    <FilterChipsBar v-if="config.table.showToolbar && config.table.enableColumnFilters !== false" />
+    <FilterChipsBar v-if="config.table.showToolbar && config.table.enableColumnFilters !== false && advancedFiltersEnabled" />
 
 
     <div class="yayaw-records-layout" :data-facets="facetState.inline ? facetState.facets?.position : undefined">

@@ -16,7 +16,7 @@
   "density": "medium",
   "displayModes": ["table"],
   "emptyState": { "show": true },
-  "enableAdvancedFilters": false,
+  "enableAdvancedFilters": true,
   "enableCalculations": false,
   "enableColumnDnd": true,
   "enableColumnDragDropByDefault": false,

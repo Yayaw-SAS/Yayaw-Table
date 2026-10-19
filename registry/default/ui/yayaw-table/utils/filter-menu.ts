@@ -102,17 +102,23 @@ const LEGACY_OPERATORS: Partial<Record<FilterMenuType, readonly string[]>> = {
 /** The operators a rule of `type` may pick; a legacy `current` one stays listed. */
 export function filterMenuOperators(
   type: FilterMenuType,
-  current?: string
+  current?: string,
+  allowed?: readonly string[]
 ): string[] {
-  const operators = [...FILTER_MENU_OPERATORS[type]];
-  if (
-    current &&
-    !operators.includes(current) &&
-    LEGACY_OPERATORS[type]?.includes(current)
-  ) {
-    operators.push(current);
+  const legacy = new Set(LEGACY_OPERATORS[type] ?? []);
+  const operators = new Set(FILTER_MENU_OPERATORS[type]);
+  if (current && legacy.has(current)) {
+    operators.add(current);
   }
-  return operators;
+  for (const operator of allowed ?? []) {
+    if (legacy.has(operator)) {
+      operators.add(operator);
+    }
+  }
+  const permitted = new Set(allowed);
+  return [...operators].filter(
+    (operator) => !allowed || permitted.has(operator)
+  );
 }
 
 /** The operator a new rule of `type` starts with. */
@@ -265,6 +271,9 @@ const TEXT = {
     anyDate: "All dates",
     searchOptions: "Search for an option…",
     noOptions: "No options",
+    loadingOptions: "Loading…",
+    optionsError: "Unable to load options",
+    searchMinimum: "Type at least {count} characters",
     typeValue: "Type a value…",
     operator: "Operator",
     property: "Property",
@@ -324,6 +333,9 @@ const TEXT = {
     anyDate: "Toutes les dates",
     searchOptions: "Rechercher une option…",
     noOptions: "Aucune option",
+    loadingOptions: "Chargement…",
+    optionsError: "Impossible de charger les options",
+    searchMinimum: "Saisissez au moins {count} caractères",
     typeValue: "Saisir une valeur…",
     operator: "Opérateur",
     property: "Propriété",
@@ -820,7 +832,16 @@ export interface FilterMenuColumn {
   id: string;
   header: string;
   type: FilterMenuType;
-  options?: readonly { value: unknown; label: string }[];
+  options?: readonly { value: unknown; label: string; disabled?: boolean }[];
+  optionsLoader?: (
+    query: string,
+    signal?: AbortSignal
+  ) => Promise<
+    { value: string | number | boolean; label: string; disabled?: boolean }[]
+  >;
+  filterOperators?: string[];
+  optionsSearchMinLength?: number;
+  optionsSearchDebounceMs?: number;
   /** Shows a number value in the column's format. */
   formatNumber?: (value: number) => string;
 }

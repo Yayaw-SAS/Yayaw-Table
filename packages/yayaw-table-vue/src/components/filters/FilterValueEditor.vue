@@ -45,20 +45,49 @@ const multiple = computed(() => filterOperatorIsMultiple(type.value, props.rule.
 const set = (next: unknown, operator: string = props.rule.operator): void =>
   emit("update", { ...props.rule, type: type.value, operator: operator as AdvancedFilterOperator, values: next });
 const search = ref("");
+const loadedOptions = ref<SelectOption[]>([]);
+const loadingOptions = ref(false);
+const optionsFailed = ref(false);
+const searchMinimum = computed(() => Math.max(0, props.column?.optionsSearchMinLength ?? 0));
+watch(() => [props.column?.id, props.column?.optionsLoader, search.value.trim()] as const, ([, loader, query], _previous, onCleanup) => {
+  const controller = new AbortController();
+  optionsFailed.value = false;
+  if (!loader || query.length < searchMinimum.value) {
+    loadedOptions.value = [];
+    loadingOptions.value = false;
+    return;
+  }
+  loadedOptions.value = [];
+  loadingOptions.value = true;
+  const timer = setTimeout(async () => {
+    try {
+      const result = await loader(query, controller.signal);
+      if (!controller.signal.aborted) { loadedOptions.value = result; menu.rememberOptions(props.column!.id, result); }
+    } catch {
+      if (!controller.signal.aborted) { loadedOptions.value = []; optionsFailed.value = true; }
+    } finally {
+      if (!controller.signal.aborted) loadingOptions.value = false;
+    }
+  }, query ? Math.max(0, props.column?.optionsSearchDebounceMs ?? 300) : 0);
+  onCleanup(() => { clearTimeout(timer); controller.abort(); });
+}, { immediate: true });
 const options = computed(() => {
   const column = props.column;
   const result: SelectOption[] =
-    column?.type === "boolean" && !column.options?.length
+    type.value === "boolean" && !column?.options?.length
       ? [
           { label: text("checked"), value: true },
           { label: text("unchecked"), value: false },
         ]
       : [...(column?.options ?? [])];
+  for (const option of [...loadedOptions.value]) {
+    if (!result.some(item => Object.is(item.value, option.value))) result.push(option);
+  }
   const add = (value: unknown) => {
     if (!["string", "number", "boolean"].includes(typeof value) || result.some((option) => Object.is(option.value, value))) return;
-    result.push({ value: value as PrimitiveValue, label: String(value) });
+    result.push(menu.resolvedOptions.value[props.rule.columnId]?.find(option => Object.is(option.value, value)) ?? { value: value as PrimitiveValue, label: String(value) });
   };
-  if (!column?.options?.length && column?.type !== "boolean") {
+  if (!column?.optionsLoader && !column?.options?.length && type.value !== "boolean") {
     for (const row of context.data.rows.value) {
       const value = column?.accessorFn ? column.accessorFn(row) : row[column?.accessorKey ?? props.rule.columnId];
       for (const item of Array.isArray(value) ? value : [value]) add(item);
@@ -70,7 +99,7 @@ const options = computed(() => {
 });
 const visibleOptions = computed(() => {
   const query = search.value.trim().toLocaleLowerCase();
-  return query ? options.value.filter((option) => option.label.toLocaleLowerCase().includes(query)) : options.value;
+  return query && !props.column?.optionsLoader ? options.value.filter((option) => option.label.toLocaleLowerCase().includes(query)) : options.value;
 });
 const checked = (option: SelectOption): boolean => values.value.some((value) => Object.is(value, option.value));
 const toggle = (option: SelectOption): void => {
@@ -181,14 +210,15 @@ onMounted(() => {
     <template v-else-if="filterOperatorNeedsValue(rule.operator)">
       <DateValueEditor v-if="type === 'date'" :operator="rule.operator" :values="rule.values" @change="(next) => set(next.values, next.operator)" />
       <template v-else-if="type === 'select' || type === 'multiSelect' || type === 'boolean'">
-        <input v-if="options.length > 6" v-model="search" type="search" class="yayaw-input" :aria-label="text('searchOptions')" :placeholder="text('searchOptions')" autocomplete="off" />
+        <input v-if="column?.optionsLoader || options.length > 6" v-model="search" type="search" class="yayaw-input" :aria-label="text('searchOptions')" :placeholder="text('searchOptions')" autocomplete="off" />
         <div class="yayaw-filter-options-list" role="group" :aria-label="column?.header">
           <label v-for="option in visibleOptions" :key="`${typeof option.value}:${option.value}`" class="yayaw-filter-choice">
             <input type="checkbox" :checked="checked(option)" :disabled="option.disabled" @change="toggle(option)" />
             <span v-if="tagSwatch(option)" class="yayaw-tag-swatch" :style="tagSwatch(option)" aria-hidden="true" />
             <span>{{ option.label }}</span>
           </label>
-          <p v-if="!visibleOptions.length" class="yayaw-help" role="status">{{ text('noOptions') }}</p>
+          <p v-if="loadingOptions || optionsFailed || search.trim().length < searchMinimum" class="yayaw-help" role="status">{{ loadingOptions ? text('loadingOptions') : optionsFailed ? text('optionsError') : text('searchMinimum').replace('{count}', String(searchMinimum)) }}</p>
+          <p v-if="!visibleOptions.length && !loadingOptions && !optionsFailed && search.trim().length >= searchMinimum" class="yayaw-help" role="status">{{ text('noOptions') }}</p>
         </div>
       </template>
       <div v-else-if="type === 'location'" class="yayaw-filter-location" :data-location-filter="rule.operator">
