@@ -251,6 +251,7 @@ it("drags a Kanban card from anywhere with dragFromCard", async () => {
   const card = wrapper.get("article");
   expect(card.attributes("draggable")).toBe("true");
   expect(card.classes()).toContain("drag-from-card");
+  expect(card.find(".yayaw-kanban-drag-handle").exists()).toBe(false);
   await card.get("strong").trigger("pointerdown");
   expect(card.attributes("draggable")).toBe("true");
 });

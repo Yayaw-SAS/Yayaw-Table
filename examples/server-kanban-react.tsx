@@ -5,16 +5,22 @@ import { exampleServerKanban } from "./server-kanban";
 
 export function ServerKanbanExample() {
   const [opened, setOpened] = useState("");
+  const board = useMemo(
+    () => exampleServerKanban((row) => setOpened(String(row.name))),
+    []
+  );
   const config = useMemo(
     () =>
       defineTableConfig({
         id: "server-board-demo",
         columns: {
           definitions: [
-            { id: "name", header: "Name", type: "text" },
+            { id: "url", header: "Website", type: "url", inlineEdit: false },
+            { id: "name", header: "Name", type: "text", inlineEdit: false },
             {
               id: "owner",
               header: "Owner",
+              inlineEdit: false,
               type: "text",
               filterRenderer: ({ value, onChange }) => (
                 <select
@@ -31,6 +37,7 @@ export function ServerKanbanExample() {
               id: "stage",
               header: "Stage",
               type: "text",
+              inlineEdit: true,
               enableGrouping: true,
             },
           ],
@@ -44,6 +51,9 @@ export function ServerKanbanExample() {
           displayModes: ["kanban"],
           allowCreate: false,
           allowEdit: false,
+          canEditRow: (row) => String(row.id) !== "2",
+          allowInlineEdit: true,
+          inlineEdit: { enabled: true },
           allowDelete: false,
           enableRowSelection: false,
           showClearFilters: true,
@@ -51,13 +61,15 @@ export function ServerKanbanExample() {
           kanban: {
             groupBy: "stage",
             titleColumn: "name",
-            cardColumnIds: ["owner"],
-            server: exampleServerKanban((row) => setOpened(String(row.name))),
+            cardColumnIds: ["owner", "url"],
+            allowDragUpdate: true,
+            dragFromCard: true,
+            server: board,
           },
         },
         translations: { namespace: "demo", keys: { title: "Server Kanban" } },
       }),
-    []
+    [board]
   );
   return (
     <main>
@@ -67,6 +79,7 @@ export function ServerKanbanExample() {
       </p>
       <output>{opened}</output>
       <DataTable
+        getTableActions={() => ({ update: board.update })}
         getTableConfig={() => config}
         initialData={[]}
         initialPageCount={1}

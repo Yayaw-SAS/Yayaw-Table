@@ -59,6 +59,11 @@ export interface KanbanGroup {
 
 interface DataTableKanbanViewProps<TData extends Record<string, unknown>> {
   canDragUpdate: boolean;
+  canMoveRecord?: (row: Record<string, unknown>) => boolean;
+  onMoveRecord?: (
+    row: Record<string, unknown>,
+    target: string
+  ) => Promise<void>;
   cardColumnIds?: string[];
   className?: string;
   columnDefinitions: TableCatalogueColumnConfig[];
@@ -485,7 +490,11 @@ function DataTableKanbanCard<TData extends Record<string, unknown>>({
           ? ({ attributes, listeners, setActivatorNodeRef }) => (
               <Button
                 aria-label="Drag card"
-                className="absolute top-2 right-2 h-7 w-7 cursor-grab text-muted-foreground active:cursor-grabbing"
+                className={
+                  dragFromCard
+                    ? "sr-only focus:not-sr-only focus:absolute focus:top-2 focus:right-2"
+                    : "absolute top-2 right-2 h-7 w-7 cursor-grab text-muted-foreground active:cursor-grabbing"
+                }
                 ref={setActivatorNodeRef}
                 size="icon-sm"
                 type="button"
@@ -518,6 +527,7 @@ function LocalDataTableKanbanView<TData extends Record<string, unknown>>({
   isRowActive,
   isRowClickable,
   onMoveRow,
+  canMoveRecord,
   onRowClick,
   table,
   titleColumnId,
@@ -675,9 +685,23 @@ function LocalDataTableKanbanView<TData extends Record<string, unknown>>({
         return;
       }
 
-      onMoveRow?.(activeItem.row, nextColumn.value);
+      if (canMoveRecord?.(activeItem.row.original) === false) {
+        return;
+      }
+      Promise.resolve(onMoveRow?.(activeItem.row, nextColumn.value)).catch(
+        () => {
+          setKanbanItems(initialKanbanItems);
+        }
+      );
     },
-    [canDragUpdate, kanbanColumns, kanbanItems, onMoveRow]
+    [
+      canDragUpdate,
+      canMoveRecord,
+      initialKanbanItems,
+      kanbanColumns,
+      kanbanItems,
+      onMoveRow,
+    ]
   );
 
   if (rows.length === 0) {
@@ -734,7 +758,9 @@ function LocalDataTableKanbanView<TData extends Record<string, unknown>>({
                   <DataTableKanbanCard
                     actionsCell={actionsCell}
                     avatar={avatarOf(row)}
-                    canDragUpdate={canDragUpdate}
+                    canDragUpdate={
+                      canDragUpdate && canMoveRecord?.(row.original) !== false
+                    }
                     columnDefinitionsById={columnDefinitionsById}
                     columnId={item.column}
                     dragFromCard={dragFromCard}
@@ -780,9 +806,12 @@ export function DataTableKanbanView<TData extends Record<string, unknown>>(
     return (
       <ServerKanbanView
         avatar={props.config.avatar}
+        canMoveRow={props.canMoveRecord}
         columns={props.columnDefinitions}
+        dragFromCard={props.config.dragFromCard}
         key={props.config.server.queryKey}
         lanes={kanbanLaneSettings(props.config.lanes, props.groupBy)}
+        onMoveRow={props.onMoveRecord}
         propertyIds={props.cardColumnIds ?? props.config.cardColumnIds ?? []}
         source={props.config.server}
         titleColumn={props.titleColumnId ?? props.config.titleColumn}

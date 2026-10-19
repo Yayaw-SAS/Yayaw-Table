@@ -220,7 +220,7 @@ export interface TableKanbanGroupConfig {
 }
 
 export interface TableKanbanConfig {
-  /** Optional read-oriented remote board. Grid pagination and drag mutations do not apply. */
+  /** Optional remote board with independent lane pagination. Moves use the table update action. */
   server?: import("./server-kanban").ServerKanbanSource;
   groupBy?: string;
   titleColumn?: string;

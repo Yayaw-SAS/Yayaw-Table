@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import ServerKanbanView from "./ServerKanbanView.vue";
+import { canMoveKanbanRows, isKanbanDragControl, kanbanMovePatch } from "../../kanban-move";
 import { ArrowLeft, ArrowRight, GripVertical } from "lucide-vue-next";
 import TableEmptyState from "../table/TableEmptyState.vue";
 import { computed, ref } from "vue";
@@ -93,13 +94,7 @@ const value = (row: TableRecord, id: string): unknown => {
     ? definition.accessorFn(row)
     : row[definition?.accessorKey ?? id];
 };
-const canDrag = computed(
-  () =>
-    context.config.table.kanban?.allowDragUpdate &&
-    context.config.table.allowEdit &&
-    Boolean(context.actions.value?.update) &&
-    Boolean(groupBy.value)
-);
+const canDrag = computed(() => canMoveKanbanRows(context.config.table, column(groupBy.value), groupBy.value, Boolean(context.actions.value?.update)));
 const canEditRow = (row: TableRecord): boolean =>
   context.config.table.canEditRow?.(row) !== false;
 const canDragRow = (row: TableRecord): boolean =>
@@ -109,29 +104,28 @@ const dragFromCard = computed(
 );
 /** Row whose grip handle the current press started on. */
 const pressedHandle = ref<string>();
+const pressedControl = ref(false);
 // A native drag moves the whole card, so without dragFromCard the card is
 // draggable only when the press started on its handle.
 const isDraggable = (row: TableRecord): boolean =>
-  canDragRow(row) &&
+  canDragRow(row) && !pressedControl.value &&
   (dragFromCard.value || pressedHandle.value === context.getRowId(row));
 const press = (row: TableRecord, event: PointerEvent): void => {
+  pressedControl.value = isKanbanDragControl(event.target);
   pressedHandle.value =
     event.target instanceof Element &&
     event.target.closest(".yayaw-kanban-drag-handle")
       ? context.getRowId(row)
       : undefined;
 };
-const startDrag = (row: TableRecord): void => {
-  if (isDraggable(row)) {
-    dragged.value = row;
-  }
+const startDrag = (row: TableRecord, event: DragEvent): void => {
+  if (!isDraggable(row) || isKanbanDragControl(event.target)) { event.preventDefault(); return; }
+  dragged.value = row;
 };
 const moveRow = async (
   row: TableRecord | undefined,
   target: string
 ): Promise<void> => {
-  const definition = column(groupBy.value);
-  const field = definition?.accessorKey ?? groupBy.value;
   if (
     !canDrag.value || pending.value ||
     !(row && groupBy.value) ||
@@ -142,18 +136,11 @@ const moveRow = async (
     return;
   }
   const id = context.getRowId(row);
-  const previous = row[field];
-  row[field] = target;
   pending.value = id;
   try {
-    const result = await context.actions.value.update(id, { [field]: target }, { row: { ...row, [field]: previous } });
-    if (!result.success) {
-      row[field] = previous;
-      throw new Error(result.error ?? "Move failed");
-    }
+    await writeRow(row, target);
     await context.refresh();
   } catch (cause) {
-    if (Object.is(row[field], target)) row[field] = previous;
     context.status.value = {
       type: "error",
       message: cause instanceof Error ? cause.message : String(cause),
@@ -162,6 +149,12 @@ const moveRow = async (
     dragged.value = undefined;
     pending.value = undefined;
   }
+};
+const writeRow = async (row: TableRecord, target: string): Promise<void> => {
+  const definition = column(groupBy.value);
+  if (!canDragRow(row) || !definition || !context.actions.value?.update) throw new Error("Move not allowed");
+  const result = await context.actions.value.update(context.config.table.kanban?.server?.getRowId?.(row) ?? context.getRowId(row), kanbanMovePatch(definition, groupBy.value, target), { row });
+  if (!result.success) throw new Error(result.error ?? "Move failed");
 };
 const drop = async (target: string): Promise<void> => {
   await moveRow(dragged.value, target);
@@ -199,7 +192,7 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
 </script>
 
 <template>
-  <ServerKanbanView v-if="context.config.table.kanban?.server" :source="context.config.table.kanban.server" :title-column="titleColumn" :property-ids="propertyIds" :group-by="groupBy" />
+  <ServerKanbanView v-if="context.config.table.kanban?.server" :source="context.config.table.kanban.server" :title-column="titleColumn" :property-ids="propertyIds" :group-by="groupBy" :can-move-row="canDragRow" :on-move-row="writeRow" :drag-from-card="dragFromCard" />
   <TableEmptyState
     v-else-if="!rows.length && !context.data.isLoading.value && !context.data.error.value && context.config.table.emptyState?.show !== false"
     class="yayaw-card-empty"
@@ -219,7 +212,7 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
             :draggable="isDraggable(row)"
             tabindex="0"
             @pointerdown="press(row, $event)"
-            @dragstart="startDrag(row)"
+            @dragstart="startDrag(row, $event)"
             @click="activate(row, $event)"
             @keydown="activate(row, $event)"
           >
@@ -253,7 +246,7 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
               </div>
               <RowActions :row="row" />
               <!-- Pointer-only affordance: the move buttons are the keyboard path. -->
-              <span v-if="canDragRow(row)" class="yayaw-kanban-drag-handle" aria-hidden="true" @click.stop>
+              <span v-if="canDragRow(row) && !dragFromCard" class="yayaw-kanban-drag-handle" aria-hidden="true" @click.stop>
                 <GripVertical :size="16" />
               </span>
             </div>

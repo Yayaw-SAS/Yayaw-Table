@@ -1708,6 +1708,11 @@
           "target": "components/ui/yayaw-table/utils/kanban-lanes.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/kanban-move.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/kanban-move.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/list-view.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/list-view.ts"

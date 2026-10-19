@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, shallowRef, watch } from "vue";
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue";
+import { ArrowLeft, ArrowRight, GripVertical } from "lucide-vue-next";
 import InitialsAvatar from "../controls/InitialsAvatar.vue";
 import { imageSource } from "../../core";
 import { resolveAvatarConfig } from "../../initials-avatar";
@@ -7,8 +8,9 @@ import { arrangeKanbanLanes, kanbanLaneSettings, mergeKanbanLanes } from "../../
 import { createServerKanban, type ServerKanbanSource, type ServerKanbanState } from "../../server-kanban";
 import { useTableContext } from "../../context";
 import CellRenderer from "../table/CellRenderer.vue";
+import { isKanbanDragControl } from "../../kanban-move";
 import { fieldText } from "../../table-contracts";
-const props = defineProps<{ source: ServerKanbanSource; titleColumn: string; propertyIds: string[]; groupBy?: string }>();
+const props = defineProps<{ source: ServerKanbanSource; titleColumn: string; propertyIds: string[]; groupBy?: string; canMoveRow?: (row: Record<string, unknown>) => boolean; onMoveRow?: (row: Record<string, unknown>, target: string) => Promise<void>; dragFromCard?: boolean }>();
 const context = useTableContext();
 const state = shallowRef<ServerKanbanState>({ lanes: [], loading: true });
 let session: ReturnType<typeof createServerKanban> | undefined;
@@ -23,19 +25,51 @@ const avatarConfig = computed(() => resolveAvatarConfig(context.state.kanban.val
 const avatarName = (row: Record<string, unknown>) => { const id = avatarConfig.value?.nameColumn ?? props.titleColumn; return fieldText(value(row, id), column(id), context.locale, row); };
 const avatarSource = (row: Record<string, unknown>) => avatarConfig.value?.imageColumn ? imageSource(value(row, avatarConfig.value.imageColumn)) : undefined;
 const hiddenLabel = () => String(context.translations.value.kanbanHiddenLanes ?? "Hidden lanes");
+const dragged = ref<string>();
+const pressedHandle = ref<string>();
+const pressedControl = ref(false);
+const rowId = (row: Record<string, unknown>) => props.source.getRowId?.(row) ?? String(row.id);
+const canMove = (row: Record<string, unknown>) => Boolean(props.onMoveRow && props.canMoveRow?.(row));
+const busy = computed(() => Boolean(state.value.loading || state.value.moving || state.value.lanes.some(lane => lane.loading)));
+const isDraggable = (row: Record<string, unknown>) => !busy.value && !pressedControl.value && canMove(row) && (props.dragFromCard || pressedHandle.value === rowId(row));
+const press = (row: Record<string, unknown>, event: PointerEvent) => {
+  pressedControl.value = isKanbanDragControl(event.target);
+  pressedHandle.value = event.target instanceof Element && event.target.closest(".yayaw-kanban-drag-handle") ? rowId(row) : undefined;
+};
+const startDrag = (row: Record<string, unknown>, event: DragEvent) => {
+  if (!isDraggable(row) || isKanbanDragControl(event.target)) { event.preventDefault(); return; }
+  dragged.value = rowId(row);
+};
+const move = async (row: Record<string, unknown>, target: string) => {
+  if (!canMove(row) || !props.onMoveRow) return;
+  await session?.move(rowId(row), target, props.onMoveRow);
+};
+const drop = async (target: string) => {
+  const row = state.value.lanes.flatMap(lane => lane.rows).find(item => rowId(item) === dragged.value);
+  dragged.value = undefined;
+  if (row) await move(row, target);
+};
+const moveLabel = (row: Record<string, unknown>, target: string) => `${context.translations.value.moveTo ?? "Move"} ${fieldText(value(row, props.titleColumn), column(props.titleColumn), context.locale, row)} ${context.translations.value.to ?? "to"} ${target}`;
+
 </script>
 <template>
  <div>
  <p v-if="state.loading" role="status">{{ label('loading', 'Loading…') }}</p>
  <div v-if="state.error" role="alert">{{ state.error }}<button class="yayaw-button" type="button" @click="session?.load()">{{ label('retry', 'Retry') }}</button></div>
  <p v-if="!state.loading && !state.error && !state.lanes.length">{{ label('empty', 'No results') }}</p>
+ <p v-if="state.moveError" role="alert">{{ state.moveError }}</p>
  <div class="yayaw-card-view-shell"><div class="yayaw-kanban" data-kanban-board="">
- <section v-for="lane in lanes.visible" :key="lane.value" class="yayaw-kanban-lane" :aria-label="lane.label" :data-kanban-lane="lane.value">
+ <section v-for="(lane, laneIndex) in lanes.visible" :key="lane.value" class="yayaw-kanban-lane" :aria-label="lane.label" :data-kanban-lane="lane.value" @dragover.prevent @drop="drop(lane.value)">
  <header><strong>{{ lane.label }}</strong><span class="yayaw-count">{{ lane.totalCount }}</span></header>
  <div class="yayaw-kanban-cards">
- <article v-for="row in lane.rows" :key="source.getRowId?.(row) ?? String(row.id)" class="yayaw-card yayaw-kanban-card" :data-row-id="source.getRowId?.(row) ?? String(row.id)">
+ <article v-for="row in lane.rows" :key="rowId(row)" class="yayaw-card yayaw-kanban-card" :class="{ 'drag-from-card': dragFromCard && canMove(row) }" :data-row-id="rowId(row)" :draggable="isDraggable(row)" :aria-busy="state.moving === rowId(row) || undefined" @pointerdown="press(row, $event)" @dragstart="startDrag(row, $event)" @dragend="dragged = undefined; pressedHandle = undefined">
  <InitialsAvatar v-if="avatarConfig" class="yayaw-card-avatar" decorative :name="avatarName(row)" :source="avatarSource(row)" :shape="avatarConfig.shape" />
  <button type="button" class="yayaw-button yayaw-button-ghost" :disabled="!source.onActivate" @click="source.onActivate?.(row)">{{ fieldText(value(row, titleColumn), column(titleColumn), context.locale, row) || row.id }}</button>
+ <div v-if="canMove(row)" class="yayaw-kanban-move-actions">
+ <button v-if="laneIndex > 0" type="button" class="yayaw-icon-button" :aria-label="moveLabel(row, lanes.visible[laneIndex - 1]!.label)" :disabled="busy" @click="move(row, lanes.visible[laneIndex - 1]!.value)"><ArrowLeft :size="16" aria-hidden="true" /></button>
+ <button v-if="laneIndex < lanes.visible.length - 1" type="button" class="yayaw-icon-button" :aria-label="moveLabel(row, lanes.visible[laneIndex + 1]!.label)" :disabled="busy" @click="move(row, lanes.visible[laneIndex + 1]!.value)"><ArrowRight :size="16" aria-hidden="true" /></button>
+ <span v-if="!dragFromCard" class="yayaw-kanban-drag-handle" aria-hidden="true"><GripVertical :size="16" /></span>
+ </div>
  <dl class="yayaw-card-properties labeled"><template v-for="id in propertyIds.filter(item => item !== titleColumn)" :key="id"><dt>{{ column(id).header }}</dt><dd><CellRenderer :column="column(id)" :row="row" :value="value(row, id)" /></dd></template></dl>
  </article>
  <p v-if="lane.loading" role="status">{{ label('loading', 'Loading…') }}</p><p v-if="lane.error" role="alert">{{ lane.error }}</p>
