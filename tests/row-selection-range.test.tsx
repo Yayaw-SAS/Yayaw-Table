@@ -20,7 +20,8 @@ afterEach(async () => {
   document.body.replaceChildren();
 });
 const settle = () => new Promise((resolve) => setTimeout(resolve, 60));
-async function mountRange(grouped = false, multi = true) {
+let listCalls = 0;
+async function mountRange(grouped = false, multi = true, paginated = false) {
   const config = defineTableConfig({
     id: "range",
     columns: {
@@ -35,7 +36,8 @@ async function mountRange(grouped = false, multi = true) {
     table: {
       enableRowSelection: true,
       enableMultiRowSelection: multi,
-      enablePagination: false,
+      enablePagination: paginated,
+      defaultPageSize: 3,
       canSelectRow: (row) => row.id !== "2",
       preserveSelectionOnQuery: true,
     },
@@ -50,10 +52,20 @@ async function mountRange(grouped = false, multi = true) {
   const root = createRoot(container);
   roots.push(root);
   const actions = {
-    list: async () => ({
-      data: rows,
-      meta: { pageCount: 1, totalCount: rows.length },
-    }),
+    list: (params: Record<string, unknown>) => {
+      listCalls++;
+      const page = Number(params.page),
+        pageSize = Number(params.pageSize);
+      return Promise.resolve({
+        data: paginated
+          ? rows.slice((page - 1) * pageSize, page * pageSize)
+          : rows,
+        meta: {
+          pageCount: paginated ? Math.ceil(rows.length / pageSize) : 1,
+          totalCount: rows.length,
+        },
+      });
+    },
   };
   await act(async () => {
     root.render(
@@ -68,7 +80,7 @@ async function mountRange(grouped = false, multi = true) {
             getRowId={(row) => String(row.id)}
             getTableActions={() => actions}
             getTableConfig={() => config}
-            initialData={rows}
+            initialData={paginated ? rows.slice(0, 3) : rows}
             initialPageCount={1}
             initialRowCount={rows.length}
             queryClient={client}
@@ -160,4 +172,29 @@ it("keeps selection anchors isolated between mounted tables", async () => {
   await clickRow(second, "4", true);
   expect(selectedIds(first)).toEqual(["1"]);
   expect(selectedIds(second)).toEqual(["4"]);
+});
+
+it("Ctrl+A selects the displayed server page without loading other pages", async () => {
+  const container = await mountRange(false, true, true);
+  const scope = container.querySelector<HTMLElement>(
+    "[data-yayaw-table-selection-scope]"
+  );
+  if (!scope) {
+    throw new Error("Missing selection scope");
+  }
+  Object.defineProperty(scope, "getClientRects", { value: () => [{}] });
+  const before = listCalls;
+  await act(async () => {
+    scope.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "a",
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true,
+      })
+    );
+    await settle();
+  });
+  expect(selectedIds(container)).toEqual(["1", "3"]);
+  expect(listCalls).toBe(before);
 });

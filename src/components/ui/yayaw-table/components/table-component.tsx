@@ -1774,7 +1774,7 @@ function ModernDataTable<
     rows: dataTableResult.data,
     refetch,
     locale,
-    selectAll: bulkActions.handleSelectAll,
+    selectAll: () => Promise.resolve(table.toggleAllPageRowsSelected(true)),
     duplicateEnabled: tableConfig.table.allowDuplicate !== false,
     duplicate: {
       rows: () =>

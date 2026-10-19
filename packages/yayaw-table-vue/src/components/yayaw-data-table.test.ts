@@ -775,6 +775,103 @@ describe("YayawDataTable", () => {
     expect(wrapper.text()).toContain("12,345");
   });
 
+  it.each([
+    false,
+    true,
+  ])("Ctrl+A selects only the displayed page without list requests (server: %s)", async (server) => {
+    const list = vi.fn(async () => ({
+      data: data.slice(1, 2),
+      meta: { totalCount: 3, pageCount: 3 },
+    }));
+    const wrapper = mount(YayawDataTable, {
+      attachTo: document.body,
+      props: {
+        tableType: "test",
+        config: defineTableConfig({
+          ...config,
+          table: {
+            ...config.table,
+            defaultPageSize: 1,
+            pageSizeOptions: [1, 3],
+          },
+        }),
+        ...(server ? { getTableActions: () => ({ list }) } : { data }),
+        syncUrl: false,
+      },
+    });
+    await flushPromises();
+    if (!server) {
+      const next = wrapper
+        .findAll("button")
+        .find((button) => button.text() === "Next");
+      if (!next) {
+        throw new Error("Missing next-page button");
+      }
+      await next.trigger("click");
+      await flushPromises();
+    }
+    Object.defineProperty(wrapper.element, "getClientRects", {
+      value: () => [{}],
+    });
+    const before = list.mock.calls.length;
+    wrapper.element.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "a",
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true,
+      })
+    );
+    await flushPromises();
+    expect(list.mock.calls.length).toBe(before);
+    expect(wrapper.emitted("rowSelectionChange")?.at(-1)).toEqual([
+      { "2": true },
+    ]);
+  });
+
+  it("keeps positional row identities when selecting a later local page", async () => {
+    const wrapper = mount(YayawDataTable, {
+      attachTo: document.body,
+      props: {
+        tableType: "test",
+        syncUrl: false,
+        data: [{ name: "Alpha" }, { name: "Beta" }],
+        config: defineTableConfig({
+          ...config,
+          table: {
+            ...config.table,
+            defaultPageSize: 1,
+            pageSizeOptions: [1, 2],
+          },
+        }),
+      },
+    });
+    await flushPromises();
+    const next = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Next");
+    if (!next) {
+      throw new Error("Missing next-page button");
+    }
+    await next.trigger("click");
+    await flushPromises();
+    Object.defineProperty(wrapper.element, "getClientRects", {
+      value: () => [{}],
+    });
+    wrapper.element.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "a",
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true,
+      })
+    );
+    await flushPromises();
+    expect(wrapper.emitted("rowSelectionChange")?.at(-1)).toEqual([
+      { "1": true },
+    ]);
+  });
+
   it("selects every matching server row across pages", async () => {
     const serverConfig = defineTableConfig({
       ...config,
