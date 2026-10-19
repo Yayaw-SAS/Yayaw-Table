@@ -41,7 +41,7 @@ const columns = [
 
 const schema = {
   fields: [
-    { name: "Yayaw ID" },
+    { name: "ID" },
     { name: "Name", sample: ["Alpha"] },
     { name: "Price", sample: [49, "n/a", "twelve"] },
     { name: "Status" },
@@ -217,7 +217,7 @@ export function connectorSyncSuite(
     const base: Model.ConnectorSettings = {
       targetId: "sheet",
       mode: "upsert",
-      keyField: "Yayaw ID",
+      keyField: "ID",
       mapping: [{ columnId: "name", field: "Name" }],
       direction: "two-way",
       conflictRule: "latest-wins",

@@ -187,7 +187,7 @@ export function connectorSchemaSuite(
       "fixable:missing_options:category",
       "fixable:missing_field:notes",
       "fixable:deleted_field:old",
-      "fixable:missing_key:Yayaw ID",
+      "fixable:missing_key:ID",
       "warning:renamed_field:price",
       "warning:coercible_type:copy",
     ]);
@@ -215,7 +215,7 @@ export function connectorSchemaSuite(
         type: "rich_text",
         columnId: "old",
       },
-      { kind: "create_field", field: "Yayaw ID", type: "rich_text", key: true },
+      { kind: "create_field", field: "ID", type: "rich_text", key: true },
     ]);
     assert.deepEqual(api.schemaRenames(report), [
       { columnId: "price", from: "Price", to: "Cost" },
@@ -231,7 +231,7 @@ export function connectorSchemaSuite(
         fields: [
           { name: "Name", type: "title" },
           { name: "Status", type: "status", options: ["Active"] },
-          { name: "Yayaw ID", type: "rich_text" },
+          { name: "ID", type: "rich_text" },
         ],
       },
     });
@@ -253,7 +253,7 @@ export function connectorSchemaSuite(
   test("pull and two-way: read-only fields are fine to read, text that won't convert blocks", () => {
     const fields = [
       { name: "Name", type: "title" },
-      { name: "Yayaw ID", type: "rich_text" },
+      { name: "ID", type: "rich_text" },
       { name: "Margin", type: "formula" },
       { name: "Amount", type: "rich_text", sample: ["12", "n/a", ""] },
       { name: "Count", type: "rich_text", sample: ["12", "3.5"] },
@@ -313,22 +313,20 @@ export function connectorSchemaSuite(
         api.checkTargetSchema({
           columns,
           mapping: [{ columnId: "name", field: "Name" }],
-          keyField: "Yayaw ID",
+          keyField: "ID",
           targetSchema: {
             provider,
             fields: [
               { name: "Name", type: "title" },
-              { name: "Yayaw ID", type },
+              { name: "ID", type },
             ],
           },
         })
       );
     assert.deepEqual(check("rich_text"), []);
     assert.deepEqual(check("number"), []);
-    assert.deepEqual(check("checkbox"), ["blocking:key_wrong_type:Yayaw ID"]);
-    assert.deepEqual(check("boolean", "sheets"), [
-      "warning:key_wrong_type:Yayaw ID",
-    ]);
+    assert.deepEqual(check("checkbox"), ["blocking:key_wrong_type:ID"]);
+    assert.deepEqual(check("boolean", "sheets"), ["warning:key_wrong_type:ID"]);
     // The title can be the key: no column is needed for it then.
     assert.deepEqual(
       codes(
@@ -357,7 +355,7 @@ export function connectorSchemaSuite(
 
   test("fields are found by id, then name, then (sheets) shifted position", () => {
     const fields = [
-      { name: "Yayaw ID", index: 1 },
+      { name: "ID", index: 1 },
       { name: "Name", index: 2 },
       { name: "Due date", index: 5 },
     ];
@@ -381,7 +379,7 @@ export function connectorSchemaSuite(
       "missing"
     );
     // The key column moved from A to B: every saved position moves with it.
-    const shift = api.keyIndexShift(fields, "Yayaw ID", 0);
+    const shift = api.keyIndexShift(fields, "ID", 0);
     assert.equal(shift, 1);
     assert.deepEqual(
       api.resolveMappedField(
@@ -389,7 +387,7 @@ export function connectorSchemaSuite(
         fields,
         {
           shift,
-          taken: new Set(["Yayaw ID", "Name", "Due"]),
+          taken: new Set(["ID", "Name", "Due"]),
         }
       ),
       { status: "renamed", field: fields[2], from: "Due" }
@@ -432,7 +430,7 @@ export function connectorSchemaSuite(
             { columnId: "name", field: "Name", fieldIndex: 1 },
             { columnId: "due", field: "Due", fieldIndex: 2 },
           ],
-          keyField: "Yayaw ID",
+          keyField: "ID",
           keyFieldIndex: 0,
           targetSchema: { provider: "sheets", fields },
         })
@@ -440,7 +438,7 @@ export function connectorSchemaSuite(
     // Nothing at the saved position.
     assert.deepEqual(
       check([
-        { name: "Yayaw ID", index: 0 },
+        { name: "ID", index: 0 },
         { name: "Name", index: 1 },
       ]),
       ["blocking:field_missing:due"]
@@ -448,7 +446,7 @@ export function connectorSchemaSuite(
     // The header there is mapped by another column.
     assert.deepEqual(
       check([
-        { name: "Yayaw ID", index: 0 },
+        { name: "ID", index: 0 },
         { name: "Other", index: 1 },
         { name: "Name", index: 2 },
       ]),
@@ -476,13 +474,13 @@ export function connectorSchemaSuite(
         { columnId: "name", field: "Name", fieldIndex: 1 },
         { columnId: "due", field: "Due", fieldIndex: 2 },
       ],
-      keyField: "Yayaw ID",
+      keyField: "ID",
       keyFieldIndex: 0,
       targetSchema: {
         provider: "sheets",
         fields: [
           { name: "Notes", index: 0 },
-          { name: "Yayaw ID", index: 1 },
+          { name: "ID", index: 1 },
           { name: "Name", index: 2 },
           { name: "Due date", index: 3, type: "date" },
         ],
@@ -525,12 +523,12 @@ export function connectorSchemaSuite(
       targets: () => [{ id: "live", label: "Live projects" }],
       describe: () => {
         calls.describe += 1;
-        return { provider: "notion", fields, keyFields: ["Yayaw ID", "Name"] };
+        return { provider: "notion", fields, keyFields: ["ID", "Name"] };
       },
       load: () => ({
         targetId: "live",
         mode: "upsert",
-        keyField: "Yayaw ID",
+        keyField: "ID",
         mapping: savedMapping,
         direction: "push",
       }),
@@ -549,7 +547,7 @@ export function connectorSchemaSuite(
               ? { ...field, options: ["Software", "Hardware", "Service"] }
               : field
           ),
-          { name: "Yayaw ID", id: "key", type: "rich_text" },
+          { name: "ID", id: "key", type: "rich_text" },
         ];
         return { applied: fixes };
       },
@@ -616,7 +614,7 @@ export function connectorSchemaSuite(
           "Can be fixed for you",
           [
             "Category: 2 options missing in Notion: Hardware, Service",
-            "“Yayaw ID” property missing: it holds each record’s id.",
+            "“ID” property missing: it holds each record’s id.",
           ],
         ],
         ["warning", "Good to know", ["Renamed in Notion: Price → Cost"]],
@@ -684,7 +682,7 @@ export function connectorSchemaSuite(
         "These changes will be made in Notion. Nothing is deleted or renamed.",
       lines: [
         "Add 2 options to “Category”: Hardware, Service",
-        "Create “Yayaw ID” (Text) for record ids",
+        "Create “ID” (Text) for record ids",
       ],
       confirm: "Make these changes",
       cancel: "Cancel",
@@ -697,7 +695,7 @@ export function connectorSchemaSuite(
       }).lines,
       [
         "Ajouter 2 options à « Category » : Hardware, Service",
-        "Créer « Yayaw ID » (Texte) pour les identifiants",
+        "Créer « ID » (Texte) pour les identifiants",
       ]
     );
     flow.showPrepare(true);
@@ -884,11 +882,11 @@ export function connectorSchemaSuite(
     );
     const settings = api.resolveConnectorSettings({
       columns,
-      saved: { keyField: "Yayaw ID", mapping: savedMapping },
+      saved: { keyField: "ID", mapping: savedMapping },
       schema: {
         provider: "notion",
         fields: notionFields,
-        keyFields: ["Yayaw ID"],
+        keyFields: ["ID"],
       },
       target: { targetId: "live" },
     });

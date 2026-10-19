@@ -198,7 +198,7 @@ export const kind = (request: RecordedRequest): string => {
 };
 
 const syncMapping = {
-  keyField: "Yayaw ID",
+  keyField: "ID",
   fields: [
     { columnId: "name", field: "Name" },
     { columnId: "amount", field: "Amount", type: "number" },
@@ -434,11 +434,11 @@ export function connectorsGoogleSheetsSuite(
 
   test("reads the header row without trailing empty cells", async () => {
     const { credentials, runtime, server } = await setup({
-      header: [" Yayaw ID", "Name", "", ""],
+      header: [" ID", "Name", "", ""],
     });
     assert.deepEqual(
       await api.readHeaderRow(credentials, SPREADSHEET_ID, "Data", runtime),
-      ["Yayaw ID", "Name"]
+      ["ID", "Name"]
     );
     const read = server.requests.find((request) => kind(request) === "read");
     assert.equal(
@@ -452,18 +452,8 @@ export function connectorsGoogleSheetsSuite(
   });
 
   test("plans headers without reordering the user's columns", () => {
-    const plan = api.planSheetHeader(
-      ["Notes", "Name", "Yayaw ID"],
-      "Yayaw ID",
-      columns
-    );
-    assert.deepEqual(plan.header, [
-      "Notes",
-      "Name",
-      "Yayaw ID",
-      "Amount",
-      "Tags",
-    ]);
+    const plan = api.planSheetHeader(["Notes", "Name", "ID"], "ID", columns);
+    assert.deepEqual(plan.header, ["Notes", "Name", "ID", "Amount", "Tags"]);
     assert.deepEqual(plan.added, ["Amount", "Tags"]);
     assert.equal(plan.keyIndex, 2);
     assert.deepEqual(
@@ -474,8 +464,8 @@ export function connectorsGoogleSheetsSuite(
         ["tags", 4],
       ]
     );
-    assert.deepEqual(api.planSheetHeader([], "Yayaw ID", columns).header, [
-      "Yayaw ID",
+    assert.deepEqual(api.planSheetHeader([], "ID", columns).header, [
+      "ID",
       "Name",
       "Amount",
       "Tags",
@@ -502,7 +492,7 @@ export function connectorsGoogleSheetsSuite(
 
   test("upserts rows: updates in place, appends new ones, extends the header", async () => {
     const { credentials, runtime, server } = await setup({
-      header: ["Notes", "Yayaw ID", "Name"],
+      header: ["Notes", "ID", "Name"],
       keys: ["r1", "", "r2"],
       columnCount: 3,
     });
@@ -597,14 +587,14 @@ export function connectorsGoogleSheetsSuite(
       data: { range: string; values: unknown[][] }[];
     };
     assert.deepEqual(header.data[0]?.values, [
-      ["Yayaw ID", "Name", "Amount", "Tags"],
+      ["ID", "Name", "Amount", "Tags"],
     ]);
     assert.equal(header.data[0]?.range, "'Data'!A1:D1");
   });
 
   test("replace clears below the header and rewrites every row", async () => {
     const { credentials, runtime, server } = await setup({
-      header: ["Yayaw ID", "Name", "Amount", "Tags"],
+      header: ["ID", "Name", "Amount", "Tags"],
       keys: ["old"],
       rowCount: 2,
       columnCount: 4,
@@ -655,7 +645,7 @@ export function connectorsGoogleSheetsSuite(
 
   test("respects maxRows and never retries an ambiguous append", async () => {
     const { credentials, runtime, server, sheet } = await setup({
-      header: ["Yayaw ID", "Name", "Amount", "Tags"],
+      header: ["ID", "Name", "Amount", "Tags"],
     });
     let batchAttempts = 0;
     sheet.onBatchUpdate = () => {
@@ -736,7 +726,7 @@ export function connectorsGoogleSheetsSuite(
   test("turns tab values into records by header", () => {
     const records = api.sheetValuesToRecords(
       [
-        ["Notes", "Yayaw ID", " Name ", "Amount", "Done", "Tags"],
+        ["Notes", "ID", " Name ", "Amount", "Done", "Tags"],
         ["x", "r1", "Alpha", 1200.5, true, "b, a"],
         [],
         ["", "", "Keyless", "7", "FALSE"],
@@ -767,7 +757,7 @@ export function connectorsGoogleSheetsSuite(
   test("reads a tab as sync records with typed cells", async () => {
     const { credentials, runtime, server } = await setup({
       grid: [
-        ["Yayaw ID", "Name", "Amount"],
+        ["ID", "Name", "Amount"],
         ["r1", "Alpha", 3],
       ],
     });
@@ -796,7 +786,7 @@ export function connectorsGoogleSheetsSuite(
 
   test("the sync target updates rows by key or row number and appends", async () => {
     const { credentials, runtime, server } = await setup({
-      header: ["Yayaw ID", "Name", "Amount", "Done", "Tags", "Due"],
+      header: ["ID", "Name", "Amount", "Done", "Tags", "Due"],
       keys: ["r1", "", "r2"],
       columnCount: 6,
     });
@@ -858,7 +848,7 @@ export function connectorsGoogleSheetsSuite(
 
   test("the sync target deletes rows by key from the bottom up", async () => {
     const { credentials, runtime, server } = await setup({
-      header: ["Yayaw ID", "Name"],
+      header: ["ID", "Name"],
       keys: ["r1", "", "r2"],
       columnCount: 2,
     });
@@ -907,7 +897,7 @@ export function connectorsGoogleSheetsSuite(
       {
         range: "'Data'!B1:F1",
         majorDimension: "ROWS",
-        values: [["Yayaw ID", "Amount", "Done", "Tags", "Due"]],
+        values: [["ID", "Amount", "Done", "Tags", "Due"]],
       },
     ]);
   });

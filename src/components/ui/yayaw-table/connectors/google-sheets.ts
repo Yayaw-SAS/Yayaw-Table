@@ -950,7 +950,7 @@ export interface GoogleSheetPushInput {
   /** Saved position of the key column (`keyFieldIndex`). */
   keyColumnIndex?: number;
   credentials: GoogleServiceAccountCredentials;
-  /** Header of the column holding row ids, "Yayaw ID" by default. */
+  /** Header of the column holding row ids, "ID" by default. */
   keyColumn?: string;
   /** Rows written at most; the others mark the result as truncated. */
   maxRows?: number;
@@ -1278,7 +1278,7 @@ async function replaceRows(
 }
 
 /**
- * Writes rows to one tab of a spreadsheet, keyed by `keyColumn` ("Yayaw ID"
+ * Writes rows to one tab of a spreadsheet, keyed by `keyColumn` ("ID"
  * by default). The header row is written when empty; missing headers are
  * added at its end and the user's columns are never reordered. `upsert` reads
  * the key column once, updates matching rows in place with
@@ -1707,7 +1707,7 @@ export interface GoogleSheetSyncTarget extends Required<SyncSideAdapter> {
 
 /**
  * The target adapter of `applySyncPlan` for one tab, sharing one client and
- * token: `read` returns the rows, `create` appends rows keyed by "Yayaw ID",
+ * token: `read` returns the rows, `create` appends rows keyed by "ID",
  * `update` writes the given columns and the key of rows found by key (or by
  * `row:<number>` for a row without a key yet), and `delete` removes rows found
  * by key, from the bottom up, in one request per 500 rows. Missing headers
@@ -1830,7 +1830,7 @@ export interface SheetSchemaFix {
 export interface GoogleSheetPrepareInput {
   credentials: GoogleServiceAccountCredentials;
   fixes: readonly SheetSchemaFix[];
-  /** Key header ("Yayaw ID" by default) and its saved position, to shift saved positions. */
+  /** Key header ("ID" by default) and its saved position, to shift saved positions. */
   keyColumn?: string;
   keyColumnIndex?: number;
   /** Tab title; the first tab by default. */
@@ -1893,7 +1893,7 @@ export function planSheetPrepare(
 }
 
 /**
- * Makes a tab ready for the table: adds the missing headers (the "Yayaw ID"
+ * Makes a tab ready for the table: adds the missing headers (the "ID"
  * key first) at the end of the header row, growing the grid when needed. It
  * never reorders, renames or deletes a column, and only writes the header
  * row. Idempotent: `applied` is empty when nothing was missing. Select

@@ -43,7 +43,7 @@ export type ConnectorMode = "upsert" | "replace";
 export const CONNECTOR_MODES: readonly ConnectorMode[] = ["upsert", "replace"];
 
 /** Default name of the target field that holds each record's id. */
-export const DEFAULT_CONNECTOR_KEY_FIELD = "Yayaw ID";
+export const DEFAULT_CONNECTOR_KEY_FIELD = "ID";
 
 /** Option value that leaves a column out of the push. */
 export const CONNECTOR_SKIP = "__yayaw_skip__";
@@ -1587,7 +1587,7 @@ export function connectorKeyFields(schema: ConnectorSchema): string[] {
   return names;
 }
 
-/** "Yayaw ID" when offered, otherwise the first key field. */
+/** "ID" when offered, otherwise the first key field. */
 export function defaultConnectorKeyField(schema: ConnectorSchema): string {
   const keys = connectorKeyFields(schema);
   return keys.includes(DEFAULT_CONNECTOR_KEY_FIELD)
@@ -3078,7 +3078,7 @@ const issueKey = (issue: SchemaIssue): ConnectorLabelKey => {
 /**
  * One issue in plain language: "Price: Notion property is Text, Number
  * expected.", "Status: 2 options missing in Notion: Blocked, Review",
- * "“Yayaw ID” property missing: it holds each record’s id."
+ * "“ID” property missing: it holds each record’s id."
  */
 export function schemaIssueMessage(
   issue: SchemaIssue,
@@ -3221,7 +3221,7 @@ export function describeSchemaReport(
   };
 }
 
-/** One line per change "Prepare" makes: "Create “Yayaw ID” (Text) for record ids". */
+/** One line per change "Prepare" makes: "Create “ID” (Text) for record ids". */
 export function describeSchemaFixes(
   fixes: readonly SchemaFix[],
   options: Pick<ConnectorScreenOptions, "connector" | "name" | "t"> & {

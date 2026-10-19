@@ -933,7 +933,7 @@ async function writeRow(
 
 /**
  * Upserts one Notion page per row, keyed by `mapping.keyProperty` (a title,
- * text or number property holding the row id, "Yayaw ID" by default). Rows
+ * text or number property holding the row id, "ID" by default). Rows
  * are written one at a time behind the rate limiter. A failing row is recorded
  * and the push continues, except for a revoked token or a database that is no
  * longer shared, which stop it with a `ConnectorError`.
@@ -1266,7 +1266,7 @@ async function readPages(
 
 /**
  * Reads every page of a database (or those edited since `since`) as sync
- * records: the page id, the "Yayaw ID" key, `last_edited_time` as
+ * records: the page id, the "ID" key, `last_edited_time` as
  * `updatedAt`, and the mapped properties converted back to plain values and
  * normalized by column type. Archived pages are left out. Throws
  * `invalid_mapping` when the key property is missing.
@@ -1622,7 +1622,7 @@ export function planNotionPrepare(
 
 /**
  * Makes a database ready for the table: creates missing properties with the
- * right type (including "Yayaw ID" as text) and adds missing select and
+ * right type (including "ID" as text) and adds missing select and
  * multi-select options with the table's colors, in one `PATCH /databases`
  * request. It reads the database first and never deletes, renames or changes
  * the type of an existing property; status options cannot be added through
@@ -1726,7 +1726,7 @@ export interface NotionNewDatabaseColumn extends ConnectorColumn {
 
 export interface NotionCreateDatabaseInput {
   columns: readonly NotionNewDatabaseColumn[];
-  /** Default "Yayaw ID". */
+  /** Default "ID". */
   keyProperty?: string;
   parentPageId: string;
   title: string;
@@ -1813,7 +1813,7 @@ export function planNotionDatabase(
  * Creates a database under a page shared with the integration, with one
  * property per column (the right Notion type, select options with their
  * colors), a title property filled by the first text column (or by the
- * record id when there is none) and the "Yayaw ID" key. Returns the new
+ * record id when there is none) and the "ID" key. Returns the new
  * database and the mapping to save, with property ids.
  */
 export async function createNotionDatabase(

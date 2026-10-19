@@ -50,7 +50,7 @@ there is no index file.
   id. `toConnectorRows(records, "id")` builds them from table records.
 - `ConnectorMapping { keyProperty?, keyPropertyId?, properties,
   propertyIds? }`: column id to target field name (Notion). `keyProperty`
-  defaults to `"Yayaw ID"`. `propertyIds` (column id to Notion property id)
+  defaults to `"ID"`. `propertyIds` (column id to Notion property id)
   and `keyPropertyId` are found before the names, so a property renamed in
   Notion keeps receiving its column.
 - `ConnectorPushResult { created, updated, skipped, failed, failures,
@@ -86,7 +86,7 @@ with the integration. Notion reports a database that is not shared as
 - `defaultNotionMapping(columns, schema)` maps columns to properties with the
   same normalized name and a compatible type, then fills the title property.
 - `pushRowsToNotionDatabase({ token, databaseId, mapping, rows, maxRows })`
-  upserts one page per row, keyed by the `Yayaw ID` property (title, text or
+  upserts one page per row, keyed by the `ID` property (title, text or
   number). Requests are spaced about three per second. A failing row is
   recorded in `failures`; a revoked token or missing capability stops the push
   with a `ConnectorError`. At most 5,000 rows per push.
@@ -111,7 +111,7 @@ with the service account email as an editor.
 - `getSpreadsheet(credentials, urlOrId)` returns the title and grid tabs.
 - `readHeaderRow(credentials, urlOrId, sheetTitle)` returns the first row.
 - `pushRowsToSheet({ credentials, spreadsheetId, sheetTitle, columns, rows,
-  keyColumn = "Yayaw ID", mode = "upsert", maxRows = 10000 })`. `upsert`
+  keyColumn = "ID", mode = "upsert", maxRows = 10000 })`. `upsert`
   reads the key column once, updates matching rows in place and appends the
   others in large batches. `replace` clears everything below the header and
   rewrites it. An empty header row is written; missing headers are added at
@@ -148,7 +148,7 @@ pagination link to another host is refused (`invalid_target`).
   worksheets. Store its `id`. A file that is not an `.xlsx` workbook is
   `invalid_target`.
 - `pushRowsToExcel({ token, workbookId, sheetName, columns, rows, keyColumn =
-  "Yayaw ID", mode = "upsert", maxRows = 10000 })` behaves like
+  "ID", mode = "upsert", maxRows = 10000 })` behaves like
   `pushRowsToSheet`: headers are found or added at the end, `upsert` reads the
   key column once and rewrites known rows in place (consecutive rows in one
   request), new rows go below the last used row, `replace` clears below the
@@ -168,6 +168,11 @@ pagination link to another host is refused (`invalid_target`).
 
 Graph throttles per user and workbook: requests are spaced 200 ms apart and a
 429 or 503 honors `Retry-After`. Lock one run per workbook, as for a sheet.
+
+The Connect screen stays open while an account popup or external target picker
+owns focus. Choosing a target returns to its mapping; cancelling keeps the current
+settings. New connector mappings use `ID` as the default record key. An explicitly
+saved key name is preserved.
 
 ## Host examples
 
@@ -257,7 +262,7 @@ logs. The host reads both sides, stores the sync state and runs the job.
   On the table side `id` is the row id. On the target side `id` is the
   remote id (a Notion page id, a sheet row's key, or `row:<number>` for a
   sheet row without a key) and `key` is the value of the key field
-  ("Yayaw ID"), which holds the table row id. `values` are keyed by **column
+  ("ID"), which holds the table row id. `values` are keyed by **column
   id** on both sides; the provider reads translate fields back through the
   mapping. A column missing from `values` is unknown on that side: it is
   neither compared nor written from it.
@@ -376,7 +381,7 @@ duplicated.
   conversion. `since` filters on `last_edited_time` from the start of its
   minute (Notion's precision); pass `targetPartial: true` to `planSync` with
   it. `createNotionSyncTarget({ token, databaseId, mapping })` is the target
-  adapter plus `read(since?)`: it creates pages keyed by "Yayaw ID", patches
+  adapter plus `read(since?)`: it creates pages keyed by "ID", patches
   only the given properties and the key, and archives deleted pages (a page
   already gone counts as deleted).
 - Microsoft Excel: `readExcelRows({ token, workbookId, sheetName, mapping })`
@@ -384,7 +389,7 @@ duplicated.
 - Google Sheets: `readSheetRows({ credentials, spreadsheetId, sheetTitle,
   mapping })` reads the tab once (numbers and booleans typed, dates as shown)
   and maps headers to columns (`sheetValuesToRecords` is the pure part). The
-  remote id is the "Yayaw ID" cell, or `row:<number>` for a row without one;
+  remote id is the "ID" cell, or `row:<number>` for a row without one;
   rows have no `updatedAt`. `createSheetSyncTarget(...)` appends new rows,
   updates rows found by key (or by row number while that row still has no
   key) writing only the given cells and the key, and deletes rows **by key
@@ -723,7 +728,7 @@ Labels are English and French and overridable with `connector.<key>`
 ## Keeping the target healthy
 
 Syncs break when the target drifts: a property renamed, deleted or given
-another type, select options missing, no "Yayaw ID" property. The library
+another type, select options missing, no "ID" property. The library
 finds this before a run, fixes what it safely can and says plainly what a
 person must do. Hosts need no extra code for the check; "Prepare" needs one
 server function.
@@ -794,7 +799,7 @@ duplicates: its push adds missing fields itself.
 ### Prepare
 
 `prepareNotionDatabase({ token, databaseId, fixes })` reads the database,
-creates missing properties with the right type ("Yayaw ID" as text) and adds
+creates missing properties with the right type ("ID" as text) and adds
 missing select and multi-select options with the table's colors (the
 option's `color` when it names one, otherwise the tag hue the table shows),
 in one `PATCH /databases` request. It never deletes, renames or retypes a
@@ -846,7 +851,7 @@ parents?, create }` it offers "Create one from this table’s columns…": a
 parent (e.g. `listNotionPages`) and a name, then `create` (e.g.
 `createNotionDatabase`, which makes one property per visible column with the
 right type and options, the title from the first text column or the record
-id, and "Yayaw ID", and returns the mapping with property ids).
+id, and "ID", and returns the mapping with property ids).
 
 ### Scheduled runs
 
@@ -875,7 +880,7 @@ if (schemaBlocksRun(report)) {
 
 Show the paused schedule's issues to its owner (`schemaIssueMessage` in
 `connector-flow.ts` words them like the screen). Fixable issues do not block:
-a Notion push without "Yayaw ID" still fails with `invalid_mapping`, so run
+a Notion push without "ID" still fails with `invalid_mapping`, so run
 `prepareNotionDatabase` with `report.fixes` first when the owner allowed it.
 
 Labels are English and French and overridable with `connector.<key>`

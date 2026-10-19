@@ -67,7 +67,7 @@ const drifted = (): Record<string, Property> => ({
   },
   Cost: { id: "am", name: "Cost", type: "number" },
   Margin: { id: "mg", name: "Margin", type: "formula" },
-  "Yayaw ID": { id: "key", name: "Yayaw ID", type: "rich_text" },
+  ID: { id: "key", name: "ID", type: "rich_text" },
 });
 
 function notionServer(properties: Record<string, Property>) {
@@ -119,7 +119,7 @@ function applyPatch(
 }
 
 const fixes: Notion.NotionSchemaFix[] = [
-  { kind: "create_field", field: "Yayaw ID", type: "rich_text", key: true },
+  { kind: "create_field", field: "ID", type: "rich_text", key: true },
   {
     kind: "create_field",
     field: "Notes",
@@ -156,7 +156,7 @@ export function connectorsSchemaHealthSuite(
 ) {
   test("Notion: prepare creates missing properties and options in one PATCH, and nothing else", async () => {
     const properties = drifted();
-    Reflect.deleteProperty(properties, "Yayaw ID");
+    Reflect.deleteProperty(properties, "ID");
     const { server, patches, runtime } = notionServer(properties);
     const result = await api.prepareNotionDatabase(
       { token: "secret_x", databaseId: DATABASE_ID, fixes },
@@ -169,7 +169,7 @@ export function connectorsSchemaHealthSuite(
     assert.deepEqual(patches, [
       {
         properties: {
-          "Yayaw ID": { rich_text: {} },
+          ID: { rich_text: {} },
           Notes: { rich_text: {} },
           // Every existing option is sent back with its color: nothing is removed.
           st: {
@@ -188,7 +188,7 @@ export function connectorsSchemaHealthSuite(
       applied: [
         {
           kind: "create_field",
-          field: "Yayaw ID",
+          field: "ID",
           type: "rich_text",
           key: true,
         },
@@ -260,7 +260,7 @@ export function connectorsSchemaHealthSuite(
 
   test("Notion: a check on a fresh schema reports the drift", async () => {
     const properties = drifted();
-    Reflect.deleteProperty(properties, "Yayaw ID");
+    Reflect.deleteProperty(properties, "ID");
     const { runtime } = notionServer(properties);
     const schema = await api.getNotionDatabaseSchema(
       "secret_x",
@@ -316,7 +316,7 @@ export function connectorsSchemaHealthSuite(
         token: "secret_x",
         databaseId: DATABASE_ID,
         mapping: {
-          keyProperty: "Yayaw ID",
+          keyProperty: "ID",
           properties: { name: "Name", price: "Price" },
           propertyIds: { price: "am" },
         },
@@ -347,7 +347,7 @@ export function connectorsSchemaHealthSuite(
           {
             id: PAGE_DASHED,
             properties: {
-              "Yayaw ID": { rich_text: [{ plain_text: "1" }] },
+              ID: { rich_text: [{ plain_text: "1" }] },
               Margin: { formula: { type: "number", number: 0.25 } },
               Created: { created_time: "2026-09-01T10:00:00.000Z" },
               Ref: { unique_id: { prefix: "PRJ", number: 12 } },
@@ -362,7 +362,7 @@ export function connectorsSchemaHealthSuite(
         token: "secret_x",
         databaseId: DATABASE_ID,
         mapping: {
-          keyField: "Yayaw ID",
+          keyField: "ID",
           fields: [
             { columnId: "margin", field: "Margin", type: "number" },
             { columnId: "created", field: "Created", type: "date" },
@@ -448,13 +448,13 @@ export function connectorsSchemaHealthSuite(
     };
     assert.deepEqual(body.parent, { type: "page_id", page_id: PAGE_DASHED });
     assert.deepEqual(body.properties, {
-      "Yayaw ID": { rich_text: {} },
+      ID: { rich_text: {} },
       Name: { title: {} },
       Price: { number: {} },
       Status: { select: { options: [{ name: "Active", color: "green" }] } },
     });
     assert.deepEqual(created.mapping, {
-      keyProperty: "Yayaw ID",
+      keyProperty: "ID",
       keyPropertyId: "p0",
       properties: { name: "Name", price: "Price", status: "Status" },
       propertyIds: { name: "p1", price: "p2", status: "p3" },
@@ -478,7 +478,7 @@ export function connectorsSchemaHealthSuite(
 
   test("Sheets: sampled types and positions for the check", () => {
     const schema = api.sheetTargetSchema([
-      ["Yayaw ID", "Amount", "", "Due", "Done", "Notes"],
+      ["ID", "Amount", "", "Due", "Done", "Notes"],
       ["a", 12, "x", "2026-09-01", true, "hello"],
       ["b", 3.5, "", "9/2/2026", false, 4],
       ["c", null, "", "", "", ""],
@@ -487,7 +487,7 @@ export function connectorsSchemaHealthSuite(
     assert.deepEqual(
       schema.fields.map((field) => [field.name, field.index, field.type]),
       [
-        ["Yayaw ID", 0, "text"],
+        ["ID", 0, "text"],
         ["Amount", 1, "number"],
         ["Due", 3, "date"],
         ["Done", 4, "boolean"],
@@ -521,11 +521,11 @@ export function connectorsSchemaHealthSuite(
           { kind: "create_field", field: "Due" },
           { kind: "add_options", field: "Status" },
           { kind: "create_field", field: " Notes " },
-          { kind: "create_field", field: "Yayaw ID", key: true },
+          { kind: "create_field", field: "ID", key: true },
           { kind: "create_field", field: "Notes" },
         ]
       ),
-      ["Yayaw ID", "Notes"]
+      ["ID", "Notes"]
     );
   });
 
@@ -561,7 +561,7 @@ export function connectorsSchemaHealthSuite(
     });
     const sheetFixes = [
       { kind: "create_field" as const, field: "Due" },
-      { kind: "create_field" as const, field: "Yayaw ID", key: true },
+      { kind: "create_field" as const, field: "ID", key: true },
       { kind: "create_field" as const, field: "Name" },
       { kind: "add_options" as const, field: "Amount" },
     ];
@@ -577,9 +577,9 @@ export function connectorsSchemaHealthSuite(
     assert.deepEqual(result, {
       applied: [
         { kind: "create_field", field: "Due" },
-        { kind: "create_field", field: "Yayaw ID", key: true },
+        { kind: "create_field", field: "ID", key: true },
       ],
-      addedHeaders: ["Yayaw ID", "Due"],
+      addedHeaders: ["ID", "Due"],
     });
     const writes = server.requests.filter((request) =>
       kind(request).includes("batchUpdate")
@@ -601,7 +601,7 @@ export function connectorsSchemaHealthSuite(
             {
               range: "'Data'!C1:D1",
               majorDimension: "ROWS",
-              values: [["Yayaw ID", "Due"]],
+              values: [["ID", "Due"]],
             },
           ],
         },
@@ -609,7 +609,7 @@ export function connectorsSchemaHealthSuite(
     );
     // The header now has them: nothing is written the second time.
     const ready = await sheetSetup({
-      header: ["Name", "Amount", "Yayaw ID", "Due"],
+      header: ["Name", "Amount", "ID", "Due"],
       columnCount: 4,
     });
     const again = await api.prepareSheet(
@@ -632,9 +632,9 @@ export function connectorsSchemaHealthSuite(
 
   test("Sheets: the schema is read from the header and the first rows", async () => {
     const { credentials, runtime, server } = await sheetSetup({
-      header: ["Yayaw ID", "Amount"],
+      header: ["ID", "Amount"],
       grid: [
-        ["Yayaw ID", "Amount"],
+        ["ID", "Amount"],
         ["a", 12],
       ],
     });
@@ -645,7 +645,7 @@ export function connectorsSchemaHealthSuite(
     assert.deepEqual(
       schema.fields.map((field) => [field.name, field.type]),
       [
-        ["Yayaw ID", "text"],
+        ["ID", "text"],
         ["Amount", "number"],
       ]
     );
@@ -656,8 +656,8 @@ export function connectorsSchemaHealthSuite(
   });
 
   // "Due" was saved at column C (key in A) and renamed "Due date" in the sheet.
-  const renamedHeader = ["Yayaw ID", "Name", "Due date"];
-  const ambiguousHeader = ["Yayaw ID", "Name"];
+  const renamedHeader = ["ID", "Name", "Due date"];
+  const ambiguousHeader = ["ID", "Name"];
   const writes = (requests: RecordedRequest[]) =>
     requests.filter((request) =>
       ["append", "batchUpdate", "valuesbatchUpdate"].includes(kind(request))
@@ -668,7 +668,7 @@ export function connectorsSchemaHealthSuite(
   test("Sheets: a renamed header is resolved by its saved position, never added again", () => {
     const plan = api.planSheetHeader(
       [" Notes ", ...renamedHeader],
-      "Yayaw ID",
+      "ID",
       [
         { id: "name", header: "Name" },
         { id: "due", header: "Due" },
@@ -680,16 +680,15 @@ export function connectorsSchemaHealthSuite(
     assert.equal(plan.indexes.get("due"), 3);
     // Without a saved position, a missing header is still a new one.
     assert.deepEqual(
-      api.planSheetHeader(renamedHeader, "Yayaw ID", [
-        { id: "due", header: "Due" },
-      ]).added,
+      api.planSheetHeader(renamedHeader, "ID", [{ id: "due", header: "Due" }])
+        .added,
       ["Due"]
     );
     assert.throws(
       () =>
         api.planSheetHeader(
           ambiguousHeader,
-          "Yayaw ID",
+          "ID",
           [{ id: "due", header: "Due" }],
           { indexes: { due: 2 }, keyIndex: 0 }
         ),
@@ -700,7 +699,7 @@ export function connectorsSchemaHealthSuite(
       () =>
         api.planSheetHeader(
           renamedHeader,
-          "Yayaw ID",
+          "ID",
           [
             { id: "name", header: "Name" },
             { id: "due", header: "Due" },
@@ -712,7 +711,7 @@ export function connectorsSchemaHealthSuite(
     const records = api.sheetValuesToRecords(
       [renamedHeader, ["a", "Launch", "2026-09-01"]],
       {
-        keyField: "Yayaw ID",
+        keyField: "ID",
         keyFieldIndex: 0,
         fields: [
           { columnId: "due", field: "Due", fieldIndex: 2, type: "date" },
@@ -778,7 +777,7 @@ export function connectorsSchemaHealthSuite(
 
   test("Sheets: sync writes and prepare follow a renamed header; an ambiguous one is blocked", async () => {
     const mapping = {
-      keyField: "Yayaw ID",
+      keyField: "ID",
       keyFieldIndex: 0,
       fields: [{ columnId: "due", field: "Due", fieldIndex: 2, type: "date" }],
     };

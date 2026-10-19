@@ -43,7 +43,7 @@ const database = {
   url: "https://www.notion.so/projects",
   properties: {
     Name: { id: "title", name: "Name", type: "title" },
-    "Yayaw ID": { id: "key:1", name: "Yayaw ID", type: "rich_text" },
+    ID: { id: "key:1", name: "ID", type: "rich_text" },
     Status: {
       id: "st",
       name: "Status",
@@ -76,7 +76,7 @@ function notionRoute(
         results: [
           {
             id: PAGE_ID,
-            properties: { "Yayaw ID": { rich_text: [{ plain_text: "1" }] } },
+            properties: { ID: { rich_text: [{ plain_text: "1" }] } },
           },
         ],
         has_more: false,
@@ -97,7 +97,7 @@ const syncDatabase = {
   title: [{ plain_text: "Projects" }],
   properties: {
     Name: { id: "title", name: "Name", type: "title" },
-    "Yayaw ID": { id: "key:1", name: "Yayaw ID", type: "rich_text" },
+    ID: { id: "key:1", name: "ID", type: "rich_text" },
     Amount: { id: "am", name: "Amount", type: "number" },
     Due: { id: "du", name: "Due", type: "date" },
     Done: { id: "dn", name: "Done", type: "checkbox" },
@@ -108,7 +108,7 @@ const syncDatabase = {
 };
 
 const syncMapping = {
-  keyField: "Yayaw ID",
+  keyField: "ID",
   fields: [
     { columnId: "name", field: "Name" },
     { columnId: "amount", field: "Amount", type: "number" },
@@ -133,7 +133,7 @@ const notionPage = (
       type: "title",
       title: [{ plain_text: "Laun" }, { plain_text: "ch" }],
     },
-    "Yayaw ID": {
+    ID: {
       type: "rich_text",
       rich_text: key ? [{ plain_text: key }] : [],
     },
@@ -386,12 +386,12 @@ export function connectorsNotionSuite(
         { id: "state", header: "statut", type: "select" },
         { id: "status", header: "STATUS", type: "select" },
         { id: "count", header: "Count", type: "date" },
-        { id: "key", header: "Yayaw ID", type: "text" },
+        { id: "key", header: "ID", type: "text" },
       ],
       { properties: Object.values(database.properties) }
     );
     assert.deepEqual(mapping, {
-      keyProperty: "Yayaw ID",
+      keyProperty: "ID",
       properties: { status: "Status", label: "Name" },
     });
     const special = api.defaultNotionMapping(
@@ -408,7 +408,7 @@ export function connectorsNotionSuite(
     assert.deepEqual(Object.entries(own.properties), [["__proto__", "Count"]]);
   });
 
-  test("upserts pages keyed by the Yayaw ID property", async () => {
+  test("upserts pages keyed by the ID property", async () => {
     const { runtime, server } = options(notionRoute());
     const rows = api.toConnectorRows([
       { id: 1, label: "Existing", status: "Active", count: "4" },
@@ -453,7 +453,7 @@ export function connectorsNotionSuite(
     assert.equal(update?.url.pathname, `/v1/pages/${PAGE_ID}`);
     assert.deepEqual(update?.body, {
       properties: {
-        "Yayaw ID": { rich_text: [{ type: "text", text: { content: "1" } }] },
+        ID: { rich_text: [{ type: "text", text: { content: "1" } }] },
         Name: { title: [{ type: "text", text: { content: "Existing" } }] },
         Status: { select: { name: "Active" } },
         Count: { number: 4 },
@@ -790,7 +790,7 @@ export function connectorsNotionSuite(
       {
         parent: { database_id: DATABASE_DASHED },
         properties: {
-          "Yayaw ID": {
+          ID: {
             rich_text: [{ type: "text", text: { content: "r1" } }],
           },
           Name: { title: [{ type: "text", text: { content: "A" } }] },
@@ -799,7 +799,7 @@ export function connectorsNotionSuite(
       },
       {
         properties: {
-          "Yayaw ID": {
+          ID: {
             rich_text: [{ type: "text", text: { content: "r1" } }],
           },
           Done: { checkbox: true },
