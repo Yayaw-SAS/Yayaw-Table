@@ -25,7 +25,7 @@ const catalogue = defineTableConfig({
   table: {
     syncUrl: false,
     enableColumnDragDropByDefault: true,
-    enableAdvancedFilters: false,
+    enableAdvancedFilters: true,
     searchDebounceMs: 250,
     actionsAsIcons: true,
   },
@@ -177,8 +177,8 @@ describe("catalogue-owned controls", () => {
     await flushPromises();
     await new Promise((resolve) => setTimeout(resolve, 20));
 
-    const filter = wrapper.get('[data-filter-column="name"] input');
-    expect(wrapper.get(".yayaw-toolbar-menu").text()).toContain("Filter");
+    const filter = wrapper.get('[data-filter-rule="name"] input');
+    expect(wrapper.find('[data-filter-chip="name"]').exists()).toBe(true);
     expect(document.activeElement).toBe(filter.element);
   });
 

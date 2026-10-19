@@ -125,14 +125,10 @@ it("shares typed multi-selection with Options, retains hidden-column filters whe
     throw new Error("Missing Filters menu");
   }
   await filterMenu.trigger("click");
-  await wrapper.get('[data-filter-column="category"] button').trigger("click");
-  await flushPromises();
-  expect(checkbox("Zero").checked).toBe(true);
-  expect(checkbox("Two").checked).toBe(true);
-  checkbox("Two").click();
-  await flushPromises();
+  expect(wrapper.find('[data-filter-column="category"]').exists()).toBe(false);
+  expect(wrapper.find('[data-filter-property="category"]').exists()).toBe(true);
   expect(list).toHaveBeenLastCalledWith(
-    expect.objectContaining({ filters: { category: [0] } })
+    expect.objectContaining({ filters: { category: [0, 2] } })
   );
   document.dispatchEvent(
     new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
@@ -144,7 +140,7 @@ it("shares typed multi-selection with Options, retains hidden-column filters whe
   checkbox("False").click();
   await flushPromises();
   expect(list).toHaveBeenLastCalledWith(
-    expect.objectContaining({ filters: { category: [0], active: [false] } })
+    expect.objectContaining({ filters: { category: [0, 2], active: [false] } })
   );
   document.dispatchEvent(
     new KeyboardEvent("keydown", { key: "Escape", bubbles: true })

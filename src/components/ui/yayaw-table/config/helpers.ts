@@ -277,7 +277,30 @@ export function withTableDatePreset<
  */
 export interface ColumnDefinition {
   /** Application filter control; writes the same state as saved views and reset. */
-  filterRenderer?: (context: { value: unknown; onChange: (value: unknown) => void }) => React.ReactNode;
+  /** Operators supported by this column's server contract; omitted offers every operator for its type. */
+  filterOperators?: string[];
+  /** Filter value type when the displayed cell uses a different representation. */
+  filterType?:
+    | "text"
+    | "number"
+    | "date"
+    | "select"
+    | "multiSelect"
+    | "boolean"
+    | "location";
+  /** Search filter choices on the server; called only while its editor is open. */
+  optionsLoader?: (
+    query: string,
+    signal?: AbortSignal
+  ) => Promise<
+    { value: string | number | boolean; label: string; disabled?: boolean }[]
+  >;
+  optionsSearchMinLength?: number;
+  optionsSearchDebounceMs?: number;
+  filterRenderer?: (context: {
+    value: unknown;
+    onChange: (value: unknown) => void;
+  }) => React.ReactNode;
   /**
    * Image columns: without an image, show initials with a stable color
    * instead of the image placeholder. `nameColumn` names the column giving
@@ -503,8 +526,7 @@ export interface ColumnDefinition {
  * Configuration for the table behavior
  */
 /** Per-mode defaults (`list`, …) come from the display mode registry. */
-export interface TableBehaviorConfig
-  extends GenericModeTableConfigs {
+export interface TableBehaviorConfig extends GenericModeTableConfigs {
   /** Use neutral badges when false; columns can override this setting. */
   coloredTags?: boolean;
   /**
@@ -701,7 +723,6 @@ export interface TableBehaviorConfig
    * Gallery display mode configuration.
    */
   gallery?: TableGalleryConfig;
-
 
   /**
    * Offer "Manual order" in the sort menu. Each view keeps its own order,

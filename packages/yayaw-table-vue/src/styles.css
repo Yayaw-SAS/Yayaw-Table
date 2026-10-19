@@ -6983,26 +6983,21 @@
   font-size: 12px;
 }
 
-/* Notion's filter menu: the Filter button, chips under the toolbar, editors. */
+/* The same quiet blue filter tint in both editions, independent of the host accent. */
 .yayaw-table,
 .yayaw-filter-popover,
 .yayaw-filter-menu-layer {
-  --yayaw-filter-accent: oklch(0.53 0.17 256);
-  --yayaw-filter-accent-soft: color-mix(
-    in oklch,
-    var(--yayaw-filter-accent) 10%,
-    var(--yayaw-background)
-  );
-  --yayaw-filter-accent-line: color-mix(
-    in oklch,
-    var(--yayaw-filter-accent) 35%,
-    var(--yayaw-background)
-  );
+  --yayaw-filter-accent: #1f6fbd;
+  --yayaw-filter-accent-soft: rgb(35 131 226 / 8%);
+  --yayaw-filter-accent-hover: rgb(35 131 226 / 14%);
+  --yayaw-filter-accent-line: transparent;
 }
 .dark .yayaw-table,
 .dark .yayaw-filter-popover,
 .dark .yayaw-filter-menu-layer {
-  --yayaw-filter-accent: oklch(0.72 0.13 256);
+  --yayaw-filter-accent: #7ebaff;
+  --yayaw-filter-accent-soft: rgb(126 186 255 / 12%);
+  --yayaw-filter-accent-hover: rgb(126 186 255 / 20%);
 }
 .yayaw-filter-menu-layer {
   z-index: 3100;
@@ -7012,9 +7007,16 @@
   font-weight: 400;
 }
 .yayaw-date-period[data-active="true"] {
+  height: 28px;
+  border-radius: 9999px;
+  padding-inline: 8px;
+  box-shadow: none;
   border-color: var(--yayaw-filter-accent-line);
   background: var(--yayaw-filter-accent-soft);
   color: var(--yayaw-filter-accent);
+}
+.yayaw-date-period[data-active="true"]:hover {
+  background: var(--yayaw-filter-accent-hover);
 }
 .yayaw-date-period-label {
   overflow: hidden;
@@ -7063,7 +7065,7 @@
   white-space: nowrap;
 }
 .yayaw-filter-chip:hover {
-  border-color: var(--yayaw-filter-accent);
+  background: var(--yayaw-filter-accent-hover);
 }
 .yayaw-filter-chip:focus-visible,
 .yayaw-filter-chips-clear:focus-visible,
@@ -7079,8 +7081,8 @@
   color: var(--yayaw-muted-foreground);
 }
 .yayaw-filter-chip-property {
-  color: var(--yayaw-foreground);
-  font-weight: 500;
+  color: inherit;
+  font-weight: 400;
 }
 .yayaw-filter-chip[data-complete="false"] .yayaw-filter-chip-property {
   color: inherit;

@@ -132,7 +132,7 @@ export function FilterBarDate({
               "max-w-full gap-2 font-normal",
               variant === "bar" && "h-8 px-3 text-xs",
               active &&
-                "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300"
+                "h-7 rounded-full border-transparent bg-[#2383e2]/8 px-2 text-[#1f6fbd] shadow-none hover:bg-[#2383e2]/14 dark:bg-[#7ebaff]/12 dark:text-[#7ebaff] dark:hover:bg-[#7ebaff]/20"
             )}
             data-active={active}
             data-date-filter={column.id}

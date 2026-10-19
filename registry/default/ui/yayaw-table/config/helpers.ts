@@ -277,6 +277,26 @@ export function withTableDatePreset<
  */
 export interface ColumnDefinition {
   /** Application filter control; writes the same state as saved views and reset. */
+  /** Operators supported by this column's server contract; omitted offers every operator for its type. */
+  filterOperators?: string[];
+  /** Filter value type when the displayed cell uses a different representation. */
+  filterType?:
+    | "text"
+    | "number"
+    | "date"
+    | "select"
+    | "multiSelect"
+    | "boolean"
+    | "location";
+  /** Search filter choices on the server; called only while its editor is open. */
+  optionsLoader?: (
+    query: string,
+    signal?: AbortSignal
+  ) => Promise<
+    { value: string | number | boolean; label: string; disabled?: boolean }[]
+  >;
+  optionsSearchMinLength?: number;
+  optionsSearchDebounceMs?: number;
   filterRenderer?: (context: {
     value: unknown;
     onChange: (value: unknown) => void;

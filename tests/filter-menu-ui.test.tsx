@@ -128,14 +128,13 @@ const config = defineTableConfig({
   table: {
     syncUrl: false,
     enableViews: false,
-    enableAdvancedFilters: true,
     toolbarDateFilter: "due",
     timeZone: "Europe/Paris",
   },
   translations: { namespace: "notion-filters", keys: { title: "Deals" } },
 });
 
-const render = async () => {
+const render = async (tableConfig = config) => {
   const lists: Row[] = [];
   const actions = {
     list: (params: Row) => {
@@ -166,10 +165,9 @@ const render = async () => {
       <Provider store={createStore()}>
         <NuqsTestingAdapter hasMemory>
           <DataTable
-            enableAdvancedFilters
             getRowId={(row) => String(row.id)}
             getTableActions={() => actions}
-            getTableConfig={() => config}
+            getTableConfig={() => tableConfig}
             queryClient={client}
             tableType="notion-filters"
           />
@@ -195,8 +193,8 @@ const openFilterScreen = async () => {
 
 it("adds a rule from the Filter screen as a chip that filters once it has a value", async () => {
   const { lastRules } = await render();
-  // The toolbar has no Filter button of its own: the settings hold it.
-  expect($("[data-filter-button]")).toBeNull();
+  expect($("[data-filter-chips]")).toBeNull();
+  expect($("[data-filter-chips-clear]")).toBeNull();
   await openFilterScreen();
   const properties = [
     ...document.querySelectorAll("[data-filter-property]"),
@@ -231,6 +229,7 @@ it("adds a rule from the Filter screen as a chip that filters once it has a valu
   await settle();
   // Back to the first request's filters, answered from the cache.
   expect($("[data-filter-chips]")).toBeNull();
+  expect($("[data-filter-chips-clear]")).toBeNull();
   expect(document.querySelectorAll("tbody tr")).toHaveLength(3);
 });
 
@@ -321,4 +320,57 @@ it("joins rules with or in the advanced filter", async () => {
   );
   expect(document.querySelectorAll("tbody tr")).toHaveLength(2);
   expect($("[data-filter-chip-advanced]")?.textContent).toContain("2 rules");
+});
+
+it("searches remote filter choices, keeps their labels and honors the minimum", async () => {
+  const searches: string[] = [];
+  const remote = {
+    ...config,
+    columns: {
+      ...config.columns,
+      definitions: config.columns.definitions.map((column) =>
+        column.id === "status"
+          ? {
+              ...column,
+              type: "text" as const,
+              filterType: "select" as const,
+              options: [],
+              optionsSearchMinLength: 2,
+              optionsSearchDebounceMs: 0,
+              optionsLoader: (query: string) => {
+                searches.push(query);
+                return Promise.resolve(
+                  query === "wo"
+                    ? [{ value: "won", label: "Won remotely" }]
+                    : [{ value: "other", label: "Other remote" }]
+                );
+              },
+            }
+          : column
+      ),
+    },
+  };
+  const { lastRules } = await render(remote);
+  await openFilterScreen();
+  await click($('[data-filter-property="status"]'));
+  expect(searches).toEqual([]);
+  await type($('input[aria-label="Search for an option…"]'), "wo");
+  await settle();
+  expect(searches).toEqual(["wo"]);
+  await type($('input[aria-label="Search for an option…"]'), "ot");
+  await settle();
+  expect($('[data-filter-rule="status"]')?.textContent).not.toContain(
+    "Won remotely"
+  );
+  await type($('input[aria-label="Search for an option…"]'), "wo");
+  await settle();
+  await click($('[data-filter-rule="status"] input[type="checkbox"]'));
+  await type($('input[aria-label="Search for an option…"]'), "ot");
+  await settle();
+  expect(lastRules()).toEqual([
+    expect.objectContaining({ columnId: "status", values: ["won"] }),
+  ]);
+  expect($('[data-filter-chip="status"]')?.textContent).toContain(
+    "Won remotely"
+  );
 });

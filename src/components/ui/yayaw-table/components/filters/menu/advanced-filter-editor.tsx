@@ -42,13 +42,23 @@ export function AdvancedFilterEditor({ menu }: { menu: FilterMenu }) {
       ...rule,
       columnId,
       type: column.type,
-      operator: column.folder ? "isAnyOf" : defaultFilterOperator(column.type),
+      operator: column.folder
+        ? "isAnyOf"
+        : (filterMenuOperators(
+            column.type,
+            undefined,
+            column.filterOperators
+          )[0] ?? defaultFilterOperator(column.type)),
       values: undefined,
     } as unknown as AdvancedFilterModel);
   };
   const join = (index: number) => {
     if (index === 0) {
-      return <span className="px-1 text-muted-foreground text-sm">{text("where")}</span>;
+      return (
+        <span className="px-1 text-muted-foreground text-sm">
+          {text("where")}
+        </span>
+      );
     }
     if (index === 1) {
       return (
@@ -76,7 +86,11 @@ export function AdvancedFilterEditor({ menu }: { menu: FilterMenu }) {
     }
     const type = typeOf(rule);
     const column = menu.column(rule.columnId);
-    if ((type === "text" || type === "number") && rule.operator !== "between" && !column?.folder) {
+    if (
+      (type === "text" || type === "number") &&
+      rule.operator !== "between" &&
+      !column?.folder
+    ) {
       return (
         <Input
           aria-label={text("value")}
@@ -126,7 +140,12 @@ export function AdvancedFilterEditor({ menu }: { menu: FilterMenu }) {
           <ChevronDown aria-hidden="true" className="size-3 shrink-0" />
         </PopoverTrigger>
         <PopoverContent align="start" className={FILTER_POPOVER}>
-          <FilterValueEditor autoFocus menu={menu} onChange={menu.update} rule={rule} />
+          <FilterValueEditor
+            autoFocus
+            menu={menu}
+            onChange={menu.update}
+            rule={rule}
+          />
         </PopoverContent>
       </Popover>
     );
@@ -174,9 +193,18 @@ export function AdvancedFilterEditor({ menu }: { menu: FilterMenu }) {
                 }
                 value={rule.operator}
               >
-                {filterMenuOperators(type, rule.operator).map((operator) => (
+                {filterMenuOperators(
+                  type,
+                  rule.operator,
+                  column?.filterOperators
+                ).map((operator) => (
                   <option key={operator} value={operator}>
-                    {filterOperatorLabel(type, operator, menu.locale, menu.translate)}
+                    {filterOperatorLabel(
+                      type,
+                      operator,
+                      menu.locale,
+                      menu.translate
+                    )}
                   </option>
                 ))}
               </select>

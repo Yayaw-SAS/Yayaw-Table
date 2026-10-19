@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Input } from "@/src/components/ui/input";
-import type { FilterMenu, FilterMenuColumnDef } from "../../../hooks/use-filter-menu";
+import type {
+  FilterMenu,
+  FilterMenuColumnDef,
+} from "../../../hooks/use-filter-menu";
 import type { AdvancedFilterModel } from "../../../types/filter-types";
 import {
   filterOperatorIsMultiple,
@@ -63,12 +66,16 @@ function TypedValues({
     return Number.isFinite(value) ? value : undefined;
   };
   const typed = (current: string[]) =>
-    range ? [parse(current[0] ?? ""), parse(current[1] ?? "")] : parse(current[0] ?? "");
+    range
+      ? [parse(current[0] ?? ""), parse(current[1] ?? "")]
+      : parse(current[0] ?? "");
   const shown = range ? [list[0], list[1]] : list[0];
   // A value changed elsewhere shows here; "-" or "2." being typed stays.
   // biome-ignore lint/correctness/useExhaustiveDependencies: follows the rule's values only
   useEffect(() => {
-    setTexts((current) => (same(typed(current), shown) ? current : committed()));
+    setTexts((current) =>
+      same(typed(current), shown) ? current : committed()
+    );
   }, [JSON.stringify(rule.values)]);
   const latest = useRef({ texts, commit: () => undefined as unknown });
   const commit = (current = latest.current.texts) => {
@@ -127,6 +134,85 @@ function TypedValues({
   );
 }
 
+function useRemoteOptions(
+  column: FilterMenuColumnDef,
+  query: string,
+  rememberOptions: FilterMenu["rememberOptions"]
+) {
+  const [loaded, setLoaded] = useState<
+    { value: unknown; label: string; disabled?: boolean }[]
+  >([]);
+  const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const minimum = Math.max(0, column.optionsSearchMinLength ?? 0);
+  useEffect(() => {
+    const controller = new AbortController();
+    setFailed(false);
+    if (!column.optionsLoader || query.length < minimum) {
+      setLoaded([]);
+      setLoading(false);
+      return;
+    }
+    setLoaded([]);
+    setLoading(true);
+    const timer = setTimeout(
+      async () => {
+        try {
+          const result = await column.optionsLoader?.(query, controller.signal);
+          if (!controller.signal.aborted) {
+            setLoaded(result ?? []);
+            rememberOptions(column.id, result ?? []);
+          }
+        } catch {
+          if (!controller.signal.aborted) {
+            setLoaded([]);
+            setFailed(true);
+          }
+        } finally {
+          if (!controller.signal.aborted) {
+            setLoading(false);
+          }
+        }
+      },
+      query ? Math.max(0, column.optionsSearchDebounceMs ?? 300) : 0
+    );
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [
+    column.id,
+    column.optionsLoader,
+    column.optionsSearchDebounceMs,
+    minimum,
+    query,
+    rememberOptions,
+  ]);
+  return { loaded, loading, failed, minimum };
+}
+
+function optionStatus(
+  menu: FilterMenu,
+  state: {
+    loading: boolean;
+    failed: boolean;
+    minimum: number;
+    query: string;
+    count: number;
+  }
+): string {
+  if (state.loading) {
+    return menu.text("loadingOptions");
+  }
+  if (state.failed) {
+    return menu.text("optionsError");
+  }
+  if (state.query.length < state.minimum) {
+    return menu.text("searchMinimum").replace("{count}", String(state.minimum));
+  }
+  return state.count ? "" : menu.text("noOptions");
+}
+
 function OptionValues({
   menu,
   rule,
@@ -142,19 +228,42 @@ function OptionValues({
 }) {
   const [search, setSearch] = useState("");
   const values = ruleValues(rule.values);
-  const options = [...(column.options ?? [])];
-  // A selected value can be absent from the current server page's facets.
+  const query = search.trim();
+  const { loaded, loading, failed, minimum } = useRemoteOptions(
+    column,
+    query,
+    menu.rememberOptions
+  );
+  const known = new Map(
+    column.options?.map((option) => [option.value, option])
+  );
+  const optionsByValue = new Map(
+    [
+      ...(column.optionsLoader
+        ? (column.staticOptions ?? [])
+        : (column.options ?? [])),
+      ...loaded,
+    ].map((option) => [option.value, option])
+  );
+  // Keep the labels of selected choices when a later search returns other results.
   for (const value of values) {
-    if (!options.some((option) => String(option.value) === String(value))) {
-      options.push({ value, label: String(value) });
-    }
+    optionsByValue.set(
+      value,
+      optionsByValue.get(value) ??
+        known.get(value) ?? { value, label: String(value) }
+    );
   }
-  const query = search.trim().toLocaleLowerCase();
-  const visible = query
-    ? options.filter((option) => option.label.toLocaleLowerCase().includes(query))
-    : options;
+  const options = [...optionsByValue.values()];
+  const normalized = query.toLocaleLowerCase();
+  const visible =
+    normalized && !column.optionsLoader
+      ? options.filter((option) =>
+          option.label.toLocaleLowerCase().includes(normalized)
+        )
+      : options;
   const multiple = filterOperatorIsMultiple(column.type, rule.operator);
-  const checked = (value: unknown) => values.some((item) => Object.is(item, value));
+  const checked = (value: unknown) =>
+    values.some((item) => Object.is(item, value));
   const toggle = (value: unknown) => {
     if (!multiple) {
       onChange(checked(value) ? undefined : value);
@@ -166,9 +275,16 @@ function OptionValues({
         : [...values, value]
     );
   };
+  const statusText = optionStatus(menu, {
+    loading,
+    failed,
+    minimum,
+    query,
+    count: visible.length,
+  });
   return (
     <div className="grid gap-1.5">
-      {options.length > MANY_OPTIONS && (
+      {(column.optionsLoader || options.length > MANY_OPTIONS) && (
         <Input
           aria-label={menu.text("searchOptions")}
           autoComplete="off"
@@ -190,6 +306,7 @@ function OptionValues({
           >
             <input
               checked={checked(option.value)}
+              disabled={option.disabled}
               className="size-4 accent-blue-600"
               onChange={() => toggle(option.value)}
               type="checkbox"
@@ -197,9 +314,9 @@ function OptionValues({
             <span className="truncate">{option.label}</span>
           </label>
         ))}
-        {!visible.length && (
+        {statusText && (
           <output className="px-2 py-1 text-muted-foreground text-sm">
-            {menu.text("noOptions")}
+            {statusText}
           </output>
         )}
       </fieldset>

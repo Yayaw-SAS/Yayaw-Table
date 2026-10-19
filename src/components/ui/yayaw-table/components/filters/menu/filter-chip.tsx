@@ -14,11 +14,10 @@ import { FilterRuleEditor } from "./filter-rule-editor";
 
 /** A chip's look: blue while it filters, dashed while it waits for a value. */
 export const CHIP =
-  "inline-flex h-7 max-w-64 shrink-0 items-center gap-1 rounded-full border px-2.5 text-sm transition-colors hover:bg-muted data-[complete=true]:border-blue-200 data-[complete=true]:bg-blue-50 data-[complete=true]:text-blue-700 data-[complete=false]:border-dashed data-[complete=false]:text-muted-foreground dark:data-[complete=true]:border-blue-900 dark:data-[complete=true]:bg-blue-950 dark:data-[complete=true]:text-blue-300";
+  "inline-flex h-7 max-w-64 shrink-0 items-center gap-1 rounded-full border px-2.5 text-sm transition-colors hover:bg-muted data-[complete=true]:border-transparent data-[complete=true]:bg-[#2383e2]/8 data-[complete=true]:text-[#1f6fbd] data-[complete=true]:hover:bg-[#2383e2]/14 data-[complete=false]:border-dashed data-[complete=false]:text-muted-foreground dark:data-[complete=true]:bg-[#7ebaff]/12 dark:data-[complete=true]:text-[#7ebaff] dark:data-[complete=true]:hover:bg-[#7ebaff]/20";
 
 /** The popover the filter menu's editors open in. */
-export const FILTER_POPOVER =
-  "w-[min(22rem,calc(100vw-1rem))] gap-2 p-2";
+export const FILTER_POPOVER = "w-[min(22rem,calc(100vw-1rem))] gap-2 p-2";
 
 /** One rule under the toolbar: "Status: Won, Open"; a click opens its editor. */
 export function FilterChip({

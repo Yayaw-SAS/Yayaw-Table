@@ -31,7 +31,7 @@ export const defaultTableConfig = {
   emptyState: {
     show: true,
   },
-  enableAdvancedFilters: false,
+  enableAdvancedFilters: true,
   enableColumnDnd: true,
   enableColumnDragDropByDefault: false,
   enableColumnResizing: false,
@@ -91,7 +91,7 @@ export const defaultTranslations = {
   of: "of",
   resetColumns: "Reset columns",
   rowsPerPage: "Rows per page",
-    autoPageSize: "Automatic",
+  autoPageSize: "Automatic",
   rowsSelected: "rows selected",
   saveView: "Save view",
   search: "Search",

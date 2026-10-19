@@ -186,6 +186,9 @@ export function filterMenuSuite(
     assert.equal(api.defaultFilterOperator("date"), "equals");
     assert.ok(!api.filterMenuOperators("number").includes("contains"));
     assert.ok(api.filterMenuOperators("date").includes("before"));
+    assert.deepEqual(api.filterMenuOperators("select", undefined, ["is"]), [
+      "is",
+    ]);
     assert.equal(api.filterOperatorLabel("number", "greaterThanOrEqual"), "≥");
     assert.equal(api.filterOperatorLabel("date", "before", "fr"), "Est avant");
     assert.equal(

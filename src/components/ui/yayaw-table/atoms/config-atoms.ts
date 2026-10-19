@@ -49,8 +49,7 @@ export interface DataTableColumnsConfig {
  * Interface for general DataTable configuration options
  */
 /** The Form mode reads `table.form` from the catalogue config; `form` here is the create form. */
-export interface DataTableConfig
-  extends Omit<GenericModeTableConfigs, "form"> {
+export interface DataTableConfig extends Omit<GenericModeTableConfigs, "form"> {
   planning?: import("../planning/types").TablePlanningConfig;
   gantt?: import("../planning/types").TableGanttConfig;
   /**
@@ -320,7 +319,7 @@ const defaultTableConfig: DataTableConfig = {
   enableColumnResizing: false,
   enableColumnDnd: true,
   enableColumnFilters: true,
-  enableAdvancedFilters: false,
+  enableAdvancedFilters: true,
   enableColumnPinning: true,
   enableMultiRowSelection: true,
   enablePagination: true,

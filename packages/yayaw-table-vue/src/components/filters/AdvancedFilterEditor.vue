@@ -43,7 +43,7 @@ const changeColumn = (rule: AdvancedFilter, event: Event): void => {
     ...rule,
     columnId: column.id,
     type,
-    operator: (menu.isFolderColumn(column) ? "isAnyOf" : defaultFilterOperator(type)) as AdvancedFilterOperator,
+    operator: (menu.isFolderColumn(column) ? "isAnyOf" : (filterMenuOperators(type, undefined, column.filterOperators)[0] ?? defaultFilterOperator(type))) as AdvancedFilterOperator,
     values: undefined,
   });
 };
@@ -75,7 +75,7 @@ const join = (event: Event): void => menu.setJoin((event.target as HTMLSelectEle
         <option v-for="column in menu.columns.value" :key="column.id" :value="column.id">{{ column.header }}</option>
       </select>
       <select v-if="!menu.isFolderColumn(columnOf(rule))" class="yayaw-select" :value="rule.operator" :aria-label="text('operator')" @change="changeOperator(rule, $event)">
-        <option v-for="operator in filterMenuOperators(typeOf(rule), rule.operator)" :key="operator" :value="operator">{{ filterOperatorLabel(typeOf(rule), operator, context.locale, translate) }}</option>
+        <option v-for="operator in filterMenuOperators(typeOf(rule), rule.operator, columnOf(rule)?.filterOperators)" :key="operator" :value="operator">{{ filterOperatorLabel(typeOf(rule), operator, context.locale, translate) }}</option>
       </select>
       <span v-else />
       <template v-if="filterOperatorNeedsValue(rule.operator)">

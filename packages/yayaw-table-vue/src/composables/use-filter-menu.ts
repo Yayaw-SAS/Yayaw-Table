@@ -6,6 +6,7 @@ import {
   defaultFilterOperator,
   type FilterMenuColumn,
   type FilterMenuType,
+  filterMenuOperators,
   filterRuleComplete,
 } from "../filter-menu";
 import { folderTableOptions } from "../folder-directory";
@@ -14,6 +15,7 @@ import type {
   AdvancedFilterOperator,
   AdvancedFiltersState,
   ColumnDefinition,
+  SelectOption,
   TableConfig,
 } from "../types";
 
@@ -24,6 +26,8 @@ import type {
  * filter. The view settings' Filter screen, column menus and the chips share it.
  */
 export interface FilterMenuStore {
+  rememberOptions: (columnId: string, options: SelectOption[]) => void;
+  resolvedOptions: Ref<Record<string, SelectOption[]>>;
   /** Columns the menu offers, in the table's order. */
   columns: ComputedRef<ColumnDefinition[]>;
   /** Every rule: the table's, then the incomplete ones being written. */
@@ -77,6 +81,19 @@ export function createFilterMenuStore({
   state: Ref<AdvancedFiltersState>;
   folderColumn: () => string | undefined;
 }): FilterMenuStore {
+  const resolvedOptions = ref<Record<string, SelectOption[]>>({});
+  const rememberOptions = (columnId: string, options: SelectOption[]) => {
+    resolvedOptions.value = {
+      ...resolvedOptions.value,
+      [columnId]: [
+        ...(resolvedOptions.value[columnId] ?? []).filter(
+          (known) =>
+            !options.some((option) => Object.is(option.value, known.value))
+        ),
+        ...options,
+      ].slice(-500),
+    };
+  };
   const drafts = ref<AdvancedFilter[]>([]);
   const openId = ref<string>();
   const advancedOpen = ref(false);
@@ -108,7 +125,9 @@ export function createFilterMenuStore({
     column?.id === folderColumn() &&
     Boolean(folderTableOptions(config.table.filetree).folderFilter);
   const typeOf = (column: ColumnDefinition | undefined): FilterMenuType =>
-    isFolderColumn(column) ? "select" : (filterType(column) as FilterMenuType);
+    isFolderColumn(column)
+      ? "select"
+      : (column?.filterType ?? (filterType(column) as FilterMenuType));
   const rules = computed(() => [...state.value.filters, ...drafts.value]);
   const add = (columnId?: string, open = true): AdvancedFilter | undefined => {
     const column = columnId
@@ -133,7 +152,8 @@ export function createFilterMenuStore({
       type,
       operator: (isFolderColumn(column)
         ? "isAnyOf"
-        : defaultFilterOperator(type)) as AdvancedFilterOperator,
+        : (filterMenuOperators(type, undefined, column.filterOperators)[0] ??
+          defaultFilterOperator(type))) as AdvancedFilterOperator,
       values: undefined,
       isActive: true,
     };
@@ -222,14 +242,24 @@ export function createFilterMenuStore({
     header: column.header,
     type: typeOf(column),
     options:
-      column.type === "boolean" && !column.options?.length
+      typeOf(column) === "boolean" && !column.options?.length
         ? [
             { value: true, label: labels.yes },
             { value: false, label: labels.no },
           ]
-        : column.options,
+        : [
+            ...(column.options ?? []),
+            ...(resolvedOptions.value[column.id] ?? []).filter(
+              (option) =>
+                !column.options?.some((known) =>
+                  Object.is(known.value, option.value)
+                )
+            ),
+          ],
   });
   return {
+    rememberOptions,
+    resolvedOptions,
     columns,
     rules,
     openId,

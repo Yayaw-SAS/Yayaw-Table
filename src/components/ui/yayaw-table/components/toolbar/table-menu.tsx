@@ -714,9 +714,7 @@ export function TableMenu({
   );
 
   // Hide options button entirely if nothing is available
-  if (
-    !(sectionState.hasAnyMenuSection || viewMenu || dataActions || screens)
-  ) {
+  if (!(sectionState.hasAnyMenuSection || viewMenu || dataActions || screens)) {
     return null;
   }
 
@@ -785,20 +783,12 @@ export function TableMenu({
         <StackMenuView name="filters">
           {filterExtras}
           <TableFiltersMenu
-            advancedActions={
-              useAdvancedFilters ? advancedFiltersConfig?.actions : undefined
-            }
             advancedColumnsConfig={
               useAdvancedFilters
                 ? advancedFiltersConfig?.columnsConfig
                 : undefined
             }
-            advancedFilters={
-              useAdvancedFilters ? advancedFiltersConfig?.filters : undefined
-            }
             columnFilters={state.columnFilters}
-            columns={columns}
-            invalidateTable={invalidateTable}
             onDone={closeMenu}
             setColumnFilters={setColumnFilters}
             tableId={tableId}
@@ -841,7 +831,11 @@ export function TableMenu({
         </StackMenuView>
       ))}
       {dataScreens?.map((screen) => (
-        <StackMenuView key={screen.name} name={screen.name} title={screen.title}>
+        <StackMenuView
+          key={screen.name}
+          name={screen.name}
+          title={screen.title}
+        >
           {screen.content}
         </StackMenuView>
       ))}
