@@ -1302,6 +1302,7 @@ export function ConnectorPanel({
   const syncedRef = useRef(onSynced);
   syncedRef.current = onSynced;
   const [state, setState] = useState<ConnectorFlowState>();
+  const { setDismissGuard } = useStackMenu();
   const flowRef = useRef<ConnectorFlow>(null);
   useEffect(() => {
     const flow = createConnectorFlow({
@@ -1318,10 +1319,15 @@ export function ConnectorPanel({
       onSynced: () => syncedRef.current?.(),
     });
     flowRef.current = flow;
+    // A provider picker or account popup may take focus outside this menu.
+    setDismissGuard(() => flow.state.resolving || flow.state.connecting);
     setState(flow.state);
     flow.start().catch(() => undefined);
-    return () => flow.dispose();
-  }, [opened]);
+    return () => {
+      setDismissGuard(undefined);
+      flow.dispose();
+    };
+  }, [opened, setDismissGuard]);
 
   const flow = flowRef.current;
   const { t } = opened;

@@ -7,7 +7,7 @@
  *
  * Values are keyed by table column id on both sides; provider reads translate
  * target fields back to column ids through the mapping. Rows are linked by
- * the key field ("Yayaw ID"), which holds the table row id in the target.
+ * the key field ("ID"), which holds the table row id in the target.
  *
  * A run is `read → planSync → applySyncPlan → save result.state`.
  *
@@ -103,7 +103,7 @@ export interface SyncField {
 
 export interface SyncMapping {
   fields: readonly SyncField[];
-  /** Target field holding the table row id, "Yayaw ID" by default. */
+  /** Target field holding the table row id, "ID" by default. */
   keyField?: string;
   /** Notion property id of the key field, found before its name. */
   keyFieldId?: string;

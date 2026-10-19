@@ -2150,7 +2150,7 @@ render the same `connectorScreenFields` list through `ViewSettingsPanel`
 touch layouts. Order: target (with the optional paste input), child, visible
 or all columns, one mapping per column (same header first, type-compatible
 fields first, a new field when `allowNewFields`, or Don't send), key field
-("Yayaw ID" by default), mode with its one-line explanation when several are
+("ID" by default), mode with its one-line explanation when several are
 offered, and records (all in the view or the selection). Send validates,
 saves the settings with `save`, pushes with scope-aware context
 (`scope`, the sent `columns`, and for a selection `selectedRowIds` and
@@ -2478,7 +2478,7 @@ headers with the shared `resolveSheetColumns` rule (by header, then by the
 saved position shifted like the key column when the header there is not
 mapped elsewhere), the same rule as the check's `field_missing` issue. `e2e/schema-health.spec.ts` runs on both demos:
 the demo "Notion" destination's "Live projects" database drifted (Price
-renamed Cost, Progress became a Select, two Category options and "Yayaw ID"
+renamed Cost, Progress became a Select, two Category options and "ID"
 missing, a formula and a people property), so the check lists each issue,
 Send is disabled with the reason until Progress is not sent, disabled
 choices say why, Update mapping and Prepare clear their issues, and "New
@@ -3789,3 +3789,9 @@ settings.
 ### Page selection shortcuts
 
 Ctrl/Cmd+A selects the currently displayed page in both React and Vue, respecting row selection permissions and keeping previous selections. It makes no list request. The bulk bar's explicit Select all action still selects every matching server row. Page headings and controls may retain focus; a unique visible table in the same main/dialog region, or the last active one, owns the shortcut. Text editors and other overlays retain their native shortcuts.
+
+### External connector pickers and record IDs
+
+React and Vue keep the Connect menu mounted while a provider picker or account popup takes focus outside it. Cancellation, success and failure release that dismissal guard; ordinary menu dismissal then works again. The shared example opens a separate Drive picker, and the connector browser suite checks selection and cancellation on desktop and phones in both editions.
+
+New connectors use the neutral `ID` key field. Saved mappings keep their explicit key field, including the former `Yayaw ID`, so existing rows keep matching without a migration.

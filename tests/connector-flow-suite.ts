@@ -64,9 +64,9 @@ export function connectorFlowSuite(
         { name: "name", type: "title" },
         { name: "ECHEANCE", type: "number" },
         { name: "echeance", type: "date" },
-        { name: "Yayaw ID" },
+        { name: "ID" },
       ],
-      { keyField: "Yayaw ID" }
+      { keyField: "ID" }
     );
     assert.deepEqual(mapping, [
       { columnId: "name", field: "name" },
@@ -89,10 +89,10 @@ export function connectorFlowSuite(
       [
         { id: "a", header: "Name" },
         { id: "b", header: "name" },
-        { id: "c", header: "Yayaw ID" },
+        { id: "c", header: "ID" },
       ],
-      [{ name: "Name" }, { name: "Yayaw ID" }],
-      { keyField: "Yayaw ID" }
+      [{ name: "Name" }, { name: "ID" }],
+      { keyField: "ID" }
     );
     assert.deepEqual(
       once.map((entry) => entry.field),
@@ -110,10 +110,10 @@ export function connectorFlowSuite(
     assert.equal(model.isConnectorTypeCompatible(undefined, "number"), true);
   });
 
-  test("key fields default to Yayaw ID and modes to upsert", () => {
+  test("key fields default to ID and modes to upsert", () => {
     assert.deepEqual(
       model.connectorKeyFields({ fields: [], allowNewFields: true }),
-      ["Yayaw ID"]
+      ["ID"]
     );
     assert.deepEqual(
       model.connectorKeyFields({ fields: [{ name: "Id" }], keyFields: ["Id"] }),
@@ -126,9 +126,28 @@ export function connectorFlowSuite(
     ]);
   });
 
+  test("a saved legacy key field keeps matching the same existing records", () => {
+    const settings = model.resolveConnectorSettings({
+      columns,
+      modes: ["upsert"],
+      saved: {
+        targetId: "sheet",
+        mode: "upsert",
+        keyField: "Yayaw ID",
+        mapping: [{ columnId: "name", field: "Name" }],
+      },
+      schema: {
+        fields: [{ name: "Name" }, { name: "Yayaw ID" }],
+        allowNewFields: true,
+      },
+      target: { targetId: "sheet" },
+    });
+    assert.equal(settings.keyField, "Yayaw ID");
+  });
+
   test("remembered settings apply where they still fit the target", () => {
     const schema = {
-      fields: [{ name: "Name" }, { name: "Status" }, { name: "Yayaw ID" }],
+      fields: [{ name: "Name" }, { name: "Status" }, { name: "ID" }],
     };
     const settings = model.resolveConnectorSettings({
       columns,
@@ -148,7 +167,7 @@ export function connectorFlowSuite(
     assert.equal(settings.targetId, "sheet");
     assert.equal(settings.childId, "tab");
     assert.equal(settings.mode, "replace");
-    assert.equal(settings.keyField, "Yayaw ID");
+    assert.equal(settings.keyField, "ID");
     assert.equal(settings.columns, "visible");
     assert.deepEqual(settings.mapping, [
       { columnId: "name", field: null },
@@ -174,11 +193,11 @@ export function connectorFlowSuite(
   });
 
   test("validation reports duplicates, unknown fields, key and mode", () => {
-    const schema = { fields: [{ name: "Name" }, { name: "Yayaw ID" }] };
+    const schema = { fields: [{ name: "Name" }, { name: "ID" }] };
     const base = {
       targetId: "sheet",
       mode: "upsert" as const,
-      keyField: "Yayaw ID",
+      keyField: "ID",
       mapping: [{ columnId: "name", field: "Name" }],
     };
     assert.deepEqual(model.validateConnectorSettings(base, { schema }), []);
@@ -318,13 +337,13 @@ export function connectorFlowSuite(
     ]);
     assert.deepEqual(
       model.toConnectorMapping({
-        keyField: "Yayaw ID",
+        keyField: "ID",
         mapping: [
           { columnId: "name", field: "Name" },
           { columnId: "due", field: null },
         ],
       }),
-      { keyProperty: "Yayaw ID", properties: { name: "Name" } }
+      { keyProperty: "ID", properties: { name: "Name" } }
     );
   });
 
@@ -417,7 +436,7 @@ export function connectorFlowSuite(
     assert.equal(flow.state.result?.created, 3);
     assert.equal(saved.length, 1);
     assert.deepEqual(pushed[0]?.columns, ["name", "due"]);
-    assert.equal(pushed[0]?.settings.keyField, "Yayaw ID");
+    assert.equal(pushed[0]?.settings.keyField, "ID");
     assert.ok(states.some((state) => state.phase === "sending"));
 
     flow.edit();
@@ -444,11 +463,11 @@ export function connectorFlowSuite(
           label: "Link",
           resolve: (input) => ({ id: input, label: `Sheet ${input}` }),
         },
-        describe: () => ({ fields: [{ name: "Name" }, { name: "Yayaw ID" }] }),
+        describe: () => ({ fields: [{ name: "Name" }, { name: "ID" }] }),
         load: () => ({
           targetId: "remembered",
           mode: "upsert",
-          keyField: "Yayaw ID",
+          keyField: "ID",
           mapping: [{ columnId: "name", field: "Name" }],
         }),
         push: () => ({ error: { code: "rate_limited" } }),

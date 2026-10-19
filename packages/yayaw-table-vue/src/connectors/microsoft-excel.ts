@@ -765,7 +765,7 @@ export interface ExcelPushInput {
    * header renamed in the worksheet keeps receiving its column.
    */
   fieldIndexes?: Readonly<Record<string, number>>;
-  /** Header of the column holding row ids, "Yayaw ID" by default. */
+  /** Header of the column holding row ids, "ID" by default. */
   keyColumn?: string;
   /** Saved position of the key column (`keyFieldIndex`). */
   keyColumnIndex?: number;
@@ -1403,7 +1403,7 @@ export async function getExcelTargetSchema(
 
 export interface ExcelPrepareInput {
   fixes: readonly SheetSchemaFix[];
-  /** Key header ("Yayaw ID" by default) and its saved position, to shift saved positions. */
+  /** Key header ("ID" by default) and its saved position, to shift saved positions. */
   keyColumn?: string;
   keyColumnIndex?: number;
   /** Worksheet name; the first visible worksheet by default. */
@@ -1414,7 +1414,7 @@ export interface ExcelPrepareInput {
 
 /**
  * Makes a worksheet ready for the table: adds the missing headers (the
- * "Yayaw ID" key first) at the end of the header row. It never reorders,
+ * "ID" key first) at the end of the header row. It never reorders,
  * renames or deletes a column, and only writes the header row. Idempotent:
  * `applied` is empty when nothing was missing.
  */

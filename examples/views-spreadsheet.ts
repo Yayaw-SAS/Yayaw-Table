@@ -36,7 +36,7 @@ const SERVICE_ACCOUNT = "yayaw-demo@yayaw-demo.iam.gserviceaccount.com";
 const SPREADSHEET_LINK = /\/spreadsheets\/d\/([\w-]{6,})/;
 const PRIVATE_SHEET = "private-sheet";
 const LIVE_SHEET = "live-projects/projects";
-const KEY_FIELD = "Yayaw ID";
+const KEY_FIELD = "ID";
 
 /** A tab: its header row and its rows, cells by header. */
 export interface Sheet {
@@ -513,6 +513,40 @@ export function createSpreadsheetConnector(table: DemoTable) {
   };
 }
 
+/** A separate provider dialog: it takes focus outside the table menu like a real Drive picker. */
+function pickDemoSpreadsheet(
+  target: ConnectorTarget
+): Promise<ConnectorTarget | null> {
+  return new Promise((resolve) => {
+    const dialog = document.createElement("dialog");
+    dialog.setAttribute("aria-label", "Drive picker");
+    dialog.style.pointerEvents = "auto";
+    const choose = document.createElement("button");
+    choose.type = "button";
+    choose.textContent = `Choose ${target.label}`;
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.textContent = "Cancel";
+    let selected: ConnectorTarget | null = null;
+    choose.addEventListener("click", () => {
+      selected = target;
+      dialog.close();
+    });
+    cancel.addEventListener("click", () => dialog.close());
+    dialog.addEventListener(
+      "close",
+      () => {
+        dialog.remove();
+        resolve(selected);
+      },
+      { once: true }
+    );
+    dialog.append(choose, cancel);
+    document.body.append(dialog);
+    dialog.showModal();
+  });
+}
+
 /**
  * The same spreadsheets through the person's own account: "Connect your
  * account" first, then "Browse…" (a provider picker, here the team tracker)
@@ -550,7 +584,10 @@ export function createDriveConnector(table: DemoTable) {
       pickTarget: {
         pick: async () => {
           const all = await spreadsheet.connector.targets();
-          const target = all.find((item) => item.id === "team-tracker") ?? null;
+          const available = all.find((item) => item.id === "team-tracker");
+          const target = available
+            ? await pickDemoSpreadsheet(available)
+            : null;
           if (target && !picked.some((item) => item.id === target.id)) {
             picked.push(target);
           }

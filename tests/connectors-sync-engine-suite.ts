@@ -30,10 +30,10 @@ const fields: Engine.SyncField[] = [
   { columnId: "tags", field: "Tags", type: "multiSelect" },
   { columnId: "status", field: "Status", type: "select" },
 ];
-const mapping: Engine.SyncMapping = { keyField: "Yayaw ID", fields };
+const mapping: Engine.SyncMapping = { keyField: "ID", fields };
 /** The mapping once a Site column is mapped after the first sync. */
 const siteMapping: Engine.SyncMapping = {
-  keyField: "Yayaw ID",
+  keyField: "ID",
   fields: [...fields, { columnId: "site", field: "Site" }],
 };
 const NOW = "2026-09-23T10:00:00.000Z";
@@ -1442,7 +1442,7 @@ export function connectorsSyncEngineSuite(
 
   test("a column removed from the mapping is left alone on both sides", async () => {
     const withoutStatus: Engine.SyncMapping = {
-      keyField: "Yayaw ID",
+      keyField: "ID",
       fields: fields.filter((field) => field.columnId !== "status"),
     };
     for (const storeBaseValues of [true, false]) {
@@ -1514,7 +1514,7 @@ export function connectorsSyncEngineSuite(
     edit(removed.target, "page-1", { name: null });
     const removedPlan = plan(removed, {
       mapping: {
-        keyField: "Yayaw ID",
+        keyField: "ID",
         fields: fields.filter((field) => field.columnId !== "status"),
       },
       storeBaseValues: false,

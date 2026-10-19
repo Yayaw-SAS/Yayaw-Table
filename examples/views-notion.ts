@@ -25,11 +25,11 @@ import type { SchemaFix } from "../src/components/ui/yayaw-table/utils/connector
  *
  * "Live projects" drifted since its mapping was saved: "Price" was renamed
  * "Cost" (same property id), "Progress" became a Select (a number cannot go
- * there), "Category" lacks two of the table's options and "Yayaw ID" was
+ * there), "Category" lacks two of the table's options and "ID" was
  * deleted.
  */
 
-const KEY = "Yayaw ID";
+const KEY = "ID";
 const LIVE = "live-projects";
 
 export interface NotionPushContext {
@@ -213,7 +213,7 @@ export function createNotionConnector() {
       label: database.title,
     }));
 
-  /** Writes pages like `pushRowsToNotionDatabase`: by property id first, keyed by "Yayaw ID". */
+  /** Writes pages like `pushRowsToNotionDatabase`: by property id first, keyed by "ID". */
   const push = async (
     settings: ConnectorSettings,
     context: NotionPushContext

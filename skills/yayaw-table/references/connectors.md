@@ -37,7 +37,7 @@ this page is about the server side. Full reference:
   databases report `not_found`). `verifyNotionToken()`,
   `listNotionDatabases()`, `getNotionDatabaseSchema()`,
   `defaultNotionMapping()`, then `pushRowsToNotionDatabase({ token,
-  databaseId, mapping, rows })`: one page per row, upserted by the "Yayaw ID"
+  databaseId, mapping, rows })`: one page per row, upserted by the "ID"
   property, about three requests per second, at most 5,000 rows.
 - Google Sheets: the user shares the spreadsheet with the service account
   (unshared sheets raise `not_shared` with `details.serviceAccountEmail`).
@@ -122,7 +122,7 @@ export async function runNotionSync(job: { connectionId: string; viewId: string;
 - `deletePolicy`: `flag` (default, report), `ignore` or `propagate` (delete
   on the other side; the screen asks for a preview and a confirmation).
 - Matching: linked records by ids, unlinked ones adopted by the key field
-  ("Yayaw ID") before anything is created; duplicate keys are reported, never
+  ("ID") before anything is created; duplicate keys are reported, never
   guessed. A column never synced before fills the empty side instead of
   clearing it.
 - The table adapter is yours: `create(items)` (return the new ids),
