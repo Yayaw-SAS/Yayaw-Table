@@ -75,7 +75,8 @@ export interface TableKanbanConfig {
   /**
    * With allowDragUpdate, start a mouse or touch drag from anywhere on a card
    * instead of only its grip handle. A short click or tap still opens the
-   * record; keyboard dragging stays on the handle. Defaults to false.
+   * record. Local keyboard dragging stays on the handle; remote cards use
+   * Alt+Shift+Left/Right. Defaults to false.
    */
   dragFromCard?: boolean;
 

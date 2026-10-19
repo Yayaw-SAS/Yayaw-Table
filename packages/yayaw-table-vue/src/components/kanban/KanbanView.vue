@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ServerKanbanView from "./ServerKanbanView.vue";
-import { canMoveKanbanRows, isKanbanDragControl, kanbanMovePatch } from "../../kanban-move";
-import { ArrowLeft, ArrowRight, GripVertical } from "lucide-vue-next";
+import { canMoveKanbanRows, isKanbanDragControl, kanbanKeyboardDirection, kanbanMovePatch } from "../../kanban-move";
+import { GripVertical } from "lucide-vue-next";
 import TableEmptyState from "../table/TableEmptyState.vue";
 import { computed, ref } from "vue";
 import { useKanbanSettings } from "../../composables/use-kanban-settings";
@@ -169,6 +169,14 @@ const adjacentGroup = (
   );
   return currentIndex < 0 ? undefined : groups.value[currentIndex + offset];
 };
+const keyboardMove = (row: TableRecord, event: KeyboardEvent): void => {
+  const direction = kanbanKeyboardDirection(event);
+  if (!direction) return;
+  const target = adjacentGroup(row, direction);
+  if (!target || !canDragRow(row)) return;
+  event.preventDefault();
+  moveRow(row, target.value);
+};
 const activate = (
   row: TableRecord,
   event: MouseEvent | KeyboardEvent
@@ -214,7 +222,7 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
             @pointerdown="press(row, $event)"
             @dragstart="startDrag(row, $event)"
             @click="activate(row, $event)"
-            @keydown="activate(row, $event)"
+            :aria-keyshortcuts="canDragRow(row) ? 'Alt+Shift+ArrowLeft Alt+Shift+ArrowRight' : undefined" @keydown="keyboardMove(row, $event); activate(row, $event)"
           >
             <div class="yayaw-card-header">
               <span v-if="context.config.table.enableRowSelection" class="yayaw-card-select" @click.stop>
@@ -222,30 +230,8 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
               </span>
               <InitialsAvatar v-if="avatarConfig" class="yayaw-card-avatar" decorative :name="avatarName(row)" :source="avatarSource(row)" :shape="avatarConfig.shape" />
               <strong>{{ displayCellValue(value(row, titleColumn), column(titleColumn) ?? { id: titleColumn, header: titleColumn }, context.locale) }}</strong>
-              <div v-if="canDragRow(row)" class="yayaw-kanban-move-actions">
-                <button
-                  v-if="adjacentGroup(row, -1)"
-                  type="button"
-                  class="yayaw-icon-button"
-                  :aria-label="translate('moveTo', 'Move') + ' ' + titleText(row) + ' ' + translate('to', 'to') + ' ' + adjacentGroup(row, -1)?.label"
-                  :disabled="Boolean(pending)"
-                  @click.stop="moveRow(row, adjacentGroup(row, -1)?.value ?? '')"
-                >
-                  <ArrowLeft :size="16" aria-hidden="true" />
-                </button>
-                <button
-                  v-if="adjacentGroup(row, 1)"
-                  type="button"
-                  class="yayaw-icon-button"
-                  :aria-label="translate('moveTo', 'Move') + ' ' + titleText(row) + ' ' + translate('to', 'to') + ' ' + adjacentGroup(row, 1)?.label"
-                  :disabled="Boolean(pending)"
-                  @click.stop="moveRow(row, adjacentGroup(row, 1)?.value ?? '')"
-                >
-                  <ArrowRight :size="16" aria-hidden="true" />
-                </button>
-              </div>
               <RowActions :row="row" />
-              <!-- Pointer-only affordance: the move buttons are the keyboard path. -->
+              <!-- Keyboard card movement remains available without visible controls. -->
               <span v-if="canDragRow(row) && !dragFromCard" class="yayaw-kanban-drag-handle" aria-hidden="true" @click.stop>
                 <GripVertical :size="16" />
               </span>

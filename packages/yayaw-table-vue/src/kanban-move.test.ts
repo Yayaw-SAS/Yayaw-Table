@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import {
   canMoveKanbanRows,
   canUpdateKanbanColumn,
+  kanbanKeyboardDirection,
   kanbanMovePatch,
 } from "./kanban-move";
 
@@ -56,4 +57,29 @@ it("requires opt-in, an update action and the configured remote grouping field",
       true
     )
   ).toBe(false);
+});
+
+it("moves only a focused card with the dedicated keyboard shortcut", () => {
+  const target = document.createElement("article");
+  const event = {
+    key: "ArrowRight",
+    altKey: true,
+    shiftKey: true,
+    ctrlKey: false,
+    metaKey: false,
+    target,
+    currentTarget: target,
+  };
+  expect(kanbanKeyboardDirection(event)).toBe(1);
+  expect(kanbanKeyboardDirection({ ...event, key: "ArrowLeft" })).toBe(-1);
+  expect(kanbanKeyboardDirection({ ...event, shiftKey: false })).toBe(0);
+  expect(kanbanKeyboardDirection({ ...event, altKey: false })).toBe(0);
+  expect(kanbanKeyboardDirection({ ...event, metaKey: true })).toBe(0);
+  expect(kanbanKeyboardDirection({ ...event, ctrlKey: true })).toBe(0);
+  expect(
+    kanbanKeyboardDirection({
+      ...event,
+      target: document.createElement("input"),
+    })
+  ).toBe(0);
 });
