@@ -12,6 +12,9 @@ test("moves a remote card by dragging, then recovers a failed keyboard move", as
   const card = () => page.locator('[data-row-id="1"]');
   await expect(lane("working").locator('[data-row-id="1"]')).toBeVisible();
   await expect(card()).toHaveAttribute("draggable", "true");
+  await expect(
+    page.locator("[data-kanban-drag-handle], .yayaw-kanban-drag-handle")
+  ).toHaveCount(0);
   await expect(page.locator('[data-row-id="2"]')).toHaveAttribute(
     "draggable",
     "false"

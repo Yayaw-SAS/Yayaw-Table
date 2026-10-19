@@ -484,7 +484,7 @@ function DataTableKanbanCard<TData extends Record<string, unknown>>({
           ? ({ attributes, listeners, setActivatorNodeRef }) => (
               <Button
                 aria-label="Drag card"
-                className="absolute top-2 right-2 h-7 w-7 cursor-grab text-muted-foreground active:cursor-grabbing"
+                className={dragFromCard ? "sr-only focus:not-sr-only focus:absolute focus:top-2 focus:right-2" : "absolute top-2 right-2 h-7 w-7 cursor-grab text-muted-foreground active:cursor-grabbing"}
                 ref={setActivatorNodeRef}
                 size="icon-sm"
                 type="button"

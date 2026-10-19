@@ -90,6 +90,7 @@ export function ServerKanbanView({
   const rowId = (row: Record<string, unknown>) => source.getRowId?.(row) ?? String(row.id);
   const busy = Boolean(state.loading || state.moving || state.lanes.some(lane => lane.loading));
   const canMove = (row: Record<string, unknown>) => Boolean(onMoveRow && canMoveRow?.(row));
+  const isDraggable = (row: Record<string, unknown>) => !busy && !pressedControl && canMove(row) && (dragFromCard === true || pressedHandle === rowId(row));
   const move = (row: Record<string, unknown>, target: string) => {
     if (canMove(row) && onMoveRow) { session.current?.move(rowId(row), target, onMoveRow); }
   };
@@ -143,9 +144,9 @@ export function ServerKanbanView({
                 data-row-id={rowId(row)}
                 key={rowId(row)}
                 aria-busy={state.moving === rowId(row) || undefined}
-                draggable={!busy && !pressedControl && canMove(row) && (dragFromCard === true || pressedHandle === rowId(row))}
+                draggable={isDraggable(row)}
                 onPointerDown={event => { setPressedControl(isKanbanDragControl(event.target)); setPressedHandle(event.target instanceof Element && event.target.closest("[data-kanban-drag-handle]") ? rowId(row) : undefined); }}
-                onDragStart={event => { if (!canMove(row) || busy || pressedControl || isKanbanDragControl(event.target) || !(dragFromCard || pressedHandle === rowId(row))) { event.preventDefault(); return; } dragged.current = rowId(row); }}
+                onDragStart={event => { if (!isDraggable(row) || isKanbanDragControl(event.target)) { event.preventDefault(); return; } dragged.current = rowId(row); }}
                 onDragEnd={() => { dragged.current = undefined; setPressedHandle(undefined); }}
               >
                 {avatarConfig ? (
@@ -176,7 +177,7 @@ export function ServerKanbanView({
                     const target = arranged.visible[index];
                     return target ? <button key={target.value} type="button" disabled={busy} aria-label={`${translatedOr(t, "views.kanban.move", "Move")} ${nameOf(row, titleId)} ${translatedOr(t, "views.kanban.to", "to")} ${target.label}`} onClick={() => move(row, target.value)}>{index < laneIndex ? <ArrowLeft aria-hidden="true" size={16} /> : <ArrowRight aria-hidden="true" size={16} />}</button> : null;
                   })}
-                  <span aria-hidden="true" data-kanban-drag-handle="" className="cursor-grab"><GripVertical size={16} /></span>
+                  {!dragFromCard ? <span aria-hidden="true" data-kanban-drag-handle="" className="cursor-grab"><GripVertical size={16} /></span> : null}
                 </div> : null}
                 <dl>
                   {propertyIds

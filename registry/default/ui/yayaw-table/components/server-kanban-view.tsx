@@ -97,6 +97,10 @@ export function ServerKanbanView({
   );
   const canMove = (row: Record<string, unknown>) =>
     Boolean(onMoveRow && canMoveRow?.(row));
+  const isDraggable = (row: Record<string, unknown>) =>
+    !(busy || pressedControl) &&
+    canMove(row) &&
+    (dragFromCard === true || pressedHandle === rowId(row));
   const move = (row: Record<string, unknown>, target: string) => {
     if (canMove(row) && onMoveRow) {
       session.current?.move(rowId(row), target, onMoveRow);
@@ -158,24 +162,14 @@ export function ServerKanbanView({
                 aria-busy={state.moving === rowId(row) || undefined}
                 className="mb-3 rounded-md border bg-background p-3"
                 data-row-id={rowId(row)}
-                draggable={
-                  !(busy || pressedControl) &&
-                  canMove(row) &&
-                  (dragFromCard === true || pressedHandle === rowId(row))
-                }
+                draggable={isDraggable(row)}
                 key={rowId(row)}
                 onDragEnd={() => {
                   dragged.current = undefined;
                   setPressedHandle(undefined);
                 }}
                 onDragStart={(event) => {
-                  if (
-                    !canMove(row) ||
-                    busy ||
-                    pressedControl ||
-                    isKanbanDragControl(event.target) ||
-                    !(dragFromCard || pressedHandle === rowId(row))
-                  ) {
+                  if (!isDraggable(row) || isKanbanDragControl(event.target)) {
                     event.preventDefault();
                     return;
                   }
@@ -238,13 +232,15 @@ export function ServerKanbanView({
                         </button>
                       ) : null;
                     })}
-                    <span
-                      aria-hidden="true"
-                      className="cursor-grab"
-                      data-kanban-drag-handle=""
-                    >
-                      <GripVertical size={16} />
-                    </span>
+                    {dragFromCard ? null : (
+                      <span
+                        aria-hidden="true"
+                        className="cursor-grab"
+                        data-kanban-drag-handle=""
+                      >
+                        <GripVertical size={16} />
+                      </span>
+                    )}
                   </div>
                 ) : null}
                 <dl>

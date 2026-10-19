@@ -68,7 +68,7 @@ const moveLabel = (row: Record<string, unknown>, target: string) => `${context.t
  <div v-if="canMove(row)" class="yayaw-kanban-move-actions">
  <button v-if="laneIndex > 0" type="button" class="yayaw-icon-button" :aria-label="moveLabel(row, lanes.visible[laneIndex - 1]!.label)" :disabled="busy" @click="move(row, lanes.visible[laneIndex - 1]!.value)"><ArrowLeft :size="16" aria-hidden="true" /></button>
  <button v-if="laneIndex < lanes.visible.length - 1" type="button" class="yayaw-icon-button" :aria-label="moveLabel(row, lanes.visible[laneIndex + 1]!.label)" :disabled="busy" @click="move(row, lanes.visible[laneIndex + 1]!.value)"><ArrowRight :size="16" aria-hidden="true" /></button>
- <span class="yayaw-kanban-drag-handle" aria-hidden="true"><GripVertical :size="16" /></span>
+ <span v-if="!dragFromCard" class="yayaw-kanban-drag-handle" aria-hidden="true"><GripVertical :size="16" /></span>
  </div>
  <dl class="yayaw-card-properties labeled"><template v-for="id in propertyIds.filter(item => item !== titleColumn)" :key="id"><dt>{{ column(id).header }}</dt><dd><CellRenderer :column="column(id)" :row="row" :value="value(row, id)" /></dd></template></dl>
  </article>

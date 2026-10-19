@@ -246,7 +246,7 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
               </div>
               <RowActions :row="row" />
               <!-- Pointer-only affordance: the move buttons are the keyboard path. -->
-              <span v-if="canDragRow(row)" class="yayaw-kanban-drag-handle" aria-hidden="true" @click.stop>
+              <span v-if="canDragRow(row) && !dragFromCard" class="yayaw-kanban-drag-handle" aria-hidden="true" @click.stop>
                 <GripVertical :size="16" />
               </span>
             </div>

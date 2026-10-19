@@ -63,7 +63,7 @@ export function canMoveKanbanRows(
   );
 }
 
-/** Interactive content keeps its own click, text selection and native link drag. */
+/** Presses on interactive content never start a card move. */
 export function isKanbanDragControl(target: EventTarget | null): boolean {
   return (
     target instanceof Element &&
