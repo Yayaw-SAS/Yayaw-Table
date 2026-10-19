@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.28.0
+
+### Minor Changes
+
+- 8ff841b: Support permission-aware server Kanban card moves through the native update action in React and Vue. Retain cards on failed writes, reload authoritative counts and lane pages on success, and offer adjacent-lane keyboard controls. Whole-card mode hides redundant visible grips while retaining keyboard movement. Inline-only tables may move cards through explicitly editable single-value grouping columns, preserving accessor keys and typed option values.
+
+### Patch Changes
+
+- 7e3bdfb: Remove visible card-move arrows from local Vue and remote React/Vue Kanban boards. Focused cards retain keyboard movement through Alt+Shift+Left/Right, and whole-card dragging keeps the board free of redundant grip controls.
+- c90448d: Keep Ctrl/Cmd+A on the displayed page without fetching other pages. Resolve shortcuts from page controls while preserving editor and overlay shortcuts.
+
 ## 3.27.0
 
 ### Minor Changes
