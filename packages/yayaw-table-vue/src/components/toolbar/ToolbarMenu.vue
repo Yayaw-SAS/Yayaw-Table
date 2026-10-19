@@ -7,7 +7,7 @@ import {
 } from "reka-ui";
 import { nextTick, provide, shallowRef, ref, watch, type CSSProperties } from "vue";
 
-import { settingsMenuCloseKey, settingsNavigationKey, type SettingsNavigation } from "./settings-navigation";
+import { settingsMenuCloseKey, settingsMenuDismissGuardKey, settingsNavigationKey, type SettingsNavigation } from "./settings-navigation";
 const childView = shallowRef<SettingsNavigation>();
 const backButton = ref<HTMLButtonElement>();
 watch(childView, async (view) => { if (view) { await nextTick(); backButton.value?.focus(); } });
@@ -15,7 +15,13 @@ provide(settingsNavigationKey, childView);
 
 const props = defineProps<{ open: boolean; compact?: boolean; title: string; back?: boolean; backLabel?: string; closeLabel?: string; align?: "start" | "end" }>();
 const emit = defineEmits<{ "update:open": [open: boolean]; back: []; closeAutoFocus: [event: Event] }>();
-provide(settingsMenuCloseKey, () => emit("update:open", false));
+const dismissGuard = shallowRef<() => boolean>();
+provide(settingsMenuDismissGuardKey, (guard) => { dismissGuard.value = guard; });
+const updateOpen = (open: boolean) => {
+  if (!open && dismissGuard.value?.()) return;
+  emit("update:open", open);
+};
+provide(settingsMenuCloseKey, () => updateOpen(false));
 const anchor = ref<HTMLElement>();
 const theme = ref<CSSProperties>({});
 watch(() => props.open, (open) => {
@@ -34,7 +40,7 @@ watch(() => props.open, (open) => {
 
 <template>
   <span ref="anchor" class="yayaw-menu-anchor">
-    <component :is="compact ? DialogRoot : PopoverRoot" :open="open" :modal="Boolean(compact)" @update:open="emit('update:open', $event)">
+    <component :is="compact ? DialogRoot : PopoverRoot" :open="open" :modal="Boolean(compact)" @update:open="updateOpen">
       <component :is="compact ? DialogTrigger : PopoverTrigger" as-child><slot name="trigger" /></component>
       <component :is="compact ? DialogPortal : PopoverPortal">
         <DialogOverlay v-if="compact" class="yayaw-toolbar-backdrop" :style="theme" />
@@ -44,7 +50,7 @@ watch(() => props.open, (open) => {
           <header class="yayaw-toolbar-menu-header">
             <button ref="backButton" v-if="back || childView" class="yayaw-icon-button" type="button" :aria-label="backLabel ?? 'Back'" @click="childView ? childView.back() : emit('back')"><ArrowLeft :size="16" /></button>
             <DialogTitle v-if="compact" as="strong">{{ childView?.title ?? title }}</DialogTitle><strong v-else>{{ childView?.title ?? title }}</strong>
-            <button class="yayaw-icon-button" type="button" :aria-label="closeLabel ?? 'Close'" @click="emit('update:open', false)"><X :size="16" /></button>
+            <button class="yayaw-icon-button" type="button" :aria-label="closeLabel ?? 'Close'" @click="updateOpen(false)"><X :size="16" /></button>
           </header>
           <ScrollAreaRoot class="yayaw-toolbar-menu-body" type="hover">
             <ScrollAreaViewport class="yayaw-toolbar-menu-viewport"><slot /></ScrollAreaViewport>

@@ -13,3 +13,8 @@ export const settingsNavigationKey: InjectionKey<
 export const settingsMenuCloseKey: InjectionKey<() => void> = Symbol(
   "settings-menu-close"
 );
+
+/** Prevents dismissal while an external picker or account popup owns focus. */
+export const settingsMenuDismissGuardKey: InjectionKey<
+  (guard: (() => boolean) | undefined) => void
+> = Symbol("settings-menu-dismiss-guard");

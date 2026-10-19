@@ -36,6 +36,7 @@ interface ChildView {
 
 const StackMenuContext = createContext<{
   setChildView: (view: ChildView | undefined) => void;
+  setDismissGuard: (guard: (() => boolean) | undefined) => void;
   compact: boolean;
   activeView: string;
   navigate: (view: string, title?: string) => void;
@@ -47,6 +48,7 @@ const StackMenuContext = createContext<{
   canGoBack: boolean;
 }>({
   setChildView: () => undefined,
+  setDismissGuard: () => undefined,
   compact: false,
   activeView: "main",
   navigate: () => {
@@ -152,6 +154,13 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
     ref
   ) => {
     const [childView, setChildView] = useState<ChildView>();
+    const dismissGuard = useRef<(() => boolean) | undefined>(undefined);
+    const setDismissGuard = useCallback(
+      (guard: (() => boolean) | undefined) => {
+        dismissGuard.current = guard;
+      },
+      []
+    );
     const backButton = useRef<HTMLButtonElement>(null);
     useLayoutEffect(() => {
       if (childView) {
@@ -185,6 +194,9 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
 
     const handleOpenChange = useCallback(
       (state: boolean) => {
+        if (!state && dismissGuard.current?.()) {
+          return;
+        }
         setIsOpen(state);
         onOpenChange?.(state);
 
@@ -238,6 +250,7 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
         value={{
           compact,
           setChildView,
+          setDismissGuard,
           activeView,
           navigate,
           goBack,

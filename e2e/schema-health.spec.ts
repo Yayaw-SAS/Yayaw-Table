@@ -49,7 +49,7 @@ test("the target check lists the drift; a blocking issue disables Send with its 
   ]);
   await expect(issues(check, "fixable")).toHaveText([
     "Category: 2 options missing in Notion: Service, Other",
-    "“Yayaw ID” property missing: it holds each record’s id.",
+    "“ID” property missing: it holds each record’s id.",
   ]);
   await expect(issues(check, "warning")).toHaveText([
     "Renamed in Notion: Price → Cost",
@@ -88,7 +88,7 @@ test("Update mapping saves the renamed field; Prepare fixes the fixable issues",
   const confirm = panel.locator("[data-connector-prepare-confirm]");
   await expect(confirm.locator("li")).toHaveText([
     "Add 2 options to “Category”: Service, Other",
-    "Create “Yayaw ID” (Text) for record ids",
+    "Create “ID” (Text) for record ids",
   ]);
   await confirm.getByRole("button", { name: "Make these changes" }).click();
   await expect(panel.locator("[data-connector-prepared]")).toHaveText(

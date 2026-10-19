@@ -189,7 +189,7 @@ export const writes = (requests: RecordedRequest[]) =>
     });
 
 const mapping = {
-  keyField: "Yayaw ID",
+  keyField: "ID",
   fields: [
     { columnId: "name", field: "Name" },
     { columnId: "amount", field: "Amount", type: "number" },
@@ -384,9 +384,9 @@ export function connectorsMicrosoftExcelSuite(
     );
     assert.equal(result.created, 2);
     assert.equal(result.sheetName, "Data");
-    assert.deepEqual(result.addedHeaders, ["Yayaw ID", "Name", "Amount"]);
+    assert.deepEqual(result.addedHeaders, ["ID", "Name", "Amount"]);
     assert.deepEqual(book.grid, [
-      ["Yayaw ID", "Name", "Amount"],
+      ["ID", "Name", "Amount"],
       ["r1", "=cmd()", 3],
       ["r2", "Beta", ""],
     ]);
@@ -396,7 +396,7 @@ export function connectorsMicrosoftExcelSuite(
   test("upserts: rewrites known rows in place and adds the others below", async () => {
     const book: Workbook = {
       grid: [
-        ["Name", "Notes", "Yayaw ID"],
+        ["Name", "Notes", "ID"],
         ["Old A", "keep me", "r1"],
         ["Old B", "mine", "r2"],
         ["Mine", "user row", ""],
@@ -421,7 +421,7 @@ export function connectorsMicrosoftExcelSuite(
     );
     assert.deepEqual([result.updated, result.created], [2, 1]);
     assert.deepEqual(book.grid, [
-      ["Name", "Notes", "Yayaw ID", "Amount"],
+      ["Name", "Notes", "ID", "Amount"],
       ["New A", "keep me", "r1", 1],
       ["New B", "mine", "r2", 2],
       ["Mine", "user row", ""],
@@ -438,7 +438,7 @@ export function connectorsMicrosoftExcelSuite(
   test("replace clears below the header and rewrites every row", async () => {
     const book: Workbook = {
       grid: [
-        ["Yayaw ID", "Name"],
+        ["ID", "Name"],
         ["old", "Old"],
         ["older", "Older"],
       ],
@@ -459,7 +459,7 @@ export function connectorsMicrosoftExcelSuite(
       "PATCH A2:B2",
     ]);
     assert.deepEqual(book.grid.slice(0, 2), [
-      ["Yayaw ID", "Name"],
+      ["ID", "Name"],
       ["n1", "New"],
     ]);
   });
@@ -467,7 +467,7 @@ export function connectorsMicrosoftExcelSuite(
   test("a failed update is reported and nothing is added after it", async () => {
     const book: Workbook = {
       grid: [
-        ["Yayaw ID", "Name"],
+        ["ID", "Name"],
         ["r1", "A"],
       ],
       onPatch: () => json({}, 400),
@@ -498,7 +498,7 @@ export function connectorsMicrosoftExcelSuite(
   test("reads a worksheet as sync records, dates from serials", async () => {
     const book: Workbook = {
       grid: [
-        ["Yayaw ID", "Name", "Amount", "Due"],
+        ["ID", "Name", "Amount", "Due"],
         ["r1", "Alpha", 12, 45_000],
         ["", "Typed", "7", "2024-01-05"],
         [],
@@ -522,7 +522,7 @@ export function connectorsMicrosoftExcelSuite(
   test("a sync writes back, sets missing keys and deletes by key only", async () => {
     const book: Workbook = {
       grid: [
-        ["Yayaw ID", "Name", "Amount"],
+        ["ID", "Name", "Amount"],
         ["r1", "A", 1],
         ["r2", "B", 2],
         ["r3", "C", 3],
@@ -560,7 +560,7 @@ export function connectorsMicrosoftExcelSuite(
       { ok: false, code: "invalid_request" },
     ]);
     assert.deepEqual(book.grid, [
-      ["Yayaw ID", "Name", "Amount", "Due"],
+      ["ID", "Name", "Amount", "Due"],
       ["r1", "A", 10],
       ["r4", "No key", 4],
       ["r9", "Z", 9],
@@ -622,14 +622,14 @@ export function connectorsMicrosoftExcelSuite(
         token: "token",
         workbookId: WORKBOOK_ID,
         fixes: [
-          { kind: "create_field", field: "Yayaw ID", key: true },
+          { kind: "create_field", field: "ID", key: true },
           { kind: "create_field", field: "Amount", columnId: "amount" },
           { kind: "create_field", field: "Due", columnId: "due" },
         ],
       },
       runtime
     );
-    assert.deepEqual(prepared.addedHeaders, ["Yayaw ID", "Due"]);
+    assert.deepEqual(prepared.addedHeaders, ["ID", "Due"]);
     const schema = await api.getExcelTargetSchema(
       { token: "token", workbookId: WORKBOOK_ID },
       runtime
@@ -640,7 +640,7 @@ export function connectorsMicrosoftExcelSuite(
       [
         ["Name", "text"],
         ["Amount", "number"],
-        ["Yayaw ID", undefined],
+        ["ID", undefined],
         ["Due", undefined],
       ]
     );

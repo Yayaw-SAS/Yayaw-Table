@@ -11,7 +11,7 @@
  */
 
 /** Default name of the target field that holds each row's stable id. */
-export const DEFAULT_CONNECTOR_KEY = "Yayaw ID";
+export const DEFAULT_CONNECTOR_KEY = "ID";
 /** Longest row id a connector accepts. */
 export const MAX_CONNECTOR_ROW_ID_LENGTH = 2000;
 /** Warnings and failures listed in a result; the counts keep going. */

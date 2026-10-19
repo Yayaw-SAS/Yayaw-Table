@@ -12,7 +12,7 @@
  */
 
 /** Default name of the target field that holds each record's id. */
-export const SCHEMA_DEFAULT_KEY_FIELD = "Yayaw ID";
+export const SCHEMA_DEFAULT_KEY_FIELD = "ID";
 
 /** Who hosts the target: decides what can be created and how strict types are. */
 export type TargetProvider = "notion" | "sheets";
@@ -83,7 +83,7 @@ export type SchemaIssueCode =
   | "read_only_field"
   /** Table options the target's select, multi-select or status lacks. */
   | "missing_options"
-  /** The key field ("Yayaw ID") is missing. */
+  /** The key field ("ID") is missing. */
   | "missing_key"
   /** The key field cannot hold record ids. */
   | "key_wrong_type"

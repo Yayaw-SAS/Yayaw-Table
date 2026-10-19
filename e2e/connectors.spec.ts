@@ -6,7 +6,7 @@ const PROJECTS = /Projects/;
 const NAME = /^Name/;
 const STATUS = /^Status/;
 const TEAM_TRACKER = /^Team tracker/;
-const YAYAW_ID = /Yayaw ID/;
+const RECORD_ID = /^ID/;
 const NEW_DUE = /New field “Due”/;
 const DONT_SEND = /Don’t send/;
 const SELECTED_TWO = /Selected \(2\)/;
@@ -62,7 +62,7 @@ test("a connector maps the view's columns to a target, sends and sends again", a
   ).toHaveText(NEW_DUE);
   await expect(
     panel.getByRole("combobox", { name: "Match records by" })
-  ).toHaveText(YAYAW_ID);
+  ).toHaveText(RECORD_ID);
   await choose(panel, "Price", "Don’t send");
 
   await expect(await send(panel)).toHaveText("6 created");
@@ -165,6 +165,14 @@ test("a connector with an account connects first, then browses for its target", 
     )
   ).toBe(true);
   await panel.getByRole("button", { name: "Browse…", exact: true }).click();
+  const picker = page.getByRole("dialog", {
+    name: "Drive picker",
+    exact: true,
+  });
+  await expect(panel).toBeAttached();
+  await picker
+    .getByRole("button", { name: "Choose Team tracker", exact: true })
+    .click();
   await expect(panel.getByRole("combobox", { name: "Spreadsheet" })).toHaveText(
     TEAM_TRACKER
   );
@@ -176,3 +184,34 @@ test("a connector with an account connects first, then browses for its target", 
     panel.getByRole("button", { name: "Connect your account", exact: true })
   ).toBeVisible();
 });
+
+for (const compact of [false, true]) {
+  test(`a cancelled external picker keeps its connector open (${compact ? "phone" : "desktop"})`, async ({
+    page,
+  }) => {
+    if (compact) {
+      await page.setViewportSize({ width: 390, height: 800 });
+    }
+    await page.getByRole("button", { name: "Data", exact: true }).click();
+    await page.getByRole("button", { name: "Connect", exact: true }).click();
+    await page.getByRole("button", { name: "My Drive", exact: true }).click();
+    const panel = page.locator("[data-connector-panel]");
+    await panel
+      .getByRole("button", { name: "Connect your account", exact: true })
+      .click();
+    await panel.getByRole("button", { name: "Browse…", exact: true }).click();
+    const picker = page.getByRole("dialog", {
+      name: "Drive picker",
+      exact: true,
+    });
+    await expect(panel).toBeAttached();
+    await picker.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(panel).toBeVisible();
+    await expect(
+      panel.getByRole("button", { name: "Browse…", exact: true })
+    ).toBeEnabled();
+    // After the provider returns, normal menu dismissal must work again.
+    await page.keyboard.press("Escape");
+    await expect(panel).toHaveCount(0);
+  });
+}

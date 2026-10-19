@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Eye, FolderOpen, LogIn, RefreshCw, Send, TriangleAlert } from "lucide-vue-next";
-import { computed, onBeforeUnmount, onMounted, ref, shallowRef, useId } from "vue";
+import { computed, inject, onBeforeUnmount, onMounted, ref, shallowRef, useId } from "vue";
 import {
   applyConnectorField,
   type ConnectorFlowState,
@@ -31,6 +31,7 @@ import {
   connectorPushContext,
   type DataDestinationContext,
 } from "../../data-destinations";
+import { settingsMenuDismissGuardKey } from "./settings-navigation";
 import TableCheckbox from "../controls/TableCheckbox.vue";
 import ColumnMapping from "./ColumnMapping.vue";
 import ConnectorAppRules from "./ConnectorAppRules.vue";
@@ -85,10 +86,12 @@ const flow = createConnectorFlow({
 });
 const state = shallowRef<ConnectorFlowState>(flow.state);
 const input = ref("");
+const setDismissGuard = inject(settingsMenuDismissGuardKey, undefined);
 onMounted(() => {
+  setDismissGuard?.(() => flow.state.resolving || flow.state.connecting);
   flow.start().catch(() => undefined);
 });
-onBeforeUnmount(() => flow.dispose());
+onBeforeUnmount(() => { setDismissGuard?.(undefined); flow.dispose(); });
 
 const sending = computed(() => state.value.phase === "sending");
 const busy = computed(() => sending.value || state.value.previewing);
