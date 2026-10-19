@@ -116,6 +116,31 @@ export function selectionShortcutsSuite(
       f.destroy();
     }
   });
+  test("routes page controls to the visible table and retains its last active scope", () => {
+    const f = setup();
+    const main = document.createElement("main");
+    const button = document.createElement("button");
+    try {
+      const first = f.scope();
+      document.body.append(main);
+      main.append(button, first.root);
+      assert.equal(f.press(button), true);
+      const second = f.scope();
+      main.append(second.root);
+      assert.equal(f.press(button), false);
+      second.root.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+      button.dispatchEvent(new Event("focusin", { bubbles: true }));
+      assert.equal(f.press(button), true);
+      assert.equal(first.selected, 1);
+      assert.equal(second.selected, 1);
+      const input = document.createElement("input");
+      main.append(input);
+      assert.equal(f.press(input), false);
+    } finally {
+      main.remove();
+      f.destroy();
+    }
+  });
   test("preserves native selection and undo in editors and dialogs", () => {
     const f = setup();
     try {

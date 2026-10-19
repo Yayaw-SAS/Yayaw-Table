@@ -8,6 +8,7 @@ import GanttView from "./planning/GanttView.vue";
 import { createSelectionDuplicate, duplicateLabels } from "../duplicate-shortcut";
 import { createActivityUndo } from "../activity-shortcuts";
 import { detailRedoMessage, detailUndoMessage, detailLabels } from "../record-details";
+import { cardRows } from "../composables/use-card-rows";
 import { registerSelectionShortcuts } from "../selection-shortcuts";
 import { QueryClient } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
@@ -637,13 +638,22 @@ const duplicateSelection = createSelectionDuplicate({
   success: count => { status.value = { type: "success", message: duplicateLabels(props.locale, count).success }; },
   error: error => { status.value = { type: "error", message: error ?? duplicateLabels(props.locale, 0).error }; },
 });
+const currentPageRows = cardRows({ config, data: tableData, state, get locale() { return props.locale; } });
+const selectCurrentPage = (): void => {
+  const next = { ...selection.value };
+  const ids = new Map(tableData.rows.value.map((row, index) => [row, getRowId(row, index)]));
+  for (const row of currentPageRows.value) {
+    if (config.table.canSelectRow?.(row) !== false) next[ids.get(row) ?? getRowId(row)] = true;
+  }
+  selection.value = next;
+};
 let removeSelectionShortcuts: (() => void) | undefined;
 onMounted(() => {
   if (!selectionRoot.value) return;
   removeSelectionShortcuts = registerSelectionShortcuts({
     root: selectionRoot.value,
     enabled: () => true,
-    get selectAll() { return config.table.enableRowSelection !== false && config.table.enableMultiRowSelection !== false ? () => { void selectAllMatching(); } : undefined; },
+    get selectAll() { return config.table.enableRowSelection !== false && config.table.enableMultiRowSelection !== false ? selectCurrentPage : undefined; },
     get duplicate() { return config.table.allowDuplicate !== false && actions.value?.duplicate ? () => { void duplicateSelection(); } : undefined; },
     get undo() { return props.onRevertActivity ? () => { void activityUndo.undo(); } : undefined; },
     get redo() { return props.onRedoActivity ? () => { void activityUndo.redo(); } : undefined; },

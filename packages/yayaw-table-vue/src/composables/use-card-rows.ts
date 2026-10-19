@@ -1,11 +1,12 @@
 import { computed } from "vue";
-import { useTableContext } from "../context";
+import { type TableContextValue, useTableContext } from "../context";
 import { applyTableQuery } from "../core";
 import { tableFilterContext } from "../table-contracts";
 
 /** Cards and the grid use the same page state; server pages must never be sliced twice. */
-export const useCardRows = () => {
-  const context = useTableContext();
+export const cardRows = (
+  context: Pick<TableContextValue, "config" | "data" | "state" | "locale">
+) => {
   return computed(() => {
     if (context.data.isServer.value) {
       return context.data.rows.value;
@@ -25,3 +26,5 @@ export const useCardRows = () => {
     return rows.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize);
   });
 };
+
+export const useCardRows = () => cardRows(useTableContext());

@@ -53,14 +53,21 @@ function resolveScope(
   target: Element
 ): SelectionScope | undefined {
   const direct = scopeForTarget(manager, target);
-  if (
-    direct ||
-    (target !== document.body && target !== document.documentElement)
-  ) {
+  if (direct) {
     return direct;
   }
+  // Page headings and controls can retain focus outside a table.
+  const page = target.closest('main, [role="main"], [role="dialog"]');
+  if (
+    !page &&
+    target !== document.body &&
+    target !== document.documentElement
+  ) {
+    return undefined;
+  }
   const candidates = [...manager.scopes].filter(
-    (item) => item.enabled() && isVisible(item)
+    (item) =>
+      item.enabled() && isVisible(item) && (!page || page.contains(item.root))
   );
   if (manager.active && candidates.includes(manager.active)) {
     return manager.active;
@@ -94,7 +101,10 @@ function createManager(document: Document): SelectionManager {
   };
   const activate = (event: Event): void => {
     if (event.target instanceof Element) {
-      manager.active = scopeForTarget(manager, event.target);
+      const scope = scopeForTarget(manager, event.target);
+      if (scope) {
+        manager.active = scope;
+      }
     }
   };
   const onKeyDown = (event: KeyboardEvent): void => {

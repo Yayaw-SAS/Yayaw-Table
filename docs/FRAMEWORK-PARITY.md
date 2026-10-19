@@ -3783,3 +3783,7 @@ image with large initials. Beside a shown title, avatars are decorative
 `"square"`. The colors are tints readable in light and dark themes, with an
 outline in forced colors. Card avatar options are saved with the view's mode
 settings.
+
+### Page selection shortcuts
+
+Ctrl/Cmd+A selects the currently displayed page in both React and Vue, respecting row selection permissions and keeping previous selections. It makes no list request. The bulk bar's explicit Select all action still selects every matching server row. Page headings and controls may retain focus; a unique visible table in the same main/dialog region, or the last active one, owns the shortcut. Text editors and other overlays retain their native shortcuts.
