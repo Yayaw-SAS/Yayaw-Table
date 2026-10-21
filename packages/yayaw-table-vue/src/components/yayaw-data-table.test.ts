@@ -775,6 +775,29 @@ describe("YayawDataTable", () => {
     expect(wrapper.text()).toContain("12,345");
   });
 
+  it("never loads every server page when the aggregate action fails", async () => {
+    const pages: unknown[] = [];
+    const list = vi.fn((params: { page?: number }) => {
+      pages.push(params.page);
+      return Promise.resolve({
+        data: data.slice(0, 1),
+        meta: { totalCount: 300, pageCount: 30 },
+      });
+    });
+    const aggregate = vi.fn(() => Promise.reject(new Error("Out of memory")));
+    mount(YayawDataTable, {
+      props: {
+        tableType: "test",
+        config,
+        getTableActions: () => ({ list, aggregate }),
+        syncUrl: false,
+      },
+    });
+    await flushPromises();
+    expect(aggregate).toHaveBeenCalled();
+    expect(new Set(pages)).toEqual(new Set([1]));
+  });
+
   it.each([
     false,
     true,

@@ -237,6 +237,33 @@ describe("loadGlobalColumnCalculationResults", () => {
     });
   });
 
+  it("never loads every row when the host aggregate fails", async () => {
+    let listCalls = 0;
+    const actions: TableActions = {
+      aggregate: () => Promise.reject(new Error("Out of memory")),
+      list: () => {
+        listCalls += 1;
+        return Promise.resolve({ data: [], meta: { pageCount: 1 } });
+      },
+    };
+
+    await assert.rejects(
+      loadGlobalColumnCalculationResults({
+        actions,
+        advancedFiltersParam: [],
+        calculations: { price: "sum" },
+        columnTypes: { price: "number" },
+        filtersParam: [],
+        globalSearchParam: "",
+        locale: "en-US",
+        pageSizeParam: "10",
+        sortParam: [],
+      }),
+      /Out of memory/
+    );
+    assert.equal(listCalls, 0);
+  });
+
   it("returns an empty result map when no action can provide data", async () => {
     const results = await loadGlobalColumnCalculationResults({
       actions: undefined,

@@ -432,35 +432,33 @@ export const loadGlobalColumnCalculationResults = async ({
   const search = globalSearchParam.trim();
   const orderBy = toOrderByParam(sortParam);
 
+  // A host that calculates answers alone: when it fails, the error reaches
+  // the footers rather than load every matching row page by page.
   if (typeof actions?.aggregate === "function") {
     const currencyColumns = calculationCurrencyColumns(calculations, columns);
-    try {
-      const response = await actions.aggregate({
-        filters,
-        advancedFilters,
-        advancedFilterJoin:
-          normalizeFilterEnvelope(advancedFiltersParam).joinOperator,
-        search,
-        calculations,
-        locale,
-        ...(currencyColumns ? { currencyColumns } : {}),
-      });
-      return Object.fromEntries(
-        Object.entries(response.results ?? EMPTY_RESULTS).map(
-          ([columnId, value]) => [
-            columnId,
-            resultWithLabel(
-              value,
-              calculations[columnId] ?? "none",
-              formatOf(columns[columnId]) ?? { type: columnTypes[columnId] },
-              locale
-            ),
-          ]
-        )
-      );
-    } catch {
-      // Fallback to list strategy below when aggregate fails.
-    }
+    const response = await actions.aggregate({
+      filters,
+      advancedFilters,
+      advancedFilterJoin:
+        normalizeFilterEnvelope(advancedFiltersParam).joinOperator,
+      search,
+      calculations,
+      locale,
+      ...(currencyColumns ? { currencyColumns } : {}),
+    });
+    return Object.fromEntries(
+      Object.entries(response.results ?? EMPTY_RESULTS).map(
+        ([columnId, value]) => [
+          columnId,
+          resultWithLabel(
+            value,
+            calculations[columnId] ?? "none",
+            formatOf(columns[columnId]) ?? { type: columnTypes[columnId] },
+            locale
+          ),
+        ]
+      )
+    );
   }
 
   if (typeof actions?.list !== "function") {
