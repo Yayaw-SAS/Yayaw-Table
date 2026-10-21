@@ -23,7 +23,7 @@ import { type CSSProperties, computed, h, ref, watch, onBeforeUnmount } from "vu
 import { useTableContext } from "../../context";
 import { applyTableQuery, calculateColumn } from "../../core";
 import { currencyAmountsResult, formatColumnCalculation } from "../../value-format";
-import { dateGroupKey, groupedLeafRows, groupHeadingLabel, resizedColumnSizeFromKey, tableFilterContext } from "../../table-contracts";
+import { dateGroupKey, groupedLeafRows, groupHeadingLabel, MAX_CALCULATION_ROWS, resizedColumnSizeFromKey, tableFilterContext } from "../../table-contracts";
 import type {
   CalculationType,
   ColumnDefinition,
@@ -623,43 +623,48 @@ const refreshCalculations = async (): Promise<void> => {
   }
   const request = ++calculationRequest;
   try {
-    // A host that calculates answers alone: when it fails, the footers stay
-    // empty rather than load every matching row page by page.
     if (context.actions.value?.aggregate) {
-      const result = await context.queryClient.fetchQuery({
-        queryKey: [
-          "yayaw-table",
-          context.config.id,
-          "aggregate",
-          activeCalculations.value,
-          context.state.search.value,
-          context.state.filters.value,
-          context.state.advancedFilters.value,
-          context.locale,
-        ],
-        queryFn: () =>
-          context.actions.value?.aggregate?.({
-            filters: Object.fromEntries(
-              context.state.filters.value.map((filter) => [
-                filter.id,
-                filter.value,
-              ])
-            ),
-            advancedFilters: context.state.advancedFilters.value.filters.filter(filter => filter.isActive !== false),
-            advancedFilterJoin: context.state.advancedFilters.value.joinOperator,
-            search: context.state.search.value,
-            calculations: activeCalculations.value,
-            locale: context.locale,
-            ...(currencyColumns.value ? { currencyColumns: currencyColumns.value } : {}),
-          }),
-        staleTime: 15_000,
-      });
-      if (request === calculationRequest) {
-        aggregateResults.value = result?.results ?? {};
+      try {
+        const result = await context.queryClient.fetchQuery({
+          queryKey: [
+            "yayaw-table",
+            context.config.id,
+            "aggregate",
+            activeCalculations.value,
+            context.state.search.value,
+            context.state.filters.value,
+            context.state.advancedFilters.value,
+            context.locale,
+          ],
+          queryFn: () =>
+            context.actions.value?.aggregate?.({
+              filters: Object.fromEntries(
+                context.state.filters.value.map((filter) => [
+                  filter.id,
+                  filter.value,
+                ])
+              ),
+              advancedFilters: context.state.advancedFilters.value.filters.filter(filter => filter.isActive !== false),
+              advancedFilterJoin: context.state.advancedFilters.value.joinOperator,
+              search: context.state.search.value,
+              calculations: activeCalculations.value,
+              locale: context.locale,
+              ...(currencyColumns.value ? { currencyColumns: currencyColumns.value } : {}),
+            }),
+          staleTime: 15_000,
+        });
+        if (result && request === calculationRequest) {
+          aggregateResults.value = result.results ?? {};
+        }
+        if (result) {
+          return;
+        }
+      } catch {
+        /* use the list fallback below */
       }
-      return;
     }
-    const rows = await context.loadAllMatchingRows();
+    // Too many rows to load in the browser: the footers stay empty.
+    const rows = await context.loadAllMatchingRows({ maxRows: MAX_CALCULATION_ROWS });
     if (request === calculationRequest) {
       aggregateResults.value = Object.fromEntries(
         calculations.value.map((column) => {

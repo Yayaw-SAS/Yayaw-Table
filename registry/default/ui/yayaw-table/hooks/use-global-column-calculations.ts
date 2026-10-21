@@ -25,7 +25,10 @@ import {
   toOrderByParam,
   toPageSize,
 } from "../utils/filtered-rows";
-import { normalizeFilterEnvelope } from "../utils/table-contracts";
+import {
+  MAX_CALCULATION_ROWS,
+  normalizeFilterEnvelope,
+} from "../utils/table-contracts";
 import {
   type ColumnValueFormat,
   calculateCurrencyColumn,
@@ -432,39 +435,42 @@ export const loadGlobalColumnCalculationResults = async ({
   const search = globalSearchParam.trim();
   const orderBy = toOrderByParam(sortParam);
 
-  // A host that calculates answers alone: when it fails, the error reaches
-  // the footers rather than load every matching row page by page.
   if (typeof actions?.aggregate === "function") {
     const currencyColumns = calculationCurrencyColumns(calculations, columns);
-    const response = await actions.aggregate({
-      filters,
-      advancedFilters,
-      advancedFilterJoin:
-        normalizeFilterEnvelope(advancedFiltersParam).joinOperator,
-      search,
-      calculations,
-      locale,
-      ...(currencyColumns ? { currencyColumns } : {}),
-    });
-    return Object.fromEntries(
-      Object.entries(response.results ?? EMPTY_RESULTS).map(
-        ([columnId, value]) => [
-          columnId,
-          resultWithLabel(
-            value,
-            calculations[columnId] ?? "none",
-            formatOf(columns[columnId]) ?? { type: columnTypes[columnId] },
-            locale
-          ),
-        ]
-      )
-    );
+    try {
+      const response = await actions.aggregate({
+        filters,
+        advancedFilters,
+        advancedFilterJoin:
+          normalizeFilterEnvelope(advancedFiltersParam).joinOperator,
+        search,
+        calculations,
+        locale,
+        ...(currencyColumns ? { currencyColumns } : {}),
+      });
+      return Object.fromEntries(
+        Object.entries(response.results ?? EMPTY_RESULTS).map(
+          ([columnId, value]) => [
+            columnId,
+            resultWithLabel(
+              value,
+              calculations[columnId] ?? "none",
+              formatOf(columns[columnId]) ?? { type: columnTypes[columnId] },
+              locale
+            ),
+          ]
+        )
+      );
+    } catch {
+      // Fallback to list strategy below when aggregate fails.
+    }
   }
 
   if (typeof actions?.list !== "function") {
     return EMPTY_RESULTS;
   }
 
+  // Too many rows to load in the browser: the query fails, footers stay empty.
   const rows = await fetchAllFilteredRows({
     listAction: actions.list,
     advancedFilters,
@@ -472,6 +478,7 @@ export const loadGlobalColumnCalculationResults = async ({
     orderBy,
     pageSize: toPageSize(pageSizeParam),
     search,
+    maxRows: MAX_CALCULATION_ROWS,
   });
 
   const results: Record<string, TableAggregateResultValue> = {};

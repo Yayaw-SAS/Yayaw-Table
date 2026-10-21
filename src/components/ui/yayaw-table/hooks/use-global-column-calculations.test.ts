@@ -237,13 +237,16 @@ describe("loadGlobalColumnCalculationResults", () => {
     });
   });
 
-  it("never loads every row when the host aggregate fails", async () => {
+  it("skips the list fallback when too many rows match", async () => {
     let listCalls = 0;
     const actions: TableActions = {
-      aggregate: () => Promise.reject(new Error("Out of memory")),
+      aggregate: () => Promise.reject(new Error("Only chart groups")),
       list: () => {
         listCalls += 1;
-        return Promise.resolve({ data: [], meta: { pageCount: 1 } });
+        return Promise.resolve({
+          data: [{ price: 1 }],
+          meta: { pageCount: 60_000, totalCount: 600_000 },
+        });
       },
     };
 
@@ -259,9 +262,9 @@ describe("loadGlobalColumnCalculationResults", () => {
         pageSizeParam: "10",
         sortParam: [],
       }),
-      /Out of memory/
+      /Too many matching rows/
     );
-    assert.equal(listCalls, 0);
+    assert.equal(listCalls, 1);
   });
 
   it("returns an empty result map when no action can provide data", async () => {

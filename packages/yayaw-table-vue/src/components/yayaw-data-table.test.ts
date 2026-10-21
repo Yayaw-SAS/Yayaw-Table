@@ -775,13 +775,13 @@ describe("YayawDataTable", () => {
     expect(wrapper.text()).toContain("12,345");
   });
 
-  it("never loads every server page when the aggregate action fails", async () => {
+  it("skips the calculation list fallback when too many rows match", async () => {
     const pages: unknown[] = [];
     const list = vi.fn((params: { page?: number }) => {
       pages.push(params.page);
       return Promise.resolve({
         data: data.slice(0, 1),
-        meta: { totalCount: 300, pageCount: 30 },
+        meta: { totalCount: 600_000, pageCount: 60_000 },
       });
     });
     const aggregate = vi.fn(() => Promise.reject(new Error("Out of memory")));

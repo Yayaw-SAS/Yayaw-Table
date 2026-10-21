@@ -85,6 +85,7 @@ export const fetchAllFilteredRows = async ({
   orderBy,
   pageSize,
   search,
+  maxRows,
   filterContext,
 }: {
   listAction: TableListAction;
@@ -93,6 +94,8 @@ export const fetchAllFilteredRows = async ({
   orderBy?: FilteredRowsOrderBy;
   pageSize: number;
   search: string;
+  /** Fails instead of loading more matching rows (see `fetchAllContractRows`). */
+  maxRows?: number;
   /** Resolves relative dates and `$viewer` (see `tableFilterContext`). */
   filterContext?: FilterTokenContext;
 }): Promise<Record<string, unknown>[]> => {
@@ -101,6 +104,7 @@ export const fetchAllFilteredRows = async ({
       list: listAction,
       params: { advancedFilters, filters, orderBy, pageSize, search },
       maxPages: MAX_FETCH_PAGES,
+      maxRows,
       filterContext,
     })
   );
