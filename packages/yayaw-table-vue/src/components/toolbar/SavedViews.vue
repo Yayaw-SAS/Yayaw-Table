@@ -24,7 +24,7 @@ const trigger = ref<HTMLButtonElement>();
 const nameInput = ref<HTMLInputElement>();
 const returnFocus = ref<HTMLElement>();
 const viewEnabled = computed(() => props.enabled !== false);
-const resetDisabled = computed(() => busy.value || (active.value ? !dirty.value : areViewSettingsEqual(context.state.resolveView(context.state.snapshot.value), context.state.resolveView({}))));
+const resetDisabled = computed(() => busy.value || (active.value ? !dirty.value : areViewSettingsEqual(context.state.resolveView(context.state.snapshot.value), context.state.resolveView(context.state.defaultView()))));
 const resetView = () => {
   if (resetDisabled.value) return;
   if (active.value) context.state.applyView(active.value.config, active.value.id, { history: "push" });

@@ -15,6 +15,7 @@ import { TableStateSyncProvider } from "../src/components/ui/yayaw-table/provide
 import type {
   TableView,
   TableViewActions,
+  TableViewConfig,
 } from "../src/components/ui/yayaw-table/types/view-types";
 import { createLocalTableViewActions } from "../src/components/ui/yayaw-table/utils/table-view-storage";
 
@@ -49,6 +50,7 @@ async function mountManager(
     initialActiveViewId?: string;
     url?: string;
     syncUrl?: boolean;
+    hostDefaultView?: TableViewConfig;
   } = {}
 ) {
   const container = document.createElement("div");
@@ -87,6 +89,7 @@ async function mountManager(
             >
               <DataTableViewManager
                 allowViewSave={options.allowViewSave ?? false}
+                hostDefaultView={options.hostDefaultView}
                 initialActiveViewId={options.initialActiveViewId}
                 initialViews={options.initialViews}
                 tableId={favorite.tableId}
@@ -556,4 +559,23 @@ it("treats saved-view edit and deletion rights independently", async () => {
     "true"
   );
   expect(wrapper.button("Delete view")).toBeTruthy();
+});
+
+it("starts from the host's default view and applies it again when chosen", async () => {
+  const wrapper = await mountManager({
+    views: [favorite],
+    hostDefaultView: { density: "large" },
+  });
+  const density = () => wrapper.store.get(tableDensityAtom(favorite.tableId));
+  expect(wrapper.button("Current View").textContent).toContain("Default view");
+  expect(density()).toBe("large");
+  const saved = Array.from(
+    document.querySelectorAll<HTMLElement>("button")
+  ).find((element) => element.textContent?.includes(favorite.name));
+  await act(() => saved?.click());
+  await settle();
+  expect(density()).toBe("extra-small");
+  await selectDefault(wrapper);
+  expect(wrapper.button("Current View").textContent).toContain("Default view");
+  expect(density()).toBe("large");
 });

@@ -211,6 +211,8 @@ interface DataTableViewManagerProps {
   enabled?: boolean;
   compact?: boolean;
   defaultViewConfig?: TableViewConfig;
+  /** The host's `table.defaultView`, over `defaultViewConfig`. */
+  hostDefaultView?: TableViewConfig;
   renderMenu?: (parts: ViewMenuParts) => ReactNode;
   defaultDensity?: TableViewConfig["density"];
   allowViewSave?: boolean;
@@ -940,6 +942,7 @@ export function DataTableViewManager({
   enabled = true,
   compact = false,
   defaultViewConfig = EMPTY_VIEW_CONFIG,
+  hostDefaultView,
   renderMenu,
   defaultDensity = "medium",
   allowViewSave = true,
@@ -1083,6 +1086,11 @@ export function DataTableViewManager({
       }),
     [defaultDensity, defaultDisplayMode, defaultViewConfig]
   );
+  // The built-in "Default view": the catalogue's defaults, then the host's.
+  const defaultView = useMemo(
+    () => ({ ...defaultViewConfig, ...hostDefaultView }),
+    [defaultViewConfig, hostDefaultView]
+  );
   const currentConfig = useMemo(
     () => resolveView(getCurrentViewConfig()),
     [getCurrentViewConfig, resolveView]
@@ -1143,11 +1151,13 @@ export function DataTableViewManager({
     // Both wait for the saved views (persisted records win over seeds); only
     // the favorite waits for the preference. A view the link or the host
     // names does not depend on it.
+    // Without saved views, only the host's default view applies.
     const waiting =
-      isFetching ||
-      isLoading ||
-      (explicitInitialView === undefined &&
-        (favoriteQuery.isFetching || favoriteQuery.isPending));
+      enabled &&
+      (isFetching ||
+        isLoading ||
+        (explicitInitialView === undefined &&
+          (favoriteQuery.isFetching || favoriteQuery.isPending)));
     if (waiting || hasAppliedInitialViewRef.current) {
       return;
     }
@@ -1156,26 +1166,31 @@ export function DataTableViewManager({
     hasAppliedInitialViewRef.current = true;
     if (
       !(
-        canApplyInitialView &&
+        arrivalAllowsView &&
         areTableViewConfigsEqual(initialConfigRef.current, currentConfig)
       )
     ) {
       return;
     }
-    const initialView =
-      explicitInitialView ??
-      savedViews.find((view) => view.id === preferredInitialViewId);
-    if (!initialView) {
-      return;
+    const initialView = canApplyInitialView
+      ? (explicitInitialView ??
+        savedViews.find((view) => view.id === preferredInitialViewId))
+      : undefined;
+    if (initialView) {
+      applyViewConfig(resolveView(initialView.config), {
+        viewId: initialView.id,
+      });
+    } else if (hostDefaultView) {
+      applyViewConfig(resolveView(defaultView));
     }
-
-    applyViewConfig(resolveView(initialView.config), {
-      viewId: initialView.id,
-    });
   }, [
     applyViewConfig,
+    arrivalAllowsView,
     canApplyInitialView,
     currentConfig,
+    defaultView,
+    enabled,
+    hostDefaultView,
     explicitInitialView,
     favoriteQuery.isPending,
     favoriteQuery.isFetching,
@@ -1195,9 +1210,9 @@ export function DataTableViewManager({
   const handleSelectDefaultView = useCallback(() => {
     hasAppliedInitialViewRef.current = true;
     setInlineError(undefined);
-    applyViewConfig(resolveView(defaultViewConfig), { history: "push" });
+    applyViewConfig(resolveView(defaultView), { history: "push" });
     setMenuOpen(false);
-  }, [applyViewConfig, defaultViewConfig, resolveView]);
+  }, [applyViewConfig, defaultView, resolveView]);
 
   const handleSelectView = useCallback(
     (view: TableView) => {
@@ -1440,7 +1455,7 @@ export function DataTableViewManager({
       }
 
       deletedViewIds.current.add(activeView.id);
-      applyViewConfig(resolveView(defaultViewConfig));
+      applyViewConfig(resolveView(defaultView));
       await refreshViews();
       toast.success(t("views.notifications.deleted"));
     } catch (error) {
@@ -1455,7 +1470,7 @@ export function DataTableViewManager({
     canDeleteActiveView,
     applyViewConfig,
     resolveView,
-    defaultViewConfig,
+    defaultView,
     refreshViews,
     tableId,
     tableType,
@@ -1464,7 +1479,7 @@ export function DataTableViewManager({
   ]);
 
   const resetView = () => {
-    applyViewConfig(resolveView(activeView?.config ?? defaultViewConfig), {
+    applyViewConfig(resolveView(activeView?.config ?? defaultView), {
       viewId: activeView?.id,
       history: "push",
     });
@@ -1475,7 +1490,7 @@ export function DataTableViewManager({
       ? !isActiveViewDirty
       : areTableViewConfigsEqual(
           currentConfig,
-          resolveView(defaultViewConfig)
+          resolveView(defaultView)
         ));
   const statusLabel = isActiveViewDirty
     ? t("views.modified")

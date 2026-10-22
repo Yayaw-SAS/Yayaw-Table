@@ -157,6 +157,13 @@ export interface TableCatalogueTableConfig extends GenericModeTableConfigs {
   layoutPreset?: TableLayoutPreset;
   displayModes?: TableDisplayMode[];
   defaultDisplayMode?: TableDisplayMode;
+  /**
+   * The built-in "Default view": settings over the catalogue's defaults, e.g.
+   * filters on the signed-in user's records. Choosing it, resetting it and
+   * deleting the active view apply them; the table also starts from them when
+   * no link or view (saved, favorite or the host's initial one) sets its state.
+   */
+  defaultView?: import("../types/view-types").TableViewConfig;
   kanban?: TableKanbanConfig;
   planning?: import("../planning/types").TablePlanningConfig;
   gantt?: import("../planning/types").TableGanttConfig;
@@ -413,6 +420,7 @@ function resolveTableBehaviorConfig(
       allowedModes: displayModes,
       displayMode: mergedConfig.defaultDisplayMode,
     }),
+    defaultView: mergedConfig.defaultView,
     planning: mergedConfig.planning,
     gantt: mergedConfig.gantt,
     kanban: mergedConfig.kanban,

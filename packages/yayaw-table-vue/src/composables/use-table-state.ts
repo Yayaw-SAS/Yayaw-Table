@@ -132,6 +132,8 @@ export interface TableStateRefs {
     viewId?: string,
     options?: ViewHistoryOptions
   ) => void;
+  /** The settings "Default view" and its reset apply (`table.defaultView` over the catalogue's defaults). */
+  defaultView: () => TableViewConfig;
   reset: (options?: ViewHistoryOptions) => void;
   resetFilters: () => void;
   shareableUrl: () => string;
@@ -730,19 +732,19 @@ export const useTableState = <TData extends TableRecord>({
     pagination.value = { ...pagination.value, pageIndex: 0 };
   };
 
+  /** The built-in default view: the catalogue's defaults, then the host's `table.defaultView`. */
+  const defaultView = (): TableViewConfig => ({
+    sorting: config.columns.sort ?? [],
+    columnVisibility: defaultVisibility(),
+    columnOrder: config.columns.order,
+    columnSizing: {},
+    displayMode: config.table.defaultDisplayMode,
+    pageSize: config.table.defaultPageSize,
+    ...config.table.defaultView,
+  });
+
   const reset = (options?: ViewHistoryOptions): void => {
-    applyView(
-      {
-        sorting: config.columns.sort ?? [],
-        columnVisibility: defaultVisibility(),
-        columnOrder: config.columns.order,
-        columnSizing: {},
-        displayMode: config.table.defaultDisplayMode,
-        pageSize: config.table.defaultPageSize,
-      },
-      undefined,
-      options
-    );
+    applyView(defaultView(), undefined, options);
   };
 
   const shareableUrl = (): string =>
@@ -849,6 +851,7 @@ export const useTableState = <TData extends TableRecord>({
     resolveView,
     snapshot,
     applyView,
+    defaultView,
     reset,
     resetFilters,
     shareableUrl,

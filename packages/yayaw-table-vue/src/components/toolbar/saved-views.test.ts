@@ -13,6 +13,7 @@ import {
   openViewScreen,
   openViewsMenu,
 } from "../../../tests/menu-helpers";
+import type { TableStateRefs } from "../../composables/use-table-state";
 import { defineTableConfig } from "../../config";
 import type {
   TableBehaviorConfig,
@@ -989,4 +990,37 @@ it("returns to the changes a view choice or Reset replaced with the browser's ba
   expect(current(wrapper).text()).toBe("My view");
   expect(search(wrapper).element).toHaveProperty("value", "Beta");
   window.history.replaceState({}, "", "/");
+});
+
+it("starts from the host's default view and applies it again when chosen or reset", async () => {
+  const mine = [{ id: "status", value: ["open"] }];
+  const wrapper = mountTable({
+    views: [saved],
+    table: { defaultView: { filters: mine } },
+  });
+  await flushPromises();
+  const { state } = wrapper.vm as unknown as { state: TableStateRefs };
+  const filters = () => state.filters.value;
+  expect(current(wrapper).text()).toBe("Default view");
+  expect(filters()).toEqual(mine);
+  await openMenu(wrapper);
+  await choose("My view");
+  expect(filters()).toEqual([]);
+  await openMenu(wrapper);
+  await choose("Default view");
+  expect(current(wrapper).text()).toBe("Default view");
+  expect(filters()).toEqual(mine);
+  await openMenu(wrapper);
+  const reset = () =>
+    body()
+      .findAll(".yayaw-view-menu-item")
+      .find((item) => item.text().startsWith("Reset"));
+  expect(reset()?.attributes("aria-disabled")).toBe("true");
+  state.filters.value = [];
+  await flushPromises();
+  await openMenu(wrapper);
+  expect(reset()?.attributes("aria-disabled")).toBe("false");
+  await reset()?.trigger("click");
+  await flushPromises();
+  expect(filters()).toEqual(mine);
 });
