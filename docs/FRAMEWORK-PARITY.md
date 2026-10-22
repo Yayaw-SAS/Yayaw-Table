@@ -231,7 +231,7 @@ React resolves persistent entity IDs separately from table selection IDs. Positi
 
 React and Vue inline multi-selects use removable chips, search in the same field,
 and anchored listboxes with checkmarks and keyboard navigation. The editor height
-follows the table density. Toolbar and saved-view buttons use regular font weight. Options do
+follows the table density. The field spans the cell's width, and its list matches the field. Toolbar and saved-view buttons use regular font weight. Options do
 not expand the table row, disabled options cannot be toggled, and clearing all
 choices submits an empty array. Selections retain their configured primitive types.
 Outside interaction or focus leaving the editor flushes the current draft and

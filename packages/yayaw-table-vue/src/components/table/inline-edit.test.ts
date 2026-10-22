@@ -362,6 +362,26 @@ it("renders searchable choices outside the cell and preserves primitive selectio
   expect(wrapper.find(".yayaw-inline-selection").exists()).toBe(false);
 });
 
+it("spans the cell with the multi-select field and its list", async () => {
+  const { wrapper } = createCell({
+    row: { id: "1", tags: [1] },
+    column: themeColumn,
+  });
+  await wrapper.trigger("click");
+  await settle();
+  // The editable cell is a flex row: the wrapper must grow, or the field and
+  // the list sized to it shrink to their content.
+  expect(
+    wrapper
+      .get(".yayaw-inline-selection")
+      .element.closest(".yayaw-cell > .yayaw-inline-multiselect")
+  ).not.toBeNull();
+  expect(popup().classes()).toContain("yayaw-inline-options");
+  await wrapper
+    .get('input[role="combobox"]')
+    .trigger("keydown", { key: "Escape" });
+});
+
 it("flushes an empty multi-selection when focus leaves the popup", async () => {
   const { wrapper, update } = createCell({
     row: { id: "1", tags: [1] },
