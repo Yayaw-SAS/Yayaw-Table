@@ -31,6 +31,14 @@ afterEach(async () => {
 const settle = async () => {
   await new Promise((resolve) => setTimeout(resolve, 30));
 };
+const WAIT_LIMIT_MS = 2000;
+/** CI runners can take longer than one settle to mount the editor or answer a search. */
+async function waitFor(check: () => boolean) {
+  const deadline = Date.now() + WAIT_LIMIT_MS;
+  while (!check() && Date.now() < deadline) {
+    await act(settle);
+  }
+}
 const known = [{ value: 1, label: "Gaming Mag" }];
 async function setup(
   type: "select" | "multiSelect",
@@ -78,6 +86,7 @@ async function setup(
     );
     await settle();
   });
+  await waitFor(() => container.querySelector('[role="combobox"]') !== null);
 }
 const choices = () => [
   ...document.querySelectorAll<HTMLElement>('[role="option"]'),
@@ -94,6 +103,7 @@ async function fill(value: string) {
   });
 }
 async function clickOption(label: string) {
+  await waitFor(() => choices().some((option) => option.textContent === label));
   await act(async () => {
     required(choices().find((option) => option.textContent === label)).click();
     await settle();
@@ -176,6 +186,7 @@ it("shows a failed server search in the list and keeps the editor open", async (
     }
   );
   await fill("news");
+  await waitFor(() => document.querySelector('[role="alert"]') !== null);
   expect(required(document.querySelector('[role="alert"]')).textContent).toBe(
     "Search unavailable"
   );
