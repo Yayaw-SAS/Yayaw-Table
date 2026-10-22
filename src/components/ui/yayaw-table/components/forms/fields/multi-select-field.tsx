@@ -3,6 +3,7 @@
  */
 "use client";
 
+import { useId } from "react";
 import { Checkbox } from "@/src/components/ui/checkbox";
 import {
   Field,
@@ -12,6 +13,7 @@ import {
 } from "@/src/components/ui/field";
 import { useTranslations } from "../../../providers/table-provider";
 import type { FormFieldApi, MultiSelectFieldDefinition } from "../types";
+import { OptionCombobox } from "./option-combobox";
 
 type MultiSelectOptionValue = boolean | number | string;
 
@@ -64,12 +66,48 @@ export function MultiSelectField<TFieldValues extends Record<string, unknown>>({
     ? errors.map((e) => (typeof e === "string" ? e : String(e)))
     : [];
   const value = normalizeMultiSelectFieldValue(fieldApi.state.value);
+  const controlId = useId();
+  const label = field.labelKey ? t(field.labelKey) : field.label;
+  const options = Array.isArray(field.options) ? field.options : [];
+
+  if (field.searchable) {
+    return (
+      <Field data-invalid={!fieldApi.state.meta.isValid}>
+        <FieldLabel htmlFor={controlId}>{label}</FieldLabel>
+        {field.description != null && (
+          <FieldDescription>
+            {field.descriptionKey ? t(field.descriptionKey) : field.description}
+          </FieldDescription>
+        )}
+        <OptionCombobox
+          disabled={field.disabled === true}
+          id={controlId}
+          invalid={!fieldApi.state.meta.isValid}
+          label={label}
+          multiple
+          onBlur={fieldApi.handleBlur}
+          onChange={(next) =>
+            fieldApi.handleChange(normalizeMultiSelectFieldValue(next))
+          }
+          options={options.map((option, index) => ({
+            ...option,
+            label: field.optionKeys?.[index]
+              ? t(field.optionKeys[index])
+              : option.label,
+          }))}
+          placeholder={
+            field.placeholderKey ? t(field.placeholderKey) : field.placeholder
+          }
+          value={value}
+        />
+        <FieldError errors={errorMessages.map((message) => ({ message }))} />
+      </Field>
+    );
+  }
 
   return (
     <Field data-invalid={!fieldApi.state.meta.isValid}>
-      <FieldLabel>
-        {field.labelKey ? t(field.labelKey) : field.label}
-      </FieldLabel>
+      <FieldLabel>{label}</FieldLabel>
       {field.description != null && (
         <FieldDescription>
           {field.descriptionKey ? t(field.descriptionKey) : field.description}

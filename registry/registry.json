@@ -608,6 +608,11 @@
           "target": "components/ui/yayaw-table/components/forms/fields/number-field.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/forms/fields/option-combobox.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/forms/fields/option-combobox.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/forms/fields/radio-field.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/forms/fields/radio-field.tsx"

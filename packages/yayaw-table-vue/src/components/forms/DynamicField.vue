@@ -26,6 +26,7 @@ import { jsonFormDraft, jsonFormText, dataTypeDateInput, optionControlKey, optio
 import FormDateField from "../../form/FormDateField.vue";
 import { formLabel } from "../../form-view";
 import { dateTimeFromInput, dateTimeInputValue } from "../../value-format";
+import FieldCombobox from "./FieldCombobox.vue";
 import FieldSelect from "./FieldSelect.vue";
 import { dynamicFieldType, fieldIsHidden, fieldIsRequired } from "../../form-runtime";
 import { useFieldOptions } from "../../composables/use-field-options";
@@ -435,6 +436,21 @@ watch(valueType, (next, previous) => {
         </button>
       </div>
     </div>
+    <FieldCombobox
+      v-else-if="field.searchable && (field.type === 'select' || field.type === 'multiSelect')"
+      :id="fieldId"
+      v-model="selectionModel"
+      :options="allOptions"
+      :multiple="field.type === 'multiSelect'"
+      :label="field.label"
+      :placeholder="choosePlaceholder"
+      :locale="locale"
+      :disabled="disabled"
+      :required="required"
+      :invalid="Boolean(errorMessage)"
+      :labelled-by="`${fieldId}-label`"
+      :described-by="describedBy"
+    />
     <FieldSelect
       v-else-if="field.type === 'select'"
       :id="fieldId"

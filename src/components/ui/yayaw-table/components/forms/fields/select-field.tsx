@@ -25,6 +25,7 @@ import { useTranslations } from "../../../providers/table-provider";
 import { formLabel } from "../../../utils/form-view";
 import type { FormFieldApi, SelectFieldDefinition } from "../types";
 import { FormSelectContent } from "./form-select-content";
+import { OptionCombobox } from "./option-combobox";
 
 interface SelectFieldProps<TFieldValues extends Record<string, unknown>> {
   field: SelectFieldDefinition<TFieldValues>;
@@ -56,11 +57,33 @@ export function SelectField<TFieldValues extends Record<string, unknown>>({
       ? null
       : optionControlKey(value);
 
+  const label = field.labelKey ? t(field.labelKey) : field.label;
   return (
     <Field data-invalid={!fieldApi.state.meta.isValid}>
-      <FieldLabel htmlFor={controlId}>
-        {field.labelKey ? t(field.labelKey) : field.label}
-      </FieldLabel>
+      <FieldLabel htmlFor={controlId}>{label}</FieldLabel>
+      {field.searchable ? (
+        <OptionCombobox
+          disabled={field.disabled === true}
+          id={controlId}
+          invalid={!fieldApi.state.meta.isValid}
+          label={label}
+          multiple={false}
+          onBlur={fieldApi.handleBlur}
+          onChange={(next) =>
+            fieldApi.handleChange(next as string | number | boolean | null)
+          }
+          options={options.map((option, index) => ({
+            ...option,
+            label: field.optionKeys?.[index]
+              ? t(field.optionKeys[index])
+              : option.label,
+          }))}
+          placeholder={
+            field.placeholderKey ? t(field.placeholderKey) : field.placeholder
+          }
+          value={value}
+        />
+      ) : (
       <Select
         items={options.map((option) => ({
           label: option.label,
@@ -103,6 +126,7 @@ export function SelectField<TFieldValues extends Record<string, unknown>>({
           ))}
         </FormSelectContent>
       </Select>
+      )}
       {field.description != null && (
         <FieldDescription>
           {field.descriptionKey ? t(field.descriptionKey) : field.description}

@@ -607,6 +607,8 @@ export interface FormFieldDefinition<TData extends TableRecord = TableRecord> {
   options?:
     | SelectOption[]
     | ((context: FormFieldContext<TData>) => MaybePromise<SelectOption[]>);
+  /** `select` and `multiSelect`: a button opening a list that filters as you type, for long option lists. */
+  searchable?: boolean;
   /** Only these value changes reload dependent options. */
   optionDependencies?: string[];
   /** Change this key when the tenant or permission scope changes. */

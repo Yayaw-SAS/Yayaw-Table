@@ -396,6 +396,8 @@ export interface SelectFieldDefinition<
 > extends BaseFieldDefinition<TFieldValues> {
   optionKeys?: string[];
   options?: FormOptions;
+  /** A button opening a list that filters as you type, for long option lists. */
+  searchable?: boolean;
   type: "select";
 }
 
@@ -407,6 +409,8 @@ export interface MultiSelectFieldDefinition<
 > extends BaseFieldDefinition<TFieldValues> {
   optionKeys?: string[];
   options?: FormOptions;
+  /** A button opening a list that filters as you type, for long option lists. */
+  searchable?: boolean;
   type: "multiSelect";
 }
 

@@ -6215,6 +6215,38 @@
 .yayaw-form-field .yayaw-form-date {
   width: 100%;
 }
+.yayaw-field-combobox {
+  display: grid;
+  gap: 6px;
+}
+.yayaw-field-combobox-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+/* Reka wraps the trigger in its root element. */
+.yayaw-field-combobox-row > :first-child {
+  min-width: 0;
+  flex: 1;
+}
+.yayaw-field-combobox .yayaw-form-select {
+  width: 100%;
+}
+.yayaw-field-combobox-count {
+  margin-left: auto;
+  padding: 0 6px;
+}
+.yayaw-field-combobox-chips {
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: visible;
+}
+.yayaw-field-combobox-search {
+  width: 100%;
+  margin-bottom: 4px;
+}
 .yayaw-add-select .yayaw-inline-group > .yayaw-field-select {
   min-width: 0;
   flex: 1;
