@@ -371,6 +371,46 @@ it("restores partial views from catalogue defaults and isolates saved configurat
   }
 });
 
+it("keeps a column hidden by default hidden when a saved view does not mention it, as React does", () => {
+  const config = defineTableConfig({
+    id: "partial-visibility",
+    translations: { namespace: "partial-visibility", keys: {} },
+    columns: {
+      definitions: [
+        { id: "name", header: "Name" },
+        { id: "status", header: "Status" },
+        { id: "owner", header: "Owner", enableHiding: false },
+      ],
+      visible: ["name", "status"],
+      order: ["name", "status", "owner"],
+      mandatory: ["name"],
+    },
+  });
+  let state!: TableStateRefs;
+  const wrapper = mount(
+    defineComponent({
+      setup() {
+        state = useTableState({ config, syncUrl: false });
+        return () => null;
+      },
+    })
+  );
+  try {
+    // Saved before `owner` existed, or listing only the columns it changed.
+    state.applyView({ columnVisibility: { status: false } }, "saved");
+    expect(state.visibility.value).toMatchObject({
+      name: true,
+      status: false,
+      owner: false,
+    });
+    // A view can still show a column hidden by default.
+    state.applyView({ columnVisibility: { owner: true } }, "other");
+    expect(state.visibility.value).toMatchObject({ status: true, owner: true });
+  } finally {
+    wrapper.unmount();
+  }
+});
+
 it("captures every saved density and restores the catalogue default for legacy views", () => {
   const config = defineTableConfig({
     id: "density-views",

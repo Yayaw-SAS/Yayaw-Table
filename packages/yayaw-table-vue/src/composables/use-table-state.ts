@@ -171,14 +171,15 @@ export const useTableState = <TData extends TableRecord>({
   const filters = ref<ColumnFiltersState>([]);
   const advancedFilters = ref<AdvancedFiltersState>(emptyAdvancedFilters());
   const sorting = ref<SortingState>(config.columns.sort ?? []);
-  const visibility = ref<ColumnVisibilityState>(
+  /** The catalogue's visibility: a column shows only when `columns.visible` lists it. */
+  const defaultVisibility = (): ColumnVisibilityState =>
     Object.fromEntries(
       config.columns.definitions.map((column) => [
         column.id,
         config.columns.visible.includes(column.id),
       ])
-    )
-  );
+    );
+  const visibility = ref<ColumnVisibilityState>(defaultVisibility());
   const order = ref([...config.columns.order]);
   const sizing = ref<Record<string, number>>({});
   const grouping = ref<string[]>([]);
@@ -635,14 +636,10 @@ export const useTableState = <TData extends TableRecord>({
           ) as unknown as AdvancedFiltersState
         ),
         sorting: input.sorting ?? config.columns.sort ?? [],
+        // A column the view does not mention keeps its default, as a link does: a view saved before a
+        // column existed, or one that lists only some columns, never shows a column hidden by default.
         columnVisibility: lockedColumnVisibility(
-          input.columnVisibility ??
-            Object.fromEntries(
-              config.columns.definitions.map((column) => [
-                column.id,
-                config.columns.visible.includes(column.id),
-              ])
-            ),
+          { ...defaultVisibility(), ...input.columnVisibility },
           config.columns.mandatory
         ),
         columnOrder: lockedColumnOrder(
@@ -737,12 +734,7 @@ export const useTableState = <TData extends TableRecord>({
     applyView(
       {
         sorting: config.columns.sort ?? [],
-        columnVisibility: Object.fromEntries(
-          config.columns.definitions.map((column) => [
-            column.id,
-            config.columns.visible.includes(column.id),
-          ])
-        ),
+        columnVisibility: defaultVisibility(),
         columnOrder: config.columns.order,
         columnSizing: {},
         displayMode: config.table.defaultDisplayMode,

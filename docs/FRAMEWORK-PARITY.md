@@ -673,6 +673,13 @@ Lucide ListRestart and never writes records. Legacy `showClearFilters` and
 `showResetFilters` remain filter-only controls in Filters. Favorites do not require
 save permission; failed or delayed saves preserve newer drafts.
 
+A saved view's `columnVisibility` only overrides the columns it lists: a column it
+does not mention (a view saved before the column existed, or one that lists only
+the columns it changed) keeps its catalogue visibility, `columns.visible`, in both
+editions, as a link does. React stores what differs from the defaults and merges
+them back on read; Vue resolves the view against the defaults in `applyView`.
+React `tests/url-sync-parity.test.tsx` and Vue `use-table-state.test.ts` cover it.
+
 `footerCalculationsVisible?: boolean` is included in snapshots; omitted legacy
 values inherit the initial visible setting, subject to the feature flag. No
 control sets it to `false` any more: "Edit calculations" (not saved) sets it back
