@@ -482,3 +482,44 @@ it("restores list settings from saved views and resets them to the table default
   state.applyView({}, "empty");
   expect(state.list.value).toEqual({ titleColumn: "name" });
 });
+
+it("resets to the host's default view, filters included", () => {
+  const mine = [{ id: "status", value: ["open"] }];
+  const config = defineTableConfig({
+    id: "host-default",
+    translations: { namespace: "host-default", keys: {} },
+    columns: {
+      definitions: [
+        { id: "name", header: "Name" },
+        { id: "status", header: "Status" },
+      ],
+      visible: ["name", "status"],
+      order: ["name", "status"],
+      mandatory: ["name"],
+      sort: [{ id: "name", desc: false }],
+    },
+    table: { enableColumnFilters: true, defaultView: { filters: mine } },
+  });
+  let state!: TableStateRefs;
+  const wrapper = mount(
+    defineComponent({
+      setup() {
+        state = useTableState({ config, syncUrl: false });
+        return () => null;
+      },
+    })
+  );
+  try {
+    state.applyView(
+      { filters: [], sorting: [{ id: "status", desc: true }] },
+      "saved"
+    );
+    state.reset();
+    expect(state.activeViewId.value).toBeUndefined();
+    expect(state.filters.value).toEqual(mine);
+    expect(state.sorting.value).toEqual([{ id: "name", desc: false }]);
+    expect(state.defaultView().filters).toEqual(mine);
+  } finally {
+    wrapper.unmount();
+  }
+});

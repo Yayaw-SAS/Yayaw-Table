@@ -2125,6 +2125,7 @@ export function DataTableAdvancedToolbar<TData>({
           {...viewManagerProps}
           compact={isMobile}
           defaultViewConfig={defaultViewConfig}
+          hostDefaultView={tableConfig.table.defaultView}
           tableId={tableId}
           tableType={tableType}
         />

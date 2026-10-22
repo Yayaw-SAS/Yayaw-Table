@@ -337,6 +337,12 @@ if (props.initialView && !(syncUrl && state.hasInitialTableUrlState)) {
   if (pageIndex > 0) {
     state.pagination.value = { ...state.pagination.value, pageIndex };
   }
+} else if (
+  config.table.defaultView &&
+  !(syncUrl && state.hasInitialTableUrlState)
+) {
+  // The host's default view; a saved view to start from still applies later.
+  state.applyView(state.defaultView(), state.activeViewId.value);
 }
 // The host's rows are current when produced in the sort the table starts
 // from, on its first page (see initial-rows.ts); otherwise they load again.
