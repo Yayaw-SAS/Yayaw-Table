@@ -25,7 +25,10 @@ import {
   toOrderByParam,
   toPageSize,
 } from "../utils/filtered-rows";
-import { normalizeFilterEnvelope } from "../utils/table-contracts";
+import {
+  MAX_CALCULATION_ROWS,
+  normalizeFilterEnvelope,
+} from "../utils/table-contracts";
 import {
   type ColumnValueFormat,
   calculateCurrencyColumn,
@@ -462,6 +465,7 @@ export const loadGlobalColumnCalculationResults = async ({
     return EMPTY_RESULTS;
   }
 
+  // Too many rows to load in the browser: the query fails, footers stay empty.
   const rows = await fetchAllFilteredRows({
     listAction: actions.list,
     advancedFilters,
@@ -469,6 +473,7 @@ export const loadGlobalColumnCalculationResults = async ({
     orderBy,
     pageSize: toPageSize(pageSizeParam),
     search,
+    maxRows: MAX_CALCULATION_ROWS,
   });
 
   const results: Record<string, TableAggregateResultValue> = {};

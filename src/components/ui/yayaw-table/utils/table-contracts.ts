@@ -508,11 +508,36 @@ export function tableQueryKey(value: unknown): string {
   return isEmpty ? "" : JSON.stringify(comparable, orderedKeys);
 }
 
-/** Collect every result using the server's pagination metadata, including capped page sizes. */
+/**
+ * Most rows footer calculations load in the browser when the host does not
+ * calculate them (`actions.aggregate`): beyond it the footers stay empty.
+ */
+export const MAX_CALCULATION_ROWS = 10_000;
+
+/** Whether a list page announces more matching rows than `maxRows`. */
+const exceedsMaxRows = (
+  meta: { pageCount?: number; totalCount?: number } | undefined,
+  pageSize: number,
+  maxRows: number | undefined
+): boolean => {
+  if (maxRows === undefined) {
+    return false;
+  }
+  const announced = Number.isFinite(meta?.totalCount)
+    ? (meta?.totalCount ?? 0)
+    : (meta?.pageCount ?? 0) * pageSize;
+  return announced > maxRows;
+};
+
+/**
+ * Collect every result using the server's pagination metadata, including capped page sizes.
+ * `maxRows` stops after the first page when the server announces more matching rows.
+ */
 export async function fetchAllContractRows<T>({
   list,
   params,
   maxPages = 1000,
+  maxRows,
   filterContext,
 }: {
   list: (params: ContractRecord) => Promise<{
@@ -521,6 +546,7 @@ export async function fetchAllContractRows<T>({
   }>;
   params: ContractRecord;
   maxPages?: number;
+  maxRows?: number;
   /** Resolves relative dates and `$viewer` in the rules (see `compatibleListParams`). */
   filterContext?: FilterTokenContext;
 }): Promise<T[]> {
@@ -534,6 +560,11 @@ export async function fetchAllContractRows<T>({
     const hasPageCount = Number.isFinite(pageCount) && (pageCount ?? 0) > 0;
     const hasTotalCount =
       Number.isFinite(totalCount) && (totalCount ?? -1) >= 0;
+    if (exceedsMaxRows(result.meta, Number(request.pageSize), maxRows)) {
+      throw new Error(
+        "Too many matching rows to load them all. Narrow the filters and try again."
+      );
+    }
     if (
       (hasPageCount && page >= (pageCount ?? 0)) ||
       (hasTotalCount && rows.length >= (totalCount ?? 0)) ||
