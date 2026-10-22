@@ -22,7 +22,7 @@ import CellActions from "./CellActions.vue";
 import InitialsAvatar from "../controls/InitialsAvatar.vue";
 import TableTooltip from "../toolbar/TableTooltip.vue";
 import { avatarInitials, avatarNameOf, avatarStack, resolveAvatarConfig } from "../../initials-avatar";
-import InlineMultiSelect from "./InlineMultiSelect.vue";
+import InlineMultiSelect, { type InlineOptionSearch } from "./InlineMultiSelect.vue";
 import TagPicker from "../tags/TagPicker.vue";
 import LocationEditor from "../location/LocationEditor.vue";
 import { formatCoordinates, formatLocation, parseLocation } from "../../location-model";
@@ -135,6 +135,22 @@ const formConfig = computed(() => {
 const formField = computed(() =>
   formConfig.value?.fields.find((field) => field.name === fieldName.value)
 );
+// Select fields search the server in the inline editor; other searched fields keep the full form.
+const searchable = computed(() =>
+  Boolean(formField.value?.searchOptions) &&
+  ["select", "multiSelect"].includes(formField.value!.type)
+);
+const optionSearch = computed<InlineOptionSearch | undefined>(() => {
+  const field = formField.value;
+  if (!(searchable.value && field?.searchOptions)) return undefined;
+  const { searchOptions, resolveOptions } = field;
+  return {
+    search: (query, signal) => searchOptions(query, formContext.value, signal),
+    resolve: resolveOptions ? (values, signal) => resolveOptions(values, formContext.value, signal) : undefined,
+    minLength: field.searchMinLength ?? 3,
+    debounceMs: field.searchDebounceMs ?? 300,
+  };
+});
 const canEdit = computed(() => {
   if (props.column.accessorFn && !inlineConfig.value.formField) return false;
   if (["actions", "select"].includes(props.column.id)) return false;
@@ -152,7 +168,7 @@ const canEdit = computed(() => {
   if (
     formField.value &&
     (["collection", "custom", "tablePicker"].includes(formField.value.type) ||
-      formField.value.searchOptions)
+      (formField.value.searchOptions && !searchable.value))
   )
     return false;
   if (
@@ -567,6 +583,17 @@ const tagListeners = (value: unknown) => {
         class="yayaw-checkbox"
         @change="save()"
       />
+      <InlineMultiSelect
+        v-else-if="editor === 'select' && optionSearch"
+        v-model="draft"
+        :multiple="false"
+        :options="options"
+        :search="optionSearch"
+        :disabled="optionsLoading"
+        :label="formField?.label ?? column.header"
+        @commit="save()"
+        @cancel="cancel"
+      />
       <select
         v-else-if="editor === 'select'"
         ref="editorElement"
@@ -611,6 +638,7 @@ const tagListeners = (value: unknown) => {
         v-else-if="editor === 'multiSelect'"
         v-model="draft"
         :options="options"
+        :search="optionSearch"
         :disabled="optionsLoading"
         :label="formField?.label ?? column.header"
         @commit="save()"

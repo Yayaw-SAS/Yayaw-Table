@@ -11,7 +11,10 @@ import {
   validateInlineFormValue,
 } from "../forms/inline-form";
 import type { FormConfig, FormConfigContext } from "../forms/types";
-import { InlineEditableCell } from "./inline-editable-cell";
+import {
+  InlineEditableCell,
+  type InlineOptionSearch,
+} from "./inline-editable-cell";
 
 export function CatalogueInlineCell<TData extends Record<string, unknown>>({
   cell,
@@ -34,12 +37,25 @@ export function CatalogueInlineCell<TData extends Record<string, unknown>>({
   if (!canEditInlineFormField(config, field, context)) {
     return displayValue;
   }
+  const { searchOptions, resolveOptions } = field ?? {};
+  const optionSearch: InlineOptionSearch | undefined =
+    field && searchOptions
+      ? {
+          search: (query, signal) => searchOptions(query, context, signal),
+          resolve: resolveOptions
+            ? (values, signal) => resolveOptions(values, context, signal)
+            : undefined,
+          minLength: field.searchMinLength ?? 3,
+          debounceMs: field.searchDebounceMs ?? 300,
+        }
+      : undefined;
   return (
     <InlineEditableCell
       cell={cell}
       displayValue={displayValue}
       formFieldDefinition={field}
       inlineConfig={inlineConfig}
+      optionSearch={optionSearch}
       onCommit={async (value) => {
         const result = await validateInlineFormValue(
           config,

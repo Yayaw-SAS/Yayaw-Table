@@ -15,7 +15,7 @@ import {
   Tag,
 } from "lucide-react";
 import type { KeyboardEvent, ReactNode } from "react";
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Combobox,
   ComboboxChip,
@@ -38,6 +38,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import type { InlineEditOption } from "../../config/helpers";
 import {
   type InlineEditColumnRuntimeConfig,
   type InlineEditCommitResult,
@@ -59,9 +60,23 @@ import {
   resolveDataType,
 } from "../../utils/table-contracts";
 import { TableTooltip } from "../../utils/table-tooltip";
-import type { AnyFieldDefinition } from "../forms/types";
+import type { AnyFieldDefinition, FormSelectOption } from "../forms/types";
 import { LocationEditor } from "../location/location-editor";
 import { TagPicker } from "../tags/tag-picker";
+
+/** Server-side choices of a form field with `searchOptions`, already bound to the cell's form context. */
+export interface InlineOptionSearch {
+  search: (
+    query: string,
+    signal: AbortSignal
+  ) => FormSelectOption[] | Promise<FormSelectOption[]>;
+  resolve?: (
+    values: unknown[],
+    signal: AbortSignal
+  ) => FormSelectOption[] | Promise<FormSelectOption[]>;
+  minLength: number;
+  debounceMs: number;
+}
 
 interface InlineEditableCellProps<TData extends Record<string, unknown>> {
   cell: Cell<TData, unknown>;
@@ -70,7 +85,116 @@ interface InlineEditableCellProps<TData extends Record<string, unknown>> {
   rowData: Record<string, unknown>;
   formFieldDefinition?: AnyFieldDefinition;
   schema?: InlineEditValidationSchema;
+  optionSearch?: InlineOptionSearch;
   onCommit: (value: unknown) => Promise<InlineEditCommitResult>;
+}
+
+const optionKeysOf = (options: readonly InlineEditOption[]) =>
+  new Set(options.map((option) => optionControlKey(option.value)));
+
+/** Searched and resolved options stay known, so a choice keeps its label after the next search. */
+function rememberOptions(
+  known: InlineEditOption[],
+  found: readonly InlineEditOption[]
+): InlineEditOption[] {
+  const keys = optionKeysOf(known);
+  const added = found.filter(
+    (option) => !keys.has(optionControlKey(option.value))
+  );
+  return added.length ? [...known, ...added] : known;
+}
+
+interface OptionSearchState {
+  /** Keys the server returned for the current text; undefined before an answer. */
+  matched?: Set<string>;
+  remembered: InlineEditOption[];
+  searching: boolean;
+  error?: string;
+}
+
+/** Debounced, cancellable server search for the inline select editors. */
+function useInlineOptionSearch(
+  optionSearch: InlineOptionSearch | undefined,
+  active: boolean,
+  query: string,
+  selectedValues: unknown[]
+) {
+  const [state, setState] = useState<OptionSearchState>({
+    remembered: [],
+    searching: false,
+  });
+  // Hosts rebuild the search callbacks on each render: requests follow the latest ones without restarting.
+  const latest = useRef(optionSearch);
+  latest.current = optionSearch;
+  const text = query.trim();
+  const enabled = Boolean(optionSearch);
+  const resolves = Boolean(optionSearch?.resolve);
+  const minLength = Math.max(1, optionSearch?.minLength ?? 1);
+  const debounceMs = Math.max(0, optionSearch?.debounceMs ?? 0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Labels are resolved once per editing session, for the values it opened with.
+  useEffect(() => {
+    const resolve = latest.current?.resolve;
+    if (!(active && resolve && selectedValues.length)) {
+      return;
+    }
+    const request = new AbortController();
+    (async () => {
+      try {
+        const found = await resolve(selectedValues, request.signal);
+        if (!request.signal.aborted) {
+          setState((previous) => ({
+            ...previous,
+            remembered: rememberOptions(previous.remembered, found),
+          }));
+        }
+      } catch {
+        // The raw value stays shown; saving does not depend on its label.
+      }
+    })();
+    return () => request.abort();
+  }, [active, resolves]);
+  useEffect(() => {
+    setState((previous) =>
+      previous.matched || previous.error || previous.searching
+        ? { remembered: previous.remembered, searching: false }
+        : previous
+    );
+    if (!(enabled && active) || text.length < minLength) {
+      return;
+    }
+    const request = new AbortController();
+    setState((previous) => ({ ...previous, searching: true }));
+    const timer = setTimeout(async () => {
+      const search = latest.current?.search;
+      if (!search) {
+        return;
+      }
+      try {
+        const found = await search(text, request.signal);
+        if (request.signal.aborted) {
+          return;
+        }
+        setState((previous) => ({
+          remembered: rememberOptions(previous.remembered, found),
+          matched: optionKeysOf(found),
+          searching: false,
+        }));
+      } catch (cause) {
+        if (!request.signal.aborted) {
+          setState((previous) => ({
+            ...previous,
+            searching: false,
+            error: cause instanceof Error ? cause.message : String(cause),
+          }));
+        }
+      }
+    }, debounceMs);
+    return () => {
+      request.abort();
+      clearTimeout(timer);
+    };
+  }, [active, debounceMs, enabled, minLength, text]);
+  return state;
 }
 
 const INLINE_EDITOR_ICON_COMPONENTS: Record<InlineEditorIcon, LucideIcon> = {
@@ -187,6 +311,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
   rowData,
   formFieldDefinition,
   schema,
+  optionSearch,
   onCommit,
 }: InlineEditableCellProps<TData>) {
   const { t } = useTranslations();
@@ -232,12 +357,14 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     ]
   );
 
+  // Server results are read at commit time: the commit is created before the search runs.
+  const searchedOptions = useRef<InlineEditOption[]>([]);
   const runtimeCommit = useCallback(
     async (draftValue: unknown): Promise<InlineEditCommitResult> => {
       const parsedResult = parseInlineEditValue({
         editor: resolvedEditor,
         rawValue: draftValue,
-        options: resolvedOptions,
+        options: [...resolvedOptions, ...searchedOptions.current],
         timeZone,
       });
 
@@ -348,22 +475,70 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
 
   const editorValue = draftValue;
 
+  const searchesOptions =
+    Boolean(optionSearch) &&
+    (resolvedEditor === "select" || resolvedEditor === "multiSelect");
+  const [searchQuery, setSearchQuery] = useState("");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Each editing session starts with an empty search.
+  useEffect(() => {
+    setSearchQuery("");
+  }, [isEditing]);
+  const openedValues = useMemo(
+    () =>
+      getEditorCurrentValues(resolvedEditor, cell.getValue())
+        .filter((key) => key.length > 0)
+        .map(optionControlValue),
+    [cell, resolvedEditor]
+  );
+  const optionSearchState = useInlineOptionSearch(
+    searchesOptions ? optionSearch : undefined,
+    isEditing,
+    searchQuery,
+    openedValues
+  );
+  searchedOptions.current = optionSearchState.remembered;
+  const editorOptions = useMemo(
+    () => [...resolvedOptions, ...optionSearchState.remembered],
+    [optionSearchState.remembered, resolvedOptions]
+  );
+
   const selectOptions = useMemo(() => {
     return normalizeSelectOptions({
       editor: resolvedEditor,
       editorValue,
-      options: resolvedOptions,
+      options: editorOptions,
     });
-  }, [editorValue, resolvedEditor, resolvedOptions]);
+  }, [editorOptions, editorValue, resolvedEditor]);
 
   const multiSelectAnchorRef = useComboboxAnchor();
   const selectedMultiValues = useMemo(() => {
+    if (resolvedEditor === "select" && searchesOptions) {
+      const key = optionControlKey(editorValue);
+      return key ? [key] : [];
+    }
     if (resolvedEditor !== "multiSelect" || !Array.isArray(editorValue)) {
       return [];
     }
 
     return editorValue.map(optionControlKey);
-  }, [editorValue, resolvedEditor]);
+  }, [editorValue, resolvedEditor, searchesOptions]);
+
+  // With a server search, the server decides what matches: its results show even when the label lacks the text.
+  const { matched } = optionSearchState;
+  const filterOption = useCallback(
+    (value: string, query: string) =>
+      matched?.has(value) === true ||
+      (selectOptions.find((option) => option.value === value)?.label ?? value)
+        .toLocaleLowerCase()
+        .includes(query.trim().toLocaleLowerCase()),
+    [matched, selectOptions]
+  );
+  const searchStatus = (() => {
+    if (optionSearchState.error) {
+      return optionSearchState.error;
+    }
+    return optionSearchState.searching ? t("loading") : t("filters.noResults");
+  })();
 
   const getOptionLabel = useCallback(
     (optionValue: string): string => {
@@ -466,12 +641,26 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
   ]);
 
   const renderMultiSelectEditor = useCallback(() => {
+    // A searched single select reuses the chips field with at most one chip.
+    const single = resolvedEditor === "select";
     return (
       <Combobox
         items={selectOptions.map((option) => option.value)}
         itemToStringLabel={getOptionLabel}
         multiple
+        open
+        {...(searchesOptions
+          ? {
+              filter: filterOption,
+              inputValue: searchQuery,
+              onInputValueChange: (value: string) => setSearchQuery(value),
+            }
+          : {})}
         onOpenChange={(open, details) => {
+          // A pressed choice keeps the list open; the value change commits a single choice.
+          if (details.reason === "item-press") {
+            return;
+          }
           if (details.reason === "escape-key") {
             cancelEditing();
             return;
@@ -484,6 +673,18 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
           const nextValues = Array.isArray(values)
             ? values.map((value) => String(value))
             : [];
+          if (single) {
+            const chosen = nextValues.find(
+              (value) => !selectedMultiValues.includes(value)
+            );
+            updateDraftValue(
+              chosen === undefined ? "" : optionControlValue(chosen),
+              { disableAutoSave: true }
+            );
+            // A single choice is the whole edit, as with a select.
+            commitAndClose().catch(() => undefined);
+            return;
+          }
           for (const selected of selectedMultiValues) {
             if (
               selectOptions.find((option) => option.value === selected)
@@ -495,7 +696,6 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
           }
           updateDraftValue(nextValues.map(optionControlValue));
         }}
-        open
         value={selectedMultiValues}
       >
         <ComboboxChips
@@ -551,7 +751,16 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
           />
         </ComboboxChips>
         <ComboboxContent anchor={multiSelectAnchorRef}>
-          <ComboboxEmpty>{t("filters.noResults")}</ComboboxEmpty>
+          {optionSearchState.error ? (
+            <div
+              className="px-2 py-2 text-center text-destructive text-sm"
+              role="alert"
+            >
+              {optionSearchState.error}
+            </div>
+          ) : (
+            <ComboboxEmpty>{searchStatus}</ComboboxEmpty>
+          )}
           <ComboboxList>
             {(value: string) => (
               <ComboboxItem
@@ -574,9 +783,15 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     commitAndClose,
     cell.column.columnDef.header,
     cell.column.id,
+    filterOption,
     focusEditor,
     getOptionLabel,
     multiSelectAnchorRef,
+    optionSearchState.error,
+    resolvedEditor,
+    searchQuery,
+    searchStatus,
+    searchesOptions,
     selectOptions,
     selectedMultiValues,
     t,
@@ -712,7 +927,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     }
 
     if (resolvedEditor === "select") {
-      return renderSelectEditor();
+      return searchesOptions ? renderMultiSelectEditor() : renderSelectEditor();
     }
 
     if (resolvedEditor === "multiSelect") {

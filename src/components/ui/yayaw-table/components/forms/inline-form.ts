@@ -26,7 +26,10 @@ export function canEditInlineFormField(
       !fieldIsHidden(field, ruled) &&
       !fieldIsDisabled(field, context) &&
       !["collection", "custom", "tablePicker"].includes(field.type) &&
-      !field.searchOptions &&
+      // Select fields search the server in the inline editor; other searched fields keep the full form.
+      (!field.searchOptions ||
+        field.type === "select" ||
+        field.type === "multiSelect") &&
       typeof field.options !== "function"
   );
 }
