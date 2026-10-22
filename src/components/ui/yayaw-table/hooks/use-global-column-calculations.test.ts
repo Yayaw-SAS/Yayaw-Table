@@ -237,6 +237,36 @@ describe("loadGlobalColumnCalculationResults", () => {
     });
   });
 
+  it("skips the list fallback when too many rows match", async () => {
+    let listCalls = 0;
+    const actions: TableActions = {
+      aggregate: () => Promise.reject(new Error("Only chart groups")),
+      list: () => {
+        listCalls += 1;
+        return Promise.resolve({
+          data: [{ price: 1 }],
+          meta: { pageCount: 60_000, totalCount: 600_000 },
+        });
+      },
+    };
+
+    await assert.rejects(
+      loadGlobalColumnCalculationResults({
+        actions,
+        advancedFiltersParam: [],
+        calculations: { price: "sum" },
+        columnTypes: { price: "number" },
+        filtersParam: [],
+        globalSearchParam: "",
+        locale: "en-US",
+        pageSizeParam: "10",
+        sortParam: [],
+      }),
+      /Too many matching rows/
+    );
+    assert.equal(listCalls, 1);
+  });
+
   it("returns an empty result map when no action can provide data", async () => {
     const results = await loadGlobalColumnCalculationResults({
       actions: undefined,
