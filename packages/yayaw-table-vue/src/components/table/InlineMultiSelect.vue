@@ -69,7 +69,7 @@ onMounted(async () => { await nextTick(); anchor.value?.querySelector("input")?.
 </script>
 
 <template>
-  <div ref="anchor">
+  <div ref="anchor" class="yayaw-inline-multiselect">
   <ComboboxRoot multiple :open="true" :model-value="selectedKeys" :disabled="disabled" @update:model-value="update" @update:open="dismiss">
     <!-- Mount the list before the input so Reka assigns aria-controls on first render. -->
     <ComboboxPortal force-mount>

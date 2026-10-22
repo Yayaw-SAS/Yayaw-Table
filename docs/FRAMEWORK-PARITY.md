@@ -231,7 +231,7 @@ React resolves persistent entity IDs separately from table selection IDs. Positi
 
 React and Vue inline multi-selects use removable chips, search in the same field,
 and anchored listboxes with checkmarks and keyboard navigation. The editor height
-follows the table density. Toolbar and saved-view buttons use regular font weight. Options do
+follows the table density. The field spans the cell's width, and its list matches the field. Toolbar and saved-view buttons use regular font weight. Options do
 not expand the table row, disabled options cannot be toggled, and clearing all
 choices submits an empty array. Selections retain their configured primitive types.
 Outside interaction or focus leaving the editor flushes the current draft and
@@ -676,6 +676,13 @@ compact explanatory text. Save as new view remains separate. Reset view uses
 Lucide ListRestart and never writes records. Legacy `showClearFilters` and
 `showResetFilters` remain filter-only controls in Filters. Favorites do not require
 save permission; failed or delayed saves preserve newer drafts.
+
+A saved view's `columnVisibility` only overrides the columns it lists: a column it
+does not mention (a view saved before the column existed, or one that lists only
+the columns it changed) keeps its catalogue visibility, `columns.visible`, in both
+editions, as a link does. React stores what differs from the defaults and merges
+them back on read; Vue resolves the view against the defaults in `applyView`.
+React `tests/url-sync-parity.test.tsx` and Vue `use-table-state.test.ts` cover it.
 
 `footerCalculationsVisible?: boolean` is included in snapshots; omitted legacy
 values inherit the initial visible setting, subject to the feature flag. No

@@ -174,7 +174,20 @@ for (const syncUrl of [false, true]) {
 }
 
 /** A table whose URL carries what differs from these columns. */
-async function openColumnLink(link: Record<string, string>) {
+const PAGED_COLUMNS = {
+  definitions: [{ id: "name" }, { id: "status" }],
+  order: ["select", "name", "status", "actions"],
+  visible: ["name", "status"],
+};
+
+async function openColumnLink(
+  link: Record<string, string>,
+  columns: {
+    definitions: { id: string }[];
+    order: string[];
+    visible: string[];
+  } = PAGED_COLUMNS
+) {
   const store = createStore();
   let state!: ReturnType<typeof useTableUrlState>;
   let params = new URLSearchParams(link);
@@ -198,14 +211,7 @@ async function openColumnLink(link: Record<string, string>) {
           resetUrlUpdateQueueOnMount={false}
           searchParams={link}
         >
-          <TableStateSyncProvider
-            columns={{
-              definitions: [{ id: "name" }, { id: "status" }],
-              order: ["select", "name", "status", "actions"],
-              visible: ["name", "status"],
-            }}
-            enabled
-          >
+          <TableStateSyncProvider columns={columns} enabled>
             <Probe />
           </TableStateSyncProvider>
         </NuqsTestingAdapter>
@@ -305,6 +311,36 @@ it("reads links that carry every column, then leaves the defaults out", async ()
     "name",
   ]);
   expect(table.params.has("paged-pinning")).toBe(false);
+});
+
+it("keeps a column hidden by default hidden when a saved view does not mention it, as Vue does", async () => {
+  const table = await openColumnLink(
+    {},
+    {
+      definitions: [{ id: "name" }, { id: "status" }, { id: "owner" }],
+      order: ["select", "name", "status", "owner", "actions"],
+      visible: ["name", "status"],
+    }
+  );
+  // Saved before `owner` existed, or listing only the columns it changed.
+  await act(() => {
+    table.state.setVisibilityFromUI({ status: false });
+  });
+  await table.settled();
+  expect(table.state.visibilityParam).toMatchObject({
+    name: true,
+    status: false,
+    owner: false,
+  });
+  // A view can still show a column hidden by default.
+  await act(() => {
+    table.state.setVisibilityFromUI({ owner: true });
+  });
+  await table.settled();
+  expect(table.state.visibilityParam).toMatchObject({
+    status: true,
+    owner: true,
+  });
 });
 
 /** Lets the table load and write its URL, one frame per `act`. */
