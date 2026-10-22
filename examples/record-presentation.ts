@@ -95,17 +95,51 @@ export const presentationRules: FormRule[] = [
   ),
 ];
 
+const presentationCountries = [
+  "Austria",
+  "Belgium",
+  "Canada",
+  "Denmark",
+  "France",
+  "Germany",
+  "Italy",
+  "Japan",
+  "Netherlands",
+  "Spain",
+  "Sweden",
+  "Switzerland",
+  "United Kingdom",
+  "United States",
+].map((label) => ({ label, value: label }));
+
 /** Explicit catalogue contract also enables Vue's field-based bulk editor. */
 export const presentationForm = {
   id: "record-presentation",
   submitMode: "patch" as const,
   rules: presentationRules,
-  fields: presentationColumns.map((column) => ({
-    name: column.id,
-    label: column.header,
-    type: column.type === "boolean" ? ("switch" as const) : column.type,
-    options: column.options,
-  })),
+  fields: [
+    ...presentationColumns.map((column) => ({
+      name: column.id,
+      label: column.header,
+      type: column.type === "boolean" ? ("switch" as const) : column.type,
+      options: column.options,
+    })),
+    // Long lists: a button opening a list that filters as you type.
+    {
+      name: "origin",
+      label: "Origin",
+      type: "select" as const,
+      searchable: true,
+      options: presentationCountries,
+    },
+    {
+      name: "markets",
+      label: "Markets",
+      type: "multiSelect" as const,
+      searchable: true,
+      options: presentationCountries,
+    },
+  ],
 };
 
 /** The same read-only media field is rendered by both framework examples. */

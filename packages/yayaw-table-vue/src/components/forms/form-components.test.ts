@@ -900,3 +900,53 @@ it("aborts a custom action on unmount and ignores late writes", async () => {
   await flushPromises();
   expect(liveValues?.name).toBe("Draft");
 });
+
+describe("searchable option fields", () => {
+  const options: SelectOption[] = [
+    { label: "France", value: 1 },
+    { label: "Belgique", value: 2 },
+    { label: "Allemagne", value: 3 },
+  ];
+  const mountSearchable = (
+    type: "select" | "multiSelect",
+    modelValue: unknown
+  ) =>
+    track(
+      mount(DynamicField, {
+        props: {
+          field: {
+            name: "country",
+            label: "Country",
+            type,
+            options,
+            searchable: true,
+          },
+          context: fieldContext(),
+          modelValue,
+        },
+      })
+    );
+
+  // Opening, typing and picking run in a real browser: e2e/searchable-fields.spec.ts.
+  it("renders a combobox, not a checkbox list", () => {
+    const wrapper = mountSearchable("multiSelect", []);
+    expect(wrapper.find('[role="checkbox"]').exists()).toBe(false);
+    expect(wrapper.get("[data-searchable-field]").attributes("role")).toBe(
+      "combobox"
+    );
+  });
+
+  it("shows several picks as removable chips", async () => {
+    const wrapper = mountSearchable("multiSelect", [1, 3]);
+    expect(wrapper.get("[data-searchable-field]").text()).toContain("2");
+    await wrapper.get('button[aria-label="Remove France"]').trigger("click");
+    expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual([[3]]);
+  });
+
+  it("clears a single pick", async () => {
+    const wrapper = mountSearchable("select", 2);
+    expect(wrapper.get("[data-searchable-field]").text()).toContain("Belgique");
+    await wrapper.get('button[aria-label="Remove Belgique"]').trigger("click");
+    expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual([null]);
+  });
+});
