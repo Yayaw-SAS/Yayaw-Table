@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.30.0
+
+### Minor Changes
+
+- 1923b02: Add `table.defaultView`: the settings the built-in "Default view" shows over the catalogue's defaults, such as filters on the signed-in user's records. Choosing the default view, resetting it and deleting the active view apply them in React and Vue, and the table starts from them when no link or view sets its state.
+- 32820ee: Catalogue form `select` and `multiSelect` fields take `searchable: true`, in React and Vue: a button opens a list that filters as you type (case and accents ignored), one pick shows on the button and several as removable chips. Long option lists such as countries no longer need a custom field. Without the flag, fields render as before.
+
+### Patch Changes
+
+- b708279: Footer calculations no longer load more than 10,000 matching rows in the browser when `actions.aggregate` cannot calculate them, in React and Vue: past that, the list fallback stops after its first page and the footers stay empty. `fetchAllContractRows` takes an optional `maxRows`, and `MAX_CALCULATION_ROWS` is exported from the table contracts.
+- b78c80c: Vue: the inline multi-select editor and its list now span the whole cell instead of shrinking to their content.
+- 4ec86db: Vue: applying a saved view whose `columnVisibility` does not mention a column now keeps that column's default visibility (`columns.visible`), as React already did. A view saved before a column existed, or listing only some columns, no longer shows columns hidden by default, such as filter-only columns that cannot be hidden from the columns menu.
+
 ## 3.29.0
 
 ### Minor Changes
