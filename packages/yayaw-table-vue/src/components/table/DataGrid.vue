@@ -23,7 +23,7 @@ import { type CSSProperties, computed, h, ref, watch, onBeforeUnmount } from "vu
 import { useTableContext } from "../../context";
 import { applyTableQuery, calculateColumn } from "../../core";
 import { currencyAmountsResult, formatColumnCalculation } from "../../value-format";
-import { dateGroupKey, groupedLeafRows, groupHeadingLabel, resizedColumnSizeFromKey, tableFilterContext } from "../../table-contracts";
+import { dateGroupKey, groupedLeafRows, groupHeadingLabel, MAX_CALCULATION_ROWS, resizedColumnSizeFromKey, tableFilterContext } from "../../table-contracts";
 import type {
   CalculationType,
   ColumnDefinition,
@@ -663,7 +663,8 @@ const refreshCalculations = async (): Promise<void> => {
         /* use the list fallback below */
       }
     }
-    const rows = await context.loadAllMatchingRows();
+    // Too many rows to load in the browser: the footers stay empty.
+    const rows = await context.loadAllMatchingRows({ maxRows: MAX_CALCULATION_ROWS });
     if (request === calculationRequest) {
       aggregateResults.value = Object.fromEntries(
         calculations.value.map((column) => {

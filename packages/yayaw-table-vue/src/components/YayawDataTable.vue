@@ -530,7 +530,7 @@ watch(
   },
   { deep: true }
 );
-const loadAllMatchingRows = async (): Promise<TableRecord[]> => {
+const loadAllMatchingRows = async (options: { maxRows?: number } = {}): Promise<TableRecord[]> => {
   if (!actions.value?.list) {
     return applyTableQuery(inputData.value, {
       columns: config.columns.definitions,
@@ -556,6 +556,7 @@ const loadAllMatchingRows = async (): Promise<TableRecord[]> => {
   return await fetchAllContractRows({
     list: async (request) => await list(request as unknown as TableListParams),
     params,
+    maxRows: options.maxRows,
     filterContext: filterContext.value,
   });
 };

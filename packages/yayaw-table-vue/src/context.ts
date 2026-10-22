@@ -101,7 +101,8 @@ export interface TableContextValue<TData extends TableRecord = TableRecord> {
   emitSelection: () => void;
   clearSelection: () => void;
   selectAllMatching: () => Promise<number>;
-  loadAllMatchingRows: () => Promise<TData[]>;
+  /** `maxRows` fails instead of loading more matching rows. */
+  loadAllMatchingRows: (options?: { maxRows?: number }) => Promise<TData[]>;
   status: Ref<{ type: "error" | "success"; message: string } | undefined>;
   queryClient: QueryClient;
   /** The host's tag catalogs, for tables with tags columns and `actions.tags`. */
