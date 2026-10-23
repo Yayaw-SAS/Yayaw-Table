@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.31.0
+
+### Minor Changes
+
+- 05e7e4a: Inline editing: `select` and `multiSelect` form fields with `searchOptions` now edit in the cell, in React and Vue. The editor searches the server as you type (`searchMinLength`, `searchDebounceMs`), keeps the labels of searched choices, labels missing values with `resolveOptions`, and shows search failures in its list. Other field types with `searchOptions` still open the full form.
+
+### Patch Changes
+
+- 3562108: CI, release and registry workflows now run on Node 26, and the dev typings use `@types/node` 26. The Vue test runner disables Node's built-in `localStorage` (on by default since Node 25) so the tests keep using jsdom's storage. No change to the React or Vue components.
+
 ## 3.30.0
 
 ### Minor Changes
