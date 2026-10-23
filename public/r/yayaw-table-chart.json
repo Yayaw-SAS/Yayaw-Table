@@ -37,8 +37,8 @@
   ],
   "meta": {
     "registryUrl": "https://table.yayaw.app/r/yayaw-table-chart.json",
-    "version": "3.31.0",
-    "versionedRegistryUrl": "https://table.yayaw.app/r/v3.31.0/yayaw-table-chart.json"
+    "version": "3.31.1",
+    "versionedRegistryUrl": "https://table.yayaw.app/r/v3.31.1/yayaw-table-chart.json"
   },
   "type": "registry:block"
 }
