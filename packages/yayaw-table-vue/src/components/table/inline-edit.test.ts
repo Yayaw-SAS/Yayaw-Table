@@ -382,6 +382,110 @@ it("spans the cell with the multi-select field and its list", async () => {
     .trigger("keydown", { key: "Escape" });
 });
 
+const mediaForm = (
+  type: "select" | "multiSelect",
+  searchOptions: (query: string) => Promise<{ value: number; label: string }[]>
+): FormConfig => ({
+  id: "media",
+  fields: [
+    {
+      name: "media",
+      label: "Media",
+      type,
+      options: [{ value: 1, label: "Gaming Mag" }],
+      searchOptions,
+      searchMinLength: 2,
+      searchDebounceMs: 0,
+    },
+  ],
+});
+const mediaColumn = (type: "select" | "multiSelect"): ColumnDefinition => ({
+  id: "media",
+  header: "Media",
+  type,
+  inlineEdit: true,
+});
+
+it("searches the server from an inline select and saves the typed choice", async () => {
+  const searchOptions = vi.fn(async (query: string) =>
+    query === "news" ? [{ value: 42, label: "Strategies Newsletter" }] : []
+  );
+  const { wrapper, update } = createCell({
+    row: { id: "1", media: 1 },
+    column: mediaColumn("select"),
+    form: mediaForm("select", searchOptions),
+  });
+  await wrapper.trigger("click");
+  await settle();
+  expect(wrapper.find("select").exists()).toBe(false);
+  const input = wrapper.get('input[role="combobox"]');
+  expect(document.activeElement).toBe(input.element);
+  expect(wrapper.get(".yayaw-inline-chip").text()).toContain("Gaming Mag");
+  await input.setValue("n");
+  await settle();
+  expect(searchOptions).not.toHaveBeenCalled();
+  await input.setValue("news");
+  await settle();
+  expect(searchOptions).toHaveBeenCalledWith(
+    "news",
+    expect.objectContaining({ mode: "edit" }),
+    expect.any(AbortSignal)
+  );
+  // The server's match shows even though its label lacks the typed text.
+  await popup().get('[role="option"]').trigger("click");
+  await settle();
+  expect(update).toHaveBeenCalledExactlyOnceWith(
+    "1",
+    { media: 42 },
+    { row: { id: "1", media: 1 } }
+  );
+});
+
+it("adds server results to an inline multi-select and keeps their labels", async () => {
+  const searchOptions = vi.fn(async () => [
+    { value: 42, label: "Strategies Newsletter" },
+  ]);
+  const { wrapper, update } = createCell({
+    row: { id: "1", media: [1] },
+    column: mediaColumn("multiSelect"),
+    form: mediaForm("multiSelect", searchOptions),
+  });
+  await wrapper.trigger("click");
+  await settle();
+  const input = wrapper.get('input[role="combobox"]');
+  await input.setValue("strat");
+  await settle();
+  await popup().get('[role="option"]').trigger("click");
+  await settle();
+  expect(wrapper.text()).toContain("Strategies Newsletter");
+  const outside = document.createElement("button");
+  document.body.append(outside);
+  outside.focus();
+  await settle();
+  expect(update).toHaveBeenCalledExactlyOnceWith(
+    "1",
+    { media: [1, 42] },
+    { row: { id: "1", media: [1] } }
+  );
+});
+
+it("shows a failed server search in the list and keeps the editor open", async () => {
+  const { wrapper, update } = createCell({
+    row: { id: "1", media: 1 },
+    column: mediaColumn("select"),
+    form: mediaForm("select", () =>
+      Promise.reject(new Error("Search unavailable"))
+    ),
+  });
+  await wrapper.trigger("click");
+  await settle();
+  await wrapper.get('input[role="combobox"]').setValue("news");
+  await settle();
+  expect(popup().get('[role="alert"]').text()).toBe("Search unavailable");
+  expect(wrapper.find('input[role="combobox"]').exists()).toBe(true);
+  expect(update).not.toHaveBeenCalled();
+});
+
 it("flushes an empty multi-selection when focus leaves the popup", async () => {
   const { wrapper, update } = createCell({
     row: { id: "1", tags: [1] },
