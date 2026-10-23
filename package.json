@@ -94,7 +94,7 @@
     "@tailwindcss/vite": "^4",
     "@types/bun": "^1.4.0",
     "@types/geojson": "^7946.0.16",
-    "@types/node": "^22.19.8",
+    "@types/node": "^26.6.5",
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
     "happy-dom": "20.9.0",

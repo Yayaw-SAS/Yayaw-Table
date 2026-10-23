@@ -33,7 +33,7 @@ GitHub-hosted Ubuntu runners; no Coolify host upgrade is needed for this change.
 
 `CI tests` runs only for opened, updated, or reopened PRs targeting `main`.
 It checks out the explicit PR head and cancels superseded runs for that PR.
-Node 24 and Bun 1.4.2 are explicit. The checks run as parallel jobs, so the
+Node 26 and Bun 1.4.2 are explicit. The checks run as parallel jobs, so the
 slowest one sets the run's duration rather than their sum:
 
 | Job | Runs |
