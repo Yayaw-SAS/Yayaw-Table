@@ -473,3 +473,22 @@ it("searches remote choices only after the minimum and keeps the selected label"
     "Remote option"
   );
 });
+
+it("shows no settings badge on the host's default view, and counts what is added", async () => {
+  const wrapper = mountTable({
+    config: {
+      ...config,
+      table: {
+        ...config.table,
+        defaultView: { filters: [{ id: "status", value: [0] }] },
+      },
+    },
+  });
+  await flushPromises();
+  expect(wrapper.find(".yayaw-settings-badge").exists()).toBe(false);
+  await pick(wrapper, "amount");
+  await chooseOperator(wrapper, "between");
+  await type(wrapper.findAll("[data-filter-input]")[0] as never, "0");
+  await type(wrapper.findAll("[data-filter-input]")[1] as never, "5");
+  expect(wrapper.get(".yayaw-settings-badge").text()).toBe("1");
+});

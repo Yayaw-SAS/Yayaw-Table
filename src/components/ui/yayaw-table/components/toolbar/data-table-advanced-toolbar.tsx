@@ -1988,9 +1988,11 @@ export function DataTableAdvancedToolbar<TData>({
             ]
           : []),
       ];
+  const defaultViewConfig = tableViewDefaults(tableConfig).config;
   // A render function keeps the menu's option conditions out of the toolbar body.
   const renderSettingsMenu = () => (
     <TableMenu
+      defaultView={{ ...defaultViewConfig, ...tableConfig.table.defaultView }}
       advancedFiltersConfig={
         enableAdvancedFilters
           ? {
@@ -2099,7 +2101,6 @@ export function DataTableAdvancedToolbar<TData>({
       useAdvancedFilters={enableAdvancedFilters}
     />
   );
-  const defaultViewConfig = tableViewDefaults(tableConfig).config;
   return (
     <TooltipProvider>
       <div

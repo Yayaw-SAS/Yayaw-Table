@@ -601,6 +601,54 @@ export function normalizeViewAliases(value: unknown): ContractRecord {
   };
 }
 
+const contractList = (value: unknown): ContractRecord[] =>
+  Array.isArray(value) ? value.map(recordValue) : [];
+const activeRules = (value: unknown): ContractRecord[] =>
+  contractList(
+    Array.isArray(value) ? value : recordValue(value).filters
+  ).filter((rule) => rule.isActive !== false);
+// A rule's id and timestamps change with each copy: rules compare by what they filter.
+const ruleKey = ({
+  id: _id,
+  createdAt: _createdAt,
+  updatedAt: _updatedAt,
+  ...rule
+}: ContractRecord): string => tableQueryKey(rule);
+const filterKey = (filter: ContractRecord): string =>
+  tableQueryKey({ id: filter.id, value: filter.value });
+
+/**
+ * What the view settings badge counts: the active filters and sorts the
+ * default view (`table.defaultView` over the catalogue's defaults) does not
+ * already apply. A table showing its default view has no badge.
+ */
+export function viewSettingsBadgeCount(
+  current: { filters?: unknown; advancedFilters?: unknown; sorting?: unknown },
+  defaultView: unknown
+): number {
+  const defaults = normalizeViewAliases(defaultView);
+  const defaultFilters = new Set(
+    contractList(defaults.columnFilters).map(filterKey)
+  );
+  const defaultRules = new Set(
+    activeRules(defaults.advancedFilters).map(ruleKey)
+  );
+  const sorting = contractList(current.sorting);
+  const changedSorts =
+    tableQueryKey(sorting) === tableQueryKey(defaults.sorting)
+      ? 0
+      : sorting.length;
+  return (
+    contractList(current.filters).filter(
+      (filter) => !defaultFilters.has(filterKey(filter))
+    ).length +
+    activeRules(current.advancedFilters).filter(
+      (rule) => !defaultRules.has(ruleKey(rule))
+    ).length +
+    changedSorts
+  );
+}
+
 /**
  * What a host tells filters at query time: whose "today" and week relative
  * dates use (see `RelativeDateContext`), and who `$viewer` is.

@@ -374,3 +374,40 @@ it("searches remote filter choices, keeps their labels and honors the minimum", 
     "Won remotely"
   );
 });
+
+it("shows no settings badge on the host's default view, and counts what is added", async () => {
+  const rule = {
+    id: "default-amount",
+    columnId: "amount",
+    operator: "greaterThan" as const,
+    values: [10],
+    isActive: true,
+    type: "number" as const,
+    createdAt: new Date(0),
+    updatedAt: new Date(0),
+  };
+  const { lastRules } = await render(
+    defineTableConfig({
+      ...config,
+      table: {
+        ...config.table,
+        defaultView: {
+          advancedFilters: [rule],
+        },
+      },
+    })
+  );
+  expect(lastRules().map((item) => item.columnId)).toEqual(["amount"]);
+  expect($("[data-settings-badge]")).toBeNull();
+  await openFilterScreen();
+  await click($('[data-filter-property="status"]'));
+  await click(
+    document.querySelector('[data-filter-rule="status"] input[type="checkbox"]')
+  );
+  await settle();
+  expect(lastRules().map((item) => item.columnId)).toEqual([
+    "amount",
+    "status",
+  ]);
+  expect($("[data-settings-badge]")?.textContent).toBe("1");
+});
