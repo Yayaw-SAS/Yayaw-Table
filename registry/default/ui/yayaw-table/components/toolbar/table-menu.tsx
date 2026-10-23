@@ -45,6 +45,7 @@ import type {
   ColumnsFilterConfig,
   FilterActions,
 } from "../../types/filter-types";
+import type { TableViewConfig } from "../../types/view-types";
 import {
   StackMenu,
   StackMenuContent,
@@ -53,6 +54,7 @@ import {
   StackMenuView,
 } from "../../ui-custom/stack-menu";
 import { formLabel } from "../../utils/form-view";
+import { viewSettingsBadgeCount } from "../../utils/table-contracts";
 import { TableTooltip } from "../../utils/table-tooltip";
 import { getDisplayModeGrouping } from "../../utils/table-view-state";
 import { getViewModeCapabilities } from "../../utils/view-menu";
@@ -112,6 +114,8 @@ export interface TableMenuProps {
     columnsConfig: ColumnsFilterConfig;
     onConvertToAdvanced?: (columnId: string, type: ColumnDataType) => void;
   };
+  /** The default view's settings: the badge counts only filters and sorts it does not apply. */
+  defaultView?: TableViewConfig;
 }
 
 /**
@@ -291,10 +295,12 @@ const OptionsMenuTrigger = forwardRef<
       {!actionsAsIcons && <span>{label}</span>}
       {hasBadge && (
         <span
+          aria-hidden="true"
           className={cn(
             "flex size-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground",
             actionsAsIcons ? "absolute -top-1 -right-1" : "ml-1"
           )}
+          data-settings-badge
         >
           {badgeCount}
         </span>
@@ -501,6 +507,31 @@ function getSettingsTitle(
     : fallback;
 }
 
+/** What differs from the default view, so a table showing it has no badge. */
+const settingsBadgeCount = ({
+  advancedFilters,
+  defaultView,
+  sectionState,
+  state,
+  useAdvancedFilters,
+}: {
+  advancedFilters?: AdvancedFiltersState;
+  defaultView?: TableViewConfig;
+  sectionState: MenuSectionState;
+  state: Pick<TableState, "columnFilters" | "sorting">;
+  useAdvancedFilters: boolean;
+}): number => {
+  const filters = sectionState.canShowFiltersSection;
+  return viewSettingsBadgeCount(
+    {
+      advancedFilters: filters && useAdvancedFilters ? advancedFilters : [],
+      filters: filters && !useAdvancedFilters ? state.columnFilters : [],
+      sorting: sectionState.canShowSortSection ? state.sorting : [],
+    },
+    defaultView
+  );
+};
+
 export function TableMenu({
   compact = false,
   viewMenu,
@@ -526,6 +557,7 @@ export function TableMenu({
   tableType,
   useAdvancedFilters = false,
   advancedFiltersConfig,
+  defaultView,
 }: TableMenuProps) {
   const { t } = useTranslations();
   const [open, setOpen] = useState(false);
@@ -659,9 +691,13 @@ export function TableMenu({
     ]
   );
 
-  const hasMenuBadgeCount =
-    sectionState.effectiveActiveFiltersCount > 0 ||
-    sectionState.effectiveActiveSortCount > 0;
+  const menuBadgeCount = settingsBadgeCount({
+    advancedFilters: advancedFiltersConfig?.filters,
+    defaultView,
+    sectionState,
+    state,
+    useAdvancedFilters,
+  });
   const footerCalculationsLabel = isEditingCalculations
     ? t("menu.edit_calculations_on")
     : t("menu.edit_calculations_off");
@@ -740,7 +776,7 @@ export function TableMenu({
         viewMenu?.trigger ?? (
           <OptionsMenuTrigger
             actionsAsIcons
-            badgeCount={hasMenuBadgeCount ? sectionState.menuBadgeCount : 0}
+            badgeCount={menuBadgeCount}
             compact={compact}
             label={t("views.settings")}
           />

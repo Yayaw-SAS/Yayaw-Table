@@ -54,7 +54,7 @@ import ConnectorPanel from "./ConnectorPanel.vue";
 import ImportPanel from "./ImportPanel.vue";
 import { importColumnsFrom, importLabels, isImportEnabled } from "../../import-flow";
 import { existingLookupFromRows, type ImportAdapters } from "../../import-model";
-import { fetchAllContractRows } from "../../table-contracts";
+import { fetchAllContractRows, viewSettingsBadgeCount } from "../../table-contracts";
 import {
   type ConnectorViewColumn,
   connectorColumnFormats,
@@ -739,7 +739,17 @@ const runDestination = async (destination: DataDestination<Component>): Promise<
     ? { type: "success", message: result.message ?? translate("destinations.done", "Sent") }
     : { type: "error", message: result.error };
 };
-const settingsBadge = computed(() => activeFilterCount.value + context.state.sorting.value.length);
+// What differs from the default view, so a table showing it has no badge.
+const settingsBadge = computed(() =>
+  viewSettingsBadgeCount(
+    {
+      filters: context.state.filters.value,
+      advancedFilters: context.state.advancedFilters.value,
+      sorting: context.state.sorting.value,
+    },
+    context.state.defaultView()
+  )
+);
 const shareLink = async () => {
   try {
     const result = await sharePageUrl(window.location.href, mobile.value);

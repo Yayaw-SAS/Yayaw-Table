@@ -1996,6 +1996,7 @@ export function DataTableAdvancedToolbar<TData>({
         ]
       : []),
   ];
+  const defaultViewConfig = tableViewDefaults(tableConfig).config;
   // A render function keeps the menu's option conditions out of the toolbar body.
   const renderSettingsMenu = () => (
     <TableMenu
@@ -2019,6 +2020,7 @@ export function DataTableAdvancedToolbar<TData>({
       columns={tableMenuColumns}
       compact={isMobile}
       defaultDisplayMode={tableConfig.table.defaultDisplayMode}
+      defaultView={{ ...defaultViewConfig, ...tableConfig.table.defaultView }}
       enableCalculations={
         tableConfig.table.enableCalculations === true &&
         // Some column's calculation can change: not every one is frozen.
@@ -2102,7 +2104,6 @@ export function DataTableAdvancedToolbar<TData>({
       useAdvancedFilters={enableAdvancedFilters}
     />
   );
-  const defaultViewConfig = tableViewDefaults(tableConfig).config;
   return (
     <TooltipProvider>
       <div
