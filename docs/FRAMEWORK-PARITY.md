@@ -246,6 +246,21 @@ and keeps it visible while saving, with reduced-motion support. Arrow keys
 highlight options, Enter toggles the highlighted option or commits when none is
 highlighted, and Backspace removes the last enabled chip when search is empty.
 
+A `select` or `multiSelect` form field with `searchOptions` edits inline in
+both editions (other field types with `searchOptions` still open the full
+form). The inline editor is the chips field above; a single select holds at
+most one chip, and picking or removing it saves at once. Typing at least
+`searchMinLength` characters (default 3) calls `searchOptions(query, context,
+signal)` after `searchDebounceMs` (default 300); a newer query aborts the
+previous request. The list shows the server's results even when their label
+lacks the typed text, plus the known options whose label contains it. Results
+stay known for the session, so a chosen value keeps its label and is saved
+with its original type. `resolveOptions` labels values missing from the
+options when the editor opens. A failed search shows its message in the list
+and keeps the editor and draft. React `tests/inline-option-search.test.tsx` and
+Vue `inline-edit.test.ts` cover search, typed saves, label retention, failures
+and the inline eligibility rule.
+
 The Vue product demo now includes an editable Tags column. Regression coverage
 includes portalled Vue choices, filtering, primitive IDs, empty selections,
 focus dismissal, autosave/blur races, failure/retry and Escape. React runtime
