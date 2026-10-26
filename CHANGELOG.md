@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.31.2
+
+### Patch Changes
+
+- 6085ba6: Ctrl/Cmd+A selects the rows when the focus is on a row checkbox or radio, in React and Vue: these inputs are selection controls, not editors, so the browser no longer selects the whole page after a click on a Vue row checkbox.
+- 545937f: Vue: a record form in a drawer or modal no longer jumps back to its top when a select opens in it, and the select can be used. The dialog appended its form again on each render, which detached it and reset its scroll; it is now attached once. React keeps the form in its dialog and was not affected.
+
 ## 3.31.1
 
 ### Patch Changes
