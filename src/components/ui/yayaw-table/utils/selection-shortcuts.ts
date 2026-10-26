@@ -1,5 +1,6 @@
+// A checkbox or radio is a selection control, not an editor: Ctrl/Cmd+A from a row checkbox selects the rows.
 const EDITOR =
-  'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"]';
+  'input:not([type="checkbox"], [type="radio"]), textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"]';
 const OVERLAY =
   'dialog, [role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]';
 
