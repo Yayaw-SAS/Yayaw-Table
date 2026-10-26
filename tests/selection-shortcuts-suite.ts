@@ -163,6 +163,22 @@ export function selectionShortcutsSuite(
       f.destroy();
     }
   });
+  test("selects all from a row checkbox or radio", () => {
+    const f = setup();
+    try {
+      const table = f.scope();
+      for (const type of ["checkbox", "radio"]) {
+        const input = document.createElement("input");
+        input.type = type;
+        table.root.append(input);
+        assert.equal(f.press(input), true);
+        input.remove();
+      }
+      assert.equal(table.selected, 2);
+    } finally {
+      f.destroy();
+    }
+  });
   test("does not steal shortcuts from unrelated page controls or an open portal", () => {
     const f = setup();
     const button = document.createElement("button");
