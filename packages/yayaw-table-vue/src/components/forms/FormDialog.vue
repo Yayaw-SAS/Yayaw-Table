@@ -30,7 +30,8 @@ const emit = defineEmits<{ close: []; openAutoFocus: [event: Event] }>();
 const contentContainer = typeof document === "undefined" ? undefined : document.createElement("div");
 if (contentContainer) contentContainer.className = "yayaw-record-content";
 const mountContent = (element: unknown) => {
-  if (element instanceof HTMLElement && contentContainer) element.append(contentContainer);
+  // Appending it again on each render would detach the form and reset its scroll to the top.
+  if (element instanceof HTMLElement && contentContainer && contentContainer.parentElement !== element) element.append(contentContainer);
 };
 const media = typeof window === "undefined" ? undefined : window.matchMedia?.(RECORD_MOBILE_QUERY);
 const mobile = ref(media?.matches ?? false);
