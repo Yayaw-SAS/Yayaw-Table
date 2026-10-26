@@ -12,6 +12,8 @@ import type { MaybePromise, SelectOption } from "../../types";
 export interface InlineOptionSearch {
   search: (query: string, signal: AbortSignal) => MaybePromise<SelectOption[]>;
   resolve?: (values: unknown[], signal: AbortSignal) => MaybePromise<SelectOption[]>;
+  /** The field's `createOption`: offered as "Create …" when the search names no existing option. */
+  create?: (label: string, signal: AbortSignal) => MaybePromise<SelectOption>;
   minLength: number;
   debounceMs: number;
 }
@@ -107,6 +109,10 @@ const resolveSelection = async (): Promise<void> => {
 };
 const update = (value: string | string[] | null | undefined): void => {
   const keys = Array.isArray(value) ? value : value == null ? [] : [value];
+  if (keys.includes(CREATE_KEY)) {
+    void createOption();
+    return;
+  }
   const values = keys.map(key => choices.value.find(option => option.key === key)!.value);
   if (props.multiple) {
     emit("update:modelValue", values);
@@ -140,7 +146,52 @@ const onKeydown = (event: KeyboardEvent): void => {
     remove(last.key);
   }
 };
+// The list entry that creates an option from the search text.
+const CREATE_KEY = "__yayaw-create-option__";
+const creating = ref(false);
+const createError = ref<string>();
+let createRequest: AbortController | undefined;
+const createText = computed(() => query.value.trim());
+const createsOption = computed(() =>
+  Boolean(props.search?.create) &&
+  createText.value.length > 0 &&
+  !searching.value &&
+  !choices.value.some(option => option.label.trim().toLocaleLowerCase() === createText.value.toLocaleLowerCase())
+);
+const createLabel = computed(() =>
+  translate("inline.create_option", 'Create "{label}"').replace("{label}", createText.value)
+);
+const createOption = async (): Promise<void> => {
+  const create = props.search?.create;
+  const label = createText.value;
+  if (!(create && label) || creating.value) return;
+  createRequest?.abort();
+  const current = new AbortController();
+  createRequest = current;
+  creating.value = true;
+  createError.value = undefined;
+  try {
+    const option = await create(label, current.signal);
+    if (current.signal.aborted) return;
+    if (!option || option.value === undefined || option.value === null || option.value === "")
+      throw new Error("The new option must have a persisted value");
+    remember([{ label: option.label, value: option.value }]);
+    query.value = "";
+    if (props.multiple) {
+      emit("update:modelValue", [...selected.value.filter(value => keyFor(value) !== keyFor(option.value)), option.value]);
+      return;
+    }
+    emit("update:modelValue", option.value);
+    // A single choice is the whole edit, as with a select.
+    emit("commit");
+  } catch (cause) {
+    if (!current.signal.aborted) createError.value = cause instanceof Error ? cause.message : String(cause);
+  } finally {
+    if (!current.signal.aborted) creating.value = false;
+  }
+};
 const emptyText = computed(() => {
+  if (createError.value) return createError.value;
   if (searchError.value) return searchError.value;
   if (searching.value) return translate("loading", "Loading…");
   return translate("filters.noResults", "No results");
@@ -150,14 +201,18 @@ const emptyText = computed(() => {
 const dismiss = (open: boolean): void => {
   if (open) return;
   if (props.multiple) emit("commit");
-  else void nextTick(() => emit("commit"));
+  // Picking "Create …" closes a single list too: the creation commits once it is saved.
+  else void nextTick(() => { if (!creating.value) emit("commit"); });
 };
 onMounted(async () => {
   void resolveSelection();
   await nextTick();
   anchor.value?.querySelector("input")?.focus();
 });
-onBeforeUnmount(stopSearch);
+onBeforeUnmount(() => {
+  stopSearch();
+  createRequest?.abort();
+});
 </script>
 
 <template>
@@ -166,11 +221,14 @@ onBeforeUnmount(stopSearch);
     <!-- Mount the list before the input so Reka assigns aria-controls on first render. -->
     <ComboboxPortal force-mount>
       <ComboboxContent class="yayaw-inline-options" position="popper" align="start" :side-offset="6" :collision-padding="8" :aria-label="label" :aria-busy="disabled || searching" @escape-key-down.prevent="emit('cancel')">
-        <div v-if="search && (!visible.length || searchError)" class="yayaw-inline-empty" :role="searchError ? 'alert' : 'status'">{{ emptyText }}</div>
+        <div v-if="search && ((!visible.length && !createsOption) || searchError || createError)" class="yayaw-inline-empty" :role="searchError || createError ? 'alert' : 'status'">{{ emptyText }}</div>
         <ComboboxEmpty v-else-if="!search" class="yayaw-inline-empty">{{ emptyText }}</ComboboxEmpty>
         <ComboboxItem v-for="option in visible" :key="option.key" :value="option.key" :text-value="option.label" :disabled="option.disabled" class="yayaw-inline-option">
           {{ option.label }}
           <ComboboxItemIndicator class="yayaw-inline-check"><Check :size="16" aria-hidden="true" /></ComboboxItemIndicator>
+        </ComboboxItem>
+        <ComboboxItem v-if="createsOption" :value="CREATE_KEY" :text-value="createLabel" :disabled="creating" class="yayaw-inline-option">
+          {{ creating ? translate("loading", "Loading…") : createLabel }}
         </ComboboxItem>
       </ComboboxContent>
     </ComboboxPortal>

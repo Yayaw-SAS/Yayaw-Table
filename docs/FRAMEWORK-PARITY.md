@@ -261,6 +261,19 @@ and keeps the editor and draft. React `tests/inline-option-search.test.tsx` and
 Vue `inline-edit.test.ts` cover search, typed saves, label retention, failures
 and the inline eligibility rule.
 
+The same searched editor offers the field's `createOption(label, context,
+signal)` in both editions: when the typed text matches no known option label
+(ignoring case) and no search is running, the list ends with a "Create
+"{label}"" entry (`inline.create_option`, French « Créer « {label} » »). Picking
+it calls `createOption` with the trimmed text; the returned option must carry a
+persisted value. A multi-select adds it to the chips and keeps editing; a single
+select saves it as the whole edit. While it runs the entry shows the loading
+label and is disabled; a failure shows its message in the list and keeps the
+editor and draft. The editor is left only after the creation settles, so the
+host can open its own form from `createOption` and resolve with the saved
+record. Both test files cover multi and single creation, the existing-label
+rule and failures.
+
 The Vue product demo now includes an editable Tags column. Regression coverage
 includes portalled Vue choices, filtering, primitive IDs, empty selections,
 focus dismissal, autosave/blur races, failure/retry and Escape. React runtime
