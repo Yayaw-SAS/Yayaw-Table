@@ -371,6 +371,7 @@ const tableData = useTableData({
   advancedFilters: state.advancedFilters,
   sorting: state.sorting,
   grouping: state.grouping,
+  groupingScope: computed(() => config.table),
   pagination: state.pagination,
   initialRowCount: props.initialRowCount,
   initialPageCount: props.initialPageCount,
@@ -440,6 +441,14 @@ watch(status, notification => {
 const translations = computed(() =>
   createTranslations(props.locale, { ...config.translations.keys, ...props.translations })
 );
+// Grouping over every row stopped at `groupingMaxRows`.
+const groupingTruncatedText = computed(() => {
+  const value = translations.value["grouping.truncated"];
+  return (typeof value === "string" ? value : "").replace(
+    "{count}",
+    String(tableData.rows.value.length)
+  );
+});
 const ganttLabels = computed(() => planningLabels(props.locale, planningLabelOverrides((key) => {const value = translations.value[key]; return typeof value === "string" ? value : key;})));
 // The planning dialog reads names, days and fields as the table shows them.
 const planningFormat = computed(() => planningFormatters(config.columns.definitions, config.table.gantt, props.locale));
@@ -871,6 +880,7 @@ defineExpose({ refresh, getViewConfig: () => viewConfig.value });
       <button type="button" class="yayaw-button" @click="refresh">{{ translations.retry }}</button>
     </div>
 
+    <output v-if="tableData.groupingTruncated.value" class="yayaw-muted" data-grouping-notice="truncated">{{ groupingTruncatedText }}</output>
     <div class="yayaw-content" :aria-busy="tableData.isLoading.value">
       <template v-if="modeRenderers?.[state.displayMode.value]"><DisplayModeRendererHost v-if="mounted" :renderer="modeRenderers[state.displayMode.value]!" /></template>
       <DataGrid v-else-if="state.displayMode.value === 'table'" />

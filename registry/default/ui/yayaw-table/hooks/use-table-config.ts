@@ -175,6 +175,10 @@ export interface TableCatalogueTableConfig extends GenericModeTableConfigs {
   enableColumnFilters: boolean;
   enableSorting: boolean;
   enableGrouping?: boolean;
+  /** Rows that grouping covers: the page shown, or every matching row. */
+  groupingScope?: "all" | "page";
+  /** Rows loaded at most when grouping covers every matching row. */
+  groupingMaxRows?: number;
   enableColumnPinning?: boolean;
   enableViews?: boolean;
   /** Gate for column DnD feature and UI */
@@ -279,6 +283,7 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
     enableColumnPinning: true,
     enableSorting: true,
     enableGrouping: true,
+    groupingScope: "page",
     enableViews: true,
     enableColumnDnd: true,
     enableColumnDragDropByDefault: false,
@@ -445,6 +450,8 @@ function resolveTableBehaviorConfig(
     enableColumnPinning: mergedConfig.enableColumnPinning ?? true,
     enableSorting: mergedConfig.enableSorting ?? true,
     enableGrouping: mergedConfig.enableGrouping,
+    groupingScope: mergedConfig.groupingScope,
+    groupingMaxRows: mergedConfig.groupingMaxRows,
     enableViews: mergedConfig.enableViews !== false,
     enableColumnDnd: mergedConfig.enableColumnDnd ?? true,
     enableColumnDragDropByDefault: mergedConfig.enableColumnDragDropByDefault,

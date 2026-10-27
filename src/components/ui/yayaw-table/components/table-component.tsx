@@ -155,6 +155,7 @@ import {
   DisplayModeRendererView,
   useDisplayModeRenderContext,
 } from "./display-mode-renderer-view";
+import { translatedOr } from "../providers/translation-cache";
 import { SafePagination } from "./safe-pagination";
 import { TableEmptyStateContent } from "./table-empty-state";
 import { useOnScreen } from "./utils/use-on-screen";
@@ -1237,6 +1238,8 @@ function ModernDataTable<
   const {
     data: fetchedData,
     error,
+    groupingTruncated,
+    groupsAllRows,
     isError,
     isLoading,
     pageCount,
@@ -1603,10 +1606,14 @@ function ModernDataTable<
       return;
     }
     prevGroupingRef.current = current;
+    // Grouping over every row is its own query: it loads without a refetch.
+    if (tableConfig.table.groupingScope === "all") {
+      return;
+    }
     if (typeof refetch === "function") {
       refetch();
     }
-  }, [state.grouping, refetch]);
+  }, [state.grouping, refetch, tableConfig.table.groupingScope]);
 
   // Auto-expand all groups when a grouping is active so leaf rows are visible by default
   useEffect(() => {
@@ -3160,7 +3167,9 @@ function ModernDataTable<
       });
     // The file tree pages each folder itself ("Show more"); the feed loads
     // its pages as it scrolls, as in Vue.
+    // Grouping over every row shows them all: the groups replace pages.
     const showPaginationArea =
+      !groupsAllRows &&
       !(isKanbanMode && kanbanConfig.server) &&
       !isGanttMode &&
       activeDisplayMode !== "filetree" &&
@@ -3182,6 +3191,19 @@ function ModernDataTable<
       >
         <div className="relative" ref={paginationRootRef}>
           <div className="space-y-4">
+            {groupingTruncated ? (
+              <output
+                className="block text-muted-foreground text-sm"
+                data-grouping-notice="truncated"
+              >
+                {translatedOr(
+                  t,
+                  "grouping.truncated",
+                  "Groups cover the first {count} rows. Narrow the filters to group all of them.",
+                  { count: fetchedData?.length ?? 0 }
+                )}
+              </output>
+            ) : null}
             {renderDisplayContent()}
 
             {/* Pagination is outside the table container to avoid focus issues */}

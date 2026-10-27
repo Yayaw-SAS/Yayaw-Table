@@ -32,6 +32,8 @@ interface PageQueryResult<TData> {
   data: TData[];
   pageCount: number;
   rowCount: number;
+  /** All rows were asked for and more matched than were loaded. */
+  truncated?: boolean;
 }
 
 /** The page the table shows, with the query it answers. */
@@ -113,11 +115,18 @@ interface UseTableUrlDataOptions<TData> {
   initialDataSort?: TableSorting;
   initialPageCount?: number;
   initialRowCount?: number;
+  /**
+   * Load every row matching the query instead of the page (grouping over
+   * all rows): `queryFn` receives `loadAllRows: true` and the page is left
+   * out of the query.
+   */
+  loadAllRows?: boolean;
   syncUrl?: boolean;
   queryFn: (params: {
     columnFilters: Array<{ id: string; value: unknown }>;
     complexFilters: unknown[];
     advancedFilters: unknown[];
+    loadAllRows?: boolean;
     pagination: {
       pageIndex: number;
       pageSize: number;
@@ -128,11 +137,7 @@ interface UseTableUrlDataOptions<TData> {
       id: string;
     }[];
     tableId: string;
-  }) => Promise<{
-    data: TData[];
-    pageCount: number;
-    rowCount: number;
-  }>;
+  }) => Promise<PageQueryResult<TData>>;
   tableId: string;
 }
 
@@ -339,6 +344,7 @@ export function useTableUrlData<TData>({
   initialDataSort,
   initialPageCount,
   initialRowCount,
+  loadAllRows = false,
   queryFn,
   syncUrl,
   tableId,
@@ -413,6 +419,7 @@ export function useTableUrlData<TData>({
     advancedFiltersParam,
     globalSearchParam,
     serverFilters,
+    loadAllRows,
   ]);
   const shownPage = useRef<ShownPage<TData>>(undefined);
 
@@ -425,7 +432,7 @@ export function useTableUrlData<TData>({
     isLoading,
     refetch,
     status,
-  } = useQuery({
+  } = useQuery<PageQueryResult<TData>>({
     enabled: Boolean(tableId) && enabled,
     initialData:
       initialQueryData ??
@@ -455,6 +462,8 @@ export function useTableUrlData<TData>({
         advancedFilters,
         // Global search (server-side global filtering)
         globalSearch: globalSearchParam,
+        // Every matching row instead of the page (grouping over all rows)
+        loadAllRows,
         // Pagination parameters from URL
         pagination,
         // Use serverFilters directly for server-side filtering (without key filters)
@@ -476,7 +485,8 @@ export function useTableUrlData<TData>({
       JSON.stringify(filtersParam),
       JSON.stringify(advancedFiltersParam),
       globalSearchParam || "",
-      JSON.stringify(pagination),
+      // All rows answer every page: the page leaves the key.
+      loadAllRows ? "allRows" : JSON.stringify(pagination),
       JSON.stringify(serverFilters),
     ],
     // Prevent refetching on window focus to avoid duplicate requests
@@ -531,5 +541,6 @@ export function useTableUrlData<TData>({
     rowSelection,
     setRowSelection,
     status,
+    truncated: queryResult?.truncated === true,
   };
 }

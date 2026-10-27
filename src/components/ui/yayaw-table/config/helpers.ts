@@ -870,6 +870,22 @@ export interface TableBehaviorConfig extends GenericModeTableConfigs {
   enableGrouping?: boolean;
 
   /**
+   * Rows that grouping covers. `"page"` groups the page that is shown;
+   * `"all"` loads every row matching the search and filters (up to
+   * `groupingMaxRows`) while a grouping is active, and the groups replace
+   * pagination.
+   * @default "page"
+   */
+  groupingScope?: "all" | "page";
+
+  /**
+   * Rows loaded at most with `groupingScope: "all"`; past it, the table says
+   * that the groups cover part of the rows.
+   * @default 2000
+   */
+  groupingMaxRows?: number;
+
+  /**
    * Keep selected row IDs when search, filters, sorting, or grouping changes.
    */
   preserveSelectionOnQuery?: boolean;

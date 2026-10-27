@@ -24,6 +24,7 @@
   "enableColumnFilters": true,
   "enableColumnPinning": true,
   "enableGrouping": true,
+  "groupingScope": "page",
   "enableMultiRowSelection": true,
   "enablePagination": true,
   "enableRowClickEdit": false,

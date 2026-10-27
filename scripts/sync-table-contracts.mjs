@@ -74,6 +74,7 @@ for (const file of [
   "view-order.ts",
   "display-modes.ts",
   "scoped-rows.ts",
+  "grouping-scope.ts",
   "manual-order.ts",
   "initial-rows.ts",
   "list-view.ts",
