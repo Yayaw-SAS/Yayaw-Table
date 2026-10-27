@@ -197,7 +197,10 @@ it("rolls a failed Kanban move back and shares the toolbar grouping", async () =
   ).toContain("Alpha");
   await openViewScreen(wrapper, "Group");
   if (!wrapper.find('select[aria-label="Group 1"]').exists()) {
-    await wrapper.get(".yayaw-options-content button").trigger("click");
+    await wrapper
+      .findAll(".yayaw-options-content button")
+      .find((button) => button.text() === "Group")
+      ?.trigger("click");
   }
   await wrapper.get('select[aria-label="Group 1"]').setValue("name");
   await flushPromises();

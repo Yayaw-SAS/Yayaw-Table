@@ -150,6 +150,7 @@ export const productColumns = [
 
 export const productVisibleColumns = [
   "name",
+  "image",
   "category",
   "tags",
   "status",

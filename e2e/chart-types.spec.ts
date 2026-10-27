@@ -2,7 +2,7 @@ import { expect, type Page } from "@playwright/test";
 import { test } from "./fixtures/test";
 
 const SETTINGS_PARAM = "views-chart";
-const CARD_SETTINGS = /^card settings/i;
+const CHART_SETTINGS = /^chart settings/i;
 const SHOW_TABLE = "Show as table";
 
 const chart = (page: Page) => page.locator("section[data-chart-type]");
@@ -52,7 +52,7 @@ const openView = async (page: Page, name: string, example = "views") => {
 const openChartSettings = async (page: Page) => {
   await page.getByRole("button", { name: "View settings" }).click();
   const menu = page.getByRole("dialog", { name: "View settings" });
-  await menu.getByRole("button", { name: CARD_SETTINGS }).click();
+  await menu.getByRole("button", { name: CHART_SETTINGS }).click();
 };
 /** The funnel's stage order in the chart settings. */
 const stageList = (page: Page) => page.locator("[data-chart-stages] li");

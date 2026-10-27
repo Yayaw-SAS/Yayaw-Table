@@ -15,6 +15,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { DataTable } from "../src/components/ui/yayaw-table/components/data-table";
 import { defineTableConfig } from "../src/components/ui/yayaw-table/config/helpers";
 import type { TableActions } from "../src/components/ui/yayaw-table/providers/table-provider";
+import type { DisplayModeRenderers } from "../src/components/ui/yayaw-table/types/display-mode-renderer";
 import {
   compatibleListParams,
   matchesContractFilter,
@@ -134,7 +135,10 @@ const config = defineTableConfig({
   translations: { namespace: "notion-filters", keys: { title: "Deals" } },
 });
 
-const render = async (tableConfig = config) => {
+const render = async (
+  tableConfig = config,
+  displayModeRenderers?: DisplayModeRenderers
+) => {
   const lists: Row[] = [];
   const actions = {
     list: (params: Row) => {
@@ -165,6 +169,7 @@ const render = async (tableConfig = config) => {
       <Provider store={createStore()}>
         <NuqsTestingAdapter hasMemory>
           <DataTable
+            displayModeRenderers={displayModeRenderers}
             getRowId={(row) => String(row.id)}
             getTableActions={() => actions}
             getTableConfig={() => tableConfig}
@@ -191,11 +196,14 @@ const openFilterScreen = async () => {
   );
 };
 
-it("adds a rule from the Filter screen as a chip that filters once it has a value", async () => {
+it("adds the first filter directly and keeps its active value and reset visible", async () => {
   const { lastRules } = await render();
-  expect($("[data-filter-chips]")).toBeNull();
+  expect($("[data-filter-chip-add]")).not.toBeNull();
   expect($("[data-filter-chips-clear]")).toBeNull();
-  await openFilterScreen();
+  await click($("[data-filter-chip-add]"));
+  expect(
+    $('[aria-label="View settings"]')?.getAttribute("aria-expanded")
+  ).not.toBe("true");
   const properties = [
     ...document.querySelectorAll("[data-filter-property]"),
   ].map((item) => item.textContent);
@@ -224,13 +232,79 @@ it("adds a rule from the Filter screen as a chip that filters once it has a valu
     "Status:Won, Open"
   );
   expect(document.querySelectorAll("[data-filter-chip]")).toHaveLength(1);
-  await click($("[data-filter-more]"));
-  await click($("[data-filter-delete]"));
+  await click($("[data-filter-chips-clear]"));
   await settle();
   // Back to the first request's filters, answered from the cache.
-  expect($("[data-filter-chips]")).toBeNull();
+  expect($("[data-filter-chip-add]")).not.toBeNull();
+  expect($("[data-filter-chip]")).toBeNull();
   expect($("[data-filter-chips-clear]")).toBeNull();
   expect(document.querySelectorAll("tbody tr")).toHaveLength(3);
+});
+
+it("names chart settings for the chart instead of cards", async () => {
+  await render(
+    defineTableConfig({
+      ...config,
+      table: {
+        ...config.table,
+        displayModes: ["chart"],
+        defaultDisplayMode: "chart",
+      },
+    }),
+    {
+      chart: {
+        View: () => <div>Chart preview</div>,
+        Settings: () => <div>Chart controls</div>,
+      },
+    }
+  );
+  await click($('[aria-label="View settings"]'));
+  const settings = [
+    ...document.querySelectorAll<HTMLButtonElement>("[role=dialog] button"),
+  ].find((button) => button.textContent === "Chart settings");
+  expect(settings).toBeDefined();
+  await click(settings);
+  expect(document.body.textContent).toContain("Chart controls");
+  expect(document.body.textContent).not.toContain("Card settings");
+});
+
+it("resets all grouping while preserving the current filters", async () => {
+  await render(
+    defineTableConfig({
+      ...config,
+      table: {
+        ...config.table,
+        defaultView: {
+          grouping: ["status", "name"],
+          advancedFilters: [
+            {
+              id: "status-rule",
+              columnId: "status",
+              type: "select",
+              operator: "isAnyOf",
+              values: ["open"],
+              isActive: true,
+              createdAt: new Date("2026-10-27"),
+              updatedAt: new Date("2026-10-27"),
+            },
+          ],
+        },
+      },
+    })
+  );
+  await click($('[aria-label="View settings"]'));
+  await click(
+    [
+      ...document.querySelectorAll<HTMLButtonElement>("[role=dialog] button"),
+    ].find((button) => button.textContent?.startsWith("Group"))
+  );
+  const reset = [
+    ...document.querySelectorAll<HTMLButtonElement>("[role=dialog] button"),
+  ].find((button) => button.textContent === "Reset");
+  expect(reset?.disabled).toBe(false);
+  await click(reset);
+  expect(reset?.disabled).toBe(true);
+  expect($('[data-filter-chip="status"]')?.textContent).toContain("Open");
 });
 
 it("filters by a typed number once typing pauses", async () => {

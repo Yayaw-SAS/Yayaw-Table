@@ -7,6 +7,7 @@ import { createRoot } from "react-dom/client";
 import { toast } from "sonner";
 import { tableDensityAtom } from "../src/components/ui/yayaw-table/atoms/table-atoms";
 import { DataTableViewManager } from "../src/components/ui/yayaw-table/components/toolbar/table-view-manager";
+import { seedTableViewState } from "../src/components/ui/yayaw-table/hooks/use-table-url-state";
 import {
   defaultTranslations,
   TableProvider,
@@ -48,6 +49,7 @@ async function mountManager(
     cachedFavoriteId?: string;
     initialViews?: TableView[];
     initialActiveViewId?: string;
+    initialView?: TableView;
     url?: string;
     syncUrl?: boolean;
     hostDefaultView?: TableViewConfig;
@@ -57,6 +59,9 @@ async function mountManager(
   document.body.append(container);
   const root = createRoot(container);
   const store = createStore();
+  if (options.initialView) {
+    seedTableViewState(store, favorite.tableId, options.initialView);
+  }
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -374,7 +379,11 @@ async function selectDefault(
   await wrapper.openMenu();
   const item = Array.from(
     document.querySelectorAll<HTMLElement>("button")
-  ).find((element) => element.textContent?.includes("Default view"));
+  ).find(
+    (element) =>
+      element.getAttribute("aria-label") !== "Current View" &&
+      element.textContent?.includes("Default view")
+  );
   if (!item) {
     throw new Error("Missing default view menu item");
   }
@@ -482,6 +491,32 @@ it("reports saved-view deletion through the host Sonner outlet", async () => {
     title: "View deleted successfully",
   });
   expect(wrapper.container.querySelector('[role="alert"]')).toBeNull();
+});
+
+it.each([
+  false,
+  true,
+])("restores the default after deleting a seeded personal view (host default: %s)", async (hostDefault) => {
+  const personal = { ...favorite, isSystem: false, isGlobal: false };
+  const wrapper = await mountManager({
+    views: [personal],
+    initialView: personal,
+    initialActiveViewId: personal.id,
+    allowViewSave: true,
+    hostDefaultView: hostDefault ? { density: "large" } : undefined,
+    actions: { delete: () => Promise.resolve({ success: true }) },
+  });
+  const density = () => wrapper.store.get(tableDensityAtom(favorite.tableId));
+  expect(density()).toBe("extra-small");
+  await act(() => wrapper.button("Delete view").click());
+  await settle();
+  expect(wrapper.button("Current View").textContent).toContain("Default view");
+  expect(density()).toBe(hostDefault ? "large" : "medium");
+  await act(() =>
+    wrapper.store.set(tableDensityAtom(favorite.tableId), "small")
+  );
+  await selectDefault(wrapper);
+  expect(density()).toBe(hostDefault ? "large" : "medium");
 });
 
 it("retains application-provided views when the persistence list has no copy", async () => {

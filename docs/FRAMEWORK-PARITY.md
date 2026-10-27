@@ -1,5 +1,27 @@
 # React and Vue parity
 
+## Table usability feedback
+
+Both editions show the add-filter control even before a native column filter is
+active. The chip row shows active filter summaries and a clear action only when
+there are rules in that row; clearing it preserves separately pinned date periods.
+The grouping panel resets all grouping columns without changing filters. Chart
+settings use the optional `views.chartSettings` translation in English and French.
+
+Image cells preview the full image on hover. Read-only images also offer keyboard
+focus and click access, with Escape to dismiss. Editable images keep their URL
+editor on click or Enter; the preview does not add a nested interactive control.
+Missing and broken images retain their placeholders or initials without a preview.
+Vue native select options follow the host's light/dark theme, matching the readable
+React select popups. No configuration migration is required.
+
+React and Vue filter-menu tests cover direct access, active summaries, independent
+filter/group resets and chart labels. Saved-view tests cover deleting an initial
+custom view and restoring catalogue defaults, with an explicit default view too.
+The shared Playwright image-preview suite verifies hover, keyboard, click, Escape,
+broken images and both themes against both runnable examples. The select-theme
+suite checks option contrast and selection persistence in light and dark themes.
+
 ## Metric display conversions
 
 Charts accept `valueFormat`; combo charts accept a separate `lineValueFormat`.

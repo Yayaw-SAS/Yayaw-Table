@@ -151,7 +151,18 @@ const optionsTitle = computed(() => {
       return translate(optionsView.value, optionsView.value);
   }
 });
-const cardSettingsTitle = computed(() => context.state.displayMode.value === "form" ? formLabel("settingsTitle", context.locale, (key, text) => translate(`form.${key}`, text)) : context.state.displayMode.value === "gantt" ? ganttSettingsLabels(context.locale, planningLabelOverrides((key) => translate(key, key))).title : translate("views.cardSettings", "Card settings"));
+const cardSettingsTitle = computed(() => {
+  switch (context.state.displayMode.value) {
+    case "chart":
+      return translate("views.chartSettings", "Chart settings");
+    case "form":
+      return formLabel("settingsTitle", context.locale, (key, text) => translate(`form.${key}`, text));
+    case "gantt":
+      return ganttSettingsLabels(context.locale, planningLabelOverrides((key) => translate(key, key))).title;
+    default:
+      return translate("views.cardSettings", "Card settings");
+  }
+});
 const pendingAction = ref<string>();
 const isExporting = ref(false);
 const search = computed({
@@ -992,6 +1003,12 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
 
             <div v-else-if="optionsView === 'cards'" class="yayaw-options-content"><KanbanSettings v-if="capabilities.kanban" /><GallerySettings v-else-if="capabilities.gallery" /><GanttSettings v-else-if="context.state.displayMode.value === 'gantt'" /><ListSettings v-else-if="context.state.displayMode.value === 'list'" /><DisplayModeRendererSettings v-else-if="activeRenderer" :renderer="activeRenderer" /></div>
             <div v-else class="yayaw-options-content">
+              <button
+                type="button"
+                class="yayaw-button yayaw-button-outline"
+                :disabled="!context.state.grouping.value.length"
+                @click="context.state.grouping.value = []"
+              >{{ translate("reset", "Reset") }}</button>
               <div
                 v-for="(columnId, index) in context.state.grouping.value.slice(0, maxGroupingCount)"
                 :key="`${columnId}-${index}`"

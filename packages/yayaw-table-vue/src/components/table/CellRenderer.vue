@@ -20,6 +20,7 @@ import { inlineEditorIcon, type InlineEditorIcon, resolveDataType, resolveDataTy
 import { AlignLeft, Braces, Calendar, CalendarClock, Check, ChevronDown, Hash, Image as ImageIcon, Link, ListChecks, MapPin, PencilLine, Tag } from "lucide-vue-next";
 import CellActions from "./CellActions.vue";
 import InitialsAvatar from "../controls/InitialsAvatar.vue";
+import ImageCell from "./ImageCell.vue";
 import TableTooltip from "../toolbar/TableTooltip.vue";
 import { avatarInitials, avatarNameOf, avatarStack, resolveAvatarConfig } from "../../initials-avatar";
 import InlineMultiSelect, { type InlineOptionSearch } from "./InlineMultiSelect.vue";
@@ -717,12 +718,11 @@ const tagListeners = (value: unknown) => {
     <code v-else-if="effectiveColumn.type === 'code'" class="yayaw-code">{{
       displayCellValue(value, effectiveColumn, context.locale, props.row)
     }}</code>
-    <img
+    <ImageCell
       v-else-if="imageUrl"
       :src="imageUrl"
       :alt="column.header"
-      class="yayaw-cell-image"
-      loading="lazy"
+      :editable="canEdit"
       @error="failedImageUrl = imageUrl"
     />
     <InitialsAvatar v-else-if="cellAvatar" size="cell" :name="cellAvatar.name" :shape="cellAvatar.shape" />

@@ -76,6 +76,30 @@ const createCell = (
 };
 
 describe("catalogue-backed inline editing", () => {
+  it.each([
+    "click",
+    "Enter",
+  ])("keeps an image's URL editable by %s without a nested preview control", async (action) => {
+    const source = "https://example.com/image.png";
+    const { wrapper } = createCell({
+      row: { id: "1", image: source },
+      column: { id: "image", header: "Product", type: "image" },
+    });
+    const trigger = wrapper.get("[data-image-preview-trigger]");
+    expect(trigger.element.tagName).toBe("SPAN");
+    expect(trigger.attributes("tabindex")).toBeUndefined();
+    expect(trigger.find("button").exists()).toBe(false);
+    if (action === "click") {
+      await trigger.trigger("click");
+    } else {
+      await wrapper.trigger("keydown", { key: "Enter" });
+    }
+    await flushPromises();
+    expect(
+      wrapper.get<HTMLInputElement>('input[type="url"]').element.value
+    ).toBe(source);
+  });
+
   it("keeps an invalid location open through blur and Done, then saves the corrected draft", async () => {
     const { wrapper, row, update } = createCell({
       row: { id: "1", site: { lat: 48.8566, lng: 2.3522 } },

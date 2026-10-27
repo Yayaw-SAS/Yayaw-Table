@@ -196,7 +196,10 @@ it("restricts Kanban lanes to groupable columns and updates card titles", async 
   await openViewScreen(wrapper, "Group");
   const group = wrapper.find('select[aria-label="Group 1"]');
   if (!group.exists()) {
-    await wrapper.get(".yayaw-options-content button").trigger("click");
+    await wrapper
+      .findAll(".yayaw-options-content button")
+      .find((button) => button.text() === "Group")
+      ?.trigger("click");
   }
   const picker = wrapper.get('select[aria-label="Group 1"]');
   expect(picker.findAll("option").map((item) => item.text())).toEqual([

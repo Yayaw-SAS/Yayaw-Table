@@ -3,7 +3,7 @@ import { test } from "./fixtures/test";
 
 const CHART = "/?example=views&views-display=chart";
 const SETTINGS_PARAM = "views-chart";
-const CARD_SETTINGS = /^card settings/i;
+const CHART_SETTINGS = /^chart settings/i;
 const SHOW_TABLE = "Show as table";
 const ACTIVE_THREE = /^Active\s*3$/;
 const DRAFT_TWO = /^Draft\s*2$/;
@@ -27,7 +27,7 @@ const tableRows = async (page: Page) =>
 const openChartSettings = async (page: Page) => {
   await page.getByRole("button", { name: "View settings" }).click();
   const menu = page.getByRole("dialog", { name: "View settings" });
-  await menu.getByRole("button", { name: CARD_SETTINGS }).click();
+  await menu.getByRole("button", { name: CHART_SETTINGS }).click();
 };
 const choose = async (page: Page, setting: string, option: string) => {
   await page.getByRole("combobox", { name: setting, exact: true }).click();

@@ -83,6 +83,7 @@ const openViewActions = async (page: Page) => {
   const menu = page.getByRole("dialog", { name: SETTINGS });
   if (await menu.isVisible()) {
     await page.keyboard.press("Escape");
+    await expect(menu).toBeHidden();
   }
   await page.getByRole("button", { name: "View actions" }).click();
 };
@@ -118,6 +119,28 @@ test.beforeEach(async ({ page }) => {
   await page.evaluate(() => localStorage.clear());
   await page.goto(EXAMPLE);
   await expect(page.getByText("Alpha launch").first()).toBeVisible();
+});
+
+test("the first filter is directly accessible and can be cleared from its summary", async ({
+  page,
+}) => {
+  await page.locator("[data-filter-chip-add]").click();
+  await expect(page.getByRole("dialog", { name: SETTINGS })).toHaveCount(0);
+  await page.locator('[data-filter-property="status"]').click();
+  await page
+    .locator('[data-filter-rule="status"]')
+    .getByRole("checkbox", { name: "Active", exact: true })
+    .check();
+  await page.keyboard.press("Escape");
+  await expect(page.locator('[data-filter-chip="status"]')).toContainText(
+    "Active"
+  );
+  await expect(page.getByText("Bravo audit", { exact: true })).toHaveCount(0);
+  await page.locator("[data-filter-chips-clear]").click();
+  await expect(page.getByText("Bravo audit", { exact: true })).toBeVisible();
+  await expect(page.locator("[data-filter-chip]")).toHaveCount(0);
+  await expect(page.locator("[data-filter-chip-add]")).toBeVisible();
+  await expect(page.locator("[data-filter-chips-clear]")).toHaveCount(0);
 });
 
 test("switching the display mode writes it to the URL and survives a reload", async ({

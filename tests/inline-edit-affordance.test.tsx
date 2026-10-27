@@ -1,9 +1,10 @@
 import "./setup-dom";
 import { afterEach, expect, it } from "bun:test";
 import { QueryClient } from "@tanstack/react-query";
-import { act, type ComponentProps } from "react";
+import { act, type ComponentProps, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { DataTypeCell } from "../src/components/ui/yayaw-table/components/cells/data-type-cell";
+import { ImageCell } from "../src/components/ui/yayaw-table/components/cells/image-cell";
 import { InlineEditableCell } from "../src/components/ui/yayaw-table/components/cells/inline-editable-cell";
 import { resolveInlineEditColumnConfig } from "../src/components/ui/yayaw-table/hooks/use-inline-edit-runtime";
 import {
@@ -19,7 +20,11 @@ afterEach(async () => {
   document.body.replaceChildren();
 });
 
-const render = async (column: Record<string, unknown>, value: unknown) => {
+const render = async (
+  column: Record<string, unknown>,
+  value: unknown,
+  displayValue?: ReactNode
+) => {
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
@@ -43,7 +48,7 @@ const render = async (column: Record<string, unknown>, value: unknown) => {
       >
         <InlineEditableCell
           cell={cell}
-          displayValue={String(value)}
+          displayValue={displayValue ?? String(value)}
           inlineConfig={config}
           onCommit={async () => ({ success: true })}
           rowData={row}
@@ -112,6 +117,37 @@ it("starts editing on a single click anywhere in the cell", async () => {
     await Promise.resolve();
   });
   expect(document.querySelector("input")).not.toBeNull();
+});
+
+it.each([
+  "click",
+  "Enter",
+])("keeps an image's URL editable by %s without nesting preview buttons", async (action) => {
+  const source = "https://example.com/image.png";
+  const cell = await render(
+    { id: "image", type: "image" },
+    source,
+    <ImageCell alt="Product" value={source} />
+  );
+  const trigger = cell?.querySelector<HTMLElement>(
+    "[data-image-preview-trigger]"
+  );
+  expect(trigger?.tagName).toBe("SPAN");
+  expect(trigger?.getAttribute("tabindex")).toBeNull();
+  expect(cell?.querySelector("button")).toBeNull();
+  await act(async () => {
+    if (action === "click") {
+      trigger?.click();
+    } else {
+      cell?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+      );
+    }
+    await Promise.resolve();
+  });
+  expect(
+    document.querySelector<HTMLInputElement>('input[type="url"]')?.value
+  ).toBe(source);
 });
 
 it("toggles and saves a boolean cell on its first click, as in Vue", async () => {

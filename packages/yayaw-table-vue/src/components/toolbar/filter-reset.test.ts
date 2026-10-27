@@ -1,5 +1,6 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { h, markRaw } from "vue";
 import {
   inlineTestPortals,
   openViewScreen,
@@ -43,6 +44,77 @@ describe("toolbar filter reset", () => {
   afterEach(() => {
     vi.useRealTimers();
     document.body.replaceChildren();
+  });
+
+  it.each([
+    ["en", "Chart settings"],
+    ["fr", "Réglages du graphique"],
+  ])("names chart settings in %s", async (locale, label) => {
+    const wrapper = mount(YayawDataTable, {
+      props: {
+        tableType: "reset",
+        data,
+        syncUrl: false,
+        locale,
+        config: defineTableConfig({
+          ...config,
+          table: {
+            ...config.table,
+            displayModes: ["chart"],
+            defaultDisplayMode: "chart",
+          },
+        }),
+        displayModeRenderers: markRaw({
+          chart: {
+            view: { render: () => h("div", "Chart preview") },
+            settings: { render: () => h("div", "Chart controls") },
+          },
+        }),
+      },
+    });
+    await openViewScreen(wrapper, label);
+    expect(wrapper.text()).toContain("Chart controls");
+    expect(wrapper.get('[role="dialog"]').attributes("aria-label")).toBe(label);
+    wrapper.unmount();
+  });
+
+  it("resets all grouping while preserving the current filters", async () => {
+    const wrapper = mount(YayawDataTable, {
+      props: {
+        tableType: "reset",
+        data,
+        syncUrl: false,
+        config: defineTableConfig({
+          ...config,
+          table: {
+            ...config.table,
+            defaultView: {
+              grouping: ["status", "name"],
+              advancedFilters: [
+                {
+                  id: "status-rule",
+                  columnId: "status",
+                  type: "text",
+                  operator: "equals",
+                  values: "Open",
+                  isActive: true,
+                },
+              ],
+            },
+          },
+        }),
+      },
+    });
+    await openViewScreen(wrapper, "Group");
+    const reset = wrapper
+      .findAll(".yayaw-options-content button")
+      .find((button) => button.text() === "Reset");
+    expect(reset?.attributes("disabled")).toBeUndefined();
+    await reset?.trigger("click");
+    expect(reset?.attributes("disabled")).toBeDefined();
+    expect(wrapper.findAll(".yayaw-options-rule")).toHaveLength(0);
+    expect(wrapper.get('[data-filter-chip="status"]').text()).toContain("Open");
+    wrapper.unmount();
   });
 
   it("keeps the legacy filter reset opt-in with a readable label inside Filters", async () => {

@@ -22,9 +22,8 @@ import { FilterPropertyPicker } from "./filter-property-picker";
 /**
  * The rules under the toolbar, as Notion shows them: one chip per rule, or
  * one chip for the advanced filter, then "+ Filter" and "Clear". Date periods
- * pinned to the filter bar or the toolbar show there instead. Nothing shows
- * without rules: the view settings' Filter screen or a column header's
- * "Filter" adds the first, and its chip opens here.
+ * pinned to the filter bar or the toolbar show there instead. The add button
+ * stays visible without rules so the first filter needs no settings menu.
  */
 export function FilterChipsBar({
   menu,
@@ -46,7 +45,8 @@ export function FilterChipsBar({
     advanced: menu.advanced,
     pinnedColumns: menu.pinnedDates,
   });
-  if (!(layout.chips.length || layout.advanced.length)) {
+  const hasRules = Boolean(layout.chips.length || layout.advanced.length);
+  if (!(menu.columns.length || hasRules)) {
     return null;
   }
   const count = filterRulesCountText(
@@ -119,14 +119,16 @@ export function FilterChipsBar({
           />
         </PopoverContent>
       </Popover>
-      <button
-        className="ml-auto inline-flex h-7 shrink-0 items-center rounded-md px-2 text-muted-foreground text-sm hover:bg-muted hover:text-foreground"
-        data-filter-chips-clear=""
-        onClick={() => menu.clear(menu.pinnedDates.map(filterBarDateRuleId))}
-        type="button"
-      >
-        {menu.text("clear")}
-      </button>
+      {hasRules && (
+        <button
+          className="ml-auto inline-flex h-7 shrink-0 items-center rounded-md px-2 text-muted-foreground text-sm hover:bg-muted hover:text-foreground"
+          data-filter-chips-clear=""
+          onClick={() => menu.clear(menu.pinnedDates.map(filterBarDateRuleId))}
+          type="button"
+        >
+          {menu.text("clear")}
+        </button>
+      )}
     </fieldset>
   );
 }

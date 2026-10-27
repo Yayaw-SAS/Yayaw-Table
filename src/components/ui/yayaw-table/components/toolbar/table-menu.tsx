@@ -497,6 +497,13 @@ function getSettingsTitle(
   translate: (key: string) => string,
   fallback: string
 ): string {
+  if (mode === "chart") {
+    return translateWithFallback(
+      translate,
+      "views.chartSettings",
+      locale.startsWith("fr") ? "Réglages du graphique" : "Chart settings"
+    );
+  }
   if (mode === "form") {
     return formLabel("settingsTitle", locale, (key, text) =>
       translateWithFallback(translate, `form.${key}`, text)
