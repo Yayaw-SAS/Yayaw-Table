@@ -78,6 +78,8 @@ export interface DataTableTranslations {
     save_scheduled: string;
     saving: string;
     select_no_options: string;
+    /** Searched select editors with `createOption`: the entry creating `{label}`. */
+    create_option?: string;
   };
   filters: {
     title: string;

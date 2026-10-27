@@ -74,8 +74,31 @@ export interface InlineOptionSearch {
     values: unknown[],
     signal: AbortSignal
   ) => FormSelectOption[] | Promise<FormSelectOption[]>;
+  /** The field's `createOption`: offered as "Create …" when the search names no existing option. */
+  create?: (
+    label: string,
+    signal: AbortSignal
+  ) => FormSelectOption | Promise<FormSelectOption>;
   minLength: number;
   debounceMs: number;
+}
+
+/** The list entry that creates an option from the search text. */
+const CREATE_OPTION_ITEM = "__yayaw-create-option__";
+
+/** The option `createOption` returned, refused when it has no persisted value. */
+function persistedOption(
+  option: FormSelectOption | null | undefined
+): InlineEditOption {
+  if (
+    !option ||
+    option.value === undefined ||
+    option.value === null ||
+    option.value === ""
+  ) {
+    throw new Error("The new option must have a persisted value");
+  }
+  return { label: option.label, value: option.value };
 }
 
 interface InlineEditableCellProps<TData extends Record<string, unknown>> {
@@ -479,10 +502,19 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     Boolean(optionSearch) &&
     (resolvedEditor === "select" || resolvedEditor === "multiSelect");
   const [searchQuery, setSearchQuery] = useState("");
+  // Options created from the search, and the creation in progress.
+  const [createdOptions, setCreatedOptions] = useState<InlineEditOption[]>([]);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string>();
+  const createRequest = useRef<AbortController | undefined>(undefined);
   // biome-ignore lint/correctness/useExhaustiveDependencies: Each editing session starts with an empty search.
   useEffect(() => {
     setSearchQuery("");
+    setCreatedOptions([]);
+    setCreateError(undefined);
+    createRequest.current?.abort();
   }, [isEditing]);
+  useEffect(() => () => createRequest.current?.abort(), []);
   const openedValues = useMemo(
     () =>
       getEditorCurrentValues(resolvedEditor, cell.getValue())
@@ -496,10 +528,17 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     searchQuery,
     openedValues
   );
-  searchedOptions.current = optionSearchState.remembered;
+  searchedOptions.current = rememberOptions(
+    optionSearchState.remembered,
+    createdOptions
+  );
   const editorOptions = useMemo(
-    () => [...resolvedOptions, ...optionSearchState.remembered],
-    [optionSearchState.remembered, resolvedOptions]
+    () =>
+      rememberOptions(
+        [...resolvedOptions, ...optionSearchState.remembered],
+        createdOptions
+      ),
+    [createdOptions, optionSearchState.remembered, resolvedOptions]
   );
 
   const selectOptions = useMemo(() => {
@@ -533,6 +572,64 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
         .includes(query.trim().toLocaleLowerCase()),
     [matched, selectOptions]
   );
+  const createText = searchQuery.trim();
+  const createsOption =
+    searchesOptions &&
+    Boolean(optionSearch?.create) &&
+    createText.length > 0 &&
+    !optionSearchState.searching &&
+    !selectOptions.some(
+      (option) =>
+        option.label.trim().toLocaleLowerCase() ===
+        createText.toLocaleLowerCase()
+    );
+  const addCreatedOption = useCallback(
+    (created: InlineEditOption) => {
+      // The commit parses against these options before the next render.
+      searchedOptions.current = rememberOptions(searchedOptions.current, [
+        created,
+      ]);
+      setCreatedOptions((previous) => rememberOptions(previous, [created]));
+      setSearchQuery("");
+      if (resolvedEditor === "select") {
+        updateDraftValue(created.value, { disableAutoSave: true });
+        commitAndClose().catch(() => undefined);
+        return;
+      }
+      const current = Array.isArray(editorValue) ? editorValue : [];
+      updateDraftValue([
+        ...current.filter((value) => !Object.is(value, created.value)),
+        created.value,
+      ]);
+    },
+    [commitAndClose, editorValue, resolvedEditor, updateDraftValue]
+  );
+  const createOption = useCallback(async () => {
+    const create = optionSearch?.create;
+    if (!(create && createText) || creating) {
+      return;
+    }
+    createRequest.current?.abort();
+    const request = new AbortController();
+    createRequest.current = request;
+    setCreating(true);
+    setCreateError(undefined);
+    try {
+      const option = await create(createText, request.signal);
+      if (request.signal.aborted) {
+        return;
+      }
+      addCreatedOption(persistedOption(option));
+    } catch (cause) {
+      if (!request.signal.aborted) {
+        setCreateError(cause instanceof Error ? cause.message : String(cause));
+      }
+    } finally {
+      if (!request.signal.aborted) {
+        setCreating(false);
+      }
+    }
+  }, [addCreatedOption, createText, creating, optionSearch?.create]);
   const searchStatus = (() => {
     if (optionSearchState.error) {
       return optionSearchState.error;
@@ -542,12 +639,17 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
 
   const getOptionLabel = useCallback(
     (optionValue: string): string => {
+      if (optionValue === CREATE_OPTION_ITEM) {
+        return creating
+          ? t("loading")
+          : t("inline.create_option", { label: createText });
+      }
       const matchingOption = selectOptions.find(
         (option) => option.value === optionValue
       );
       return matchingOption?.label ?? optionValue;
     },
-    [selectOptions]
+    [createText, creating, selectOptions, t]
   );
 
   const renderTextareaEditor = useCallback(() => {
@@ -640,18 +742,57 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     updateDraftValue,
   ]);
 
+  /** The chips list's new selection, a searched single select committing its one choice. */
+  const chooseValues = useCallback(
+    (values: unknown) => {
+      const nextValues = Array.isArray(values)
+        ? values.map((value) => String(value))
+        : [];
+      if (resolvedEditor === "select") {
+        const chosen = nextValues.find(
+          (value) => !selectedMultiValues.includes(value)
+        );
+        updateDraftValue(
+          chosen === undefined ? "" : optionControlValue(chosen),
+          { disableAutoSave: true }
+        );
+        // A single choice is the whole edit, as with a select.
+        commitAndClose().catch(() => undefined);
+        return;
+      }
+      for (const selected of selectedMultiValues) {
+        if (
+          selectOptions.find((option) => option.value === selected)?.disabled &&
+          !nextValues.includes(selected)
+        ) {
+          nextValues.push(selected);
+        }
+      }
+      updateDraftValue(nextValues.map(optionControlValue));
+    },
+    [
+      commitAndClose,
+      resolvedEditor,
+      selectOptions,
+      selectedMultiValues,
+      updateDraftValue,
+    ]
+  );
+
   const renderMultiSelectEditor = useCallback(() => {
-    // A searched single select reuses the chips field with at most one chip.
-    const single = resolvedEditor === "select";
     return (
       <Combobox
-        items={selectOptions.map((option) => option.value)}
+        items={[
+          ...selectOptions.map((option) => option.value),
+          ...(createsOption ? [CREATE_OPTION_ITEM] : []),
+        ]}
         itemToStringLabel={getOptionLabel}
         multiple
         open
         {...(searchesOptions
           ? {
-              filter: filterOption,
+              filter: (value: string, query: string) =>
+                value === CREATE_OPTION_ITEM || filterOption(value, query),
               inputValue: searchQuery,
               onInputValueChange: (value: string) => setSearchQuery(value),
             }
@@ -670,31 +811,11 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
           }
         }}
         onValueChange={(values) => {
-          const nextValues = Array.isArray(values)
-            ? values.map((value) => String(value))
-            : [];
-          if (single) {
-            const chosen = nextValues.find(
-              (value) => !selectedMultiValues.includes(value)
-            );
-            updateDraftValue(
-              chosen === undefined ? "" : optionControlValue(chosen),
-              { disableAutoSave: true }
-            );
-            // A single choice is the whole edit, as with a select.
-            commitAndClose().catch(() => undefined);
+          if (Array.isArray(values) && values.includes(CREATE_OPTION_ITEM)) {
+            createOption().catch(() => undefined);
             return;
           }
-          for (const selected of selectedMultiValues) {
-            if (
-              selectOptions.find((option) => option.value === selected)
-                ?.disabled &&
-              !nextValues.includes(selected)
-            ) {
-              nextValues.push(selected);
-            }
-          }
-          updateDraftValue(nextValues.map(optionControlValue));
+          chooseValues(values);
         }}
         value={selectedMultiValues}
       >
@@ -751,12 +872,12 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
           />
         </ComboboxChips>
         <ComboboxContent anchor={multiSelectAnchorRef}>
-          {optionSearchState.error ? (
+          {optionSearchState.error || createError ? (
             <div
               className="px-2 py-2 text-center text-destructive text-sm"
               role="alert"
             >
-              {optionSearchState.error}
+              {createError ?? optionSearchState.error}
             </div>
           ) : (
             <ComboboxEmpty>{searchStatus}</ComboboxEmpty>
@@ -765,8 +886,10 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
             {(value: string) => (
               <ComboboxItem
                 disabled={
-                  selectOptions.find((option) => option.value === value)
-                    ?.disabled
+                  value === CREATE_OPTION_ITEM
+                    ? creating
+                    : selectOptions.find((option) => option.value === value)
+                        ?.disabled
                 }
                 key={value}
                 value={value}
@@ -783,19 +906,22 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     commitAndClose,
     cell.column.columnDef.header,
     cell.column.id,
+    chooseValues,
+    createError,
+    createOption,
+    createsOption,
+    creating,
     filterOption,
     focusEditor,
     getOptionLabel,
     multiSelectAnchorRef,
     optionSearchState.error,
-    resolvedEditor,
     searchQuery,
     searchStatus,
     searchesOptions,
     selectOptions,
     selectedMultiValues,
     t,
-    updateDraftValue,
   ]);
 
   const renderInputEditor = useCallback(() => {

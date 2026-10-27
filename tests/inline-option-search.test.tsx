@@ -216,3 +216,95 @@ it("edits searched select fields inline and keeps other searched fields in the f
   expect(canEditInlineFormField(config, topics, context)).toBe(true);
   expect(canEditInlineFormField(config, title, context)).toBe(false);
 });
+
+async function leaveEditor() {
+  await act(async () => {
+    const outside = required(
+      container.querySelector<HTMLButtonElement>("[data-outside]")
+    );
+    outside.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    outside.focus();
+    outside.click();
+    await settle();
+  });
+}
+
+it("creates an option from an inline multi-select search and adds it to the selection", async () => {
+  const created: string[] = [];
+  const writes: unknown[] = [];
+  await setup(
+    "multiSelect",
+    {
+      search: () => Promise.resolve([]),
+      create: (label) => {
+        created.push(label);
+        return Promise.resolve({ value: 77, label: `${label} Weekly` });
+      },
+      minLength: 2,
+      debounceMs: 0,
+    },
+    (value) => {
+      writes.push(value);
+      return Promise.resolve({ success: true });
+    }
+  );
+  await fill("Rumble");
+  await clickOption('Create "Rumble"');
+  expect(created).toEqual(["Rumble"]);
+  await waitFor(
+    () => container.textContent?.includes("Rumble Weekly") === true
+  );
+  expect(container.textContent).toContain("Rumble Weekly");
+  await leaveEditor();
+  expect(writes).toEqual([[1, 77]]);
+});
+
+it("saves an option created from an inline select as the whole edit", async () => {
+  const writes: unknown[] = [];
+  await setup(
+    "select",
+    {
+      search: () => Promise.resolve([]),
+      create: (label) => Promise.resolve({ value: 77, label }),
+      minLength: 2,
+      debounceMs: 0,
+    },
+    (value) => {
+      writes.push(value);
+      return Promise.resolve({ success: true });
+    }
+  );
+  await fill("Rumble");
+  await clickOption('Create "Rumble"');
+  await waitFor(() => writes.length > 0);
+  expect(writes).toEqual([77]);
+});
+
+it("offers no creation for an existing label and shows a failed creation", async () => {
+  const writes: unknown[] = [];
+  await setup(
+    "multiSelect",
+    {
+      search: () => Promise.resolve([]),
+      create: () => Promise.reject(new Error("Creation refused")),
+      minLength: 2,
+      debounceMs: 0,
+    },
+    (value) => {
+      writes.push(value);
+      return Promise.resolve({ success: true });
+    }
+  );
+  await fill("gaming mag");
+  expect(
+    choices().some((option) => option.textContent?.startsWith("Create"))
+  ).toBe(false);
+  await fill("Rumble");
+  await clickOption('Create "Rumble"');
+  await waitFor(() => document.querySelector('[role="alert"]') !== null);
+  expect(required(document.querySelector('[role="alert"]')).textContent).toBe(
+    "Creation refused"
+  );
+  expect(container.querySelector('[role="combobox"]')).not.toBeNull();
+  expect(writes).toEqual([]);
+});

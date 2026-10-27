@@ -143,10 +143,11 @@ const searchable = computed(() =>
 const optionSearch = computed<InlineOptionSearch | undefined>(() => {
   const field = formField.value;
   if (!(searchable.value && field?.searchOptions)) return undefined;
-  const { searchOptions, resolveOptions } = field;
+  const { searchOptions, resolveOptions, createOption } = field;
   return {
     search: (query, signal) => searchOptions(query, formContext.value, signal),
     resolve: resolveOptions ? (values, signal) => resolveOptions(values, formContext.value, signal) : undefined,
+    create: createOption ? (label, signal) => createOption(label, formContext.value, signal) : undefined,
     minLength: field.searchMinLength ?? 3,
     debounceMs: field.searchDebounceMs ?? 300,
   };

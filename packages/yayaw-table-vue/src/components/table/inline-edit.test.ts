@@ -384,7 +384,8 @@ it("spans the cell with the multi-select field and its list", async () => {
 
 const mediaForm = (
   type: "select" | "multiSelect",
-  searchOptions: (query: string) => Promise<{ value: number; label: string }[]>
+  searchOptions: (query: string) => Promise<{ value: number; label: string }[]>,
+  createOption?: (label: string) => Promise<{ value: number; label: string }>
 ): FormConfig => ({
   id: "media",
   fields: [
@@ -394,6 +395,7 @@ const mediaForm = (
       type,
       options: [{ value: 1, label: "Gaming Mag" }],
       searchOptions,
+      ...(createOption && { createOption }),
       searchMinLength: 2,
       searchDebounceMs: 0,
     },
@@ -482,6 +484,86 @@ it("shows a failed server search in the list and keeps the editor open", async (
   await wrapper.get('input[role="combobox"]').setValue("news");
   await settle();
   expect(popup().get('[role="alert"]').text()).toBe("Search unavailable");
+  expect(wrapper.find('input[role="combobox"]').exists()).toBe(true);
+  expect(update).not.toHaveBeenCalled();
+});
+
+it("creates an option from an inline multi-select search and adds it to the selection", async () => {
+  const createOption = vi.fn(async (label: string) => ({
+    value: 77,
+    label: `${label} Weekly`,
+  }));
+  const { wrapper, update } = createCell({
+    row: { id: "1", media: [1] },
+    column: mediaColumn("multiSelect"),
+    form: mediaForm("multiSelect", async () => [], createOption),
+  });
+  await wrapper.trigger("click");
+  await settle();
+  await wrapper.get('input[role="combobox"]').setValue("Rumble");
+  await settle();
+  const create = popup().get('[role="option"]');
+  expect(create.text()).toBe('Create "Rumble"');
+  expect(popup().text()).not.toContain("No results");
+  await create.trigger("click");
+  await settle();
+  expect(createOption).toHaveBeenCalledWith(
+    "Rumble",
+    expect.objectContaining({ mode: "edit" }),
+    expect.any(AbortSignal)
+  );
+  expect(wrapper.text()).toContain("Rumble Weekly");
+  const outside = document.createElement("button");
+  document.body.append(outside);
+  outside.focus();
+  await settle();
+  expect(update).toHaveBeenCalledExactlyOnceWith(
+    "1",
+    { media: [1, 77] },
+    { row: { id: "1", media: [1] } }
+  );
+});
+
+it("saves an option created from an inline select as the whole edit", async () => {
+  const createOption = vi.fn(async (label: string) => ({ value: 77, label }));
+  const { wrapper, update } = createCell({
+    row: { id: "1", media: 1 },
+    column: mediaColumn("select"),
+    form: mediaForm("select", async () => [], createOption),
+  });
+  await wrapper.trigger("click");
+  await settle();
+  await wrapper.get('input[role="combobox"]').setValue("Rumble");
+  await settle();
+  await popup().get('[role="option"]').trigger("click");
+  await settle();
+  expect(update).toHaveBeenCalledExactlyOnceWith(
+    "1",
+    { media: 77 },
+    { row: { id: "1", media: 1 } }
+  );
+});
+
+it("offers no creation for an existing label and shows a failed creation", async () => {
+  const createOption = vi.fn(() =>
+    Promise.reject(new Error("Creation refused"))
+  );
+  const { wrapper, update } = createCell({
+    row: { id: "1", media: [] },
+    column: mediaColumn("multiSelect"),
+    form: mediaForm("multiSelect", async () => [], createOption),
+  });
+  await wrapper.trigger("click");
+  await settle();
+  const input = wrapper.get('input[role="combobox"]');
+  await input.setValue("gaming mag");
+  await settle();
+  expect(popup().text()).not.toContain("Create");
+  await input.setValue("Rumble");
+  await settle();
+  await popup().get('[role="option"]').trigger("click");
+  await settle();
+  expect(popup().get('[role="alert"]').text()).toBe("Creation refused");
   expect(wrapper.find('input[role="combobox"]').exists()).toBe(true);
   expect(update).not.toHaveBeenCalled();
 });

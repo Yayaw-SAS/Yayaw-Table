@@ -37,13 +37,16 @@ export function CatalogueInlineCell<TData extends Record<string, unknown>>({
   if (!canEditInlineFormField(config, field, context)) {
     return displayValue;
   }
-  const { searchOptions, resolveOptions } = field ?? {};
+  const { searchOptions, resolveOptions, createOption } = field ?? {};
   const optionSearch: InlineOptionSearch | undefined =
     field && searchOptions
       ? {
           search: (query, signal) => searchOptions(query, context, signal),
           resolve: resolveOptions
             ? (values, signal) => resolveOptions(values, context, signal)
+            : undefined,
+          create: createOption
+            ? (label, signal) => createOption(label, context, signal)
             : undefined,
           minLength: field.searchMinLength ?? 3,
           debounceMs: field.searchDebounceMs ?? 300,

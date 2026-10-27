@@ -681,6 +681,7 @@ export const defaultTranslations: DataTableTranslations = {
     save_scheduled: "Save scheduled",
     saving: "Saving...",
     select_no_options: "No options available",
+    create_option: 'Create "{label}"',
   },
   filters: {
     title: "Filters",
