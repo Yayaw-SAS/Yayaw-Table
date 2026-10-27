@@ -271,8 +271,11 @@ select saves it as the whole edit. While it runs the entry shows the loading
 label and is disabled; a failure shows its message in the list and keeps the
 editor and draft. The editor is left only after the creation settles, so the
 host can open its own form from `createOption` and resolve with the saved
-record. Both test files cover multi and single creation, the existing-label
-rule and failures.
+record: in a multi-select, focus or clicks leaving for that form do not commit
+while the creation runs, and the search field takes the focus back once the
+option is added. Both test files cover multi and single creation, a creation
+running while focus is outside the editor, the existing-label rule and
+failures.
 
 The Vue product demo now includes an editable Tags column. Regression coverage
 includes portalled Vue choices, filtering, primitive IDs, empty selections,

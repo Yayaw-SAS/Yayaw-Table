@@ -259,6 +259,42 @@ it("creates an option from an inline multi-select search and adds it to the sele
   expect(writes).toEqual([[1, 77]]);
 });
 
+it("keeps the multi-select editor while an option is created outside it", async () => {
+  let finish: (option: { value: number; label: string }) => void = () =>
+    undefined;
+  const writes: unknown[] = [];
+  await setup(
+    "multiSelect",
+    {
+      search: () => Promise.resolve([]),
+      create: () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+      minLength: 2,
+      debounceMs: 0,
+    },
+    (value) => {
+      writes.push(value);
+      return Promise.resolve({ success: true });
+    }
+  );
+  await fill("Rumble");
+  await clickOption('Create "Rumble"');
+  // The app's own form takes the focus while the option is created.
+  await leaveEditor();
+  expect(writes).toEqual([]);
+  await act(async () => {
+    finish({ value: 77, label: "Rumble Weekly" });
+    await settle();
+  });
+  await waitFor(
+    () => container.textContent?.includes("Rumble Weekly") === true
+  );
+  await leaveEditor();
+  expect(writes).toEqual([[1, 77]]);
+});
+
 it("saves an option created from an inline select as the whole edit", async () => {
   const writes: unknown[] = [];
   await setup(

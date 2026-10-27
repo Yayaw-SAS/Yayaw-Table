@@ -179,6 +179,8 @@ const createOption = async (): Promise<void> => {
     query.value = "";
     if (props.multiple) {
       emit("update:modelValue", [...selected.value.filter(value => keyFor(value) !== keyFor(option.value)), option.value]);
+      // Back from the app's own form: the editor goes on with the new option chosen.
+      anchor.value?.querySelector("input")?.focus();
       return;
     }
     emit("update:modelValue", option.value);
@@ -200,9 +202,13 @@ const emptyText = computed(() => {
 // A single choice closes the list before it reports the value: commit after it.
 const dismiss = (open: boolean): void => {
   if (open) return;
-  if (props.multiple) emit("commit");
+  // A creation in progress keeps the editor, so the app can show its own form over it.
+  if (props.multiple) {
+    if (!creating.value) emit("commit");
+    return;
+  }
   // Picking "Create …" closes a single list too: the creation commits once it is saved.
-  else void nextTick(() => { if (!creating.value) emit("commit"); });
+  void nextTick(() => { if (!creating.value) emit("commit"); });
 };
 onMounted(async () => {
   void resolveSelection();

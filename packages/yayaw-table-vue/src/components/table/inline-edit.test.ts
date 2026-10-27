@@ -524,6 +524,47 @@ it("creates an option from an inline multi-select search and adds it to the sele
   );
 });
 
+it("keeps the multi-select editor while an option is created outside it", async () => {
+  let finish: (option: { value: number; label: string }) => void = () =>
+    undefined;
+  const createOption = vi.fn(
+    () =>
+      new Promise<{ value: number; label: string }>((resolve) => {
+        finish = resolve;
+      })
+  );
+  const { wrapper, update } = createCell({
+    row: { id: "1", media: [1] },
+    column: mediaColumn("multiSelect"),
+    form: mediaForm("multiSelect", async () => [], createOption),
+  });
+  await wrapper.trigger("click");
+  await settle();
+  await wrapper.get('input[role="combobox"]').setValue("Rumble");
+  await settle();
+  await popup().get('[role="option"]').trigger("click");
+  await settle();
+  // The app's own form takes the focus while the option is created.
+  const form = document.createElement("button");
+  document.body.append(form);
+  form.focus();
+  await settle();
+  expect(update).not.toHaveBeenCalled();
+  expect(wrapper.find('input[role="combobox"]').exists()).toBe(true);
+  finish({ value: 77, label: "Rumble Weekly" });
+  await settle();
+  expect(wrapper.text()).toContain("Rumble Weekly");
+  const outside = document.createElement("button");
+  document.body.append(outside);
+  outside.focus();
+  await settle();
+  expect(update).toHaveBeenCalledExactlyOnceWith(
+    "1",
+    { media: [1, 77] },
+    { row: { id: "1", media: [1] } }
+  );
+});
+
 it("saves an option created from an inline select as the whole edit", async () => {
   const createOption = vi.fn(async (label: string) => ({ value: 77, label }));
   const { wrapper, update } = createCell({
