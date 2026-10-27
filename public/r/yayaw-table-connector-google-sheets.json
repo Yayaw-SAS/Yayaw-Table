@@ -25,8 +25,8 @@
   ],
   "meta": {
     "registryUrl": "https://table.yayaw.app/r/yayaw-table-connector-google-sheets.json",
-    "version": "3.32.0",
-    "versionedRegistryUrl": "https://table.yayaw.app/r/v3.32.0/yayaw-table-connector-google-sheets.json"
+    "version": "3.32.1",
+    "versionedRegistryUrl": "https://table.yayaw.app/r/v3.32.1/yayaw-table-connector-google-sheets.json"
   },
   "type": "registry:lib"
 }
