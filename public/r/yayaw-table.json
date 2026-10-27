@@ -2261,8 +2261,8 @@
   ],
   "meta": {
     "registryUrl": "https://table.yayaw.app/r/yayaw-table.json",
-    "version": "3.32.1",
-    "versionedRegistryUrl": "https://table.yayaw.app/r/v3.32.1/yayaw-table.json"
+    "version": "3.33.0",
+    "versionedRegistryUrl": "https://table.yayaw.app/r/v3.33.0/yayaw-table.json"
   },
   "type": "registry:block"
 }
