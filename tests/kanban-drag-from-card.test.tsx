@@ -4,11 +4,21 @@ import { createRoot, type Root } from "react-dom/client";
 import { KanbanCard, KanbanProvider } from "../src/components/ui/custom/kanban";
 
 let root: Root | undefined;
-afterEach(() => {
-  act(() => root?.unmount());
-  root = undefined;
+const DRAG_LISTENER_CLEANUP_MS = 50;
+const unmountCard = async () => {
+  if (root) {
+    await act(async () => {
+      root?.unmount();
+      root = undefined;
+      // dnd-kit defers removing its document click blocker by 50ms after a drag.
+      await new Promise((resolve) =>
+        setTimeout(resolve, DRAG_LISTENER_CLEANUP_MS)
+      );
+    });
+  }
   document.body.replaceChildren();
-});
+};
+afterEach(unmountCard);
 
 const mountCard = (dragFromCard: boolean) => {
   const onDragStart = mock();
@@ -67,7 +77,7 @@ const mountCard = (dragFromCard: boolean) => {
   return { card, drag, onDragStart };
 };
 
-it("starts a drag from the card body with dragFromCard", () => {
+it("starts a drag from the card body with dragFromCard", async () => {
   const { card, drag, onDragStart } = mountCard(true);
   // The handle keeps the drag role, focus and keyboard activation.
   expect(card.getAttribute("role")).toBeNull();
@@ -77,6 +87,13 @@ it("starts a drag from the card body with dragFromCard", () => {
   expect(onDragStart).not.toHaveBeenCalled();
   drag("body");
   expect(onDragStart).toHaveBeenCalledTimes(1);
+  await unmountCard();
+  const nextButton = document.createElement("button");
+  const onClick = mock();
+  nextButton.onclick = onClick;
+  document.body.append(nextButton);
+  nextButton.click();
+  expect(onClick).toHaveBeenCalledTimes(1);
 });
 
 it("drags only from the handle without dragFromCard", () => {
