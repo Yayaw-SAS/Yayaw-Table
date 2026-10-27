@@ -145,6 +145,8 @@ Defaults in brackets. Flags only shape the interface; the server decides.
   `connectors`, `sync`, `schedule` [true], `emptyState` (`title`,
   `description`, `show`).
 - Query: `enableSorting`, `enableColumnFilters`, `enableGrouping` [true],
+  `groupingScope` [`"page"`; `"all"` groups every row matching the query,
+  loaded through `actions.list` without pagination], `groupingMaxRows` [2000],
   `enableAdvancedFilters` [true; the Notion-style Filter screen, chips and
   And / Or filter], `toolbarDateFilter` [none; a date column whose period
   stays in the toolbar], `searchDebounceMs` [300], `manualOrder`

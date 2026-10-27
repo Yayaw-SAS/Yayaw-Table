@@ -29,6 +29,10 @@ import {
   useYayawTable,
   type VisibilityState,
 } from "../tanstack";
+import {
+  loadAllGroupedRows,
+  shouldGroupAllRows,
+} from "../utils/grouping-scope";
 import { withManualOrderView } from "../utils/manual-order";
 import {
   compatibleListParams,
@@ -353,6 +357,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
         complexFilters: _complexFilters,
         advancedFilters: paramsAdvancedFilters,
         globalSearch: paramsGlobalSearch,
+        loadAllRows,
         pagination: _paramsPagination,
         sorting: paramsSorting,
       } = params;
@@ -384,16 +389,22 @@ export function useDataTable<TData extends Record<string, unknown>>(
 
         // Execute the request - safely handle the list action
         if (actions.list) {
-          const response = await actions.list(
-            compatibleListParams(
-              withManualOrderView(
-                requestParams as Record<string, unknown>,
-                paramsSorting,
-                tableUrlState.viewParam
-              ),
-              tableFilterContext(config.table, locale)
-            )
+          const listParams = compatibleListParams(
+            withManualOrderView(
+              requestParams as Record<string, unknown>,
+              paramsSorting,
+              tableUrlState.viewParam
+            ),
+            tableFilterContext(config.table, locale)
           );
+          if (loadAllRows === true) {
+            return await loadAllGroupedRows<TData>(
+              actions.list,
+              listParams,
+              config.table.groupingMaxRows
+            );
+          }
+          const response = await actions.list(listParams);
           return {
             data: (response.data || []) as TData[],
             pageCount: response.meta?.pageCount || 1,
@@ -418,6 +429,12 @@ export function useDataTable<TData extends Record<string, unknown>>(
     ]
   );
 
+  // Grouping over every matching row loads them all instead of the page.
+  const groupsAllRows = shouldGroupAllRows(
+    config.table,
+    tableUrlState.groupingParam
+  );
+
   // Use the tableUrlData hook for proper API data fetching
   const urlDataResult = useTableUrlData<TData>({
     defaultPageSize,
@@ -427,6 +444,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
     initialDataSort,
     initialPageCount,
     initialRowCount,
+    loadAllRows: groupsAllRows,
     queryFn,
     syncUrl: config.table.syncUrl !== false,
     tableId,
@@ -1008,6 +1026,10 @@ export function useDataTable<TData extends Record<string, unknown>>(
     // Table data
     data,
     error,
+    /** Grouping covers every matching row instead of the page. */
+    groupsAllRows,
+    /** Grouping over every row stopped at `groupingMaxRows`. */
+    groupingTruncated: groupsAllRows && urlDataResult.truncated,
     // Data actions
     handleCreate,
     handleDelete,

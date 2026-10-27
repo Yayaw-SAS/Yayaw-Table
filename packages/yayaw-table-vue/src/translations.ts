@@ -95,6 +95,8 @@ export const defaultTranslations: Required<
     "Add a date column to show this table as a calendar.",
   "calendar.truncated":
     "Only part of the records are shown. Narrow the filters to see all of them.",
+  "grouping.truncated":
+    "Groups cover the first {count} rows. Narrow the filters to group all of them.",
   "display.gantt": "Gantt",
   "display.gallery": "Gallery",
   "display.list": "List",
@@ -434,6 +436,8 @@ export const frenchTranslations: DataTableTranslations = {
     "Ajoutez une colonne de date pour afficher cette table en calendrier.",
   "calendar.truncated":
     "Seule une partie des enregistrements est affichée. Affinez les filtres pour tout voir.",
+  "grouping.truncated":
+    "Les groupes couvrent les {count} premières lignes. Affinez les filtres pour tout grouper.",
   "display.gantt": "Gantt",
   "display.gallery": "Galerie",
   "display.list": "Liste",

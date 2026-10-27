@@ -952,7 +952,7 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
         </tfoot>
       </table>
     </div>
-    <footer v-if="context.config.table.enablePagination && (totalPages > 1 || (context.config.table.enableAutoPageSize && context.matchingRowCount.value > 0))" data-yayaw-pagination class="yayaw-pagination">
+    <footer v-if="context.config.table.enablePagination && !context.data.groupsAllRows.value && (totalPages > 1 || (context.config.table.enableAutoPageSize && context.matchingRowCount.value > 0))" data-yayaw-pagination class="yayaw-pagination">
       <span>{{ context.matchingRowCount.value }} {{ context.translations.value.rows }}</span>
       <label>
         {{ context.translations.value.rowsPerPage }}

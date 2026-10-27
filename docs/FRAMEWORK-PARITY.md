@@ -554,8 +554,18 @@ IDs. Selection-disabled tables use the full visible column span. Groups initiall
 expand when grouping changes; subsequent toggles remain local presentation state.
 
 Enable `table.enableGrouping` and `table.showToolbar`, and keep eligible column
-`enableGrouping` flags enabled. Grouping is local to the supplied records: a server
-that paginates before returning records produces page-local groups.
+`enableGrouping` flags enabled. By default (`table.groupingScope: "page"`)
+grouping is local to the supplied records: a server that paginates before
+returning records produces page-local groups. With `groupingScope: "all"`, an
+active grouping makes both editions load every row matching the search, filters
+and sort through `actions.list`, page by page (100 rows per request, the shared
+`loadAllGroupedRows` in `utils/grouping-scope.ts`), up to `table.groupingMaxRows`
+[2000]. The groups then cover all those rows on one page: pagination is hidden
+and the page leaves the query key. Past the cap both editions show the
+`grouping.truncated` notice ("Groups cover the first {count} rows. Narrow the
+filters to group all of them."). Table, Kanban, Gallery and List share the
+view's grouping, so they all group the loaded rows. Local records (no
+`actions.list`) are already grouped in full.
 
 Records without a value in Kanban lanes, Gallery sections and List sections are
 grouped under one heading from the shared `emptyGroupLabel`: "No value", or
@@ -565,7 +575,8 @@ that lane writes `""` in both editions.
 
 Coverage: shared `tests/fixtures/grouped-rows.json` (including date columns with
 and without an accessor), React `tests/grouped-rows.test.tsx`, Vue
-`src/grouped-rows.test.ts`, the shared helpers in `tests/contracts-parity.test.ts`,
+`src/grouped-rows.test.ts`, the grouping scope in React
+`tests/grouping-scope.test.tsx` and Vue `src/grouping-scope.test.ts`, the shared helpers in `tests/contracts-parity.test.ts`,
 React Kanban/Gallery group suites and Vue `src/empty-group-label.test.ts`, plus
 browser interaction in both editions.
 

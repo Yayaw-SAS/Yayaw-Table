@@ -54,6 +54,7 @@ export const defaultTableBehavior: TableBehaviorConfig = {
   enableCalculations: false,
   lockCalculations: false,
   enableGrouping: true,
+  groupingScope: "page",
   enableAdvancedFilters: true,
   preserveSelectionOnQuery: false,
   searchDebounceMs: 300,

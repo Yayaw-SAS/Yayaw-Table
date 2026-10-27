@@ -7,6 +7,7 @@ import {
   ref,
   watch,
 } from "vue";
+import { loadAllGroupedRows, shouldGroupAllRows } from "../grouping-scope";
 import { withManualOrderView } from "../manual-order";
 import {
   compatibleListParams,
@@ -29,6 +30,10 @@ export interface TableDataResult<TData extends TableRecord> {
   isLoading: Ref<boolean>;
   error: Ref<Error | undefined>;
   isServer: ComputedRef<boolean>;
+  /** Grouping covers every matching row instead of the page. */
+  groupsAllRows: ComputedRef<boolean>;
+  /** Grouping over every row stopped at `groupingMaxRows`. */
+  groupingTruncated: Ref<boolean>;
   refresh: () => Promise<void>;
   /**
    * Server rendering (`serverPrefetch`): loads the starting page unless
@@ -41,6 +46,8 @@ export interface TableDataResult<TData extends TableRecord> {
 interface ListResult<TData> {
   data: TData[];
   meta?: { pageCount?: number; totalCount?: number };
+  /** All rows were asked for and more matched than were loaded. */
+  truncated?: boolean;
 }
 
 export const useTableData = <TData extends TableRecord>({
@@ -52,6 +59,7 @@ export const useTableData = <TData extends TableRecord>({
   advancedFilters,
   sorting,
   grouping,
+  groupingScope,
   pagination,
   initialRowCount,
   initialPageCount,
@@ -68,6 +76,13 @@ export const useTableData = <TData extends TableRecord>({
   advancedFilters: Ref<AdvancedFiltersState>;
   sorting: Ref<SortingState>;
   grouping: Ref<string[]>;
+  /**
+   * `table.groupingScope` and `table.groupingMaxRows`: with `"all"`, an
+   * active grouping loads every matching row instead of the page.
+   */
+  groupingScope?: Readonly<
+    Ref<{ groupingScope?: "all" | "page"; groupingMaxRows?: number }>
+  >;
   pagination: Ref<PaginationState>;
   initialRowCount?: number;
   initialPageCount?: number;
@@ -96,6 +111,12 @@ export const useTableData = <TData extends TableRecord>({
   const isLoading = ref(false);
   const error = ref<Error>();
   const isServer = computed(() => typeof actions.value?.list === "function");
+  const groupsAllRows = computed(
+    () =>
+      isServer.value &&
+      shouldGroupAllRows(groupingScope?.value ?? {}, grouping.value)
+  );
+  const groupingTruncated = ref(false);
   let requestId = 0;
   let activeQueryKey = "";
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
@@ -125,17 +146,53 @@ export const useTableData = <TData extends TableRecord>({
       sorting.value,
       viewId?.value
     );
-  const listQueryKey = (params: ReturnType<typeof listParams>) => [
-    "yayaw-table",
-    tableId,
-    params,
-  ];
+  const listQueryKey = (params: ReturnType<typeof listParams>) =>
+    groupsAllRows.value
+      ? // All rows answer every page: the page leaves the key.
+        [
+          "yayaw-table",
+          tableId,
+          { ...params, page: undefined, pageSize: undefined, allRows: true },
+        ]
+      : ["yayaw-table", tableId, params];
 
   const showCounts = (result: ListResult<TData>): void => {
+    groupingTruncated.value = result.truncated === true;
     rowCount.value = result.meta?.totalCount ?? result.data.length;
     pageCount.value =
       result.meta?.pageCount ??
       Math.ceil(rowCount.value / pagination.value.pageSize);
+  };
+
+  /** One page of the list, or every matching row when grouping covers them all. */
+  const requestRows = async (
+    list: NonNullable<TableActions<TData>["list"]>,
+    params: ReturnType<typeof listParams>,
+    allRows: boolean
+  ): Promise<ListResult<TData>> => {
+    const request = compatibleListParams(params, filterContext?.value);
+    if (!allRows) {
+      return await list(request as unknown as TableListParams);
+    }
+    const loaded = await loadAllGroupedRows<TData>(
+      async (next) => await list(next as unknown as TableListParams),
+      request,
+      groupingScope?.value.groupingMaxRows
+    );
+    return {
+      data: loaded.data,
+      meta: { pageCount: loaded.pageCount, totalCount: loaded.rowCount },
+      truncated: loaded.truncated,
+    };
+  };
+
+  /** Every row shows on one page: the pagination watcher loads them from there. */
+  const movesToFirstPage = (): boolean => {
+    if (!groupsAllRows.value || pagination.value.pageIndex === 0) {
+      return false;
+    }
+    pagination.value = { ...pagination.value, pageIndex: 0 };
+    return true;
   };
 
   const loadRows = async (): Promise<void> => {
@@ -146,22 +203,20 @@ export const useTableData = <TData extends TableRecord>({
       pageCount.value = Math.ceil(rowCount.value / pagination.value.pageSize);
       return;
     }
+    if (movesToFirstPage()) {
+      return;
+    }
     const currentRequest = ++requestId;
     isLoading.value = true;
     error.value = undefined;
     try {
       const params = listParams();
       const list = actions.value.list;
+      const allRows = groupsAllRows.value;
       activeQueryKey = JSON.stringify(listQueryKey(params));
-      const result = await queryClient.fetchQuery({
+      const result: ListResult<TData> = await queryClient.fetchQuery({
         queryKey: listQueryKey(params),
-        queryFn: () =>
-          list(
-            compatibleListParams(
-              params,
-              filterContext?.value
-            ) as unknown as TableListParams
-          ),
+        queryFn: () => requestRows(list, params, allRows),
         staleTime: 0,
       });
       if (currentRequest !== requestId) {
@@ -371,6 +426,8 @@ export const useTableData = <TData extends TableRecord>({
     isLoading,
     error,
     isServer,
+    groupsAllRows,
+    groupingTruncated,
     refresh,
     prefetch,
   };

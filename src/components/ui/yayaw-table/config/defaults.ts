@@ -45,6 +45,7 @@ export const defaultTableConfig = {
   enableViews: true,
   enableCalculations: false,
   enableGrouping: true,
+  groupingScope: "page" as const,
   inlineEdit: {
     enabled: false,
     debounceMs: 700,
