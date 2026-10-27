@@ -1,14 +1,23 @@
 "use client";
 
 import { ImageIcon } from "lucide-react";
-import { useState } from "react";
+import { createContext, useContext, useState } from "react";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/src/components/ui/tooltip";
 import {
   type AvatarShape,
   avatarInitials,
 } from "../../utils/initials-avatar";
 import { resolveImageSource } from "../../utils/image-source";
 import { InitialsAvatar } from "./initials-avatar";
+
+/** The inline editor already owns the cell's button and keyboard activation. */
+export const ImageCellEditingContext = createContext(false);
 
 interface ImageCellProps {
   alt?: string;
@@ -31,7 +40,9 @@ export function ImageCell({
   fallbackLabel,
   value,
 }: ImageCellProps) {
+  const editable = useContext(ImageCellEditingContext);
   const [failedSource, setFailedSource] = useState<string>();
+  const [previewOpen, setPreviewOpen] = useState(false);
   const resolvedSource = resolveImageSource(value);
   const source = failedSource === resolvedSource ? undefined : resolvedSource;
   const label = alt || fallbackLabel || "Image";
@@ -63,19 +74,57 @@ export function ImageCell({
   }
 
   return (
-    // biome-ignore lint/performance/noImgElement: registry consumers should not need Next.js image domain configuration.
-    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: onError swaps broken media to the non-interactive fallback.
-    <img
-      alt={label}
-      className={cn(
-        "h-10 w-14 rounded-md border bg-muted object-cover",
-        className
-      )}
-      height={40}
-      loading="lazy"
-      onError={() => setFailedSource(resolvedSource)}
-      src={source}
-      width={56}
-    />
+    <TooltipProvider>
+      <Tooltip
+        onOpenChange={(open, details) => {
+          if (!editable && details.reason === "trigger-press") {
+            details.cancel();
+            return;
+          }
+          setPreviewOpen(open);
+        }}
+        open={previewOpen}
+      >
+        <TooltipTrigger
+          className="inline-flex rounded-md p-0 outline-offset-2 focus-visible:outline-2"
+          data-image-preview-trigger=""
+          onClick={
+            editable
+              ? undefined
+              : (event) => {
+                  event.stopPropagation();
+                  setPreviewOpen(true);
+                }
+          }
+          render={editable ? <span /> : <button type="button" />}
+        >
+          {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: onError swaps broken media to the non-interactive fallback. */}
+          <img
+            alt={label}
+            className={cn(
+              "h-10 w-14 rounded-md border bg-muted object-cover",
+              className
+            )}
+            height={40}
+            loading="lazy"
+            onError={() => {
+              setFailedSource(resolvedSource);
+              setPreviewOpen(false);
+            }}
+            src={source}
+            width={56}
+          />
+        </TooltipTrigger>
+        <TooltipContent className="p-1" data-image-preview="" side="right">
+          <img
+            alt={label}
+            className="max-h-64 max-w-[min(18rem,80vw)] rounded-sm object-contain"
+            height={256}
+            src={source}
+            width={288}
+          />
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

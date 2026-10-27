@@ -314,6 +314,7 @@ export interface DataTableTranslations {
     orderError?: string;
     settings?: string;
     cardSettings?: string;
+    chartSettings?: string;
     modified?: string;
     upToDate?: string;
     readOnly?: string;

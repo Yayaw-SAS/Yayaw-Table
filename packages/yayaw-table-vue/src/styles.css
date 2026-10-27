@@ -127,6 +127,42 @@
   outline: none;
   font: inherit;
 }
+.yayaw-select {
+  color-scheme: light;
+}
+.dark .yayaw-select {
+  color-scheme: dark;
+}
+.yayaw-select option {
+  background: var(--yayaw-background);
+  color: var(--yayaw-foreground);
+}
+.yayaw-cell-image-trigger {
+  display: inline-flex;
+  border: 0;
+  border-radius: var(--yayaw-radius);
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.yayaw-cell-image-trigger:focus-visible {
+  outline: 2px solid var(--yayaw-ring);
+  outline-offset: 2px;
+}
+.yayaw-image-preview {
+  z-index: 3100;
+  padding: 4px;
+  border-radius: var(--yayaw-radius);
+  background: var(--yayaw-foreground);
+  box-shadow: var(--yayaw-shadow);
+}
+.yayaw-image-preview img {
+  display: block;
+  max-width: min(18rem, 80vw);
+  max-height: 16rem;
+  border-radius: 2px;
+  object-fit: contain;
+}
 .yayaw-input:focus,
 .yayaw-select:focus,
 .yayaw-textarea:focus {

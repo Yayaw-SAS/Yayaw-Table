@@ -17,8 +17,8 @@ import FilterPropertyPicker from "./FilterPropertyPicker.vue";
 /**
  * The rules under the toolbar, as Notion shows them: one chip per rule, or
  * one chip for the advanced filter, then "+ Filter" and "Clear". Date periods
- * pinned to the filter bar or the toolbar show there instead. Nothing shows
- * without rules: the view settings' Filter screen adds the first.
+ * pinned to the filter bar or the toolbar show there instead. The add button
+ * stays visible without rules so the first filter needs no settings menu.
  */
 const context = useTableContext();
 const menu = context.filterMenu;
@@ -46,7 +46,7 @@ const advanced = (): void => {
 </script>
 
 <template>
-  <div v-if="layout.chips.length || layout.advanced.length" class="yayaw-filter-chips" role="group" :aria-label="text('filter')" data-filter-chips="">
+  <div v-if="menu.columns.value.length || layout.chips.length || layout.advanced.length" class="yayaw-filter-chips" role="group" :aria-label="text('filter')" data-filter-chips="">
     <FilterChip v-for="rule in layout.chips" :key="rule.id" :rule="rule" />
     <PopoverRoot v-if="layout.advanced.length" v-model:open="menu.advancedOpen.value">
       <PopoverTrigger as-child>
@@ -71,6 +71,6 @@ const advanced = (): void => {
         </PopoverContent>
       </PopoverPortal>
     </PopoverRoot>
-    <button type="button" class="yayaw-filter-chips-clear" data-filter-chips-clear="" @click="menu.clear(pinned.map(filterBarDateRuleId))">{{ text('clear') }}</button>
+    <button v-if="layout.chips.length || layout.advanced.length" type="button" class="yayaw-filter-chips-clear" data-filter-chips-clear="" @click="menu.clear(pinned.map(filterBarDateRuleId))">{{ text('clear') }}</button>
   </div>
 </template>

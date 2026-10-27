@@ -143,11 +143,15 @@ const listing = () =>
     meta: { totalCount: rows.length },
   }));
 
-it("offers the filterable properties and filters a number between two values", async () => {
+it("offers the first filter directly and keeps its active value and reset visible", async () => {
   const wrapper = mountTable();
-  expect(wrapper.find("[data-filter-chips]").exists()).toBe(false);
+  expect(wrapper.find("[data-filter-chip-add]").exists()).toBe(true);
   expect(wrapper.find("[data-filter-chips-clear]").exists()).toBe(false);
-  await openViewScreen(wrapper, "Filter");
+  await wrapper.get("[data-filter-chip-add]").trigger("click");
+  await flushPromises();
+  expect(
+    wrapper.get(".yayaw-settings-trigger").attributes("aria-expanded")
+  ).not.toBe("true");
   const properties = wrapper
     .findAll("[data-filter-property]")
     .map((item) => item.text());
@@ -173,6 +177,12 @@ it("offers the filterable properties and filters a number between two values", a
   expect(wrapper.get(BODY).text()).not.toContain("Gamma");
   expect(wrapper.get('[data-filter-chip="amount"]').text()).toContain("0");
   expect(wrapper.get(".yayaw-settings-badge").text()).toBe("1");
+  await wrapper.get("[data-filter-chips-clear]").trigger("click");
+  await flushPromises();
+  expect(names(wrapper)).toHaveLength(3);
+  expect(wrapper.find("[data-filter-chip]").exists()).toBe(false);
+  expect(wrapper.find("[data-filter-chips-clear]").exists()).toBe(false);
+  expect(wrapper.find("[data-filter-chip-add]").exists()).toBe(true);
 });
 
 it("filters a date range and removes the rule from its menu", async () => {
@@ -193,7 +203,7 @@ it("filters a date range and removes the rule from its menu", async () => {
   await menuBody().get("[data-filter-delete]").trigger("click");
   await flushPromises();
   expect(names(wrapper)).toHaveLength(3);
-  expect(wrapper.find("[data-filter-chips]").exists()).toBe(false);
+  expect(wrapper.find("[data-filter-chip-add]").exists()).toBe(true);
   expect(wrapper.find("[data-filter-chips-clear]").exists()).toBe(false);
 });
 

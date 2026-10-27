@@ -62,6 +62,7 @@ const mountTable = (
     views?: TableView[];
     actions?: TableViewActions;
     active?: string;
+    initialView?: TableView;
     syncUrl?: boolean;
     table?: Partial<TableBehaviorConfig>;
     locale?: string;
@@ -82,6 +83,7 @@ const mountTable = (
       ],
       initialViews: input.views ?? [],
       initialActiveViewId: input.active,
+      initialView: input.initialView,
       getTableActions: () => ({ views: input.actions }),
       syncUrl: input.syncUrl ?? false,
       locale: input.locale,
@@ -215,6 +217,42 @@ it("creates a local shared view in a modal, retains its options after remount, a
   expect(
     JSON.parse(localStorage.getItem("yayaw-table:view-test:views") ?? "[]")
   ).toEqual([]);
+});
+
+it.each([
+  false,
+  true,
+])("restores the default after deleting a seeded personal view (host default: %s)", async (hostDefault) => {
+  const personal: TableView = {
+    ...saved,
+    config: {
+      globalSearch: "Beta",
+      displayMode: "gallery",
+      density: "extra-small",
+    },
+  };
+  const wrapper = mountTable({
+    views: [personal],
+    active: personal.id,
+    initialView: personal,
+    table: { defaultView: hostDefault ? { density: "large" } : undefined },
+    actions: { delete: async () => ({ success: true }) },
+  });
+  await flushPromises();
+  const { state } = wrapper.vm as unknown as { state: TableStateRefs };
+  expect(state.displayMode.value).toBe("gallery");
+  expect(state.density.value).toBe("extra-small");
+  await openMenu(wrapper);
+  await choose("Delete view");
+  expect(current(wrapper).text()).toBe("Default view");
+  expect(state.activeViewId.value).toBeUndefined();
+  expect(state.search.value).toBe("");
+  expect(state.displayMode.value).toBe("table");
+  expect(state.density.value).toBe(hostDefault ? "large" : "medium");
+  state.density.value = "small";
+  await openMenu(wrapper);
+  await choose("Default view");
+  expect(state.density.value).toBe(hostDefault ? "large" : "medium");
 });
 
 it("keeps failed creation drafts, validates names, and sends the complete action context", async () => {
@@ -874,7 +912,10 @@ it.each([
   await openViewMenu(wrapper);
   await wrapper.get(".yayaw-density-inline input").setValue(true);
   await openViewScreen(wrapper, "Group");
-  await wrapper.get(".yayaw-options-content > button").trigger("click");
+  await wrapper
+    .findAll(".yayaw-options-content > button")
+    .find((button) => button.text() === "Group")
+    ?.trigger("click");
   await flushPromises();
   expect(wrapper.findAll("tbody tr.grouped").length).toBeGreaterThan(0);
   await wrapper.get('[aria-label="Back"]').trigger("click");

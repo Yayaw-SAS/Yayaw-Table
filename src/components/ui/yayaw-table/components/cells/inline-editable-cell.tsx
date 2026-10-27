@@ -70,6 +70,7 @@ import type { InlineEditOption } from "../../config/helpers";
 import type { AnyFieldDefinition, FormSelectOption } from "../forms/types";
 import { LocationEditor } from "../location/location-editor";
 import { TagPicker } from "../tags/tag-picker";
+import { ImageCellEditingContext } from "./image-cell";
 
 /** Server-side choices of a form field with `searchOptions`, already bound to the cell's form context. */
 export interface InlineOptionSearch {
@@ -1115,7 +1116,9 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
             onKeyDown={handleDisplayKeyDown}
             type="button"
           >
-            {displayValue}
+            <ImageCellEditingContext value={true}>
+              {displayValue}
+            </ImageCellEditingContext>
             <InlineEditorIconChip
               icon={editorIcon}
               placement={resolvedEditor === "number" ? "start" : "end"}
