@@ -515,6 +515,11 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string>();
   const createRequest = useRef<AbortController | undefined>(undefined);
+  const searchInput = useRef<HTMLInputElement | null>(null);
+  const focusSearchInput = useCallback((node: HTMLInputElement | null) => {
+    searchInput.current = node;
+    node?.focus();
+  }, []);
   // biome-ignore lint/correctness/useExhaustiveDependencies: Each editing session starts with an empty search.
   useEffect(() => {
     setSearchQuery("");
@@ -609,6 +614,8 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
         ...current.filter((value) => !Object.is(value, created.value)),
         created.value,
       ]);
+      // Back from the app's own form: the editor goes on with the new option chosen.
+      searchInput.current?.focus();
     },
     [commitAndClose, editorValue, resolvedEditor, updateDraftValue]
   );
@@ -817,7 +824,8 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
             cancelEditing();
             return;
           }
-          if (!open) {
+          // A creation in progress keeps the editor, so the app can show its own form over it.
+          if (!(open || creating)) {
             commitAndClose().catch(() => undefined);
           }
         }}
@@ -855,7 +863,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
                 ? cell.column.columnDef.header
                 : cell.column.id
             }
-            ref={focusEditor}
+            ref={focusSearchInput}
             className="h-6 min-w-16"
             onKeyDown={(event) => {
               if (event.nativeEvent.isComposing) {
@@ -923,7 +931,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     createsOption,
     creating,
     filterOption,
-    focusEditor,
+    focusSearchInput,
     getOptionLabel,
     multiSelectAnchorRef,
     optionSearchState.error,
