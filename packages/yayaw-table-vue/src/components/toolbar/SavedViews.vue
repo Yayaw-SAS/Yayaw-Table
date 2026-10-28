@@ -89,7 +89,7 @@ const focusName = (event: Event): void => {
   nameInput.value?.focus();
 };
 // The active saved view names export files.
-defineExpose({ activeName: computed(() => active.value?.name) });
+defineExpose({ activeName: computed(() => active.value?.name), resetView, resetDisabled });
 </script>
 
 <template>

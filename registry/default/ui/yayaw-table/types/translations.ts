@@ -315,6 +315,7 @@ export interface DataTableTranslations {
     settings?: string;
     cardSettings?: string;
     chartSettings?: string;
+    listSettings?: string;
     modified?: string;
     upToDate?: string;
     readOnly?: string;

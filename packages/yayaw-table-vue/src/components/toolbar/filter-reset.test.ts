@@ -78,6 +78,34 @@ describe("toolbar filter reset", () => {
     wrapper.unmount();
   });
 
+  it.each([
+    ["en", "Displayed properties settings"],
+    ["fr", "Réglages des propriétés affichées"],
+  ])("names list settings in %s", async (locale, label) => {
+    const wrapper = mount(YayawDataTable, {
+      props: {
+        tableType: "reset",
+        data,
+        syncUrl: false,
+        locale,
+        config: defineTableConfig({
+          ...config,
+          table: {
+            ...config.table,
+            displayModes: ["list"],
+            defaultDisplayMode: "list",
+          },
+        }),
+      },
+    });
+    await openViewScreen(wrapper, label);
+    expect(wrapper.get('[role="dialog"]').attributes("aria-label")).toBe(label);
+    expect(wrapper.text()).not.toContain(
+      locale === "fr" ? "Réglages des cartes" : "Card settings"
+    );
+    wrapper.unmount();
+  });
+
   it("resets all grouping while preserving the current filters", async () => {
     const wrapper = mount(YayawDataTable, {
       props: {

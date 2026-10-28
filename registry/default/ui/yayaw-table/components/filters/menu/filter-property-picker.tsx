@@ -12,7 +12,10 @@ import {
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import type { FilterMenu } from "../../../hooks/use-filter-menu";
-import type { FilterMenuType } from "../../../utils/filter-menu";
+import {
+  type FilterMenuType,
+  filterPropertyCounts,
+} from "../../../utils/filter-menu";
 
 const ICONS: Record<FilterMenuType, typeof Type> = {
   text: Type,
@@ -40,6 +43,7 @@ export function FilterPropertyPicker({
   onAdvanced: () => void;
 }) {
   const [query, setQuery] = useState("");
+  const counts = filterPropertyCounts(menu.rules);
   const search = query.trim().toLocaleLowerCase();
   const visible = menu.columns.filter(
     (column) => !search || column.header.toLocaleLowerCase().includes(search)
@@ -81,6 +85,14 @@ export function FilterPropertyPicker({
                 className="size-4 shrink-0 text-muted-foreground"
               />
               <span className="truncate">{column.header}</span>
+              {Boolean(counts[column.id]) && (
+                <span
+                  className="ml-auto text-muted-foreground text-xs tabular-nums"
+                  data-filter-property-count={column.id}
+                >
+                  {counts[column.id]}
+                </span>
+              )}
             </button>
           );
         })}
