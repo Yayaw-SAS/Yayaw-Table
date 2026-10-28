@@ -1,7 +1,7 @@
 "use client";
 
 import { ImageIcon } from "lucide-react";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useRef, useState } from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -40,6 +40,7 @@ export function ImageCell({
   const editable = useContext(ImageCellEditingContext);
   const [failedSource, setFailedSource] = useState<string>();
   const [previewOpen, setPreviewOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const resolvedSource = resolveImageSource(value);
   const source = failedSource === resolvedSource ? undefined : resolvedSource;
   const label = alt || fallbackLabel || "Image";
@@ -74,6 +75,15 @@ export function ImageCell({
     <TooltipProvider>
       <Tooltip
         onOpenChange={(open, details) => {
+          // A queued pointer leave must not dismiss the keyboard-focused preview.
+          if (
+            !open &&
+            details.reason === "trigger-hover" &&
+            triggerRef.current?.matches(":focus-visible")
+          ) {
+            details.cancel();
+            return;
+          }
           if (!editable && details.reason === "trigger-press") {
             details.cancel();
             return;
@@ -93,6 +103,7 @@ export function ImageCell({
                   setPreviewOpen(true);
                 }
           }
+          ref={editable ? undefined : triggerRef}
           render={editable ? <span /> : <button type="button" />}
         >
           {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: onError swaps broken media to the non-interactive fallback. */}

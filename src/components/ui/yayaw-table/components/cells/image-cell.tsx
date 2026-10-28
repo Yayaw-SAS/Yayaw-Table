@@ -1,7 +1,7 @@
 "use client";
 
 import { ImageIcon } from "lucide-react";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -43,6 +43,7 @@ export function ImageCell({
   const editable = useContext(ImageCellEditingContext);
   const [failedSource, setFailedSource] = useState<string>();
   const [previewOpen, setPreviewOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const resolvedSource = resolveImageSource(value);
   const source = failedSource === resolvedSource ? undefined : resolvedSource;
   const label = alt || fallbackLabel || "Image";
@@ -77,6 +78,15 @@ export function ImageCell({
     <TooltipProvider>
       <Tooltip
         onOpenChange={(open, details) => {
+          // A queued pointer leave must not dismiss the keyboard-focused preview.
+          if (
+            !open &&
+            details.reason === "trigger-hover" &&
+            triggerRef.current?.matches(":focus-visible")
+          ) {
+            details.cancel();
+            return;
+          }
           if (!editable && details.reason === "trigger-press") {
             details.cancel();
             return;
@@ -88,6 +98,7 @@ export function ImageCell({
         <TooltipTrigger
           className="inline-flex rounded-md p-0 outline-offset-2 focus-visible:outline-2"
           data-image-preview-trigger=""
+          ref={editable ? undefined : triggerRef}
           onClick={
             editable
               ? undefined
