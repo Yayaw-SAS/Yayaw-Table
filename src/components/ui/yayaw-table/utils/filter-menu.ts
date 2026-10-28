@@ -945,6 +945,19 @@ export function filterRuleSummary(
   return { property: column.header, value: `${lower} ${text}`, complete };
 }
 
+/** Complete, active rules per property; drafts and disabled rules do not filter. */
+export function filterPropertyCounts(
+  rules: readonly FilterMenuRule[]
+): Record<string, number> {
+  const counts: Record<string, number> = Object.create(null);
+  for (const rule of rules) {
+    if (rule.isActive !== false && filterRuleComplete(rule)) {
+      counts[rule.columnId] = (counts[rule.columnId] ?? 0) + 1;
+    }
+  }
+  return counts;
+}
+
 /** What a filter state shows under the toolbar. */
 export interface FilterChipsLayout<T extends FilterMenuRule> {
   /** Rules shown as their own chips, joined with "and". */

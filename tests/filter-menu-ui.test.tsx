@@ -16,6 +16,7 @@ import { DataTable } from "../src/components/ui/yayaw-table/components/data-tabl
 import { defineTableConfig } from "../src/components/ui/yayaw-table/config/helpers";
 import type { TableActions } from "../src/components/ui/yayaw-table/providers/table-provider";
 import type { DisplayModeRenderers } from "../src/components/ui/yayaw-table/types/display-mode-renderer";
+import type { TableView } from "../src/components/ui/yayaw-table/types/view-types";
 import {
   compatibleListParams,
   matchesContractFilter,
@@ -137,7 +138,8 @@ const config = defineTableConfig({
 
 const render = async (
   tableConfig = config,
-  displayModeRenderers?: DisplayModeRenderers
+  displayModeRenderers?: DisplayModeRenderers,
+  view?: TableView
 ) => {
   const lists: Row[] = [];
   const actions = {
@@ -173,6 +175,9 @@ const render = async (
             getRowId={(row) => String(row.id)}
             getTableActions={() => actions}
             getTableConfig={() => tableConfig}
+            initialActiveViewId={view?.id}
+            initialViews={view ? [view] : []}
+            initialViewsLoaded
             queryClient={client}
             tableType="notion-filters"
           />
@@ -195,6 +200,147 @@ const openFilterScreen = async () => {
     ) ?? null
   );
 };
+
+it("counts complete active rules per property in the filter picker", async () => {
+  await render(
+    defineTableConfig({
+      ...config,
+      table: {
+        ...config.table,
+        defaultView: {
+          advancedFilters: [
+            {
+              id: "minimum",
+              columnId: "amount",
+              type: "number",
+              operator: "greaterThan",
+              values: [0],
+              createdAt: new Date(0),
+              updatedAt: new Date(0),
+              isActive: true,
+            },
+            {
+              id: "maximum",
+              columnId: "amount",
+              type: "number",
+              operator: "lessThan",
+              values: [100],
+              createdAt: new Date(0),
+              updatedAt: new Date(0),
+              isActive: true,
+            },
+            {
+              id: "status",
+              columnId: "status",
+              type: "select",
+              operator: "isAnyOf",
+              values: ["open", "won"],
+              createdAt: new Date(0),
+              updatedAt: new Date(0),
+              isActive: true,
+            },
+            {
+              id: "inactive",
+              columnId: "due",
+              type: "date",
+              operator: "isEmpty",
+              values: [],
+              isActive: false,
+              createdAt: new Date(0),
+              updatedAt: new Date(0),
+            },
+            {
+              id: "draft",
+              columnId: "name",
+              type: "text",
+              operator: "contains",
+              values: [],
+              createdAt: new Date(0),
+              updatedAt: new Date(0),
+              isActive: true,
+            },
+          ],
+        },
+      },
+    })
+  );
+  await openFilterScreen();
+  expect($('[data-filter-property-count="amount"]')?.textContent).toBe("2");
+  expect($('[data-filter-property-count="status"]')?.textContent).toBe("1");
+  expect($('[data-filter-property-count="due"]')).toBeNull();
+  expect($('[data-filter-property-count="name"]')).toBeNull();
+});
+
+for (const saved of [false, true]) {
+  it(`restores the ${saved ? "saved" : "default"} view from the settings header`, async () => {
+    const baseline = {
+      sorting: [{ id: "name", desc: false }],
+      grouping: ["status"],
+      advancedFilters: [
+        {
+          id: "amount",
+          columnId: "amount",
+          type: "number" as const,
+          operator: "greaterThan" as const,
+          values: [10],
+          isActive: true,
+          createdAt: new Date(0),
+          updatedAt: new Date(0),
+        },
+      ],
+    };
+    const view: TableView = {
+      id: "saved",
+      createdById: "tester",
+      name: "Saved",
+      tableId: config.id,
+      config: baseline,
+    };
+    const { lists, lastRules } = await render(
+      defineTableConfig({
+        ...config,
+        table: {
+          ...config.table,
+          enableViews: true,
+          defaultView: saved ? {} : baseline,
+        },
+      }),
+      undefined,
+      saved ? view : undefined
+    );
+    await click($("[data-filter-chips-clear]"));
+    await click(
+      [...document.querySelectorAll("thead button")].find(
+        (button) => button.textContent?.trim() === "Name"
+      )
+    );
+    await click($('[aria-label="View settings"]'));
+    await click(
+      [...document.querySelectorAll('[role="dialog"] button')].find((button) =>
+        button.textContent?.startsWith("Group")
+      )
+    );
+    await click(
+      [...document.querySelectorAll('[role="dialog"] button')].find(
+        (button) => button.textContent === "Reset"
+      )
+    );
+    const reset = $('[aria-label="Reset view"]') as HTMLButtonElement;
+    expect(reset.disabled).toBe(false);
+    await click(reset);
+    expect(lastRules().map((rule) => rule.columnId)).toEqual(["amount"]);
+    // Page grouping is local and does not belong to the server list request.
+    expect(
+      document.querySelectorAll('[role="dialog"] [aria-label="Remove"]')
+    ).toHaveLength(1);
+    expect(
+      document.querySelector('[role="dialog"] .group')?.textContent
+    ).toContain("Status");
+    expect(lists.at(-1)?.sorting).toEqual([{ id: "name", desc: false }]);
+    expect(reset.disabled).toBe(true);
+    expect(view.config).toEqual(baseline);
+  });
+}
 
 it("adds the first filter directly and keeps its active value and reset visible", async () => {
   const { lastRules } = await render();
@@ -239,6 +385,26 @@ it("adds the first filter directly and keeps its active value and reset visible"
   expect($("[data-filter-chip]")).toBeNull();
   expect($("[data-filter-chips-clear]")).toBeNull();
   expect(document.querySelectorAll("tbody tr")).toHaveLength(3);
+});
+
+it("names list settings for its displayed properties", async () => {
+  await render(
+    defineTableConfig({
+      ...config,
+      table: {
+        ...config.table,
+        displayModes: ["list"],
+        defaultDisplayMode: "list",
+      },
+    })
+  );
+  await click($('[aria-label="View settings"]'));
+  const settings = [
+    ...document.querySelectorAll<HTMLButtonElement>("[role=dialog] button"),
+  ].find((button) => button.textContent === "Displayed properties settings");
+  expect(settings).toBeDefined();
+  await click(settings);
+  expect(document.body.textContent).not.toContain("Card settings");
 });
 
 it("names chart settings for the chart instead of cards", async () => {

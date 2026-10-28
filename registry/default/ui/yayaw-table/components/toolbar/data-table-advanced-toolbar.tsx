@@ -127,7 +127,11 @@ import {
 import { isSchedulable, scheduleLabel } from "../../utils/schedule-model";
 import { tableFilterContext } from "../../utils/table-contracts";
 import { TableTooltip } from "../../utils/table-tooltip";
-import { tableViewDefaults } from "../../utils/table-view-state";
+import {
+  areTableViewConfigsEqual,
+  resolveTableViewConfig,
+  tableViewDefaults,
+} from "../../utils/table-view-state";
 import { sharePageUrl } from "../../utils/view-menu";
 import { FacetsToggle } from "../facets/facet-panel";
 import { FilterBarDate } from "../filters/filter-bar-date";
@@ -1091,7 +1095,10 @@ export function DataTableAdvancedToolbar<TData>({
   const selectedRows = useAtomValue(selectedRowsAtom(tableId)) as Row<
     Record<string, unknown>
   >[];
+  const defaultViewConfig = tableViewDefaults(tableConfig).config;
   const {
+    applyViewConfig,
+    getCurrentViewConfig,
     advancedFiltersParam,
     displayModeParam,
     filtersParam,
@@ -1103,8 +1110,10 @@ export function DataTableAdvancedToolbar<TData>({
     viewParam,
     visibilityParam,
   } = useTableUrlState({
-    defaultGantt: tableConfig.table.gantt,
+    defaultDensity: tableConfig.table.density,
+    defaultGantt: defaultViewConfig.gantt,
     defaultDisplayMode: tableConfig.table.defaultDisplayMode,
+    defaultPageSize: defaultViewConfig.pageSize,
     tableId,
   });
 
@@ -1716,9 +1725,8 @@ export function DataTableAdvancedToolbar<TData>({
     readSavedViews,
     readSavedViews
   );
-  const activeViewName = savedViews?.find(
-    (view) => view.id === viewParam
-  )?.name;
+  const activeView = savedViews?.find((view) => view.id === viewParam);
+  const activeViewName = activeView?.name;
   // The view's columns for connector mappings: visible ones in display order,
   // then the others, never `enableExport: false` ones.
   const connectorColumns = useMemo((): ConnectorViewColumn[] => {
@@ -1996,7 +2004,18 @@ export function DataTableAdvancedToolbar<TData>({
         ]
       : []),
   ];
-  const defaultViewConfig = tableViewDefaults(tableConfig).config;
+  const viewDefaults = {
+    config: defaultViewConfig,
+    density: tableConfig.table.density,
+    displayMode: tableConfig.table.defaultDisplayMode,
+  };
+  const defaultView = {
+    ...defaultViewConfig,
+    ...tableConfig.table.defaultView,
+  };
+  const resolveView = (config: typeof defaultView = defaultView) =>
+    resolveTableViewConfig(config, viewDefaults);
+  const resetViewConfig = resolveView(activeView?.config);
   // A render function keeps the menu's option conditions out of the toolbar body.
   const renderSettingsMenu = () => (
     <TableMenu
@@ -2020,7 +2039,7 @@ export function DataTableAdvancedToolbar<TData>({
       columns={tableMenuColumns}
       compact={isMobile}
       defaultDisplayMode={tableConfig.table.defaultDisplayMode}
-      defaultView={{ ...defaultViewConfig, ...tableConfig.table.defaultView }}
+      defaultView={defaultView}
       enableCalculations={
         tableConfig.table.enableCalculations === true &&
         // Some column's calculation can change: not every one is frozen.
@@ -2102,6 +2121,17 @@ export function DataTableAdvancedToolbar<TData>({
       tableId={tableId}
       tableType={tableType}
       useAdvancedFilters={enableAdvancedFilters}
+      viewReset={{
+        disabled: areTableViewConfigsEqual(
+          resolveView(getCurrentViewConfig()),
+          resetViewConfig
+        ),
+        run: () =>
+          applyViewConfig(resetViewConfig, {
+            viewId: activeView?.id,
+            history: "push",
+          }),
+      }}
     />
   );
   return (

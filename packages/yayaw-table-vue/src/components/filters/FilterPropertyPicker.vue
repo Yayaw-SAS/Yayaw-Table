@@ -2,13 +2,14 @@
 import { Calendar, CircleDot, Hash, List, ListFilterPlus, MapPin, Tags, Type } from "lucide-vue-next";
 import { computed, onMounted, ref } from "vue";
 import { useTableContext } from "../../context";
-import { filterMenuText, type FilterMenuTextKey, type FilterMenuType } from "../../filter-menu";
+import { filterMenuText, filterPropertyCounts, type FilterMenuTextKey, type FilterMenuType } from "../../filter-menu";
 
 /** The properties a new filter can use, searchable; "Add advanced filter" below. */
 withDefaults(defineProps<{ advanced?: boolean }>(), { advanced: true });
 const emit = defineEmits<{ pick: [columnId: string]; advanced: [] }>();
 const context = useTableContext();
 const menu = context.filterMenu;
+const counts = computed(() => filterPropertyCounts(menu.rules.value));
 const translate = (key: string): string | undefined => {
   const value = context.translations.value[key];
   return typeof value === "string" ? value : undefined;
@@ -38,6 +39,7 @@ const first = (): void => {
       <button v-for="column in visible" :key="column.id" type="button" class="yayaw-menu-choice" :data-filter-property="column.id" @click="emit('pick', column.id)">
         <component :is="icon(column.id)" :size="15" aria-hidden="true" />
         <span>{{ column.header }}</span>
+        <span v-if="counts[column.id]" class="yayaw-options-item-end yayaw-options-item-count" :data-filter-property-count="column.id">{{ counts[column.id] }}</span>
       </button>
       <p v-if="!visible.length" class="yayaw-help" role="status">{{ text('noProperties') }}</p>
     </div>

@@ -919,8 +919,9 @@ it.each([
   await flushPromises();
   expect(wrapper.findAll("tbody tr.grouped").length).toBeGreaterThan(0);
   await wrapper.get('[aria-label="Back"]').trigger("click");
-  await openViewsMenu(wrapper);
-  await wrapper.get('[aria-label="Reset view"]').trigger("click");
+  await wrapper
+    .get('.yayaw-toolbar-menu-header [aria-label="Reset view"]')
+    .trigger("click");
   await flushPromises();
   expect(wrapper.findAll("tbody tr.grouped")).toHaveLength(0);
   expect(wrapper.attributes("data-density")).toBe("medium");

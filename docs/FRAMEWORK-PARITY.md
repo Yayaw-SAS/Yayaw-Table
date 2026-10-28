@@ -1,5 +1,16 @@
 # React and Vue parity
 
+## View settings reset and filter counts
+
+Both editions expose Reset view next to the close button in View settings. It
+restores the active saved view, or the host default view when no saved view is
+active, without writing a saved view. It is disabled when nothing has changed.
+The Filter property picker shows a count of complete active rules per column;
+incomplete and inactive rules do not count, and multiple selected values in one
+rule still count as one. List settings use the optional `views.listSettings`
+translation (Displayed properties settings / Réglages des propriétés affichées).
+React and Vue toolbar/filter tests cover saved/default resets, counts and labels.
+
 ## Table usability feedback
 
 Both editions show the add-filter control even before a native column filter is

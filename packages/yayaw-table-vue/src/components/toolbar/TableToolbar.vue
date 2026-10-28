@@ -21,6 +21,7 @@ import {
   List,
   ListFilter,
   Plus,
+  RotateCcw,
   X,
 } from "lucide-vue-next";
 import {
@@ -153,6 +154,8 @@ const optionsTitle = computed(() => {
 });
 const cardSettingsTitle = computed(() => {
   switch (context.state.displayMode.value) {
+    case "list":
+      return translate("views.listSettings", "Displayed properties settings");
     case "chart":
       return translate("views.chartSettings", "Chart settings");
     case "form":
@@ -787,6 +790,11 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
     <ToolbarMenu v-model:open="optionsOpen" :compact="compact" align="end" @close-auto-focus="keepFilterFocus"
       :title="optionsTitle"
       :back="optionsView !== 'main'" :back-label="translate('back', 'Back')" :close-label="translate('close', 'Close')" @back="optionsView = 'main'">
+      <template #header-actions>
+        <TableTooltip :label="translate('views.reset', 'Reset view')">
+          <button type="button" class="yayaw-icon-button" :aria-label="translate('views.reset', 'Reset view')" :disabled="savedViews?.resetDisabled ?? true" @click="savedViews?.resetView()"><RotateCcw :size="16" /></button>
+        </TableTooltip>
+      </template>
       <template #trigger>
         <TableTooltip :label="translate('views.settings', 'View settings')">
           <button type="button" class="yayaw-button yayaw-button-outline yayaw-icon-only yayaw-settings-trigger" :id="`table-options-${context.config.id}`" :aria-label="translate('views.settings', 'View settings')">

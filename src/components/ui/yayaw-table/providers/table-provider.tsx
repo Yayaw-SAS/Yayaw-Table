@@ -894,6 +894,7 @@ export const defaultTranslations: DataTableTranslations = {
     settings: "View settings",
     cardSettings: "Card settings",
     chartSettings: "Chart settings",
+    listSettings: "Displayed properties settings",
     modified: "Unsaved changes",
     upToDate: "This view is already up to date",
     readOnly: "This view cannot be modified",

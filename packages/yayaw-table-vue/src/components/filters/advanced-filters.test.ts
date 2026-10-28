@@ -143,6 +143,65 @@ const listing = () =>
     meta: { totalCount: rows.length },
   }));
 
+it("counts complete active rules per property in the filter picker", async () => {
+  const wrapper = mountTable({
+    config: defineTableConfig({
+      ...config,
+      table: {
+        ...config.table,
+        defaultView: {
+          advancedFilters: [
+            {
+              id: "minimum",
+              columnId: "amount",
+              type: "number",
+              operator: "greaterThan",
+              values: [0],
+            },
+            {
+              id: "maximum",
+              columnId: "amount",
+              type: "number",
+              operator: "lessThan",
+              values: [20],
+            },
+            {
+              id: "status",
+              columnId: "status",
+              type: "select",
+              operator: "isAnyOf",
+              values: [0, false],
+            },
+            {
+              id: "inactive",
+              columnId: "date",
+              type: "date",
+              operator: "isEmpty",
+              isActive: false,
+            },
+            {
+              id: "draft",
+              columnId: "name",
+              type: "text",
+              operator: "contains",
+              values: [],
+            },
+          ],
+        },
+      },
+    }),
+  });
+  await openViewScreen(wrapper, "Filter");
+  expect(wrapper.get('[data-filter-property-count="amount"]').text()).toBe("2");
+  expect(wrapper.get('[data-filter-property-count="status"]').text()).toBe("1");
+  expect(wrapper.find('[data-filter-property-count="date"]').exists()).toBe(
+    false
+  );
+  expect(wrapper.find('[data-filter-property-count="name"]').exists()).toBe(
+    false
+  );
+});
+
 it("offers the first filter directly and keeps its active value and reset visible", async () => {
   const wrapper = mountTable();
   expect(wrapper.find("[data-filter-chip-add]").exists()).toBe(true);

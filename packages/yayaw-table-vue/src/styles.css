@@ -7493,6 +7493,9 @@
   max-height: 18rem;
   overflow: auto;
 }
+.yayaw-property-list .yayaw-options-item-count {
+  margin-inline-start: auto;
+}
 .yayaw-property-advanced {
   border-top: 1px solid var(--yayaw-border);
   border-radius: 0;

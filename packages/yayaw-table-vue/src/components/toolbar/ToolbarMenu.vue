@@ -50,6 +50,7 @@ watch(() => props.open, (open) => {
           <header class="yayaw-toolbar-menu-header">
             <button ref="backButton" v-if="back || childView" class="yayaw-icon-button" type="button" :aria-label="backLabel ?? 'Back'" @click="childView ? childView.back() : emit('back')"><ArrowLeft :size="16" /></button>
             <DialogTitle v-if="compact" as="strong">{{ childView?.title ?? title }}</DialogTitle><strong v-else>{{ childView?.title ?? title }}</strong>
+            <slot name="header-actions" />
             <button class="yayaw-icon-button" type="button" :aria-label="closeLabel ?? 'Close'" @click="updateOpen(false)"><X :size="16" /></button>
           </header>
           <ScrollAreaRoot class="yayaw-toolbar-menu-body" type="hover">

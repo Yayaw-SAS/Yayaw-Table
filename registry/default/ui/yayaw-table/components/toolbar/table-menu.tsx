@@ -116,6 +116,8 @@ export interface TableMenuProps {
   };
   /** The default view's settings: the badge counts only filters and sorts it does not apply. */
   defaultView?: TableViewConfig;
+  /** Restore the active saved view, or the configured default view. */
+  viewReset?: { disabled: boolean; run: () => void };
 }
 
 /**
@@ -497,6 +499,15 @@ function getSettingsTitle(
   translate: (key: string) => string,
   fallback: string
 ): string {
+  if (mode === "list") {
+    return translateWithFallback(
+      translate,
+      "views.listSettings",
+      locale.startsWith("fr")
+        ? "Réglages des propriétés affichées"
+        : "Displayed properties settings"
+    );
+  }
   if (mode === "chart") {
     return translateWithFallback(
       translate,
@@ -565,6 +576,7 @@ export function TableMenu({
   useAdvancedFilters = false,
   advancedFiltersConfig,
   defaultView,
+  viewReset,
 }: TableMenuProps) {
   const { t } = useTranslations();
   const [open, setOpen] = useState(false);
@@ -740,13 +752,14 @@ export function TableMenu({
     setColumnVisibility,
   ]);
 
+  const resetLabel = t(viewReset ? "views.reset" : "menu.reset_all");
   const resetAllButton = (
-    <TableTooltip label={t("menu.reset_all_description")}>
+    <TableTooltip label={resetLabel}>
       <Button
-        aria-label={t("menu.reset_all")}
+        aria-label={resetLabel}
         className="h-8 w-8 shrink-0 p-0 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
-        disabled={!sectionState.hasAnythingToReset}
-        onClick={handleResetAll}
+        disabled={viewReset?.disabled ?? !sectionState.hasAnythingToReset}
+        onClick={viewReset?.run ?? handleResetAll}
         size="sm"
         type="button"
         variant="ghost"
@@ -766,7 +779,7 @@ export function TableMenu({
       asDropdown
       compact={compact}
       defaultView="main"
-      headerEndContent={viewMenu ? undefined : resetAllButton}
+      headerEndContent={!viewMenu || viewReset ? resetAllButton : undefined}
       onOpenChange={(isOpen) => {
         setOpen(isOpen);
         viewMenu?.onOpenChange(isOpen);
