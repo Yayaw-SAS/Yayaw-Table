@@ -21,10 +21,14 @@ describe("form runtime", () => {
         { name: "budget", label: "Budget", type: "number", min: 10 },
       ],
     };
-    const translated = await validateForm(config, { budget: 5 }, {
-      ...context,
-      translations: createTranslations("fr"),
-    });
+    const translated = await validateForm(
+      config,
+      { budget: 5 },
+      {
+        ...context,
+        translations: createTranslations("fr"),
+      }
+    );
     expect(translated.errors).toEqual({
       start: "Date de début est obligatoire",
       budget: "Budget doit être au moins 10",

@@ -353,7 +353,9 @@ const validateScalar = (
   context: FormFieldContext
 ): string | undefined => {
   if (fieldIsRequired(field, context) && missing(value)) {
-    return validationMessage(context, "form.required", "{label} is required", { label: field.label });
+    return validationMessage(context, "form.required", "{label} is required", {
+      label: field.label,
+    });
   }
   const typeError = dataTypeValueError(
     ["dynamic-value", "dynamicValue", "value-type"].includes(field.type)
@@ -371,14 +373,26 @@ const validateScalar = (
     !missing(value) &&
     (typeof value !== "number" || !Number.isFinite(value))
   ) {
-    return validationMessage(context, "form.invalid", "Invalid {label}", { label: field.label });
+    return validationMessage(context, "form.invalid", "Invalid {label}", {
+      label: field.label,
+    });
   }
   if (numeric && typeof value === "number") {
     if (field.min !== undefined && value < field.min) {
-      return validationMessage(context, "form.min", "{label} must be at least {min}", { label: field.label, min: field.min });
+      return validationMessage(
+        context,
+        "form.min",
+        "{label} must be at least {min}",
+        { label: field.label, min: field.min }
+      );
     }
     if (field.max !== undefined && value > field.max) {
-      return validationMessage(context, "form.max", "{label} must be at most {max}", { label: field.label, max: field.max });
+      return validationMessage(
+        context,
+        "form.max",
+        "{label} must be at most {max}",
+        { label: field.label, max: field.max }
+      );
     }
   }
   return undefined;
