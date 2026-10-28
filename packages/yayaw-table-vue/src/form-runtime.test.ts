@@ -7,11 +7,36 @@ import {
   translateFormConfig,
   validateForm,
 } from "./form-runtime";
+import { createTranslations } from "./translations";
 import type { FormConfig, FormFieldContext } from "./types";
 
 const context: FormFieldContext = { mode: "edit", values: {} };
 
 describe("form runtime", () => {
+  it("translates the built-in validation messages", async () => {
+    const config: FormConfig = {
+      id: "campaign",
+      fields: [
+        { name: "start", label: "Date de début", type: "date", required: true },
+        { name: "budget", label: "Budget", type: "number", min: 10 },
+      ],
+    };
+    const translated = await validateForm(
+      config,
+      { budget: 5 },
+      {
+        ...context,
+        translations: createTranslations("fr"),
+      }
+    );
+    expect(translated.errors).toEqual({
+      start: "Date de début est obligatoire",
+      budget: "Budget doit être au moins 10",
+    });
+    const fallback = await validateForm(config, { budget: 5 }, context);
+    expect(fallback.errors.start).toBe("Date de début is required");
+  });
+
   it("isolates nested defaults and row values, including dates", () => {
     const config: FormConfig = {
       id: "items",

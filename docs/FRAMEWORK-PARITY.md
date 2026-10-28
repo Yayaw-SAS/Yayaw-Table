@@ -9,7 +9,9 @@ The grouping panel resets all grouping columns without changing filters. Chart
 settings use the optional `views.chartSettings` translation in English and French.
 
 Image cells preview the full image on hover. Read-only images also offer keyboard
-focus and click access, with Escape to dismiss. Editable images keep their URL
+focus and click access, with Escape to dismiss. A pointer leave does not close a
+keyboard-focused preview; the shared browser suite covers re-entry after Escape
+and pointer movement while focused. Editable images keep their URL
 editor on click or Enter; the preview does not add a nested interactive control.
 Missing and broken images retain their placeholders or initials without a preview.
 Vue native select options follow the host's light/dark theme, matching the readable

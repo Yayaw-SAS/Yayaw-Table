@@ -31,10 +31,17 @@ for (const theme of ["light", "dark"]) {
     await page.keyboard.press("Escape");
     await expect(preview).toBeHidden();
     await page.mouse.move(0, 0);
-    // Tab to the thumbnail rather than using programmatic focus: both tooltip
-    // implementations intentionally distinguish keyboard focus from a click.
+    // Leave and re-enter with the keyboard: Escape blocks reopening until
+    // focus leaves the trigger, and programmatic focus is not a Tab entry.
+    await thumbnail.press("Shift+Tab");
     await page.keyboard.press("Tab");
-    await thumbnail.focus();
+    await expect(thumbnail).toBeFocused();
+    await page.mouse.move(1, 1);
+    await expect(preview).toBeVisible();
+    await thumbnail.press("Tab");
+    await expect(preview).toBeHidden();
+    await page.keyboard.press("Shift+Tab");
+    await expect(thumbnail).toBeFocused();
     await expect(preview).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(preview).toBeHidden();
