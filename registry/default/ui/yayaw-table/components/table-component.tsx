@@ -566,6 +566,12 @@ export function getRegularCellClassName<TData>({
   );
 }
 
+/**
+ * Long text wraps within a capped width instead of widening its column, so a
+ * sort or a page change cannot push the other columns or the page.
+ */
+const DATA_CELL_CONTENT_CLASS = "max-w-120 whitespace-normal break-words";
+
 function getHeaderAriaLabel(headerId: string): string | undefined {
   return headerId === "actions" ? "Actions" : undefined;
 }
@@ -2514,30 +2520,37 @@ function ModernDataTable<
         cell.column.columnDef.cell,
         cell.getContext()
       );
+      if (cell.column.id === "select" || cell.column.id === "actions") {
+        return defaultCellContent;
+      }
       const inlineConfig = getInlineEditConfigFromCell(cell);
       const canInlineEdit = isCellInlineEditable(cell, inlineConfig);
       if (!(canInlineEdit && canEditGalleryRow(row))) {
-        return defaultCellContent;
+        return (
+          <div className={DATA_CELL_CONTENT_CLASS}>{defaultCellContent}</div>
+        );
       }
 
       const { config, context } = resolveInlineForm(row.original);
 
       return (
-        <CatalogueInlineCell
-          cell={cell}
-          config={config}
-          context={context}
-          displayValue={defaultCellContent}
-          inlineConfig={inlineConfig}
-          onCommit={async (value) => {
-            return await commitInlineEdit({
-              row,
-              formField: inlineConfig.formField,
-              optimistic: inlineConfig.optimistic,
-              value,
-            });
-          }}
-        />
+        <div className={DATA_CELL_CONTENT_CLASS}>
+          <CatalogueInlineCell
+            cell={cell}
+            config={config}
+            context={context}
+            displayValue={defaultCellContent}
+            inlineConfig={inlineConfig}
+            onCommit={async (value) => {
+              return await commitInlineEdit({
+                row,
+                formField: inlineConfig.formField,
+                optimistic: inlineConfig.optimistic,
+                value,
+              });
+            }}
+          />
+        </div>
       );
     };
 

@@ -110,6 +110,10 @@
 [data-dashboard-widget] > [data-widget-body][data-overflow="scroll"] {
   overflow: auto;
 }
+/* Table widgets keep one line per record, so "fit" shows as many as before. */
+[data-dashboard-widget] td > * {
+  white-space: nowrap;
+}
 
 /*
  * Flow sections: widgets one under the other, at full width and the height

@@ -1056,12 +1056,12 @@
   outline: 2px solid var(--yayaw-primary);
   outline-offset: 2px;
 }
+/* Long text wraps within the capped width instead of widening its column. */
 .yayaw-cell {
   position: relative;
   max-width: 480px;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: break-word;
 }
 .yayaw-cell.is-editable {
   display: flex;
