@@ -40,27 +40,27 @@ for (const theme of ["light", "dark"]) {
   test(`${theme}: select options are readable and preserve the selected value`, async ({
     page,
   }, testInfo) => {
-    const native = testInfo.project.name === "vue";
-    // The Vue catalogue exercises its native inline editor. React's records
-    // form uses the same custom select as its inline editor.
-    await page.goto(`/?theme=${theme}${native ? "" : "&example=records"}`);
+    const vue = testInfo.project.name === "vue";
+    // Exercise the local Vue inline editor and the equivalent React form select.
+    await page.goto(`/?theme=${theme}${vue ? "" : "&example=records"}`);
     const row = page.getByRole("row").filter({
       has: page.getByText("Product 1", { exact: true }),
     });
-    if (native) {
+    if (vue) {
       await row.locator('[data-column-id="status"] .yayaw-cell').click();
     } else {
       await page.getByRole("button", { name: "Add item" }).click();
     }
-    const select = page.getByRole("combobox", { name: "Status", exact: true });
-    if (native) {
-      await expect(select).toHaveCSS("color-scheme", theme);
-    } else {
+    const select = page.getByRole("combobox", {
+      name: "Status",
+      exact: true,
+      includeHidden: true,
+    });
+    if (!vue) {
       await select.click();
     }
-    const surface = native
-      ? select.locator("option").first()
-      : page.locator('[data-slot="select-content"]');
+    await expect(select).toHaveAttribute("data-slot", "select-trigger");
+    const surface = page.locator('[data-slot="select-content"]');
     const colors = await palette(surface);
     expect(colors.alpha).toBe(255);
     expect(colors.contrast).toBeGreaterThanOrEqual(4.5);
@@ -69,13 +69,18 @@ for (const theme of ["light", "dark"]) {
     } else {
       expect(colors.background).toBeGreaterThan(0.8);
     }
-    if (native) {
-      await select.selectOption("Low Stock");
+    await page.screenshot({ path: testInfo.outputPath("select-popup.png") });
+    if (vue) {
+      await page
+        .getByRole("option", { name: "Low Stock", exact: true })
+        .click();
       await expect(row.locator('[data-column-id="status"]')).toHaveText(
         "Low Stock"
       );
       await row.locator('[data-column-id="status"] .yayaw-cell').click();
-      await expect(select).toHaveValue("Low Stock");
+      await expect(
+        page.getByRole("option", { name: "Low Stock", exact: true })
+      ).toHaveAttribute("aria-selected", "true");
     } else {
       await page.getByRole("option", { name: "Draft", exact: true }).click();
       await expect(select).toContainText("Draft");

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TableSelect from "../controls/TableSelect.vue";
 import { type Component, defineComponent, type PropType, type VNodeChild } from "vue";
 import TableTooltip from "./TableTooltip.vue";
 import {
@@ -968,20 +969,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
                 :key="`${sort.id}-${index}`"
                 class="yayaw-options-rule"
               >
-                <select
-                  class="yayaw-select"
-                  :value="sort.id"
-                  :aria-label="`${translate('sort', 'Sort')} ${index + 1}`"
-                  @change="updateSortColumn(index, ($event.target as HTMLSelectElement).value)"
-                >
-                  <option
-                    v-for="column in sortableColumns"
-                    :key="column.id"
-                    :value="column.id"
-                  >
-                    {{ column.header }}
-                  </option>
-                </select>
+                <TableSelect :model-value="sort.id" :label="`${translate('sort', 'Sort')} ${index + 1}`" hide-label :options="sortableColumns.map(column => ({ value: column.id, label: column.header }))" @update:model-value="updateSortColumn(index, $event)" />
                 <button
                   type="button"
                   class="yayaw-button yayaw-button-outline"
@@ -1022,20 +1010,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
                 :key="`${columnId}-${index}`"
                 class="yayaw-options-rule"
               >
-                <select
-                  class="yayaw-select"
-                  :value="columnId"
-                  :aria-label="`${translate('group', 'Group')} ${index + 1}`"
-                  @change="updateGrouping(index, ($event.target as HTMLSelectElement).value)"
-                >
-                  <option
-                    v-for="column in groupableColumns"
-                    :key="column.id"
-                    :value="column.id"
-                  >
-                    {{ column.header }}
-                  </option>
-                </select>
+                <TableSelect :model-value="columnId" :label="`${translate('group', 'Group')} ${index + 1}`" hide-label :options="groupableColumns.map(column => ({ value: column.id, label: column.header }))" @update:model-value="updateGrouping(index, $event)" />
                 <button
                   type="button"
                   class="yayaw-icon-button"

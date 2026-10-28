@@ -227,9 +227,9 @@ describe("catalogue-backed inline editing", () => {
     });
     await wrapper.trigger("click");
     await flushPromises();
-    expect(wrapper.text()).toContain("Two");
-    await wrapper.get("select").setValue("2");
-    await wrapper.get("select").trigger("blur");
+    const select = new DOMWrapper(document.body);
+    const two = select.get('[role="option"]:nth-child(2)');
+    await two.trigger("keydown", { key: "Enter" });
     await flushPromises();
     expect(update).toHaveBeenCalledTimes(1);
     expect(update).toHaveBeenCalledWith(
@@ -311,28 +311,97 @@ const settle = async () => {
   await new Promise((resolve) => setTimeout(resolve, 10));
 };
 
-it("opens a single select's list on the click that starts editing", async () => {
-  const showPicker = vi.fn();
-  HTMLSelectElement.prototype.showPicker = showPicker;
-  try {
-    const { wrapper } = createCell({
-      column: {
-        id: "amount",
-        header: "Amount",
-        type: "select",
-        options: [
-          { value: 1, label: "One" },
-          { value: 2, label: "Two" },
-        ],
-      },
-    });
-    await wrapper.trigger("click");
-    await flushPromises();
-    expect(wrapper.find("select").exists()).toBe(true);
-    expect(showPicker).toHaveBeenCalledTimes(1);
-  } finally {
-    Reflect.deleteProperty(HTMLSelectElement.prototype, "showPicker");
-  }
+it.each([
+  "click",
+  "Enter",
+])("opens a themed single select with %s and commits typed values once", async (action) => {
+  const { wrapper, update } = createCell({
+    row: { id: "1", amount: 1 },
+    column: {
+      id: "amount",
+      header: "Amount",
+      type: "select",
+      options: [
+        { value: 1, label: "One" },
+        { value: 2, label: "Two" },
+        { value: false, label: "Disabled", disabled: true },
+      ],
+    },
+  });
+  await wrapper.trigger(action === "click" ? "click" : "keydown", {
+    key: action,
+  });
+  await settle();
+  const body = new DOMWrapper(document.body);
+  const popup = body.get('[data-slot="select-content"]');
+  expect(popup.attributes("data-state")).toBe("open");
+  expect(wrapper.find('select:not([aria-hidden="true"])').exists()).toBe(false);
+  expect(popup.get("[data-disabled]").text()).toBe("Disabled");
+  await popup
+    .get('[role="option"]:nth-child(2)')
+    .trigger("keydown", { key: "Enter" });
+  await settle();
+  expect(update).toHaveBeenCalledTimes(1);
+  expect(update).toHaveBeenCalledWith(
+    "1",
+    { amount: 2 },
+    { row: { id: "1", amount: 1 } }
+  );
+});
+
+it.each([
+  false,
+  0,
+  "0",
+  "",
+])("preserves the local single select value %j", async (value) => {
+  const { wrapper, update } = createCell({
+    row: { id: "1", amount: 1 },
+    column: {
+      id: "amount",
+      header: "Amount",
+      type: "select",
+      options: [
+        { value: 1, label: "One" },
+        { value, label: "Chosen" },
+      ],
+    },
+  });
+  await wrapper.trigger("click");
+  await settle();
+  await new DOMWrapper(document.body)
+    .get('[role="option"]:nth-child(2)')
+    .trigger("keydown", { key: "Enter" });
+  await settle();
+  expect(update).toHaveBeenCalledTimes(1);
+  expect(update).toHaveBeenCalledWith(
+    "1",
+    { amount: value },
+    { row: { id: "1", amount: 1 } }
+  );
+});
+
+it("cancels a single select with Escape without persisting a change", async () => {
+  const { wrapper, update } = createCell({
+    row: { id: "1", amount: 1 },
+    column: {
+      id: "amount",
+      header: "Amount",
+      type: "select",
+      options: [
+        { value: 1, label: "One" },
+        { value: 2, label: "Two" },
+      ],
+    },
+  });
+  await wrapper.trigger("click");
+  await settle();
+  await new DOMWrapper(document.body)
+    .get('[data-slot="select-content"]')
+    .trigger("keydown", { key: "Escape" });
+  await settle();
+  expect(update).not.toHaveBeenCalled();
+  expect(wrapper.find('[role="combobox"]').exists()).toBe(false);
 });
 
 it("starts editing where the DOM has no HTMLSelectElement global", async () => {
@@ -760,8 +829,8 @@ for (const [type, value, selector] of [
   ["url", "https://example.com", 'input[type="url"]'],
   ["image", "https://example.com/image.png", 'input[type="url"]'],
   ["json", { active: false }, "textarea"],
-  ["select", 1, "select"],
-  ["tag", 1, "select"],
+  ["select", 1, '[role="combobox"]'],
+  ["tag", 1, '[role="combobox"]'],
 ] as const) {
   it(`derives the Vue ${type} inline control without a form catalogue`, async () => {
     const { wrapper } = createCell({
