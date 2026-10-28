@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.35.0
+
+### Minor Changes
+
+- 4ed100f: Use the themed Select for Vue local inline choices and sort/group property settings instead of operating-system menus. Preserve typed option values, immediate opening, keyboard dismissal and inline validation without new dependencies.
+
 ## 3.34.0
 
 ### Minor Changes
