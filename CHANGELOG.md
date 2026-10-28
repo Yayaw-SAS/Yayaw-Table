@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.34.0
+
+### Minor Changes
+
+- 462c312: Restore the active saved view (or configured default) from a reset button beside the view settings close button. Show complete active filter-rule counts beside properties in the filter picker. React and Vue share both behaviors.
+
+  Name List view settings for the displayed properties in English and French.
+
+### Patch Changes
+
+- a69fb1e: Vue forms: the built-in validation messages (required, invalid, min, max) come from the table translations (`form.required`, `form.invalid`, `form.min`, `form.max`), translated in French, instead of fixed English text.
+
+  Keep read-only image previews open while keyboard-focused when a delayed pointer leave fires; Escape and blur still dismiss them.
+
 ## 3.33.0
 
 ### Minor Changes
