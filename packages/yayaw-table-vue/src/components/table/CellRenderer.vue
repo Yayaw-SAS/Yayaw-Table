@@ -3,6 +3,7 @@ import "../../tag-colors.css";
 import { tagItemAppearance } from "../../tag-items";
 import {
   computed,
+  useId,
   nextTick,
   onBeforeUnmount,
   defineComponent,
@@ -24,6 +25,7 @@ import ImageCell from "./ImageCell.vue";
 import TableTooltip from "../toolbar/TableTooltip.vue";
 import { avatarInitials, avatarNameOf, avatarStack, resolveAvatarConfig } from "../../initials-avatar";
 import InlineMultiSelect, { type InlineOptionSearch } from "./InlineMultiSelect.vue";
+import FieldSelect from "../forms/FieldSelect.vue";
 import TagPicker from "../tags/TagPicker.vue";
 import LocationEditor from "../location/LocationEditor.vue";
 import { formatCoordinates, formatLocation, parseLocation } from "../../location-model";
@@ -67,7 +69,8 @@ const debounceMs = computed(() => inlineConfig.value.debounceMs ?? context.confi
 const dirty = computed(() => !formValuesEqual(draft.value, committed.value));
 const delayProgress = computed(() => scheduledAt.value == null || debounceMs.value <= 0 ? 0 : Math.min(100, Math.max(0, 100 * (1 - (scheduledAt.value - currentTime.value) / debounceMs.value))));
 const error = ref<string>();
-const editorElement = ref<HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>();
+const editorId = useId();
+const editorElement = ref<HTMLButtonElement | HTMLInputElement | HTMLTextAreaElement>();
 let closeRequested = false;
 const dynamicType = computed<ColumnType>(() => resolveDataType(props.column.type, props.row, props.column.typeKey));
 const effectiveColumn = computed<ColumnDefinition>(() => ({
@@ -243,15 +246,6 @@ const begin = async (): Promise<void> => {
   }
   await nextTick();
   editorElement.value?.focus();
-  // A native select only lists its options on a second click: open it so the cell's click picks a value.
-  // Checked through the editor, not `instanceof HTMLSelectElement`: the component also runs where no DOM globals exist.
-  if (editor.value === "select") {
-    try {
-      (editorElement.value as HTMLSelectElement | undefined)?.showPicker?.();
-    } catch {
-      // No user activation (keyboard start after a slow load) or no support: focus is enough.
-    }
-  }
 };
 const parseDraft = (): unknown => {
   if (editor.value === "number") {
@@ -596,26 +590,20 @@ const tagListeners = (value: unknown) => {
         @commit="save()"
         @cancel="cancel"
       />
-      <select
+      <FieldSelect
         v-else-if="editor === 'select'"
-        ref="editorElement"
-        v-model="draft"
-        class="yayaw-select yayaw-inline-editor"
+        :id="editorId"
+        :model-value="draft"
+        :options="options"
+        :placeholder="formField?.label ?? column.header"
         :disabled="optionsLoading"
-        :aria-label="formField?.label ?? column.header"
-        autofocus
-        @change="save()"
-        @blur="save()"
-      >
-        <option
-          v-for="option in options"
-          :key="`${typeof option.value}:${option.value}`"
-          :value="option.value"
-          :disabled="option.disabled"
-        >
-          {{ option.label }}
-        </option>
-      </select>
+        :open="!optionsLoading"
+        :label="formField?.label ?? column.header"
+        @update:model-value="draft = $event; save()"
+        @update:open="!$event && nextTick(() => save())"
+        @cancel="cancel"
+        @keydown.stop
+      />
       <div v-else-if="editor === 'location'" class="yayaw-location-inline">
         <span ref="locationAnchor" class="yayaw-location-cell">
           <MapPin v-if="place" :size="14" aria-hidden="true" />

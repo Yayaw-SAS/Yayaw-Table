@@ -25,15 +25,26 @@ keyboard-focused preview; the shared browser suite covers re-entry after Escape
 and pointer movement while focused. Editable images keep their URL
 editor on click or Enter; the preview does not add a nested interactive control.
 Missing and broken images retain their placeholders or initials without a preview.
-Vue native select options follow the host's light/dark theme, matching the readable
-React select popups. No configuration migration is required.
+Vue local single-value inline editors reuse the record form's Shadcn-style Select
+(Reka primitives), matching React instead of opening an operating-system menu.
+The first click or Enter opens the list; selecting commits the original typed
+value once, Escape cancels and dismissing retains normal inline validation. Sort
+and grouping property pickers also use the existing themed Select. No consumer
+configuration migration or new dependency is required.
+
+The select audit also identified native controls shared in both
+editions: advanced filter properties/operators, relative-date parts, pagination,
+dashboard settings and the framework-neutral planning editor. These are separate
+from the local inline and Vue-only toolbar discrepancies fixed here. Catalogue
+form fields, searched/multiple inline choices, card settings, layout/view pickers
+and renderer settings already use custom controls.
 
 React and Vue filter-menu tests cover direct access, active summaries, independent
 filter/group resets and chart labels. Saved-view tests cover deleting an initial
 custom view and restoring catalogue defaults, with an explicit default view too.
 The shared Playwright image-preview suite verifies hover, keyboard, click, Escape,
 broken images and both themes against both runnable examples. The select-theme
-suite checks option contrast and selection persistence in light and dark themes.
+suite checks custom popup contrast and selection persistence in light and dark themes.
 
 ## Metric display conversions
 

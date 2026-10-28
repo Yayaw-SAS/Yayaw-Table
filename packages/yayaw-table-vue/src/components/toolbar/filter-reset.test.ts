@@ -1,4 +1,4 @@
-import { flushPromises, mount } from "@vue/test-utils";
+import { DOMWrapper, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { h, markRaw } from "vue";
 import {
@@ -102,6 +102,41 @@ describe("toolbar filter reset", () => {
     expect(wrapper.get('[role="dialog"]').attributes("aria-label")).toBe(label);
     expect(wrapper.text()).not.toContain(
       locale === "fr" ? "Réglages des cartes" : "Card settings"
+    );
+    wrapper.unmount();
+  });
+
+  it.each([
+    "Sort",
+    "Group",
+  ])("uses a custom property select in %s settings", async (screen) => {
+    const wrapper = mount(YayawDataTable, {
+      attachTo: document.body,
+      props: {
+        tableType: "reset",
+        data,
+        syncUrl: false,
+        config: defineTableConfig({
+          ...config,
+          table: { ...config.table, defaultView: { grouping: ["status"] } },
+        }),
+      },
+    });
+    await openViewScreen(wrapper, screen);
+    const trigger = wrapper.get('[role="combobox"]');
+    expect(trigger.element.tagName).toBe("BUTTON");
+    expect(trigger.attributes("aria-label")).toBe(`${screen} 1`);
+    await trigger.trigger("keydown", { key: "Enter" });
+    await flushPromises();
+    const options = new DOMWrapper(document.body).findAll('[role="option"]');
+    const choice = options.find(
+      (option) => option.text() === (screen === "Sort" ? "Status" : "Name")
+    );
+    expect(choice).toBeDefined();
+    await choice?.trigger("keydown", { key: "Enter" });
+    await flushPromises();
+    expect(wrapper.get('[role="combobox"]').text()).toBe(
+      screen === "Sort" ? "Status" : "Name"
     );
     wrapper.unmount();
   });

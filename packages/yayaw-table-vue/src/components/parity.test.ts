@@ -196,13 +196,21 @@ it("rolls a failed Kanban move back and shares the toolbar grouping", async () =
       ?.text()
   ).toContain("Alpha");
   await openViewScreen(wrapper, "Group");
-  if (!wrapper.find('select[aria-label="Group 1"]').exists()) {
+  if (!wrapper.find('[role="combobox"][aria-label="Group 1"]').exists()) {
     await wrapper
       .findAll(".yayaw-options-content button")
       .find((button) => button.text() === "Group")
       ?.trigger("click");
   }
-  await wrapper.get('select[aria-label="Group 1"]').setValue("name");
+  await wrapper
+    .get('[role="combobox"][aria-label="Group 1"]')
+    .trigger("keydown", { key: "Enter" });
+  await flushPromises();
+  const nameOption = new DOMWrapper(document.body)
+    .findAll('[role="option"]')
+    .find((option) => option.text() === "Name");
+  expect(nameOption).toBeDefined();
+  await nameOption?.trigger("keydown", { key: "Enter" });
   await flushPromises();
   expect(
     wrapper

@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectViewport,
 } from "reka-ui";
-import { computed, useTemplateRef } from "vue";
+import { computed, nextTick, useTemplateRef, watch } from "vue";
 import { useOverlayTheme } from "../../composables/use-overlay-theme";
 import { optionControlKey, optionControlValue } from "../../table-contracts";
 import type { SelectOption } from "../../types";
@@ -22,7 +22,7 @@ import type { SelectOption } from "../../types";
  * A record form select: the table's dropdown (as in the Form view and the
  * React edition), with a "Choose…" placeholder and typed option values.
  */
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   id: string;
   modelValue: unknown;
   options: readonly SelectOption[];
@@ -32,10 +32,19 @@ const props = defineProps<{
   invalid?: boolean;
   labelledBy?: string;
   describedBy?: string;
+  open?: boolean;
+  label?: string;
+}>(), { open: undefined });
+const emit = defineEmits<{
+  "update:modelValue": [value: unknown];
+  "update:open": [open: boolean];
+  cancel: [];
 }>();
-const emit = defineEmits<{ "update:modelValue": [value: unknown] }>();
 const anchor = useTemplateRef<HTMLElement>("anchor");
 const { overlayStyle, updateOpen } = useOverlayTheme(anchor);
+watch(() => props.open, (open) => {
+  if (open) void nextTick(() => updateOpen(true));
+}, { immediate: true });
 const empty = (value: unknown) => value === undefined || value === null || value === "";
 /** Existing values missing from the options still show, as in React. */
 const items = computed(() =>
@@ -57,13 +66,15 @@ const selected = computed(() =>
       :model-value="selected ? optionControlKey(selected.value) : undefined"
       :disabled="disabled"
       :required="required"
+      :open="open"
       @update:model-value="emit('update:modelValue', typeof $event === 'string' ? optionControlValue($event) : null)"
-      @update:open="updateOpen"
+      @update:open="updateOpen($event); emit('update:open', $event)"
     >
       <SelectTrigger
         :id="id"
         class="yayaw-select-trigger yayaw-form-select"
         data-slot="select-trigger"
+        :aria-label="label"
         :aria-labelledby="labelledBy"
         :aria-describedby="describedBy"
         :aria-invalid="invalid || undefined"
@@ -84,6 +95,7 @@ const selected = computed(() =>
           :side-offset="4"
           :collision-padding="8"
           data-slot="select-content"
+          @escape-key-down="emit('cancel')"
         >
           <SelectScrollUpButton class="yayaw-select-scroll">
             <ChevronUp :size="16" aria-hidden="true" />

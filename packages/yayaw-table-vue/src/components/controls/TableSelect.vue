@@ -19,6 +19,7 @@ import { useOverlayTheme } from "../../composables/use-overlay-theme";
 
 const props = defineProps<{
   label: string;
+  hideLabel?: boolean;
   options: readonly { value: T; label: string; disabled?: boolean }[];
   disabled?: boolean;
 }>();
@@ -38,7 +39,7 @@ const select = (value: unknown): void => {
 
 <template>
   <div ref="anchor" class="yayaw-control-field">
-    <label :for="id">{{ label }}</label>
+    <label v-if="!hideLabel" :for="id">{{ label }}</label>
     <SelectRoot
       :model-value="optionKey(model)"
       :disabled="disabled"

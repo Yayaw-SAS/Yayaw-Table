@@ -194,20 +194,22 @@ it("restricts Kanban lanes to groupable columns and updates card titles", async 
   const wrapper = mountTable({ mode: "kanban" });
   await flushPromises();
   await openViewScreen(wrapper, "Group");
-  const group = wrapper.find('select[aria-label="Group 1"]');
+  const group = wrapper.find('[role="combobox"][aria-label="Group 1"]');
   if (!group.exists()) {
     await wrapper
       .findAll(".yayaw-options-content button")
       .find((button) => button.text() === "Group")
       ?.trigger("click");
   }
-  const picker = wrapper.get('select[aria-label="Group 1"]');
-  expect(picker.findAll("option").map((item) => item.text())).toEqual([
-    "Status",
-    "Photo",
-    "Amount",
-  ]);
-  await picker.setValue("amount");
+  const picker = wrapper.get('[role="combobox"][aria-label="Group 1"]');
+  await picker.trigger("keydown", { key: "Enter" });
+  await flushPromises();
+  expect(
+    body()
+      .findAll('[role="option"]')
+      .map((item) => item.text())
+  ).toEqual(["Status", "Photo", "Amount"]);
+  await choose("Amount");
   await flushPromises();
   expect(
     wrapper
