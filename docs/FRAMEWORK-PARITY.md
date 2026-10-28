@@ -1,5 +1,14 @@
 # React and Vue parity
 
+## Column-header query ownership
+
+In both editions, column-header sorting updates the parent table state without
+creating another data query. `tableType` resolves actions and configuration;
+`tableId` scopes the instance state and may differ. React and Vue regression tests
+cover header sorting and query invalidation with distinct identifiers, with URL
+synchronization enabled and disabled. Vue already uses its parent column API;
+React now uses the parent table API instead of mounting a second data hook.
+
 ## View settings reset and filter counts
 
 Both editions expose Reset view next to the close button in View settings. It

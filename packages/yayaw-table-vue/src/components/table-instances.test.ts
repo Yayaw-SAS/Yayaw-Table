@@ -1,3 +1,4 @@
+import { QueryClient } from "@tanstack/vue-query";
 import {
   DOMWrapper,
   enableAutoUnmount,
@@ -88,6 +89,50 @@ describe("table instances on one page", () => {
     window.history.replaceState({}, "", "/");
     window.localStorage.clear();
   });
+
+  for (const syncUrl of [false, true]) {
+    it(`keeps header sorting on the parent query when tableId differs from tableType (syncUrl=${syncUrl})`, async () => {
+      const requests: TableListParams[] = [];
+      const client = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const wrapper = mount(YayawDataTable, {
+        attachTo: document.body,
+        global: { stubs: { PopperArrow: true } },
+        props: {
+          tableType: "products",
+          tableId: `product-catalog-${syncUrl}`,
+          config,
+          syncUrl,
+          queryClient: client,
+          getTableActions: () => ({
+            list: (params: TableListParams) => {
+              requests.push(params);
+              return Promise.resolve({
+                data: rows,
+                meta: { pageCount: 1, totalCount: rows.length },
+              });
+            },
+          }),
+        },
+      });
+      await settle();
+      await wrapper.get(".yayaw-column-menu-trigger").trigger("click");
+      await flushPromises();
+      const descending = Array.from(
+        document.querySelectorAll<HTMLElement>('[role="menuitem"]')
+      ).find((item) => item.textContent?.toLowerCase() === "descending");
+      expect(descending).toBeDefined();
+      descending?.click();
+      await settle();
+      expect(requests.at(-1)?.sorting).toEqual([{ id: "name", desc: true }]);
+      await client.invalidateQueries();
+      await settle();
+      expect(wrapper.text()).toContain("Alpha");
+      wrapper.unmount();
+      client.clear();
+    });
+  }
 
   it("scopes the URL keys of each instance, the shared ones included", async () => {
     window.history.replaceState({}, "", "/?right-q=Beta&test-q=Gamma");

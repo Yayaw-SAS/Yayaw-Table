@@ -36,7 +36,6 @@ import {
   tableMenuOpenFilterColumnIdAtom,
   tableMenuOpenToViewAtom,
 } from "../../../atoms/table-atoms";
-import { useDataTable } from "../../../hooks/use-data-table";
 import { useOnClickOutside } from "../../../hooks/use-on-click-outside";
 import { useTableConfig } from "../../../hooks/use-table-config";
 import { useTableTranslations } from "../../../hooks/use-table-translations";
@@ -271,11 +270,6 @@ function ColumnMenuBase<TData, TValue>({
     }
   }, [isOpen, floating.refs, floating.update]);
 
-  const setSorting = useDataTable({
-    tableId,
-    tableType: tableId,
-  }).setSorting;
-
   const columnCapabilities = {
     canFilter: column.getCanFilter(),
     canHide: column.getCanHide(),
@@ -322,11 +316,10 @@ function ColumnMenuBase<TData, TValue>({
       const sortingObj = [{ desc, id: column.id }];
       queueMicrotask(() => {
         table.setSorting(sortingObj);
-        setSorting(sortingObj);
       });
       setIsOpen(false);
     },
-    [column.id, setSorting, table]
+    [column.id, table]
   );
 
   const handleToggleVisibility = useCallback(() => {
