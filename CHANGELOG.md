@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.35.2
+
+### Patch Changes
+
+- 0a8dde8: Keep React column-header menus on the parent table query when tableId differs from tableType, preventing an empty header query from replacing loaded rows.
+
 ## 3.35.1
 
 ### Patch Changes
