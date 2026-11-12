@@ -1084,6 +1084,11 @@ Framework-native differences, by design:
   synchronously and has no component-level prefetch: its server rendering
   shows `initialData` (the default state's first page) or its loading state,
   and its `useQuery` reads a hydrated cache natively (30 s `staleTime`).
+- **Vue server actions.** On the server, Vue asks the host for its actions
+  (`getTableActions`) once, in setup, and the prefetch uses that object: it
+  never calls the getter again after its awaits, where a host getter that
+  needs its framework's context (Nuxt `useNuxtApp`) would have lost it. The
+  browser follows the getter as before. React has no server prefetch.
 - **What waits for the browser.** Vue: footer calculations, facet counts,
   folders, server Kanban boards and the display modes from renderers (Feed,
   Calendar, Chart, Map, File tree, Form, mounted right after hydration), the
@@ -1116,7 +1121,8 @@ and no other action (aggregates, tags, views, updates), dates in
 `table.timeZone`, the dehydratable page, no `window` or `localStorage`; tag
 catalogs awaited with the rows; the loading state without `serverPrefetch`
 or after a failure; a server board and a renderer mode left to the browser;
-`initialView.pageIndex`. Vue `components/server-hydration.test.ts` (jsdom):
+`initialView.pageIndex`; the host's actions asked once, in setup, not after
+the prefetch's awaits. Vue `components/server-hydration.test.ts` (jsdom):
 hydrating the server's HTML with the dehydrated client gives no hydration
 warning and no second `list`, `views.list` or `views.getFavorite` (also from
 a request URL with `syncUrl` and `urlSearch`); with
