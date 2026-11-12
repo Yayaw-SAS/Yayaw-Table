@@ -100,7 +100,7 @@ export function createTextColumn<TData>({
 
           return (
             <Button
-              className="flex w-full cursor-pointer items-center gap-2 border-0 bg-red-100 p-2 text-left hover:bg-red-200"
+              className="flex w-full cursor-pointer items-center gap-2 border-0 bg-destructive/10 p-2 text-left hover:bg-destructive/20"
               onClick={(e) => {
                 e.stopPropagation();
                 setLocalExpanded(!localExpanded);

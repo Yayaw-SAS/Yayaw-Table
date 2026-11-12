@@ -15,8 +15,14 @@
   --yayaw-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
   --yayaw-shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --yayaw-card: var(--card, oklch(1 0 0));
+  /* Tones shadcn has no token for: a theme sets --yayaw-success / --yayaw-warning. */
+  --yayaw-success-tone: var(--yayaw-success, oklch(0.527 0.154 150.069));
+  --yayaw-warning-tone: var(--yayaw-warning, oklch(0.555 0.163 48.998));
+  --yayaw-warning-mark: var(--yayaw-warning, oklch(0.769 0.188 70.08));
 }
 .dark {
+  --yayaw-success-tone: var(--yayaw-success, oklch(0.723 0.219 149.579));
+  --yayaw-warning-tone: var(--yayaw-warning, oklch(0.828 0.189 84.429));
   --yayaw-card: var(--card, oklch(0.205 0 0));
   --yayaw-background: var(--background, oklch(0.145 0 0));
   --yayaw-foreground: var(--foreground, oklch(0.985 0 0));
@@ -229,7 +235,7 @@
 }
 .yayaw-button-danger {
   background: var(--yayaw-danger);
-  color: #fff;
+  color: var(--yayaw-danger-foreground, var(--destructive-foreground, #fff));
 }
 .yayaw-button-secondary {
   border-color: var(--yayaw-border);
@@ -365,6 +371,73 @@
 .yayaw-layout-tile:focus-visible {
   outline: 2px solid var(--yayaw-ring);
   outline-offset: 2px;
+}
+/* The filter row: the rules' chips, then the display mode switch at its end. */
+.yayaw-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+.yayaw-filter-row:empty {
+  display: none;
+}
+.yayaw-filter-row > .yayaw-filter-chips {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.yayaw-mode-switch {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  margin: 0 0 0 auto;
+  padding: 2px;
+  border: 1px solid var(--yayaw-border);
+  border-radius: calc(var(--yayaw-radius) + 2px);
+  background: var(--yayaw-muted);
+}
+.yayaw-mode-switch legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.yayaw-mode-segment {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--yayaw-radius);
+  background: transparent;
+  color: var(--yayaw-muted-foreground);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.yayaw-mode-segment[data-icon-only] {
+  width: 28px;
+  padding: 0;
+}
+.yayaw-mode-segment:hover {
+  color: var(--yayaw-foreground);
+}
+.yayaw-mode-segment[aria-pressed="true"] {
+  background: var(--yayaw-background);
+  box-shadow: var(--yayaw-shadow-xs);
+  color: var(--yayaw-foreground);
+  font-weight: 500;
+}
+.yayaw-mode-segment:focus-visible {
+  outline: 2px solid var(--yayaw-ring);
+  outline-offset: 1px;
 }
 .yayaw-layout-row-value {
   margin-left: auto;
@@ -1370,7 +1443,7 @@
   object-fit: cover;
 }
 .yayaw-link {
-  color: #2563eb;
+  color: var(--yayaw-primary);
   text-decoration: none;
 }
 .yayaw-tags {
@@ -1783,16 +1856,16 @@
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 10px;
-  border: 1px solid #fecaca;
+  border: 1px solid color-mix(in oklab, var(--yayaw-danger) 30%, transparent);
   border-radius: var(--yayaw-radius);
-  background: #fef2f2;
-  color: #991b1b;
+  background: color-mix(in oklab, var(--yayaw-danger) 8%, transparent);
+  color: var(--yayaw-danger);
   padding: 9px 12px;
 }
 .yayaw-status[data-type="success"] {
-  border-color: #bbf7d0;
-  background: #f0fdf4;
-  color: #166534;
+  border-color: color-mix(in oklab, var(--yayaw-success-tone) 30%, transparent);
+  background: color-mix(in oklab, var(--yayaw-success-tone) 8%, transparent);
+  color: var(--yayaw-success-tone);
 }
 .yayaw-status button {
   border: 0;
@@ -2261,8 +2334,8 @@
   background: var(--yayaw-muted);
 }
 .yayaw-form-content[data-tone="warning"] {
-  border-color: #f59e0b66;
-  background: #f59e0b1a;
+  border-color: color-mix(in oklab, var(--yayaw-warning-mark) 40%, transparent);
+  background: color-mix(in oklab, var(--yayaw-warning-mark) 10%, transparent);
 }
 .yayaw-form-content p {
   white-space: pre-wrap;
@@ -2940,7 +3013,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #3b82f6;
+  background: var(--yayaw-primary);
 }
 
 /* View panels use compact Shadcn menu rows; only constrained content scrolls. */
@@ -3984,7 +4057,7 @@
   font-size: 14px;
 }
 .yayaw-connector-prepare {
-  border-color: color-mix(in oklab, oklch(0.769 0.188 70.08) 50%, transparent);
+  border-color: color-mix(in oklab, var(--yayaw-warning-mark) 50%, transparent);
 }
 .yayaw-connector-check h3,
 .yayaw-connector-check h4,
@@ -4016,7 +4089,7 @@
   color: var(--yayaw-danger);
 }
 .yayaw-connector-check h4[data-severity="fixable"] {
-  color: oklch(0.555 0.163 48.998);
+  color: var(--yayaw-warning-tone);
 }
 .yayaw-connector-check ul {
   display: grid;
@@ -4044,7 +4117,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: oklch(0.527 0.154 150.069);
+  color: var(--yayaw-success-tone);
   font-size: 12px;
 }
 .yayaw-connector-hint.yayaw-connector-blocked {
@@ -4116,7 +4189,7 @@
 .yayaw-sync-warning {
   color: color-mix(
     in oklab,
-    oklch(0.666 0.179 58.318) 75%,
+    var(--yayaw-warning-tone) 75%,
     var(--yayaw-foreground)
   );
   font-size: 12px;
@@ -4199,7 +4272,7 @@
   width: 100%;
 }
 .yayaw-connector-conflicts-entry svg {
-  color: oklch(0.666 0.179 58.318);
+  color: var(--yayaw-warning-tone);
 }
 .yayaw-connector-conflicts {
   display: grid;
@@ -5536,17 +5609,17 @@
 }
 .yayaw-form-missing {
   border-radius: calc(var(--yayaw-radius) - 4px);
-  background: color-mix(in oklab, oklch(0.769 0.188 70.08) 12%, transparent);
+  background: color-mix(in oklab, var(--yayaw-warning-mark) 12%, transparent);
   padding: 2px 6px;
   color: color-mix(
     in oklab,
-    oklch(0.555 0.163 48.998) 85%,
+    var(--yayaw-warning-tone) 85%,
     var(--yayaw-foreground)
   );
   font-size: 12px;
 }
 .dark .yayaw-form-missing {
-  color: oklch(0.828 0.189 84.429);
+  color: var(--yayaw-warning-tone);
 }
 .yayaw-form-missing-line {
   margin: 0;
@@ -5628,13 +5701,13 @@
 .yayaw-form-share-note {
   margin: 0;
   border-radius: var(--yayaw-radius);
-  background: color-mix(in oklab, oklch(0.769 0.188 70.08) 10%, transparent);
+  background: color-mix(in oklab, var(--yayaw-warning-mark) 10%, transparent);
   padding: 8px 10px;
-  color: oklch(0.473 0.137 46.201);
+  color: var(--yayaw-warning-tone);
   font-size: 14px;
 }
 .dark .yayaw-form-share-note {
-  color: oklch(0.879 0.169 91.605);
+  color: var(--yayaw-warning-tone);
 }
 
 /* View → Form settings: a summary and "Edit form". */
@@ -5773,7 +5846,7 @@
   height: 8px;
   flex: none;
   border-radius: 999px;
-  background: oklch(0.769 0.188 70.08);
+  background: var(--yayaw-warning-mark);
 }
 .yayaw-form-builder-missing-dot {
   width: 6px;
@@ -7059,21 +7132,27 @@
   font-size: 12px;
 }
 
-/* The same quiet blue filter tint in both editions, independent of the host accent. */
+/* The same filter tint in both editions: the theme's primary, softened. */
 .yayaw-table,
 .yayaw-filter-popover,
 .yayaw-filter-menu-layer {
-  --yayaw-filter-accent: #1f6fbd;
-  --yayaw-filter-accent-soft: rgb(35 131 226 / 8%);
-  --yayaw-filter-accent-hover: rgb(35 131 226 / 14%);
+  --yayaw-filter-accent: var(--yayaw-primary);
+  --yayaw-filter-accent-soft: color-mix(
+    in oklab,
+    var(--yayaw-primary) 10%,
+    transparent
+  );
+  --yayaw-filter-accent-hover: color-mix(
+    in oklab,
+    var(--yayaw-primary) 15%,
+    transparent
+  );
   --yayaw-filter-accent-line: transparent;
 }
 .dark .yayaw-table,
 .dark .yayaw-filter-popover,
 .dark .yayaw-filter-menu-layer {
-  --yayaw-filter-accent: #7ebaff;
-  --yayaw-filter-accent-soft: rgb(126 186 255 / 12%);
-  --yayaw-filter-accent-hover: rgb(126 186 255 / 20%);
+  --yayaw-filter-accent: var(--yayaw-primary);
 }
 .yayaw-filter-menu-layer {
   z-index: 3100;
@@ -7441,7 +7520,7 @@
   color: color-mix(in oklab, var(--yayaw-muted-foreground) 60%, transparent);
 }
 .yayaw-date-calendar td button[data-today] {
-  color: oklch(0.58 0.22 27);
+  color: var(--yayaw-danger);
   font-weight: 600;
 }
 .yayaw-date-calendar td button[data-edge="true"] {

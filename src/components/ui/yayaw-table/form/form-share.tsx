@@ -21,6 +21,7 @@ import {
   type PublicFormSnapshot,
 } from "../utils/form-view";
 import { TableTooltip } from "../utils/table-tooltip";
+import { WARNING_SURFACE, WARNING_TEXT } from "../utils/status-tones";
 
 interface FormShareProps {
   formLinks: FormLinkActions;
@@ -387,7 +388,7 @@ export function FormShare({
         <StackMenuContent className="grid gap-4 p-3" data-form-share-panel>
           {note ? (
             <p
-              className="rounded-md bg-amber-500/10 px-2.5 py-2 text-amber-800 text-sm dark:text-amber-300"
+              className={`rounded-md px-2.5 py-2 text-sm ${WARNING_SURFACE} ${WARNING_TEXT}`}
               data-form-share-note
             >
               {note}

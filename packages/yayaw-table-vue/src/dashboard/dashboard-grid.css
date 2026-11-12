@@ -313,13 +313,13 @@
   flex: none;
 }
 [data-kpi-compare][data-tone="positive"] {
-  color: oklch(0.527 0.154 150.069);
+  color: var(--yayaw-success, oklch(0.527 0.154 150.069));
 }
 [data-kpi-compare][data-tone="negative"] {
   color: var(--yayaw-danger, var(--destructive, oklch(0.577 0.245 27.325)));
 }
 .dark [data-kpi-compare][data-tone="positive"] {
-  color: oklch(0.723 0.219 149.579);
+  color: var(--yayaw-success, oklch(0.723 0.219 149.579));
 }
 [data-kpi-state] {
   margin: 0;

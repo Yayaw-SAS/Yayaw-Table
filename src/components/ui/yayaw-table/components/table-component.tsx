@@ -159,6 +159,7 @@ import { translatedOr } from "../providers/translation-cache";
 import { SafePagination } from "./safe-pagination";
 import { TableEmptyStateContent } from "./table-empty-state";
 import { useOnScreen } from "./utils/use-on-screen";
+import { SUCCESS_SURFACE, SUCCESS_TEXT } from "../utils/status-tones";
 
 const _DEBUG = false;
 
@@ -2742,12 +2743,12 @@ function ModernDataTable<
             visibleCells.length,
             level,
             <ColumnIcon
-              className="text-green-600 dark:text-green-400"
+              className={SUCCESS_TEXT}
               columnType="select"
             />,
             "☑️ Selected",
             selectedRows.length,
-            "rounded-full bg-green-500/10 px-2 py-0.5 text-green-700 text-xs dark:bg-green-500/20 dark:text-green-300"
+            `rounded-full px-2 py-0.5 text-xs ${SUCCESS_SURFACE} ${SUCCESS_TEXT}`
           )
         );
         if (localExpanded[selectedGroupId]) {

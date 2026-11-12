@@ -53,6 +53,7 @@ import { FormBuilderPreview } from "./form-builder-preview";
 import { FormBuilderProperties } from "./form-builder-properties";
 import { FormLanguageSwitch } from "./form-languages";
 import { FormShare } from "./form-share";
+import { WARNING_DOT } from "../utils/status-tones";
 
 type Label = (key: FormLabelKey, params?: Record<string, string>) => string;
 
@@ -205,7 +206,7 @@ function TopBar({
             className="flex items-center gap-1.5 whitespace-nowrap text-muted-foreground text-xs"
             data-form-builder-status
           >
-            <span aria-hidden="true" className="size-2 rounded-full bg-amber-500" />
+            <span aria-hidden="true" className={`size-2 rounded-full ${WARNING_DOT}`} />
             <span className={compact ? "sr-only" : undefined}>{status}</span>
           </span>
         ) : null}

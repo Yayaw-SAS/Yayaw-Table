@@ -948,6 +948,124 @@ type DashboardScreenProps = Omit<YayawDashboardProps, "dashboard"> & {
   setDocument: (dashboard: Dashboard) => void;
 };
 
+/** `periodInHeader`: the filter readers pick in the header row. */
+const headerFilterOf = (shown: Dashboard, inHeader: boolean) =>
+  inHeader
+    ? shown.filters.find(
+        (filter) => filter.id === dashboardHeaderFilterId(shown)
+      )
+    : undefined;
+
+/** `kpiLinks`: what full-page tables show, and what numbers ask them. */
+function useKpiLinks(enabled: boolean) {
+  const [tableViews, setTableViews] = useState<
+    Record<string, ViewConfig | undefined>
+  >({});
+  const [requests, setRequests] = useState<
+    Record<string, TableViewRequest | undefined>
+  >({});
+  const requestCount = useRef(0);
+  const reportView = useCallback(
+    (widgetId: string, config: ViewConfig) => {
+      if (enabled) {
+        setTableViews((current) => ({ ...current, [widgetId]: config }));
+      }
+    },
+    [enabled]
+  );
+  const request = useCallback(
+    (tableWidgetId: string, asked: DashboardKpiLinkRequest) => {
+      requestCount.current += 1;
+      setRequests((current) => ({
+        ...current,
+        [tableWidgetId]: {
+          ...asked,
+          config: asked.config as ViewConfig,
+          key: requestCount.current,
+        },
+      }));
+    },
+    []
+  );
+  return {
+    reportView,
+    links: enabled ? { tableViews, requests, request } : undefined,
+  };
+}
+
+/**
+ * Edit mode's saving: "Done" saves and ends the editing; beside the host's
+ * "Publish" it saves the draft and stays, and "Publish" saves, lets the host
+ * publish, then ends the editing.
+ */
+function useScreenSaving({
+  blocks,
+  dashboard,
+  label,
+  onEnd,
+  onPublish,
+  setIssues,
+  storage,
+}: {
+  blocks: DashboardBlockRegistry | undefined;
+  dashboard: Dashboard;
+  label: DashboardLabel;
+  /** Leaves edit mode. */
+  onEnd: () => void;
+  onPublish: DashboardScreenProps["onPublish"];
+  setIssues: (issues: DashboardIssue[]) => void;
+  storage: DashboardStorage | undefined;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  // The version 2 document to save, once `validateDashboard` finds no error.
+  const checkedDocument = (): Dashboard | undefined => {
+    const checked = validateDashboard(dashboard, { blocks });
+    if (!(checked.ok && checked.dashboard)) {
+      setIssues(dashboardSaveErrors(checked.issues));
+      return;
+    }
+    setIssues([]);
+    return { ...checked.dashboard, updatedAt: new Date().toISOString() };
+  };
+  const save = async () => {
+    const next = storage ? checkedDocument() : undefined;
+    if (!(storage && next)) {
+      return;
+    }
+    setSaving(true);
+    try {
+      await storage.save(next);
+      if (!onPublish) {
+        onEnd();
+      }
+      toast.success(label("saved"));
+    } catch (error) {
+      toast.error(label("saveError", { error: errorText(error) }));
+    } finally {
+      setSaving(false);
+    }
+  };
+  const publish = async () => {
+    const next = storage && onPublish ? checkedDocument() : undefined;
+    if (!(storage && onPublish && next)) {
+      return;
+    }
+    setPublishing(true);
+    try {
+      await storage.save(next);
+      await onPublish(next);
+      onEnd();
+      toast.success(label("published"));
+    } catch (error) {
+      toast.error(label("publishError", { error: errorText(error) }));
+    } finally {
+      setPublishing(false);
+    }
+  };
+  return { saving, publishing, save, publish: onPublish ? publish : undefined };
+}
+
 /** A loaded document: its header, filters, sections and widgets. */
 function DashboardScreen({
   actions,
@@ -977,42 +1095,11 @@ function DashboardScreen({
 }: DashboardScreenProps) {
   const storage = actions?.dashboards;
   const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [request, setRequest] = useState<DashboardEditorRequest | null>(null);
   const [issues, setIssues] = useState<DashboardIssue[]>([]);
   const [announcement, setAnnouncement] = useState("");
-  const [publishing, setPublishing] = useState(false);
   const pageViews = useRef(new Map<string, DashboardViewEdit>());
-  // `kpiLinks`: what full-page tables show, and what numbers ask them.
-  const [tableViews, setTableViews] = useState<
-    Record<string, ViewConfig | undefined>
-  >({});
-  const [viewRequests, setViewRequests] = useState<
-    Record<string, TableViewRequest | undefined>
-  >({});
-  const requestCount = useRef(0);
-  const reportView = useCallback(
-    (widgetId: string, config: ViewConfig) => {
-      if (kpiLinks) {
-        setTableViews((current) => ({ ...current, [widgetId]: config }));
-      }
-    },
-    [kpiLinks]
-  );
-  const requestView = useCallback(
-    (tableWidgetId: string, request: DashboardKpiLinkRequest) => {
-      requestCount.current += 1;
-      setViewRequests((current) => ({
-        ...current,
-        [tableWidgetId]: {
-          ...request,
-          config: request.config as ViewConfig,
-          key: requestCount.current,
-        },
-      }));
-    },
-    []
-  );
+  const { links, reportView } = useKpiLinks(kpiLinks);
   const screenIds = useMemo(() => dashboardSourceIds(dashboard), [dashboard]);
   const tableIds = useMemo(() => Object.keys(tables ?? {}), [tables]);
   // Readers load what the screen shows; editors also the tables they may add.
@@ -1051,55 +1138,18 @@ function DashboardScreen({
     [setDocument]
   );
 
-  // The version 2 document to save, once `validateDashboard` finds no error.
-  const checkedDocument = (): Dashboard | undefined => {
-    const checked = validateDashboard(dashboard, { blocks });
-    if (!(checked.ok && checked.dashboard)) {
-      setIssues(dashboardSaveErrors(checked.issues));
-      return;
-    }
-    setIssues([]);
-    return { ...checked.dashboard, updatedAt: new Date().toISOString() };
-  };
-  // "Done" saves and leaves edit mode; beside "Publish" it saves the draft and stays.
-  const save = async () => {
-    const next = storage ? checkedDocument() : undefined;
-    if (!(storage && next)) {
-      return;
-    }
-    setSaving(true);
-    try {
-      await storage.save(next);
-      if (!onPublish) {
-        setEditing(false);
-        setRequest(null);
-      }
-      toast.success(label("saved"));
-    } catch (error) {
-      toast.error(label("saveError", { error: errorText(error) }));
-    } finally {
-      setSaving(false);
-    }
-  };
-  // "Publish": the draft is saved, then the host publishes it.
-  const publish = async () => {
-    const next = storage && onPublish ? checkedDocument() : undefined;
-    if (!(storage && onPublish && next)) {
-      return;
-    }
-    setPublishing(true);
-    try {
-      await storage.save(next);
-      await onPublish(next);
+  const { publish, publishing, save, saving } = useScreenSaving({
+    blocks,
+    dashboard,
+    label,
+    onEnd: () => {
       setEditing(false);
       setRequest(null);
-      toast.success(label("published"));
-    } catch (error) {
-      toast.error(label("publishError", { error: errorText(error) }));
-    } finally {
-      setPublishing(false);
-    }
-  };
+    },
+    onPublish,
+    setIssues,
+    storage,
+  });
   const refreshAll = () => {
     revisions.refresh();
     for (const id of screenIds) {
@@ -1175,17 +1225,10 @@ function DashboardScreen({
     tableTranslations,
     openView,
     editor: { open: setRequest, pageViews: pageViews.current, reportView },
-    links: kpiLinks
-      ? { tableViews, requests: viewRequests, request: requestView }
-      : undefined,
+    links,
   };
   // The period filter sits in the header row for readers; edit mode keeps it with the others.
-  const headerFilter =
-    periodInHeader && !editing
-      ? shown.filters.find(
-          (filter) => filter.id === dashboardHeaderFilterId(shown)
-        )
-      : undefined;
+  const headerFilter = headerFilterOf(shown, periodInHeader && !editing);
   const widgets = new Map(
     dashboard.widgets.map((widget) => [widget.id, widget])
   );
@@ -1276,7 +1319,7 @@ function DashboardScreen({
           onAddWidget={() => setRequest({ kind: "addWidget" })}
           onDone={save}
           onHistory={onHistory}
-          onPublish={onPublish ? publish : undefined}
+          onPublish={publish}
           onResetToDefault={onResetToDefault}
           publishing={publishing}
           saving={saving}
@@ -1326,11 +1369,7 @@ function DashboardScreen({
       ) : null}
       <DashboardFilterBar
         editing={editing}
-        filters={
-          headerFilter
-            ? shown.filters.filter((filter) => filter.id !== headerFilter.id)
-            : shown.filters
-        }
+        filters={shown.filters.filter((filter) => filter !== headerFilter)}
         label={label}
         locale={locale}
         onAddFilter={() => setRequest({ kind: "addFilter" })}

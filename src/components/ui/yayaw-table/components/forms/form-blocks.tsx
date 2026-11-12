@@ -15,6 +15,7 @@ import {
   formBlockSpan,
 } from "../../utils/form-layout";
 import type { FormAction, FormBlock, FormBlockContext } from "./types";
+import { WARNING_BORDER, WARNING_SURFACE } from "../../utils/status-tones";
 
 function createActionContext(
   context: FormBlockContext,
@@ -168,7 +169,7 @@ function FormBlockContent({
         <div
           className={
             block.tone === "warning"
-              ? "space-y-1 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm"
+              ? `space-y-1 rounded-md border p-3 text-sm ${WARNING_BORDER} ${WARNING_SURFACE}`
               : "space-y-1 rounded-md border bg-muted/50 p-3 text-sm"
           }
           data-tone={block.tone ?? "default"}

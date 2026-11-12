@@ -7,7 +7,11 @@
   --yp-grid: color-mix(in srgb, var(--yp-border) 48%, transparent);
   --yp-muted: color-mix(in srgb, var(--yp-fg) 4%, var(--yp-bg));
   --yp-muted-fg: color-mix(in srgb, var(--yp-fg) 65%, var(--yp-bg));
-  --yp-accent: #2273bd;
+  --yp-accent: var(--primary, var(--yayaw-primary, #2273bd));
+  --yp-accent-fg: var(
+    --primary-foreground,
+    var(--yayaw-primary-foreground, #fff)
+  );
   color: var(--yp-fg);
   font: inherit;
   font-size: 13px;
@@ -135,7 +139,7 @@
 .yp-editor > button {
   background: var(--yp-accent);
   border-color: var(--yp-accent);
-  color: #fff;
+  color: var(--yp-accent-fg);
   font-weight: 500;
   box-shadow: 0 1px 2px #0001;
 }
