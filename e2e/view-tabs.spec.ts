@@ -492,7 +492,12 @@ test("an existing view's layout changes from its chevron menu, and Back returns 
   await viewActions.click();
   // As in Notion, the "Display mode" row opens the layout tiles; Back returns.
   await page.getByRole("button", { name: DISPLAY_MODE_ROW }).click();
-  await page.getByRole("button", { name: "Calendar", exact: true }).click();
+  // The tile of the settings panel, not the toolbar's mode switch.
+  await page
+    .locator(
+      'button[data-layout="calendar"]:not([data-display-mode-switch] button)'
+    )
+    .click();
   await expect.poll(() => displayParam(page)).toBe("calendar");
   await expect(page.locator("[data-calendar-title]")).toBeVisible();
   await page.getByRole("button", { name: "Back" }).click();
