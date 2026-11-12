@@ -8,11 +8,6 @@ const UPDATE_NUMBER = /^Update (\d+)/;
 const FEED_VIEW_MODULE =
   /\/feed\/(feed-view\.tsx|FeedView\.vue)$|\/assets\/(feed-view|FeedView)-[\w-]{8}\.js$/;
 const PICSUM = /picsum/;
-/** A 1×1 PNG: the demo's photos and poster come from picsum.photos. */
-const PIXEL = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
-  "base64"
-);
 
 const cards = (page: Page) => page.locator("[data-feed-card]");
 const post = (page: Page, id: string) =>
@@ -74,10 +69,7 @@ const loadAll = async (page: Page) => {
 };
 
 test.beforeEach(async ({ context, page }) => {
-  // Offline media: a pixel for the photos and poster; the video never loads.
-  await context.route("https://picsum.photos/**", (route) =>
-    route.fulfill({ body: PIXEL, contentType: "image/png" })
-  );
+  // Offline media: the fixture serves the photos and poster; the video never loads.
   await context.route(
     "https://interactive-examples.mdn.mozilla.net/**",
     (route) => route.fulfill({ status: 404 })
