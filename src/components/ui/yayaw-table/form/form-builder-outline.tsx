@@ -52,6 +52,7 @@ import {
   type FormLabelKey,
   formColumnEditor,
 } from "../utils/form-view";
+import { WARNING_DOT } from "../utils/status-tones";
 
 type Label = (key: FormLabelKey, params?: Record<string, string>) => string;
 
@@ -107,7 +108,7 @@ function EntryMarks({ entry, label }: { entry: FormBuilderEntry; label: Label })
   if ("missing" in entry && entry.missing) {
     marks.push(
       <span data-form-missing-translation key="missing">
-        <span aria-hidden="true" className="block size-1.5 rounded-full bg-amber-500" />
+        <span aria-hidden="true" className={`block size-1.5 rounded-full ${WARNING_DOT}`} />
         <span className="sr-only">{label("missingTranslation")}</span>
       </span>
     );

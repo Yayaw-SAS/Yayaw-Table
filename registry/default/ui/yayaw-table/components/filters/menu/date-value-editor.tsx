@@ -152,7 +152,7 @@ function DateRuleCalendar({
                 <td
                   className={cn(
                     "p-0 text-center",
-                    inRange(day) && "bg-blue-50 dark:bg-blue-950/60",
+                    inRange(day) && "bg-primary/10",
                     day === days?.start && "rounded-s-md",
                     day === days?.end && "rounded-e-md"
                   )}
@@ -164,10 +164,9 @@ function DateRuleCalendar({
                     className={cn(
                       "inline-flex size-8 items-center justify-center rounded-md tabular-nums hover:bg-muted",
                       day.slice(0, 7) !== month && "text-muted-foreground/60",
-                      day === today &&
-                        "font-semibold text-red-600 dark:text-red-400",
+                      day === today && "font-semibold text-destructive",
                       isEdge(day) &&
-                        "bg-blue-600 text-white hover:bg-blue-600 dark:bg-blue-500 dark:text-white"
+                        "bg-primary text-primary-foreground hover:bg-primary"
                     )}
                     data-calendar-day={day}
                     data-today={day === today || undefined}

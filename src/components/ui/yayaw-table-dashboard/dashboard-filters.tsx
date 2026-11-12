@@ -50,6 +50,8 @@ interface FilterControlProps {
   describedBy?: string;
   /** The filter's name in the dashboard's language. */
   name?: string;
+  /** In the screen's header row: as wide as its text, cleared from its popover. */
+  compact?: boolean;
 }
 
 /** Outside edit mode the filter's name leads its button, as a compact chip. */
@@ -124,6 +126,7 @@ function DatePresets({
  */
 function DateRangeControl(props: FilterControlProps) {
   const {
+    compact,
     describedBy,
     filter,
     label,
@@ -151,7 +154,10 @@ function DateRangeControl(props: FilterControlProps) {
           <Button
             aria-describedby={describedBy}
             aria-label={`${name}: ${shown}`}
-            className="h-8 min-w-56 max-w-full justify-start gap-2 px-2.5 font-normal"
+            className={cn(
+              "h-8 max-w-full justify-start gap-2 px-2.5 font-normal",
+              !compact && "min-w-56"
+            )}
             data-filter-trigger=""
             size="sm"
             type="button"
@@ -173,7 +179,7 @@ function DateRangeControl(props: FilterControlProps) {
         <ChevronDown aria-hidden="true" className="text-muted-foreground" />
       </PopoverTrigger>
       <PopoverContent
-        align="start"
+        align={compact ? "end" : "start"}
         className="w-auto gap-0 p-0"
         data-dashboard-filter-popup={filter.id}
       >
@@ -331,7 +337,8 @@ function SelectControl(props: FilterControlProps) {
  * above and below it while editing.
  */
 function DashboardFilterControl(props: FilterControlProps) {
-  const { editing, filter, label, locale, onChange, onRemove, tables } = props;
+  const { compact, editing, filter, label, locale, onChange, onRemove, tables } =
+    props;
   const targetsId = useId();
   const name = dashboardFilterLabel(filter, locale);
   const control = { ...props, describedBy: targetsId, name };
@@ -366,7 +373,7 @@ function DashboardFilterControl(props: FilterControlProps) {
         ) : (
           <SelectControl {...control} />
         )}
-        {isDashboardFilterActive(filter) && (
+        {isDashboardFilterActive(filter) && !compact && (
           <Button
             onClick={() => onChange(undefined)}
             size="sm"
@@ -387,6 +394,25 @@ function DashboardFilterControl(props: FilterControlProps) {
         })}
       </p>
     </fieldset>
+  );
+}
+
+/**
+ * The screen's period in its header row (`periodInHeader`): the date range
+ * filter as a compact picker beside "Refresh all" and "Edit".
+ */
+export function DashboardHeaderFilter(
+  props: Omit<FilterControlProps, "compact" | "editing" | "onRemove">
+) {
+  return (
+    <div data-dashboard-header-filter={props.filter.id}>
+      <DashboardFilterControl
+        {...props}
+        compact
+        editing={false}
+        onRemove={() => undefined}
+      />
+    </div>
   );
 }
 

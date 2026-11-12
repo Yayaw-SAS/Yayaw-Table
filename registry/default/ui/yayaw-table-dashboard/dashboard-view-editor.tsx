@@ -29,6 +29,7 @@ import type { TableActions } from "@/components/ui/yayaw-table/providers/table-p
 import type { DisplayModeRenderers } from "@/components/ui/yayaw-table/types/display-mode-renderer";
 import type { DataTableTranslations } from "@/components/ui/yayaw-table/types/translations";
 import type { TableViewConfig } from "@/components/ui/yayaw-table/types/view-types";
+import { WARNING_DOT } from "@/components/ui/yayaw-table/utils/status-tones";
 import type { ViewConfig } from "@/components/ui/yayaw-table/utils/view-config";
 import {
   type DashboardViewEdit,
@@ -153,7 +154,7 @@ function ViewEditorSession({
             >
               <span
                 aria-hidden="true"
-                className="size-2 rounded-full bg-amber-500"
+                className={`size-2 rounded-full ${WARNING_DOT}`}
               />
               {label("unsavedChanges")}
             </span>

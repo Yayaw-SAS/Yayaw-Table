@@ -92,6 +92,10 @@ const config = defineTableConfig({
 ### Toolbar shortcuts
 
 Set `table.actionsAsIcons: true` to render toolbar and bulk actions as icons.
+Set `table.createLabel` to name the create button; it stays labelled among
+icon actions and folds to its icon in the compact toolbar. Tables with two
+display modes or more show them as a segmented control beside the filter
+chips (`table.displayModeSwitch: false` hides it).
 Set `table.showClearFilters: true` to add a **Clear filters** button to
 View settings › Filters (off by default; `showResetFilters` remains a
 compatible alias). It clears search, column and advanced filters, and returns

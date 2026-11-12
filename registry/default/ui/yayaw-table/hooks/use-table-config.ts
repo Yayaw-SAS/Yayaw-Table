@@ -152,6 +152,10 @@ export interface TableCatalogueTableConfig extends GenericModeTableConfigs {
   import?: boolean;
   bulkExport?: boolean;
   actionsAsIcons?: boolean;
+  /** The create button's label; shown even with `actionsAsIcons`. */
+  createLabel?: string;
+  /** The display mode switch beside the filters; default true. */
+  displayModeSwitch?: boolean;
   density?: TableDensity;
   layoutPreset?: TableLayoutPreset;
   displayModes?: TableDisplayMode[];
@@ -415,6 +419,8 @@ function resolveTableBehaviorConfig(
     excelWriter: mergedConfig.excelWriter,
     bulkExport: mergedConfig.bulkExport ?? true,
     actionsAsIcons: mergedConfig.actionsAsIcons ?? false,
+    createLabel: mergedConfig.createLabel,
+    displayModeSwitch: mergedConfig.displayModeSwitch,
     coloredTags: mergedConfig.coloredTags !== false,
     canManageTags: mergedConfig.canManageTags,
     density: normalizeDensityMode(mergedConfig.density),

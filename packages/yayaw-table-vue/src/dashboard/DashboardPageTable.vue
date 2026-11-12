@@ -9,6 +9,7 @@ import type {
   TableConfig,
   TableRecord,
   TableView,
+  TableViewRequest,
 } from "../types";
 import {
   type DashboardNotice,
@@ -45,6 +46,8 @@ const props = defineProps<{
   revision: number;
   /** The screen's URL sync: off keeps the table's state out of the URL too. */
   syncUrl: boolean;
+  /** What a linked number asks the table to show (`kpiLinks`). */
+  viewRequest?: TableViewRequest;
   renderers?: DisplayModeRenderers;
   locale: string;
   translations?: DataTableTranslations;
@@ -121,6 +124,7 @@ const tableProps = computed<DashboardDataTableProps>(() => ({
   config: config.value,
   getTableActions: () => actions.value,
   initialViews: initialViews.value,
+  viewRequest: props.viewRequest,
   // The screen and the host both hear the view the table shows.
   onViewConfigChange: (view: ViewConfig) => {
     emit("viewConfigChange", view);

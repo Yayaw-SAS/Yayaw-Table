@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import {
-  Check, Copy, LayoutGrid, Pencil, Pin, Plus, RefreshCw, Rows3, Settings2, SlidersHorizontal, X,
+  Copy, Pencil, Pin, RefreshCw, Settings2, SlidersHorizontal, X,
 } from "lucide-vue-next";
-import {
-  DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger,
-} from "reka-ui";
 import { toast } from "vue-sonner";
 import { computed, defineAsyncComponent, ref, shallowRef, type VNodeChild } from "vue";
 import type { DisplayModeRenderers } from "../display-mode-renderer";
-import type { DataTableTranslations, TableRecord } from "../types";
+import type { DataTableTranslations, TableRecord, TableViewRequest } from "../types";
 import type { ViewConfig } from "../view-config";
+import DashboardEditBanner from "./DashboardEditBanner.vue";
 import DashboardEmptySection from "./DashboardEmptySection.vue";
 import DashboardFilters from "./DashboardFilters.vue";
 import DashboardSectionView from "./DashboardSection.vue";
@@ -60,6 +58,9 @@ import {
   dashboardFilterLabel,
   dashboardFilterOptions,
   dashboardFilterValues,
+  dashboardHeaderFilterId,
+  dashboardKpiLink,
+  dashboardKpiLinkRequest,
   dashboardLabel,
   dashboardNoticeText,
   dashboardOpenViewContext,
@@ -69,6 +70,7 @@ import {
   dashboardWidgetSize,
   dashboardWidgetTitle,
   dashboardWidgetViewId,
+  isDashboardKpiLinkActive,
   removeDashboardFilter,
   setDashboardFilterValue,
   setDashboardText,
@@ -176,9 +178,31 @@ const props = withDefaults(
      */
     tableTranslations?: DataTableTranslations;
     getRowId?: (row: TableRecord) => string;
+    /**
+     * Numbers drive the full-page table of their source: a click shows their
+     * records there (their saved view, else their filters), a second one
+     * clears them; the number is pressed while the table shows them. Default false.
+     */
+    kpiLinks?: boolean;
+    /**
+     * Readers pick the screen's first date range filter in the header row,
+     * beside "Refresh all"; the other filters keep their place. Default false.
+     */
+    periodInHeader?: boolean;
+    /** The host's version history: edit mode shows "History" when given. */
+    onHistory?: () => void;
+    /** The host's default screen: edit mode shows "Back to the default screen" when given. */
+    onResetToDefault?: () => void;
+    /**
+     * The host publishes the saved draft: edit mode shows "Publish", and "Done"
+     * becomes "Save draft" (it saves and stays in edit mode).
+     */
+    onPublish?: (dashboard: Dashboard) => Promise<unknown> | unknown;
   }>(),
   {
     canEdit: false,
+    kpiLinks: false,
+    periodInHeader: false,
     showTitle: true,
     unavailableWidgets: "show",
     syncUrl: true,
@@ -191,6 +215,11 @@ const emit = defineEmits<{ change: [dashboard: Dashboard] }>();
 
 const editing = ref(false);
 const saving = ref(false);
+const publishing = ref(false);
+/** `kpiLinks`: the view each full-page table shows, and what numbers ask them. */
+const tableViews = ref<Record<string, ViewConfig | undefined>>({});
+const viewRequests = ref<Record<string, TableViewRequest | undefined>>({});
+let requestCount = 0;
 /** The dialog the editor shows: one at a time. */
 const request = shallowRef<DashboardEditorRequest | null>(null);
 /** Why "Done" did not save: `validateDashboard`'s errors. */
@@ -416,6 +445,7 @@ const menuActionsOf = (widget: DashboardWidget): DashboardWidgetMenuAction[] => 
   return actions;
 };
 const recordPageView = (widget: DashboardWidget, config: ViewConfig) => {
+  if (props.kpiLinks) tableViews.value = { ...tableViews.value, [widget.id]: config };
   pageViews.set(
     widget.id,
     recordDashboardViewReport(pageViews.get(widget.id) ?? { initial: widget.view ?? {} }, config)
@@ -483,27 +513,90 @@ const refreshAll = () => {
   }
 };
 
-// "Done" saves version 2 once `validateDashboard` finds no error.
-const save = async () => {
+/** A number's link to its source's full-page table (`kpiLinks`), outside edit mode. */
+const linkOf = (widget: DashboardWidget) => {
   const current = dashboard.value;
-  const storage = props.actions?.dashboards;
-  if (!(current && storage)) return;
+  if (!(props.kpiLinks && current) || editing.value || availabilityOf(widget).status !== "ready") return;
+  const saved = views.value[widget.tableId ?? ""]?.find((view) => view.id === widget.viewId);
+  const link = dashboardKpiLink(current, widget, saved);
+  if (!link) return;
+  const active = isDashboardKpiLinkActive(
+    link,
+    tableViews.value[link.tableWidgetId] as Record<string, unknown> | undefined
+  );
+  return { link, active, label: label("kpiShow", { title: titleOf(widget) }) };
+};
+const followLink = (widget: DashboardWidget) => {
+  const found = linkOf(widget);
+  if (!found) return;
+  const asked = dashboardKpiLinkRequest(found.link, found.active);
+  requestCount += 1;
+  viewRequests.value = {
+    ...viewRequests.value,
+    [found.link.tableWidgetId]: { ...asked, config: asked.config as ViewConfig, key: requestCount },
+  };
+};
+/** `periodInHeader`: the filter readers pick in the header row. */
+const headerFilter = computed(() => {
+  const current = shown.value;
+  if (!(props.periodInHeader && current) || editing.value) return;
+  const id = dashboardHeaderFilterId(current);
+  return current.filters.find((filter) => filter.id === id);
+});
+const barFilters = computed(() => {
+  const filters = shown.value?.filters ?? [];
+  const header = headerFilter.value;
+  return header ? filters.filter((filter) => filter.id !== header.id) : filters;
+});
+
+// The version 2 document to save, once `validateDashboard` finds no error.
+const checkedDocument = (): Dashboard | undefined => {
+  const current = dashboard.value;
+  if (!current) return;
   const checked = validateDashboard(current, { blocks: props.blocks });
   if (!(checked.ok && checked.dashboard)) {
     issues.value = dashboardSaveErrors(checked.issues);
     return;
   }
   issues.value = [];
+  return { ...checked.dashboard, updatedAt: new Date().toISOString() };
+};
+// "Done" saves and leaves edit mode; beside "Publish" it saves the draft and stays.
+const save = async () => {
+  const storage = props.actions?.dashboards;
+  const next = storage ? checkedDocument() : undefined;
+  if (!(storage && next)) return;
   saving.value = true;
   try {
-    await storage.save({ ...checked.dashboard, updatedAt: new Date().toISOString() });
-    editing.value = false;
-    request.value = null;
+    await storage.save(next);
+    if (!props.onPublish) {
+      editing.value = false;
+      request.value = null;
+    }
     toast.success(label("saved"));
   } catch (error) {
     toast.error(label("saveError", { error: errorText(error) }));
   } finally {
     saving.value = false;
+  }
+};
+// "Publish": the draft is saved, then the host publishes it.
+const publish = async () => {
+  const storage = props.actions?.dashboards;
+  const onPublish = props.onPublish;
+  const next = storage && onPublish ? checkedDocument() : undefined;
+  if (!(storage && onPublish && next)) return;
+  publishing.value = true;
+  try {
+    await storage.save(next);
+    await onPublish(next);
+    editing.value = false;
+    request.value = null;
+    toast.success(label("published"));
+  } catch (error) {
+    toast.error(label("publishError", { error: errorText(error) }));
+  } finally {
+    publishing.value = false;
   }
 };
 const loadMessage = computed(() => {
@@ -521,6 +614,22 @@ const loadMessage = computed(() => {
     </div>
   </div>
   <div v-else class="yayaw-dashboard" :data-dashboard="dashboard.id" :data-editing="editing ? '' : undefined">
+    <DashboardEditBanner
+      v-if="editing"
+      :label="label"
+      :can-add-section="canAddSection"
+      :saving="saving"
+      :publishing="publishing"
+      :history="Boolean(props.onHistory)"
+      :resettable="Boolean(props.onResetToDefault)"
+      :publishable="Boolean(props.onPublish)"
+      @add-widget="open({ kind: 'addWidget' })"
+      @add-section="addSection"
+      @done="save"
+      @history="props.onHistory?.()"
+      @reset="props.onResetToDefault?.()"
+      @publish="publish"
+    />
     <header class="yayaw-dashboard-header">
       <input
         v-if="editing"
@@ -531,31 +640,19 @@ const loadMessage = computed(() => {
       >
       <h2 v-else-if="props.showTitle" class="yayaw-dashboard-name">{{ name || label("dashboard") }}</h2>
       <div class="yayaw-dashboard-actions">
+        <DashboardFilters
+          v-if="headerFilter"
+          compact
+          :filters="[headerFilter]"
+          :tables="infos"
+          :editing="false"
+          :label="label"
+          :locale="props.locale"
+          :translate="translate"
+          @change="changeFilter"
+        />
         <button type="button" class="yayaw-button yayaw-button-outline" @click="refreshAll">
           <RefreshCw :size="16" aria-hidden="true" />{{ label("refresh") }}
-        </button>
-        <button v-if="editing" type="button" class="yayaw-button yayaw-button-outline" @click="open({ kind: 'addWidget' })">
-          <Plus :size="16" aria-hidden="true" />{{ label("addWidget") }}
-        </button>
-        <DropdownMenuRoot v-if="editing" :modal="false">
-          <DropdownMenuTrigger as-child>
-            <button type="button" class="yayaw-button yayaw-button-outline" data-add-section="" :disabled="!canAddSection">
-              <Plus :size="16" aria-hidden="true" />{{ label("addSection") }}
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuPortal>
-            <DropdownMenuContent class="yayaw-row-actions-menu yayaw-dashboard-menu" align="end" :side-offset="4" :collision-padding="8">
-              <DropdownMenuItem as-child @select="addSection('grid')">
-                <button type="button" class="yayaw-row-action-item"><LayoutGrid :size="16" aria-hidden="true" />{{ label("sectionGrid") }}</button>
-              </DropdownMenuItem>
-              <DropdownMenuItem as-child @select="addSection('flow')">
-                <button type="button" class="yayaw-row-action-item"><Rows3 :size="16" aria-hidden="true" />{{ label("sectionFlow") }}</button>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenuPortal>
-        </DropdownMenuRoot>
-        <button v-if="editable && editing" type="button" class="yayaw-button" :disabled="saving" @click="save">
-          <Check :size="16" aria-hidden="true" />{{ saving ? label("saving") : label("done") }}
         </button>
         <button v-if="editable && !editing" type="button" class="yayaw-button yayaw-button-outline" @click="startEditing">
           <Pencil :size="16" aria-hidden="true" />{{ label("edit") }}
@@ -576,7 +673,7 @@ const loadMessage = computed(() => {
       </button>
     </div>
     <DashboardFilters
-      :filters="shown.filters"
+      :filters="barFilters"
       :tables="infos"
       :editing="editing"
       :label="label"
@@ -589,7 +686,7 @@ const loadMessage = computed(() => {
     <!-- Widgets query once the reader's filter values are read from the URL. -->
     <template v-if="(editing || dashboard.widgets.length) && viewer.ready.value">
       <DashboardSectionView
-        v-for="section in sections"
+        v-for="(section, index) in sections"
         :key="section.id"
         :section="section"
         :title="dashboardText(section.title, props.locale)"
@@ -600,6 +697,7 @@ const loadMessage = computed(() => {
           <DashboardSectionBar
             :section="section"
             :name="sectionName(section)"
+            :number="index + 1"
             :title-input="dashboardSectionTitleInput(section, props.locale)"
             :label="label"
             :can-move="canMoveSection(section)"
@@ -627,6 +725,7 @@ const loadMessage = computed(() => {
             :can-resize="canResize(widgetId)"
             :label="label"
             :openable="openable(widgetOf(widgetId)!)"
+            :link="linkOf(widgetOf(widgetId)!)"
             :menu-actions="menuActionsOf(widgetOf(widgetId)!)"
             :move-targets="moveTargetsOf(widgetOf(widgetId)!)"
             @move-to-section="(sectionId) => moveToSection(widgetOf(widgetId)!, sectionId)"
@@ -634,6 +733,7 @@ const loadMessage = computed(() => {
             @resize="(change) => resize(widgetOf(widgetId)!, change)"
             @remove="update((current) => removeDashboardWidget(current, widgetId))"
             @open="openFull(widgetOf(widgetId)!)"
+            @link="followLink(widgetOf(widgetId)!)"
           >
             <DashboardWidgetContent
               :dashboard="dashboard"
@@ -658,6 +758,7 @@ const loadMessage = computed(() => {
               :table-translations="props.tableTranslations"
               :size="sizeOf(section, widgetId)"
               :openable="openable(widgetOf(widgetId)!)"
+              :view-request="viewRequests[widgetId]"
               :renderers="props.displayModeRenderers"
               :render-markdown="props.renderMarkdown"
               :get-row-id="props.getRowId"

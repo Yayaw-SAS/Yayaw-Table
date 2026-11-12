@@ -41,6 +41,7 @@ import type {
   TableRecord,
   TableView,
   TableViewConfig,
+  TableViewRequest,
   ToolbarActionsInput,
   ToolbarActionsPlacement,
 } from "../types";
@@ -70,6 +71,7 @@ import ListView from "./list/ListView.vue";
 import KanbanView from "./kanban/KanbanView.vue";
 import BulkActions from "./table/BulkActions.vue";
 import DataGrid from "./table/DataGrid.vue";
+import DisplayModeSwitch from "./toolbar/DisplayModeSwitch.vue";
 import TableToolbar from "./toolbar/TableToolbar.vue";
 
 const HTTP_URL_PATTERN = /^https?:\/\//;
@@ -90,6 +92,12 @@ const props = withDefaults(
     /** Re-applies an undo event (Ctrl/Cmd+Shift+Z, Ctrl+Y) and appends a new event with `redoes: undoEvent.id`. */
     onRedoActivity?: DetailRevertHandler;
     tableId?: string;
+    /**
+     * Settings to show now, applied once per `key` as a choice of the user:
+     * `config` over the current view (its filters, say), or a whole saved view
+     * with `replace` and `viewId`. React: the `viewRequest` prop.
+     */
+    viewRequest?: TableViewRequest;
     formType?: string;
     className?: string;
     config?: TableConfig;
@@ -850,6 +858,25 @@ watch(viewConfig, reportView);
  * `refresh()`: loads the rows (and aggregates) again, e.g. a dashboard's
  * "Refresh all". `getViewConfig()`: the view the table shows now.
  */
+// `viewRequest`: each new key applies once, as a choice of the user; a request
+// already there when the table starts is ignored (`initialView` decides that).
+watch(
+  () => props.viewRequest?.key,
+  (key) => {
+    const request = props.viewRequest;
+    if (key === undefined || !request) {
+      return;
+    }
+    const base = request.replace ? {} : viewConfig.value;
+    state.applyView(
+      { ...base, ...request.config } as TableViewConfig,
+      request.viewId === undefined
+        ? state.activeViewId.value
+        : (request.viewId ?? undefined),
+      { history: "push" }
+    );
+  }
+);
 defineExpose({ refresh, getViewConfig: () => viewConfig.value });
 </script>
 
@@ -871,7 +898,10 @@ defineExpose({ refresh, getViewConfig: () => viewConfig.value });
       :initial-views="initialViews"
       :toolbar-actions-placement="props.toolbarActionsPlacement ?? config.toolbarActionsPlacement"
     />
-    <FilterChipsBar v-if="config.table.showToolbar && config.table.enableColumnFilters !== false && advancedFiltersEnabled" />
+    <div v-if="config.table.showToolbar" class="yayaw-filter-row" data-toolbar-filter-row="">
+      <FilterChipsBar v-if="config.table.enableColumnFilters !== false && advancedFiltersEnabled" />
+      <DisplayModeSwitch v-if="!toolbarCompact" />
+    </div>
 
 
     <div class="yayaw-records-layout" :data-facets="facetState.inline ? facetState.facets?.position : undefined">

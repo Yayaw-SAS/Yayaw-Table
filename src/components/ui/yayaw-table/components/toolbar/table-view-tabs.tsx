@@ -70,7 +70,7 @@ function ViewTab({
       {active && dirty ? (
         <output
           aria-label={modifiedLabel}
-          className="size-2 shrink-0 rounded-full bg-blue-500"
+          className="size-2 shrink-0 rounded-full bg-primary"
         />
       ) : null}
     </Button>

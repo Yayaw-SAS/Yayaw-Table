@@ -1,14 +1,10 @@
 "use client";
 
 import {
-  Check,
   Copy,
-  LayoutGrid,
   Pencil,
   Pin,
-  Plus,
   RefreshCw,
-  Rows3,
   Settings2,
   SlidersHorizontal,
   X,
@@ -25,17 +21,13 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/src/components/ui/dropdown-menu";
 import { Input } from "@/src/components/ui/input";
+import type { TableViewRequest } from "@/src/components/ui/yayaw-table/hooks/use-view-config";
 import type { DisplayModeRenderers } from "@/src/components/ui/yayaw-table/types/display-mode-renderer";
 import type { DataTableTranslations } from "@/src/components/ui/yayaw-table/types/translations";
 import type { ViewConfig } from "@/src/components/ui/yayaw-table/utils/view-config";
 import { BlockContent, type DashboardBlockRegistry } from "./dashboard-block";
+import { DashboardEditBanner } from "./dashboard-edit-banner";
 import {
   canAddDashboardSection,
   canMoveDashboardSection,
@@ -56,7 +48,7 @@ import {
   renameDashboardSection,
   setDashboardWidgetView,
 } from "./dashboard-editor-model";
-import { DashboardFilterBar } from "./dashboard-filters";
+import { DashboardFilterBar, DashboardHeaderFilter } from "./dashboard-filters";
 import {
   type DashboardLoadState,
   errorText,
@@ -75,6 +67,7 @@ import type {
 } from "./dashboard-layout";
 import {
   type DashboardFilterValue,
+  type DashboardKpiLinkRequest,
   type DashboardLabelKey,
   type DashboardNotice,
   type DashboardOpenViewContext,
@@ -89,6 +82,9 @@ import {
   dashboardFilterOptions,
   dashboardFilterRules,
   dashboardFilterValues,
+  dashboardHeaderFilterId,
+  dashboardKpiLink,
+  dashboardKpiLinkRequest,
   dashboardLabel,
   dashboardNoticeText,
   dashboardOpenViewContext,
@@ -100,6 +96,7 @@ import {
   dashboardWidgetSize,
   dashboardWidgetTitle,
   dashboardWidgetViewId,
+  isDashboardKpiLinkActive,
   removeDashboardFilter,
   resolveWidgetView,
   setDashboardFilterValue,
@@ -142,6 +139,7 @@ import {
 import {
   type DashboardLabel,
   type DashboardTableSource,
+  type DashboardWidgetLink,
   type DashboardWidgetMenuAction,
   DashboardWidgetFrame,
   EmbeddedTableWidget,
@@ -229,6 +227,30 @@ export interface YayawDashboardProps {
   getRowId?: (row: Record<string, unknown>) => string;
   /** Called with the dashboard (version 2) after each change of the document (saved or not). */
   onChange?: (dashboard: Dashboard) => void;
+  /**
+   * Numbers drive the full-page table of their source: a number whose view
+   * filters records shows as active while the table shows those records, and
+   * a click sets its filters (or its saved view) on the table, where they
+   * read as filter chips; a click on the active number clears them.
+   * Default false.
+   */
+  kpiLinks?: boolean;
+  /**
+   * Show the screen's first date range filter in the header row, beside
+   * "Refresh all" and "Edit", instead of in the filter bar (edit mode keeps
+   * it with the other filters). Default false.
+   */
+  periodInHeader?: boolean;
+  /** Edit mode's banner offers "History" and calls this. */
+  onHistory?: () => void;
+  /** Edit mode's banner offers "Back to the default screen" and calls this. */
+  onResetToDefault?: () => void;
+  /**
+   * Edit mode's banner offers "Publish" beside "Save draft": the document is
+   * validated and saved (`actions.dashboards.save`), then given to this
+   * handler; edit mode ends when it resolves.
+   */
+  onPublish?: (dashboard: Dashboard) => Promise<unknown> | unknown;
   className?: string;
 }
 
@@ -239,6 +261,8 @@ interface ScreenEditor {
   open: (request: DashboardEditorRequest) => void;
   /** The view each full-page table reported, by widget. */
   pageViews: Map<string, DashboardViewEdit>;
+  /** A full-page table reported the view it shows. */
+  reportView: (widgetId: string, config: ViewConfig) => void;
 }
 
 /** What every widget of the screen reads. */
@@ -272,6 +296,12 @@ interface Screen {
   tableTranslations?: DataTableTranslations;
   openView?: YayawDashboardProps["openView"];
   editor: ScreenEditor;
+  /** `kpiLinks`: the views full-page tables show, and what numbers ask them. */
+  links?: {
+    tableViews: Record<string, ViewConfig | undefined>;
+    requests: Record<string, TableViewRequest | undefined>;
+    request: (tableWidgetId: string, request: DashboardKpiLinkRequest) => void;
+  };
 }
 
 const blockOf = (
@@ -396,15 +426,16 @@ function WidgetContent(props: WidgetContentProps) {
         locale={screen.locale}
         noticeText={screen.noticeText}
         onMutated={() => screen.revisions.mutated(tableId)}
-        onViewConfigChange={(config: ViewConfig) =>
+        onViewConfigChange={(config: ViewConfig) => {
           pageViews.set(
             widget.id,
             recordDashboardViewReport(
               pageViews.get(widget.id) ?? { initial: widget.view ?? {} },
               config
             )
-          )
-        }
+          );
+          screen.editor.reportView(widget.id, config);
+        }}
         renderers={screen.renderers}
         revision={screen.revisions.pageRevision(tableId)}
         rules={rules}
@@ -416,6 +447,7 @@ function WidgetContent(props: WidgetContentProps) {
         sourceId={tableId}
         syncUrl={screen.syncUrl}
         translations={screen.tableTranslations}
+        viewRequest={screen.links?.requests[widget.id]}
         widget={widget}
       />
     );
@@ -464,75 +496,31 @@ function WidgetContent(props: WidgetContentProps) {
   );
 }
 
-/** "Add section": a grid of cards or a full-width flow, at the end. */
-function AddSectionMenu({
-  disabled,
-  label,
-  onAdd,
-}: {
-  disabled: boolean;
-  label: DashboardLabel;
-  onAdd: (type: DashboardSectionType) => void;
-}) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        disabled={disabled}
-        render={
-          <Button
-            data-add-section=""
-            disabled={disabled}
-            size="sm"
-            type="button"
-            variant="outline"
-          />
-        }
-      >
-        <Plus aria-hidden="true" />
-        {label("addSection")}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-44">
-        <DropdownMenuItem onClick={() => onAdd("grid")}>
-          <LayoutGrid aria-hidden="true" />
-          {label("sectionGrid")}
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onAdd("flow")}>
-          <Rows3 aria-hidden="true" />
-          {label("sectionFlow")}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
+/**
+ * The screen's header row: its name, then the period filter (`periodInHeader`),
+ * "Refresh all" and "Edit". Edit mode's actions are in its banner.
+ */
 function DashboardHeader({
-  canAddSection,
   editable,
   editing,
   label,
   name,
-  onAddSection,
-  onAddWidget,
-  onDone,
   onEdit,
   onRefresh,
   onRename,
-  saving,
+  period,
   showTitle,
 }: {
-  canAddSection: boolean;
   editable: boolean;
   /** The dashboard's name in its language. */
   name: string;
   editing: boolean;
   label: DashboardLabel;
-  onAddSection: (type: DashboardSectionType) => void;
-  onAddWidget: () => void;
-  onDone: () => void;
   onEdit: () => void;
   onRefresh: () => void;
   onRename: (name: string) => void;
-  saving: boolean;
+  /** The screen's period filter, shown beside the actions. */
+  period?: ReactNode;
   showTitle: boolean;
 }) {
   let title: ReactNode = null;
@@ -556,34 +544,11 @@ function DashboardHeader({
     <header className="flex flex-wrap items-center gap-2">
       {title}
       <div className="ms-auto flex flex-wrap items-center gap-2">
+        {period}
         <Button onClick={onRefresh} size="sm" type="button" variant="outline">
           <RefreshCw aria-hidden="true" />
           {label("refresh")}
         </Button>
-        {editing && (
-          <Button
-            onClick={onAddWidget}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            <Plus aria-hidden="true" />
-            {label("addWidget")}
-          </Button>
-        )}
-        {editing && (
-          <AddSectionMenu
-            disabled={!canAddSection}
-            label={label}
-            onAdd={onAddSection}
-          />
-        )}
-        {editable && editing && (
-          <Button disabled={saving} onClick={onDone} size="sm" type="button">
-            <Check aria-hidden="true" />
-            {saving ? label("saving") : label("done")}
-          </Button>
-        )}
         {editable && !editing && (
           <Button onClick={onEdit} size="sm" type="button" variant="outline">
             <Pencil aria-hidden="true" />
@@ -777,6 +742,36 @@ function widgetMenuActions({
   return actions;
 }
 
+/** A number's link to its source's full-page table (`kpiLinks`), outside edit mode. */
+function kpiLinkOf(
+  screen: Screen,
+  widget: DashboardWidget,
+  availability: DashboardWidgetAvailability,
+  title: string
+): DashboardWidgetLink | undefined {
+  const { links } = screen;
+  if (!links || screen.editing || availability.status !== "ready") {
+    return;
+  }
+  const saved = screen.views[widget.tableId ?? ""]?.find(
+    (view) => view.id === widget.viewId
+  );
+  const link = dashboardKpiLink(screen.dashboard, widget, saved);
+  if (!link) {
+    return;
+  }
+  const active = isDashboardKpiLinkActive(
+    link,
+    links.tableViews[link.tableWidgetId] as Record<string, unknown> | undefined
+  );
+  return {
+    active,
+    label: screen.label("kpiShow", { title }),
+    onSelect: () =>
+      links.request(link.tableWidgetId, dashboardKpiLinkRequest(link, active)),
+  };
+}
+
 /** A widget in its frame (a card, or none for a full-page table), its errors contained. */
 function WidgetItem({
   announce,
@@ -810,6 +805,7 @@ function WidgetItem({
       : undefined;
   const page = widget.type === "table";
   const editing = screen.editing;
+  const link = kpiLinkOf(screen, widget, availability, title);
   const moveTargets = editing
     ? dashboardWidgetMoveTargets(dashboard, widgetId, {
         blocks: screen.blocks,
@@ -830,6 +826,7 @@ function WidgetItem({
       frame={page ? "page" : "card"}
       headingLevel={titled ? 4 : 3}
       label={label}
+      link={link}
       menuActions={
         editing
           ? widgetMenuActions({
@@ -951,6 +948,124 @@ type DashboardScreenProps = Omit<YayawDashboardProps, "dashboard"> & {
   setDocument: (dashboard: Dashboard) => void;
 };
 
+/** `periodInHeader`: the filter readers pick in the header row. */
+const headerFilterOf = (shown: Dashboard, inHeader: boolean) =>
+  inHeader
+    ? shown.filters.find(
+        (filter) => filter.id === dashboardHeaderFilterId(shown)
+      )
+    : undefined;
+
+/** `kpiLinks`: what full-page tables show, and what numbers ask them. */
+function useKpiLinks(enabled: boolean) {
+  const [tableViews, setTableViews] = useState<
+    Record<string, ViewConfig | undefined>
+  >({});
+  const [requests, setRequests] = useState<
+    Record<string, TableViewRequest | undefined>
+  >({});
+  const requestCount = useRef(0);
+  const reportView = useCallback(
+    (widgetId: string, config: ViewConfig) => {
+      if (enabled) {
+        setTableViews((current) => ({ ...current, [widgetId]: config }));
+      }
+    },
+    [enabled]
+  );
+  const request = useCallback(
+    (tableWidgetId: string, asked: DashboardKpiLinkRequest) => {
+      requestCount.current += 1;
+      setRequests((current) => ({
+        ...current,
+        [tableWidgetId]: {
+          ...asked,
+          config: asked.config as ViewConfig,
+          key: requestCount.current,
+        },
+      }));
+    },
+    []
+  );
+  return {
+    reportView,
+    links: enabled ? { tableViews, requests, request } : undefined,
+  };
+}
+
+/**
+ * Edit mode's saving: "Done" saves and ends the editing; beside the host's
+ * "Publish" it saves the draft and stays, and "Publish" saves, lets the host
+ * publish, then ends the editing.
+ */
+function useScreenSaving({
+  blocks,
+  dashboard,
+  label,
+  onEnd,
+  onPublish,
+  setIssues,
+  storage,
+}: {
+  blocks: DashboardBlockRegistry | undefined;
+  dashboard: Dashboard;
+  label: DashboardLabel;
+  /** Leaves edit mode. */
+  onEnd: () => void;
+  onPublish: DashboardScreenProps["onPublish"];
+  setIssues: (issues: DashboardIssue[]) => void;
+  storage: DashboardStorage | undefined;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  // The version 2 document to save, once `validateDashboard` finds no error.
+  const checkedDocument = (): Dashboard | undefined => {
+    const checked = validateDashboard(dashboard, { blocks });
+    if (!(checked.ok && checked.dashboard)) {
+      setIssues(dashboardSaveErrors(checked.issues));
+      return;
+    }
+    setIssues([]);
+    return { ...checked.dashboard, updatedAt: new Date().toISOString() };
+  };
+  const save = async () => {
+    const next = storage ? checkedDocument() : undefined;
+    if (!(storage && next)) {
+      return;
+    }
+    setSaving(true);
+    try {
+      await storage.save(next);
+      if (!onPublish) {
+        onEnd();
+      }
+      toast.success(label("saved"));
+    } catch (error) {
+      toast.error(label("saveError", { error: errorText(error) }));
+    } finally {
+      setSaving(false);
+    }
+  };
+  const publish = async () => {
+    const next = storage && onPublish ? checkedDocument() : undefined;
+    if (!(storage && onPublish && next)) {
+      return;
+    }
+    setPublishing(true);
+    try {
+      await storage.save(next);
+      await onPublish(next);
+      onEnd();
+      toast.success(label("published"));
+    } catch (error) {
+      toast.error(label("publishError", { error: errorText(error) }));
+    } finally {
+      setPublishing(false);
+    }
+  };
+  return { saving, publishing, save, publish: onPublish ? publish : undefined };
+}
+
 /** A loaded document: its header, filters, sections and widgets. */
 function DashboardScreen({
   actions,
@@ -960,9 +1075,14 @@ function DashboardScreen({
   displayModeRenderers,
   document: dashboard,
   getRowId,
+  kpiLinks = false,
   locale = "en",
   onChange,
+  onHistory,
+  onPublish,
+  onResetToDefault,
   openView,
+  periodInHeader = false,
   renderMarkdown,
   setDocument,
   showTitle = true,
@@ -975,11 +1095,11 @@ function DashboardScreen({
 }: DashboardScreenProps) {
   const storage = actions?.dashboards;
   const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [request, setRequest] = useState<DashboardEditorRequest | null>(null);
   const [issues, setIssues] = useState<DashboardIssue[]>([]);
   const [announcement, setAnnouncement] = useState("");
   const pageViews = useRef(new Map<string, DashboardViewEdit>());
+  const { links, reportView } = useKpiLinks(kpiLinks);
   const screenIds = useMemo(() => dashboardSourceIds(dashboard), [dashboard]);
   const tableIds = useMemo(() => Object.keys(tables ?? {}), [tables]);
   // Readers load what the screen shows; editors also the tables they may add.
@@ -1018,32 +1138,18 @@ function DashboardScreen({
     [setDocument]
   );
 
-  // "Done" saves version 2 once `validateDashboard` finds no error.
-  const save = async () => {
-    if (!storage) {
-      return;
-    }
-    const checked = validateDashboard(dashboard, { blocks });
-    if (!(checked.ok && checked.dashboard)) {
-      setIssues(dashboardSaveErrors(checked.issues));
-      return;
-    }
-    setIssues([]);
-    setSaving(true);
-    try {
-      await storage.save({
-        ...checked.dashboard,
-        updatedAt: new Date().toISOString(),
-      });
+  const { publish, publishing, save, saving } = useScreenSaving({
+    blocks,
+    dashboard,
+    label,
+    onEnd: () => {
       setEditing(false);
       setRequest(null);
-      toast.success(label("saved"));
-    } catch (error) {
-      toast.error(label("saveError", { error: errorText(error) }));
-    } finally {
-      setSaving(false);
-    }
-  };
+    },
+    onPublish,
+    setIssues,
+    storage,
+  });
   const refreshAll = () => {
     revisions.refresh();
     for (const id of screenIds) {
@@ -1118,8 +1224,11 @@ function DashboardScreen({
     getRowId,
     tableTranslations,
     openView,
-    editor: { open: setRequest, pageViews: pageViews.current },
+    editor: { open: setRequest, pageViews: pageViews.current, reportView },
+    links,
   };
+  // The period filter sits in the header row for readers; edit mode keeps it with the others.
+  const headerFilter = headerFilterOf(shown, periodInHeader && !editing);
   const widgets = new Map(
     dashboard.widgets.map((widget) => [widget.id, widget])
   );
@@ -1163,6 +1272,7 @@ function DashboardScreen({
         }
         label={label}
         name={name}
+        number={dashboard.sections.indexOf(section) + 1}
         onAddWidget={() =>
           setRequest({ kind: "addWidget", sectionId: section.id })
         }
@@ -1199,17 +1309,27 @@ function DashboardScreen({
       data-dashboard={dashboard.id}
       data-editing={editing ? "" : undefined}
     >
+      {editing ? (
+        <DashboardEditBanner
+          canAddSection={canAddDashboardSection(dashboard)}
+          label={label}
+          onAddSection={(type) =>
+            update((current) => addDashboardSection(current, { type }))
+          }
+          onAddWidget={() => setRequest({ kind: "addWidget" })}
+          onDone={save}
+          onHistory={onHistory}
+          onPublish={publish}
+          onResetToDefault={onResetToDefault}
+          publishing={publishing}
+          saving={saving}
+        />
+      ) : null}
       <DashboardHeader
-        canAddSection={canAddDashboardSection(dashboard)}
         editable={canEdit && Boolean(storage?.save)}
         editing={editing}
         label={label}
         name={dashboardText(dashboard.name, locale)}
-        onAddSection={(type) =>
-          update((current) => addDashboardSection(current, { type }))
-        }
-        onAddWidget={() => setRequest({ kind: "addWidget" })}
-        onDone={save}
         onEdit={() => {
           viewer.clear();
           setIssues([]);
@@ -1222,7 +1342,18 @@ function DashboardScreen({
             name: setDashboardText(current.name, locale, name),
           }))
         }
-        saving={saving}
+        period={
+          headerFilter ? (
+            <DashboardHeaderFilter
+              filter={headerFilter}
+              label={label}
+              locale={locale}
+              onChange={(value) => setFilterValue(headerFilter.id, value)}
+              tables={infos}
+              translate={translate}
+            />
+          ) : null
+        }
         showTitle={showTitle}
       />
       {editing && issues.length ? (
@@ -1238,7 +1369,7 @@ function DashboardScreen({
       ) : null}
       <DashboardFilterBar
         editing={editing}
-        filters={shown.filters}
+        filters={shown.filters.filter((filter) => filter !== headerFilter)}
         label={label}
         locale={locale}
         onAddFilter={() => setRequest({ kind: "addFilter" })}

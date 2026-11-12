@@ -517,6 +517,154 @@ export function widgetViewConfig(
   return widget.type === "kpi" ? kpiViewConfig(widget, base) : { ...base };
 }
 
+// Numbers linked to a table ------------------------------------------------------
+
+/** The filters of a view: what a linked number sets on its table. */
+export interface DashboardViewFilters {
+  columnFilters: Record<string, unknown>[];
+  advancedFilters: Record<string, unknown>[];
+  globalSearch: string;
+}
+
+/** A view's filters and search, without its columns, sort or display mode. */
+export function dashboardViewFilters(
+  config: Record<string, unknown> = {}
+): DashboardViewFilters {
+  return {
+    columnFilters: Array.isArray(config.columnFilters)
+      ? config.columnFilters.filter(isRecord)
+      : [],
+    advancedFilters: Array.isArray(config.advancedFilters)
+      ? normalizeDateFilterRules(config.advancedFilters).filter(isRecord)
+      : [],
+    globalSearch: text(config.globalSearch),
+  };
+}
+
+/**
+ * A text equal for views that filter the same records: rule ids, dates and
+ * inactive rules aside, so a number's view and the table's report compare.
+ */
+export function dashboardViewFilterKey(
+  config: Record<string, unknown> = {}
+): string {
+  const filters = dashboardViewFilters(config);
+  const columns = filters.columnFilters
+    .map((filter) => JSON.stringify([String(filter.id), filter.value ?? null]))
+    .sort();
+  const rules = filters.advancedFilters
+    .filter((rule) => rule.isActive !== false)
+    .map((rule) =>
+      JSON.stringify([
+        String(rule.columnId),
+        String(rule.operator),
+        rule.values ?? null,
+        rule.joinOperator === "or" ? "or" : "and",
+      ])
+    )
+    .sort();
+  return JSON.stringify([columns, rules, filters.globalSearch]);
+}
+
+const NO_FILTERS_KEY = dashboardViewFilterKey();
+
+/** A number that drives a full-page table of its source. */
+export interface DashboardKpiLink {
+  /** The `table` widget the number filters. */
+  tableWidgetId: string;
+  /** The saved view the number names, when it has no inline view. */
+  viewId?: string;
+  /** The number's whole view (a saved view's settings, or inline ones). */
+  config: Record<string, unknown>;
+  filters: DashboardViewFilters;
+  /** `dashboardViewFilterKey` of the number's view. */
+  key: string;
+}
+
+/**
+ * The link between a number and the screen's first full-page table of the
+ * same source: none for other widgets, without such a table, or when the
+ * number's view filters nothing (it would have nothing to show in the table).
+ */
+export function dashboardKpiLink(
+  dashboard: Pick<Dashboard, "sections" | "widgets">,
+  widget: DashboardWidget,
+  view?: Pick<DashboardView, "config">
+): DashboardKpiLink | undefined {
+  if (widget.type !== "kpi" || !widget.tableId) {
+    return;
+  }
+  const placed = dashboardWidgetOrder(dashboard);
+  const table = dashboard.widgets
+    .filter((item) => item.type === "table" && item.tableId === widget.tableId)
+    .sort((a, b) => placed.indexOf(a.id) - placed.indexOf(b.id))
+    .at(0);
+  if (!table) {
+    return;
+  }
+  let config: Record<string, unknown> = {};
+  if (widget.view) {
+    config = { ...widget.view };
+  } else if (isRecord(view?.config)) {
+    config = view.config;
+  }
+  const key = dashboardViewFilterKey(config);
+  if (key === NO_FILTERS_KEY) {
+    return;
+  }
+  return {
+    tableWidgetId: table.id,
+    ...(widget.view || !widget.viewId ? {} : { viewId: widget.viewId }),
+    config,
+    filters: dashboardViewFilters(config),
+    key,
+  };
+}
+
+/** Whether the table shows the number's records: the same filters and search. */
+export const isDashboardKpiLinkActive = (
+  link: Pick<DashboardKpiLink, "key">,
+  tableView: Record<string, unknown> | undefined
+): boolean =>
+  tableView !== undefined && dashboardViewFilterKey(tableView) === link.key;
+
+/** What a linked number asks its table (`DataTable`'s `viewRequest`, without its key). */
+export interface DashboardKpiLinkRequest {
+  /** The saved view to activate; the table keeps its own without one. */
+  viewId?: string;
+  /** Replace the table's view (a saved view) instead of changing its filters only. */
+  replace?: boolean;
+  config: Record<string, unknown>;
+}
+
+/**
+ * A click on a linked number: its saved view, else its filters over the view
+ * the table shows; a click on the active number clears those filters.
+ */
+export function dashboardKpiLinkRequest(
+  link: DashboardKpiLink,
+  active: boolean
+): DashboardKpiLinkRequest {
+  if (active) {
+    return {
+      config: { columnFilters: [], advancedFilters: [], globalSearch: "" },
+    };
+  }
+  if (link.viewId) {
+    return { viewId: link.viewId, replace: true, config: link.config };
+  }
+  return { config: { ...link.filters } };
+}
+
+/**
+ * The filter a screen shows in its header row (`periodInHeader`): its first
+ * date range filter.
+ */
+export const dashboardHeaderFilterId = (
+  dashboard: Pick<Dashboard, "filters">
+): string | undefined =>
+  dashboard.filters.find((filter) => filter.type === "dateRange")?.id;
+
 /** The saved view a widget's table starts from: none for inline settings. */
 export const dashboardWidgetViewId = (
   widget: Pick<DashboardWidget, "view" | "viewId">
@@ -2305,6 +2453,21 @@ const ENGLISH_LABELS = {
   facetLoading: "Counting…",
   facetEmpty: "No values",
   facetError: "The values could not load.",
+  draft: "Draft",
+  editNotice:
+    "You are editing this screen. Nothing changes for readers until you finish.",
+  editNoticePublish:
+    "You are editing this screen. Nothing changes for readers until you publish.",
+  history: "History",
+  resetToDefault: "Back to the default screen",
+  saveDraft: "Save draft",
+  publish: "Publish",
+  publishing: "Publishing…",
+  published: "Screen published",
+  publishError: "The screen could not be published: {error}",
+  sectionLayout: "Section {number} · {layout}",
+  kpiShow: "Show in the table: {title}",
+  kpiLinked: "Filters the table",
 };
 
 export type DashboardLabelKey = keyof typeof ENGLISH_LABELS;
@@ -2500,6 +2663,21 @@ const FRENCH_LABELS: Record<DashboardLabelKey, string> = {
   facetLoading: "Calcul…",
   facetEmpty: "Aucune valeur",
   facetError: "Les valeurs n’ont pas pu être chargées.",
+  draft: "Brouillon",
+  editNotice:
+    "Vous modifiez cet écran. Rien ne change pour les lecteurs tant que vous n’avez pas terminé.",
+  editNoticePublish:
+    "Vous modifiez cet écran. Rien ne change pour les lecteurs avant la publication.",
+  history: "Historique",
+  resetToDefault: "Revenir à l’écran par défaut",
+  saveDraft: "Enregistrer le brouillon",
+  publish: "Publier",
+  publishing: "Publication…",
+  published: "Écran publié",
+  publishError: "L’écran n’a pas pu être publié : {error}",
+  sectionLayout: "Section {number} · {layout}",
+  kpiShow: "Afficher dans la table : {title}",
+  kpiLinked: "Filtre la table",
 };
 
 /** Host override for a label (`dashboard.<key>`), or the built-in one. */

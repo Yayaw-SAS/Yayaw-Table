@@ -685,7 +685,7 @@ function renderViewTrigger({
           {enabled && isActiveViewDirty ? (
             <output
               aria-label={t("views.modified")}
-              className="absolute top-1.5 right-1.5 size-2 rounded-full bg-blue-500"
+              className="absolute top-1.5 right-1.5 size-2 rounded-full bg-primary"
             />
           ) : null}
         </Button>
@@ -705,7 +705,7 @@ function renderViewTrigger({
       {enabled && isActiveViewDirty ? (
         <output
           aria-label={t("views.modified")}
-          className="size-2 shrink-0 rounded-full bg-blue-500"
+          className="size-2 shrink-0 rounded-full bg-primary"
         />
       ) : null}
       <ChevronDown aria-hidden="true" className="size-3 shrink-0" />

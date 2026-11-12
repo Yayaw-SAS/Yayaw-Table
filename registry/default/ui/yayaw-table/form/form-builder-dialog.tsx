@@ -43,6 +43,7 @@ import {
   formLabel,
   type PublicFormSnapshot,
 } from "../utils/form-view";
+import { WARNING_DOT } from "../utils/status-tones";
 import { FormBuilderOutline } from "./form-builder-outline";
 import { FormBuilderPreview } from "./form-builder-preview";
 import { FormBuilderProperties } from "./form-builder-properties";
@@ -208,7 +209,7 @@ function TopBar({
           >
             <span
               aria-hidden="true"
-              className="size-2 rounded-full bg-amber-500"
+              className={`size-2 rounded-full ${WARNING_DOT}`}
             />
             <span className={compact ? "sr-only" : undefined}>{status}</span>
           </span>

@@ -1,6 +1,8 @@
 import "./setup-dom";
 import { afterEach, expect, it } from "bun:test";
-import { act } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { defineTableConfig } from "../src/components/ui/yayaw-table/config/helpers";
 import type { TableActions } from "../src/components/ui/yayaw-table/providers/table-provider";
@@ -239,4 +241,226 @@ it("reads the reader's filter values from the URL, over the document's default",
     widget(other.container, "summary")?.querySelector("[data-summary]")
       ?.textContent
   ).toBe("Hi GB last7Days");
+});
+
+const DRAFTS = {
+  id: "drafts",
+  columnId: "title",
+  operator: "contains",
+  values: ["Draft"],
+};
+const LINKED = {
+  version: 2,
+  id: "linked",
+  name: "Linked",
+  sections: [{ id: "page", type: "flow", widgetIds: ["drafts", "list"] }],
+  widgets: [
+    {
+      id: "drafts",
+      type: "kpi",
+      tableId: "pages",
+      title: "Drafts",
+      view: { advancedFilters: [DRAFTS] },
+      settings: {},
+    },
+    { id: "list", type: "table", tableId: "pages", settings: {} },
+  ],
+  filters: [
+    { id: "author", type: "select", label: "Author", targets: [] },
+    { id: "period", type: "dateRange", label: "Period", targets: [] },
+  ],
+};
+const linkedTables: Record<string, DashboardTableSource> = {
+  pages: {
+    config: {
+      ...pagesConfig,
+      table: {
+        ...pagesConfig.table,
+        actionsAsIcons: true,
+        createLabel: "New page",
+      },
+    },
+    actions: {
+      create: () => Promise.resolve({ id: "2" }),
+      aggregate: () => Promise.resolve({ groups: [{ keys: [], values: [2] }] }),
+      list: () =>
+        Promise.resolve({ data: [{ id: "1", title: "Draft one" }], total: 1 }),
+    } as unknown as TableActions,
+  },
+};
+const storage = () => {
+  const saved: unknown[] = [];
+  return {
+    saved,
+    dashboards: {
+      list: () => Promise.resolve([]),
+      load: () => Promise.resolve(null),
+      remove: () => Promise.resolve(),
+      save: (dashboard: unknown) => {
+        saved.push(dashboard);
+        return Promise.resolve(dashboard);
+      },
+    },
+  };
+};
+/** What a host page gives full-page tables: a query client and URL state. */
+function Host({ children }: { children: ReactNode }) {
+  return (
+    <NuqsTestingAdapter hasMemory>
+      <QueryClientProvider client={new QueryClient()}>
+        {children}
+      </QueryClientProvider>
+    </NuqsTestingAdapter>
+  );
+}
+const buttonNamed = (container: HTMLElement, name: string) =>
+  Array.from(container.querySelectorAll("button")).find(
+    (button) => button.textContent?.trim() === name
+  );
+
+it("keeps today's screen by default: no linked number, the period in the filter bar", async () => {
+  const { container, root } = mount();
+  await act(() =>
+    root.render(
+      <Host>
+        <YayawDashboard dashboard={LINKED} tables={linkedTables} />
+      </Host>
+    )
+  );
+  await settle(200);
+  expect(container.querySelector("[data-widget-link]")).toBeNull();
+  expect(container.querySelector("[data-dashboard-header-filter]")).toBeNull();
+  expect(
+    container.querySelector(
+      '[data-dashboard-filters] [data-dashboard-filter="period"]'
+    )
+  ).not.toBeNull();
+});
+
+it("shows the period in the header row and links a number to its table when the host opts in", async () => {
+  const { container, root } = mount();
+  await act(() =>
+    root.render(
+      <Host>
+        <YayawDashboard
+          dashboard={LINKED}
+          kpiLinks
+          periodInHeader
+          tables={linkedTables}
+        />
+      </Host>
+    )
+  );
+  await settle(200);
+  expect(
+    container.querySelector("[data-dashboard-header-filter]")
+  ).not.toBeNull();
+  const bar = container.querySelector("[data-dashboard-filters]");
+  expect(bar?.querySelector('[data-dashboard-filter="period"]')).toBeNull();
+  expect(bar?.querySelector('[data-dashboard-filter="author"]')).not.toBeNull();
+  const link = widget(container, "drafts")?.querySelector<HTMLButtonElement>(
+    "[data-widget-link]"
+  );
+  expect(link?.getAttribute("aria-pressed")).toBe("false");
+  expect(link?.getAttribute("aria-label")).toBe("Show in the table: Drafts");
+  await act(() => link?.click());
+  await settle(300);
+  expect(link?.getAttribute("aria-pressed")).toBe("true");
+  expect(widget(container, "drafts")?.hasAttribute("data-link-active")).toBe(
+    true
+  );
+  // The host's create label stays readable among icon actions.
+  expect(buttonNamed(container, "New page")).toBeDefined();
+  // A second click clears the table's filters.
+  await act(() => link?.click());
+  await settle(300);
+  expect(link?.getAttribute("aria-pressed")).toBe("false");
+});
+
+it("edit mode shows the draft banner with the actions the host handles only", async () => {
+  const plain = mount();
+  const first = storage();
+  await act(() =>
+    plain.root.render(
+      <Host>
+        <YayawDashboard
+          actions={first}
+          canEdit
+          dashboard={LINKED}
+          tables={linkedTables}
+        />
+      </Host>
+    )
+  );
+  await settle(200);
+  expect(
+    plain.container.querySelector("[data-dashboard-edit-banner]")
+  ).toBeNull();
+  await act(() => buttonNamed(plain.container, "Edit")?.click());
+  await settle(200);
+  const banner = plain.container.querySelector("[data-dashboard-edit-banner]");
+  expect(banner?.querySelector("[data-dashboard-draft]")?.textContent).toBe(
+    "Draft"
+  );
+  expect(banner?.querySelector("[data-add-widget]")).not.toBeNull();
+  expect(banner?.querySelector("[data-add-section]")).not.toBeNull();
+  expect(banner?.querySelector("[data-dashboard-history]")).toBeNull();
+  expect(banner?.querySelector("[data-dashboard-reset]")).toBeNull();
+  expect(banner?.querySelector("[data-dashboard-publish]")).toBeNull();
+  expect(
+    banner?.querySelector("[data-dashboard-done]")?.textContent?.trim()
+  ).toBe("Done");
+  expect(
+    plain.container.querySelector("[data-section-layout]")?.textContent
+  ).toBe("Section 1 · Full width");
+
+  const hosted = mount();
+  const second = storage();
+  const calls: string[] = [];
+  await act(() =>
+    hosted.root.render(
+      <Host>
+        <YayawDashboard
+          actions={second}
+          canEdit
+          dashboard={LINKED}
+          onHistory={() => calls.push("history")}
+          onPublish={() => {
+            calls.push("publish");
+          }}
+          onResetToDefault={() => calls.push("reset")}
+          tables={linkedTables}
+        />
+      </Host>
+    )
+  );
+  await settle(200);
+  await act(() => buttonNamed(hosted.container, "Edit")?.click());
+  await settle(200);
+  const actions = hosted.container.querySelector(
+    "[data-dashboard-edit-banner]"
+  );
+  expect(
+    actions?.querySelector("[data-dashboard-done]")?.textContent?.trim()
+  ).toBe("Save draft");
+  await act(() =>
+    actions
+      ?.querySelector<HTMLButtonElement>("[data-dashboard-history]")
+      ?.click()
+  );
+  await act(() =>
+    actions?.querySelector<HTMLButtonElement>("[data-dashboard-reset]")?.click()
+  );
+  await act(() =>
+    actions
+      ?.querySelector<HTMLButtonElement>("[data-dashboard-publish]")
+      ?.click()
+  );
+  await settle(200);
+  expect(calls).toEqual(["history", "reset", "publish"]);
+  expect(second.saved).toHaveLength(1);
+  // Published: the editing ends.
+  expect(
+    hosted.container.querySelector("[data-dashboard-edit-banner]")
+  ).toBeNull();
 });

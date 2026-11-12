@@ -137,7 +137,10 @@ Defaults in brackets. Flags only shape the interface; the server decides.
   `enableRowClickEdit`, a row-link column, else the record view; also
   `"activate"`, `"edit"`, `"link"`, `"none"`].
 - Toolbar and data: `showToolbar`, `showToolbarHeader` [true],
-  `actionsAsIcons` [false], `showClearFilters` [false; alias
+  `actionsAsIcons` [false], `createLabel` (names the create button and keeps
+  it labelled among icon actions), `displayModeSwitch` [true: the segmented
+  mode switch beside the filter chips, with two modes or more],
+  `showClearFilters` [false; alias
   `showResetFilters`], `filterBarColumns` and `showFilterBar` [false],
   `export`, `bulkExport` [true], `exportFormats`, `exportCsvSeparator`
   [`","`; `";"` for French Excel, `"\t"`], `excelWriter` (`writeXlsx` from
@@ -272,6 +275,9 @@ view is `view` (React also writes `historyIndex`); the file tree adds
   from it when the URL carries none of the table's state.
 - React instances share the app's `QueryClient`, keyed by `tableId`; Vue
   instances create their own client unless you pass `queryClient`.
+- Ask a mounted table for a view: `viewRequest` (Vue `view-request`)
+  `{ key, config, viewId?, replace? }`, applied once per new `key` over the
+  current view (`replace` for a whole view), pushed to the history.
 - The current view: React `onViewConfigChange(config)`, Vue
   `@view-config-change` (and the component's exposed `getViewConfig`), and
   `getViewConfig` in the toolbar actions' context. The config is saved-view

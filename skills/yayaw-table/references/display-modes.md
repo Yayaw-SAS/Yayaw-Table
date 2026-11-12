@@ -236,7 +236,12 @@ import YayawDashboard from "@/components/ui/yayaw-table-vue/dashboard/YayawDashb
   `renderMarkdown(text)` (sanitize any HTML); `locale` (every widget follows
   it); `translations` as `dashboard.<key>`; `tableTranslations`, the page's
   table labels passed to every widget (React needs them for a French page;
-  Vue has French built in); `onChange` (Vue `change`).
+  Vue has French built in); `onChange` (Vue `change`); opt-in:
+  `periodInHeader` (the first date range filter beside "Refresh all"),
+  `kpiLinks` (a filtered number toggles its records in the source's full-page
+  table, `aria-pressed` while shown), and `onHistory`, `onResetToDefault`,
+  `onPublish(document)` for the edit banner's host actions (with `onPublish`,
+  "Done" becomes "Save draft" and stays in edit mode).
 - Unavailable sources (forbidden, not configured, not found) show a muted
   notice, blocks the host lacks "Unavailable block"; both stay in the document
   and in edit mode. `unavailableWidgets: "hide"` leaves them out of the view,

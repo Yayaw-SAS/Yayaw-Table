@@ -46,6 +46,7 @@ import {
   setFormOptionLabel,
 } from "../utils/form-view";
 import { FormRuleEditor, RuleSelect } from "./form-rules";
+import { WARNING_SURFACE, WARNING_TEXT } from "../utils/status-tones";
 
 /** Labels of the settings, in the table's language (`form.<key>` overrides applied). */
 export type FormSettingsLabel = (
@@ -62,7 +63,7 @@ export interface FormEditingLanguage {
 }
 
 const MISSING_CLASS =
-  "rounded-sm bg-amber-500/10 px-1.5 py-0.5 text-amber-700 text-xs dark:text-amber-400";
+  `rounded-sm px-1.5 py-0.5 text-xs ${WARNING_SURFACE} ${WARNING_TEXT}`;
 
 /** "Save in" choice of a hidden field kept in the response details. */
 const DETAILS = "__details";

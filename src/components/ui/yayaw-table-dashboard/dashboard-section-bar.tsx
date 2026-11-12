@@ -18,6 +18,8 @@ export interface DashboardSectionBarProps {
   section: DashboardSection;
   /** The section's name in menus: its title, else "Section 2". */
   name: string;
+  /** Its place on the screen, from 1. */
+  number: number;
   /** The title in the language edited (no other language's version). */
   titleInput: string;
   label: DashboardLabel;
@@ -33,6 +35,7 @@ export function DashboardSectionBar({
   canMove,
   label,
   name,
+  number,
   onAddWidget,
   onMove,
   onRemove,
@@ -45,17 +48,23 @@ export function DashboardSectionBar({
       className="flex min-h-10 items-center gap-2 rounded-lg border border-dashed px-2 py-1"
       data-section-bar={section.id}
     >
+      <span
+        className="shrink-0 font-medium text-muted-foreground text-xs"
+        data-section-layout=""
+      >
+        {label("sectionLayout", {
+          number,
+          layout: label(section.type === "grid" ? "sectionGrid" : "sectionFlow"),
+        })}
+      </span>
       <Input
         aria-label={label("sectionTitle")}
         className="h-8 max-w-80 flex-1 font-semibold"
         maxLength={120}
         onChange={(event) => onRename(event.target.value)}
-        placeholder={name}
+        placeholder={label("sectionTitle")}
         value={titleInput}
       />
-      <span className="shrink-0 text-muted-foreground text-xs">
-        {label(section.type === "grid" ? "sectionGrid" : "sectionFlow")}
-      </span>
       <span className="ms-auto">
         <DropdownMenu>
           <DropdownMenuTrigger

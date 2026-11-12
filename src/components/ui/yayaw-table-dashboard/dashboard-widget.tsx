@@ -8,6 +8,7 @@ import {
   ExternalLink,
   FolderInput,
   GripVertical,
+  ListFilter,
   MoreHorizontal,
   MoveDiagonal2,
   MoveHorizontal,
@@ -27,6 +28,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
 import {
   DropdownMenu,
@@ -313,7 +315,17 @@ export interface DashboardWidgetFrameProps {
   /** The other sections that take the widget. */
   moveTargets?: readonly DashboardWidgetMoveTarget[];
   onMoveToSection?: (sectionId: string) => void;
+  /** A number linked to a full-page table: its card is a toggle. */
+  link?: DashboardWidgetLink;
   children: ReactNode;
+}
+
+/** What links a card to a full-page table: whether the table shows it, and its toggle. */
+export interface DashboardWidgetLink {
+  active: boolean;
+  /** The toggle's name, e.g. "Show in the table: Drafts". */
+  label: string;
+  onSelect: () => void;
 }
 
 /**
@@ -408,6 +420,7 @@ function CardFrame({
   editing,
   headingLevel = 3,
   label,
+  link,
   menuActions,
   moveTargets,
   onMove,
@@ -426,8 +439,15 @@ function CardFrame({
   return (
     <section
       aria-labelledby={titleId}
-      className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border bg-card text-card-foreground"
+      className={cn(
+        "flex h-full min-h-0 flex-col overflow-hidden rounded-lg border bg-card text-card-foreground",
+        // A linked number: its toggle covers the card, the active one is marked.
+        link &&
+          "relative transition-colors hover:border-primary/50 has-[[data-widget-link]:focus-visible]:ring-3 has-[[data-widget-link]:focus-visible]:ring-ring/50",
+        link?.active && "border-primary bg-primary/5 ring-1 ring-primary"
+      )}
       data-dashboard-widget={widget.id}
+      data-link-active={link ? link.active : undefined}
       data-widget-type={widget.type}
     >
       <header
@@ -451,9 +471,25 @@ function CardFrame({
         >
           {title}
         </Heading>
+        {link && (
+          <Button
+            aria-label={link.label}
+            aria-pressed={link.active}
+            className="static after:absolute after:inset-0 after:rounded-lg focus-visible:ring-0 aria-pressed:text-primary"
+            data-widget-link=""
+            onClick={link.onSelect}
+            size="icon-sm"
+            title={label("kpiLinked")}
+            type="button"
+            variant="ghost"
+          >
+            <ListFilter aria-hidden="true" />
+          </Button>
+        )}
         {onOpen && (
           <Button
             aria-label={label("openFullView")}
+            className={link ? "relative z-10" : undefined}
             onClick={onOpen}
             size="icon-sm"
             title={label("openFullView")}

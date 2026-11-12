@@ -37,7 +37,11 @@ import type {
 } from "../hooks/use-table-config";
 import { useTableConfig } from "../hooks/use-table-config";
 import { seedTableViewState } from "../hooks/use-table-url-state";
-import { useViewConfigReport } from "../hooks/use-view-config";
+import {
+  type TableViewRequest,
+  useViewConfigReport,
+  useViewRequest,
+} from "../hooks/use-view-config";
 import type { TableGanttViewConfig } from "../planning/types";
 import { DataTableUIProvider } from "../providers/data-table-ui-provider";
 import {
@@ -612,6 +616,20 @@ function ViewConfigReporter({
   return null;
 }
 
+/** Applies the host's `viewRequest` to the running table. */
+function ViewRequestApplier({
+  config,
+  request,
+  tableId,
+}: {
+  config: TableCatalogueConfig;
+  request: TableViewRequest | undefined;
+  tableId: string;
+}) {
+  useViewRequest(tableId, config, request);
+  return null;
+}
+
 function DataTableContent({
   className,
   loadingOverlay,
@@ -657,9 +675,16 @@ function DataTableContent({
   onRevertActivity,
   onRedoActivity,
   onViewConfigChange,
+  viewRequest,
   rowActions,
   displayModeRenderers,
 }: {
+  /**
+   * Settings to show now, applied once per `key` as a choice of the user:
+   * `config` over the current view (its filters, say), or a whole saved view
+   * with `replace` and `viewId`. Vue: the `view-request` prop.
+   */
+  viewRequest?: TableViewRequest;
   /**
    * The view the table shows, as a saved view's `config` (the shape
    * `sanitizeViewConfig` accepts): once the table starts, then after each
@@ -961,6 +986,11 @@ function DataTableContent({
           tableId={tableId}
         />
       ) : null}
+      <ViewRequestApplier
+        config={config}
+        request={viewRequest}
+        tableId={tableId}
+      />
       {/* Location editors (cells, record forms, the Form view) suggest places with `actions.geocode`. */}
       <LocationProvider
         geocode={geocode}

@@ -12,6 +12,8 @@ const props = defineProps<{
   section: DashboardSection;
   /** The section's name in menus: its title, else "Section 2". */
   name: string;
+  /** Its place on the screen, from 1. */
+  number: number;
   /** The title in the language edited (no other language's version). */
   titleInput: string;
   label: DashboardLabel;
@@ -27,15 +29,20 @@ const emit = defineEmits<{
 
 <template>
   <div class="yayaw-dashboard-section-bar" :data-section-bar="props.section.id">
+    <span class="yayaw-dashboard-edit-bar-type" data-section-layout="">{{
+      props.label("sectionLayout", {
+        number: props.number,
+        layout: props.label(props.section.type === "grid" ? "sectionGrid" : "sectionFlow"),
+      })
+    }}</span>
     <input
       class="yayaw-input yayaw-dashboard-section-input"
       :aria-label="props.label('sectionTitle')"
-      :placeholder="props.name"
+      :placeholder="props.label('sectionTitle')"
       :value="props.titleInput"
       maxlength="120"
       @input="emit('rename', ($event.target as HTMLInputElement).value)"
     >
-    <span class="yayaw-dashboard-edit-bar-type">{{ props.label(props.section.type === "grid" ? "sectionGrid" : "sectionFlow") }}</span>
     <DropdownMenuRoot :modal="false">
       <DropdownMenuTrigger as-child>
         <button

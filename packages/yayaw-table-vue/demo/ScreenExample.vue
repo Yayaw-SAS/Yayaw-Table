@@ -13,6 +13,7 @@ import {
   createScreenHost,
   createScreenStorage,
   SCREEN_BLOCKS,
+  SCREEN_CREATE_LABEL,
   type ScreenSourceSpec,
   screenSectionBlockOptions,
   screenText,
@@ -28,15 +29,24 @@ import {
 // "Content admin": a screen whose sources load on demand from the host's
 // catalogue, with host blocks and the Pages list page. `?readonly` shows it
 // without edit rights, `?hide` hides unavailable widgets, `?lang=fr` shows it
-// in French (the table labels are built in).
+// in French (the table labels are built in). `?design` turns on what a host
+// opts into: numbers linked to the Pages table, the period in the header row,
+// the edit banner's History, default screen and Publish, and a labelled
+// create button.
 const search = new URLSearchParams(window.location.search);
 const canEdit = !search.has("readonly");
 const locale = search.get("lang") === "fr" ? "fr" : "en";
 const unavailableWidgets = search.has("hide") ? "hide" : "show";
+const design = search.has("design");
 
 /** Each catalogue source as a Vue table; the Pages list page is wrapped by the host. */
 const buildSource = (spec: ScreenSourceSpec): DashboardTableSource => {
   const name = screenText(spec.name, locale);
+  // `?design`: the Pages toolbar keeps icons, except its labelled create button.
+  const table =
+    design && spec.id === "pages"
+      ? { ...spec.table, actionsAsIcons: true, createLabel: screenText(SCREEN_CREATE_LABEL, locale) }
+      : spec.table;
   return {
     name,
     config: defineTableConfig({
@@ -47,7 +57,7 @@ const buildSource = (spec: ScreenSourceSpec): DashboardTableSource => {
         visible: spec.visible,
         mandatory: spec.mandatory,
       },
-      table: spec.table as never,
+      table: table as never,
       translations: { namespace: spec.id, keys: { title: name } },
     }),
     actions: spec.actions as unknown as TableActions,
@@ -92,6 +102,11 @@ const openView = (tableId: string, viewId: string | null, context?: DashboardOpe
         :get-row-id="(row) => String(row.id)"
         :locale="locale"
         :unavailable-widgets="unavailableWidgets"
+        :kpi-links="design"
+        :period-in-header="design"
+        :on-history="design ? () => (opened = 'history') : undefined"
+        :on-reset-to-default="design ? () => (opened = 'default') : undefined"
+        :on-publish="design ? () => (opened = 'published') : undefined"
       />
       <output v-if="opened" class="dashboard-example-opened" data-dashboard-opened="">{{ opened }}</output>
     </div>

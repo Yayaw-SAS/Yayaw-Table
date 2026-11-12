@@ -235,3 +235,172 @@ it("YayawDataTable exposes refresh(), which loads its rows again", async () => {
   await (wrapper.vm as unknown as { refresh: () => Promise<void> }).refresh();
   expect(lists).toBe(before + 1);
 });
+
+const DRAFTS = {
+  id: "drafts",
+  columnId: "title",
+  operator: "contains",
+  values: ["Draft"],
+};
+const LINKED = {
+  version: 2,
+  id: "linked",
+  name: "Linked",
+  sections: [{ id: "page", type: "flow", widgetIds: ["drafts", "list"] }],
+  widgets: [
+    {
+      id: "drafts",
+      type: "kpi",
+      tableId: "pages",
+      title: "Drafts",
+      view: { advancedFilters: [DRAFTS] },
+      settings: {},
+    },
+    { id: "list", type: "table", tableId: "pages", settings: {} },
+  ],
+  filters: [
+    { id: "author", type: "select", label: "Author", targets: [] },
+    { id: "period", type: "dateRange", label: "Period", targets: [] },
+  ],
+};
+const linkedTables: Record<string, DashboardTableSource> = {
+  pages: {
+    config: pagesConfig,
+    actions: {
+      aggregate: () => Promise.resolve({ groups: [{ keys: [], values: [2] }] }),
+      list: () =>
+        Promise.resolve({ data: [{ id: "1", title: "Draft one" }], total: 1 }),
+    } as unknown as TableActions,
+  },
+};
+const storage = () => {
+  const saved: unknown[] = [];
+  return {
+    saved,
+    dashboards: {
+      list: () => Promise.resolve([]),
+      load: () => Promise.resolve(null),
+      remove: () => Promise.resolve(),
+      save: (dashboard: unknown) => {
+        saved.push(dashboard);
+        return Promise.resolve(dashboard);
+      },
+    },
+  };
+};
+const later = async (ms = 200) => {
+  await settle();
+  await new Promise((resolve) => setTimeout(resolve, ms));
+  await flushPromises();
+};
+
+it("keeps today's screen by default: no linked number, the period in the filter bar", async () => {
+  const wrapper = mount(YayawDashboard, {
+    props: { dashboard: LINKED, tables: linkedTables },
+    attachTo: document.body,
+  });
+  await later();
+  expect(wrapper.find("[data-widget-link]").exists()).toBe(false);
+  expect(wrapper.find("[data-dashboard-header-filter]").exists()).toBe(false);
+  expect(
+    wrapper
+      .find('[data-dashboard-filters] [data-dashboard-filter="period"]')
+      .exists()
+  ).toBe(true);
+});
+
+it("shows the period in the header row and links a number to its table when the host opts in", async () => {
+  const wrapper = mount(YayawDashboard, {
+    props: {
+      dashboard: LINKED,
+      tables: linkedTables,
+      kpiLinks: true,
+      periodInHeader: true,
+    },
+    attachTo: document.body,
+  });
+  await later();
+  expect(
+    wrapper
+      .find('[data-dashboard-header-filter] [data-dashboard-filter="period"]')
+      .exists()
+  ).toBe(true);
+  const bar = wrapper.get("[data-dashboard-filters]");
+  expect(bar.find('[data-dashboard-filter="period"]').exists()).toBe(false);
+  expect(bar.find('[data-dashboard-filter="author"]').exists()).toBe(true);
+  const link = wrapper.get(
+    '[data-dashboard-widget="drafts"] [data-widget-link]'
+  );
+  expect(link.attributes("aria-pressed")).toBe("false");
+  expect(link.attributes("aria-label")).toBe("Show in the table: Drafts");
+  await link.trigger("click");
+  await later(300);
+  expect(link.attributes("aria-pressed")).toBe("true");
+  expect(
+    wrapper.get('[data-dashboard-widget="drafts"]').attributes()
+  ).toHaveProperty("data-link-active");
+  // A second click clears the table's filters.
+  await link.trigger("click");
+  await later(300);
+  expect(link.attributes("aria-pressed")).toBe("false");
+});
+
+it("edit mode shows the draft banner with the actions the host handles only", async () => {
+  const named = (wrapper: ReturnType<typeof mount>, name: string) =>
+    wrapper.findAll("button").find((button) => button.text() === name);
+  const plain = mount(YayawDashboard, {
+    props: {
+      actions: storage() as never,
+      canEdit: true,
+      dashboard: LINKED,
+      tables: linkedTables,
+    },
+    attachTo: document.body,
+  });
+  await later();
+  expect(plain.find("[data-dashboard-edit-banner]").exists()).toBe(false);
+  await named(plain, "Edit")?.trigger("click");
+  await later();
+  const banner = plain.get("[data-dashboard-edit-banner]");
+  expect(banner.get("[data-dashboard-draft]").text()).toBe("Draft");
+  expect(banner.find("[data-add-widget]").exists()).toBe(true);
+  expect(banner.find("[data-add-section]").exists()).toBe(true);
+  expect(banner.find("[data-dashboard-history]").exists()).toBe(false);
+  expect(banner.find("[data-dashboard-reset]").exists()).toBe(false);
+  expect(banner.find("[data-dashboard-publish]").exists()).toBe(false);
+  expect(banner.get("[data-dashboard-done]").text()).toBe("Done");
+  expect(plain.get("[data-section-layout]").text()).toBe(
+    "Section 1 · Full width"
+  );
+  plain.unmount();
+
+  const calls: string[] = [];
+  const second = storage();
+  const hosted = mount(YayawDashboard, {
+    props: {
+      actions: second as never,
+      canEdit: true,
+      dashboard: LINKED,
+      tables: linkedTables,
+      onHistory: () => calls.push("history"),
+      onResetToDefault: () => calls.push("reset"),
+      onPublish: () => {
+        calls.push("publish");
+      },
+    },
+    attachTo: document.body,
+  });
+  await later();
+  await named(hosted, "Edit")?.trigger("click");
+  await later();
+  const actions = hosted.get("[data-dashboard-edit-banner]");
+  expect(actions.get("[data-dashboard-done]").text()).toBe("Save draft");
+  await actions.get("[data-dashboard-history]").trigger("click");
+  await actions.get("[data-dashboard-reset]").trigger("click");
+  await actions.get("[data-dashboard-publish]").trigger("click");
+  await later();
+  expect(calls).toEqual(["history", "reset", "publish"]);
+  expect(second.saved).toHaveLength(1);
+  // Published: the editing ends.
+  expect(hosted.find("[data-dashboard-edit-banner]").exists()).toBe(false);
+});

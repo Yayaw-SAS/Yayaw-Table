@@ -40,9 +40,8 @@ export function ColumnDragOverlay({
     <DragOverlay>
       {isDragging ? (
         <div
-          className="flex w-40 cursor-grabbing items-center gap-2 overflow-hidden rounded-md border bg-background p-2 shadow-md"
+          className="flex w-40 cursor-grabbing items-center gap-2 overflow-hidden rounded-md border bg-background p-2 shadow-lg"
           style={{
-            boxShadow: "0 5px 15px rgba(0, 0, 0, 0.15)",
             opacity: 0.85,
             transform: "rotate(-2deg)",
           }}

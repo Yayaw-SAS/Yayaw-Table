@@ -73,7 +73,8 @@ const FOCUS_ZOOM = 12;
 const MAX_LIST_ITEMS = 300;
 const WORLD_CENTER: [number, number] = [0, 20];
 const WORLD_ZOOM = 1;
-const MARKER_COLOR = "#3b82f6";
+// Markers without a colour of their own take the theme's primary.
+const MARKER_COLOR = "var(--yayaw-primary)";
 const MOBILE_QUERY = "(max-width: 767px)";
 
 const config = computed(() => props.context.defaults as MapTableConfig);

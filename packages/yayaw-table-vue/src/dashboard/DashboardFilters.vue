@@ -46,6 +46,8 @@ const props = defineProps<{
   filters: DashboardFilter[];
   tables: Record<string, DashboardTableInfo>;
   editing: boolean;
+  /** The header row's picker (`periodInHeader`): the trigger alone, clearing from its popover. */
+  compact?: boolean;
   label: DashboardLabel;
   locale: string;
   translate: DashboardTranslate;
@@ -98,8 +100,10 @@ const targetsId = (filter: DashboardFilter) => `${prefix}-${filter.id}-targets`;
     v-if="props.filters.length || props.editing"
     class="yayaw-dashboard-filters"
     :data-editing="props.editing ? '' : undefined"
-    :aria-label="props.label('filters')"
-    data-dashboard-filters=""
+    :aria-label="props.compact ? undefined : props.label('filters')"
+    :data-compact="props.compact ? '' : undefined"
+    :data-dashboard-filters="props.compact ? undefined : ''"
+    :data-dashboard-header-filter="props.compact ? (props.filters[0]?.id ?? '') : undefined"
   >
     <fieldset v-for="filter in props.filters" :key="filter.id" class="yayaw-dashboard-filter" :data-dashboard-filter="filter.id">
       <legend :class="{ 'yayaw-dashboard-sr-only': !props.editing }">
@@ -132,7 +136,7 @@ const targetsId = (filter: DashboardFilter) => `${prefix}-${filter.id}-targets`;
             </button>
           </PopoverTrigger>
           <PopoverPortal>
-            <PopoverContent class="yayaw-form-popover yayaw-form-calendar-popover" :data-dashboard-filter-popup="filter.id" align="start" :side-offset="4" :collision-padding="8">
+            <PopoverContent class="yayaw-form-popover yayaw-form-calendar-popover" :data-dashboard-filter-popup="filter.id" :align="props.compact ? 'end' : 'start'" :side-offset="4" :collision-padding="8">
               <div class="yayaw-dashboard-range-layout">
               <fieldset class="yayaw-dashboard-presets" data-filter-presets="">
                 <legend class="yayaw-dashboard-sr-only">{{ props.label("presets") }}</legend>
@@ -238,7 +242,7 @@ const targetsId = (filter: DashboardFilter) => `${prefix}-${filter.id}-targets`;
           </PopoverPortal>
         </PopoverRoot>
         <button
-          v-if="isDashboardFilterActive(filter)"
+          v-if="!props.compact && isDashboardFilterActive(filter)"
           type="button"
           class="yayaw-button yayaw-button-ghost"
           @click="emit('change', filter.id, undefined)"

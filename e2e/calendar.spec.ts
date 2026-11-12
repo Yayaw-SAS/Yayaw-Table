@@ -51,7 +51,11 @@ test("records appear on their date in the month grid", async ({ page }) => {
 
 test("the layout is a view setting kept in the URL", async ({ page }) => {
   await page.goto(CALENDAR);
-  await page.getByRole("button", { name: "List", exact: true }).click();
+  // The calendar's own layout, not the toolbar's "List" display mode.
+  await page
+    .locator("[data-calendar-layout]")
+    .getByRole("button", { name: "List", exact: true })
+    .click();
   await expect(page.locator("[data-calendar-layout]")).toHaveAttribute(
     "data-calendar-layout",
     "list"
@@ -61,7 +65,9 @@ test("the layout is a view setting kept in the URL", async ({ page }) => {
     .toMatchObject({ layout: "list" });
   await page.reload();
   await expect(
-    page.getByRole("button", { name: "List", exact: true })
+    page
+      .locator("[data-calendar-layout]")
+      .getByRole("button", { name: "List", exact: true })
   ).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByText("Charlie display")).toBeVisible();
 });

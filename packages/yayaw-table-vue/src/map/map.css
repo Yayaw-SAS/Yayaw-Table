@@ -143,7 +143,7 @@
   width: 16px;
   height: 16px;
   padding: 0;
-  border: 2px solid #fff;
+  border: 2px solid var(--yayaw-background);
   border-radius: 999px;
   background: var(--yayaw-map-marker);
   box-shadow:
@@ -170,10 +170,11 @@
   align-items: center;
   justify-content: center;
   padding: 0;
-  border: 2px solid rgb(255 255 255 / 0.8);
+  border: 2px solid
+    color-mix(in oklab, var(--yayaw-background) 80%, transparent);
   border-radius: 999px;
-  background: rgb(37 99 235 / 0.85);
-  color: #fff;
+  background: color-mix(in oklab, var(--yayaw-primary) 85%, transparent);
+  color: var(--yayaw-primary-foreground);
   box-shadow:
     0 4px 6px -1px rgb(0 0 0 / 0.1),
     0 2px 4px -2px rgb(0 0 0 / 0.1);

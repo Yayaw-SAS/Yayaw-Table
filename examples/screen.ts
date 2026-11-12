@@ -701,6 +701,9 @@ export const attentionViews: Record<
 
 // The screen -----------------------------------------------------------------------
 
+/** The Pages create button's label in the `?design` demo. */
+export const SCREEN_CREATE_LABEL = { en: "New page", fr: "Nouvelle page" };
+
 const kpi = (
   id: string,
   tableId: string,

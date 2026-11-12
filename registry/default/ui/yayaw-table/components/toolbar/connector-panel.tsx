@@ -64,6 +64,11 @@ import {
   connectorPushContext,
   type DataDestinationContext,
 } from "../../utils/data-destinations";
+import {
+  SUCCESS_TEXT,
+  WARNING_BORDER,
+  WARNING_TEXT,
+} from "../../utils/status-tones";
 import { ColumnMapping, type ColumnMappingField } from "./column-mapping";
 
 type TableConnector = DataDestinationConnector<
@@ -436,7 +441,7 @@ function TargetCheck({
       ) : null}
       {view.prepared ? (
         <p
-          className="flex items-center gap-1.5 text-emerald-700 text-xs dark:text-emerald-400"
+          className={`flex items-center gap-1.5 text-xs ${SUCCESS_TEXT}`}
           data-connector-prepared
         >
           <CircleCheck aria-hidden="true" className="size-3.5" />
@@ -453,8 +458,7 @@ function TargetCheck({
             className={cn(
               "font-medium text-xs",
               group.severity === "blocking" && "text-destructive",
-              group.severity === "fixable" &&
-                "text-amber-700 dark:text-amber-400"
+              group.severity === "fixable" && WARNING_TEXT
             )}
           >
             {group.title}
@@ -523,7 +527,7 @@ function PrepareConfirmation({
   return (
     <section
       aria-label={view.confirm}
-      className="grid gap-2 rounded-md border border-amber-500/40 px-3 py-2 text-sm"
+      className={`grid gap-2 rounded-md border px-3 py-2 text-sm ${WARNING_BORDER}`}
       data-connector-prepare-confirm
     >
       <p>{view.intro}</p>
@@ -808,10 +812,7 @@ function SyncPreviewGrid({ view }: { view: SyncPreviewView }) {
         </p>
       ))}
       {view.duplicates ? (
-        <p
-          className="text-amber-700 text-xs dark:text-amber-400"
-          data-sync-duplicates
-        >
+        <p className={`text-xs ${WARNING_TEXT}`} data-sync-duplicates>
           {view.duplicates}
         </p>
       ) : null}
@@ -854,7 +855,7 @@ function ConflictsEntry({
       type="button"
       variant="outline"
     >
-      <TriangleAlert aria-hidden="true" className="size-4 text-amber-600" />
+      <TriangleAlert aria-hidden="true" className={`size-4 ${WARNING_TEXT}`} />
       {view.entry}
     </Button>
   );

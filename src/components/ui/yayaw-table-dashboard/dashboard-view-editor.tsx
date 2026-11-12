@@ -40,6 +40,7 @@ import {
 } from "./dashboard-editor-model";
 import type { DashboardInlineView } from "./dashboard-schema";
 import type { DashboardLabel, DashboardTableSource } from "./dashboard-widget";
+import { WARNING_DOT } from "@/src/components/ui/yayaw-table/utils/status-tones";
 
 export interface DashboardViewEditorProps {
   open: boolean;
@@ -153,7 +154,7 @@ function ViewEditorSession({
             >
               <span
                 aria-hidden="true"
-                className="size-2 rounded-full bg-amber-500"
+                className={`size-2 rounded-full ${WARNING_DOT}`}
               />
               {label("unsavedChanges")}
             </span>

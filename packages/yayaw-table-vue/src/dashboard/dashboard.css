@@ -885,7 +885,7 @@
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: #f59e0b;
+  background: var(--yayaw-warning-mark, var(--yayaw-warning, #f59e0b));
 }
 .yayaw-dashboard-view-editor-table {
   min-height: 0;
@@ -959,4 +959,62 @@
   margin: 0;
   color: var(--yayaw-danger);
   font-size: 12px;
+}
+
+/* Edit mode's banner: the draft's state and every action on the document. */
+.yayaw-dashboard-edit-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  border: 1px solid var(--yayaw-border);
+  border-radius: calc(var(--yayaw-radius) + 6px);
+  background: color-mix(in oklab, var(--yayaw-muted) 40%, transparent);
+  padding: 0.5rem 0.75rem;
+}
+.yayaw-dashboard-draft {
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--yayaw-primary);
+  color: var(--yayaw-primary-foreground);
+  padding: 0.125rem 0.625rem;
+  font-size: 12px;
+  font-weight: 500;
+}
+.yayaw-dashboard-edit-notice {
+  flex: 1 1 16rem;
+  min-width: 0;
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+}
+/* `periodInHeader`: the period's picker in the header row. */
+.yayaw-dashboard-filters[data-compact] .yayaw-dashboard-filter legend {
+  margin: 0;
+}
+/* `kpiLinks`: the whole card of a linked number is its toggle. */
+.yayaw-dashboard-widget:has(> header .yayaw-dashboard-widget-link) {
+  position: relative;
+}
+.yayaw-dashboard-widget-link::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  content: "";
+  cursor: pointer;
+}
+.yayaw-dashboard-widget-header .yayaw-dashboard-widget-link ~ button {
+  position: relative;
+  z-index: 1;
+}
+.yayaw-dashboard-widget-link[aria-pressed="true"] {
+  color: var(--yayaw-primary);
+}
+.yayaw-dashboard-widget[data-link-active] {
+  border-color: var(--yayaw-primary);
+  background: color-mix(in oklab, var(--yayaw-primary) 5%, var(--yayaw-card));
+  box-shadow: 0 0 0 1px var(--yayaw-primary);
+}
+.yayaw-dashboard-widget:has(.yayaw-dashboard-widget-link:focus-visible) {
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--yayaw-muted-foreground) 50%, transparent);
 }

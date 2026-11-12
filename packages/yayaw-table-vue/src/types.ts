@@ -402,10 +402,23 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord>
   import?: boolean;
   bulkExport: boolean;
   actionsAsIcons: boolean;
+  /**
+   * The create button's label, e.g. "New invoice". With it the button shows
+   * its label even with `actionsAsIcons`, and folds to its icon when the
+   * toolbar is compact. Without it: the `add_an_item` text, as an icon with
+   * `actionsAsIcons`.
+   */
+  createLabel?: string;
   density: TableDensity;
   layoutPreset?: TableLayoutPreset;
   displayModes?: TableDisplayMode[];
   defaultDisplayMode?: TableDisplayMode;
+  /**
+   * The segmented control beside the filters that changes the view's display
+   * mode in one click, shown when `displayModes` has more than one mode;
+   * `false` leaves the modes in the view settings only. Default true.
+   */
+  displayModeSwitch?: boolean;
   /**
    * The built-in "Default view": settings over the catalogue's defaults, e.g.
    * filters on the signed-in user's records. Choosing it, resetting it and
@@ -844,6 +857,24 @@ export interface AdvancedFiltersState {
 }
 
 /** Generic per-mode settings (`list`, …) come from the display mode registry. */
+/**
+ * Settings a host asks a running table to show (`YayawDataTable`'s
+ * `viewRequest`), e.g. a dashboard number that filters the table beside it.
+ */
+export interface TableViewRequest {
+  /** Identifies the request: the same settings apply again under a new key. */
+  key: number | string;
+  /** View settings, as a saved view's `config`. */
+  config: ViewConfig;
+  /**
+   * Replace the whole view with `config` (a saved view) instead of laying
+   * `config` over the view the table shows (its filters only, say).
+   */
+  replace?: boolean;
+  /** The saved view to mark active; the table keeps its active view without one. */
+  viewId?: null | string;
+}
+
 export interface TableViewConfig extends GenericModeViewConfigs {
   /** Visibility of table footer calculations; legacy snapshots inherit the initial setting. */
   footerCalculationsVisible?: boolean;

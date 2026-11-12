@@ -282,6 +282,10 @@ const visibleToolbarActions = computed(() =>
 
 const translate = (key: string, fallback: string): string =>
   String(context.translations.value[key] ?? fallback);
+// A host's label keeps the create button readable; a compact toolbar folds it to its icon.
+const hostCreateLabel = computed(() => context.config.table.createLabel?.trim());
+const createLabel = computed(() => hostCreateLabel.value || translate("add_an_item", "Add item"));
+const createAsIcon = computed(() => actionsAsIcons.value && !hostCreateLabel.value);
 const columnLabel = (columnId: string): string =>
   String(
     dataColumns.value.find((column) => column.id === columnId)?.header ??
@@ -1119,10 +1123,10 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
     </ToolbarMenu>
     <NewFolderButton :compact="compact" :actions-as-icons="actionsAsIcons" />
     <template v-if="compact">
-      <TableTooltip v-if="isCreateEnabled" :label="translate('add_an_item', 'Add item')"><button type="button" class="yayaw-button yayaw-icon-only" :aria-label="translate('add_an_item', 'Add item')" @click="context.openCreate()"><Plus :size="16" /></button></TableTooltip>
+      <TableTooltip v-if="isCreateEnabled" :label="createLabel"><button type="button" class="yayaw-button yayaw-icon-only" :aria-label="createLabel" @click="context.openCreate()"><Plus :size="16" /></button></TableTooltip>
     </template>
     <template v-else>
-      <TableTooltip v-if="isCreateEnabled" :label="translate('add_an_item', 'Add item')"><button type="button" class="yayaw-button" :class="{ 'yayaw-icon-only': actionsAsIcons }" :aria-label="translate('add_an_item', 'Add item')" @click="context.openCreate()"><Plus :size="16" /><span v-if="!actionsAsIcons">{{ translate('add_an_item', 'Add item') }}</span></button></TableTooltip>
+      <TableTooltip v-if="isCreateEnabled" :label="createLabel"><button type="button" class="yayaw-button" :class="{ 'yayaw-icon-only': createAsIcon }" :aria-label="createLabel" data-toolbar-create="" @click="context.openCreate()"><Plus :size="16" /><span v-if="!createAsIcon">{{ createLabel }}</span></button></TableTooltip>
     </template>
     </div>
   </div>

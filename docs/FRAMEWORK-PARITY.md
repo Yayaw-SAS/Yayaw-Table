@@ -739,6 +739,43 @@ the other facets' counts under the rule and the facet's own without it,
 in the URL, arrows and Space, a list facet, "Clear", "No value", a reload, the
 rule in the filter menus, "Clear all", the toolbar button and the phone sheet.
 
+## Display mode switch, create label and view requests
+
+Both editions show a table's display modes as a segmented control at the end
+of the filter chips' row (`[data-toolbar-filter-row]` >
+`fieldset[data-display-mode-switch]`): one button per mode with `aria-pressed`
+and `data-layout`, labelled up to four modes and icon-only (with an
+accessible name) beyond. It shows with two modes or more, is hidden in the
+compact toolbar (whose view menu lists the modes) and with
+`table.displayModeSwitch: false`; the view menu's own choices are unchanged.
+
+`table.createLabel` names the create button and keeps it labelled when
+`actionsAsIcons` folds the other actions to icons; the compact toolbar still
+folds it to its icon, with the label as its accessible name.
+
+`viewRequest` (`{ key, config, viewId?, replace? }`) asks a mounted table to
+show a view: applied once per new `key`, over the current view unless
+`replace`, pushed to the history. A request present at mount is ignored.
+
+Dashboards: the edit banner, `periodInHeader`, `kpiLinks` and the section
+bars' "Section n · layout" behave the same in both (see
+`docs/DASHBOARD-SCREENS.md`). Covered by `tests/dashboard-model-suite.ts`
+(both editions), `tests/dashboard-screen.test.tsx`,
+`tests/toolbar-display-mode.test.tsx`,
+`packages/yayaw-table-vue/src/dashboard-screen.test.ts` and
+`packages/yayaw-table-vue/src/toolbar-design.test.ts`.
+
+## Theme tokens
+
+Neither edition writes a colour of its own in components: states read the
+theme's tokens (`primary`, `destructive`, `muted`, `chart-1`…`chart-5`), and
+the few states no token names read a variable with a fallback a host may set:
+`--yayaw-success`, `--yayaw-warning`, `--yayaw-highlight` and
+`--yayaw-file-*` (file tree icons). `tests/theme-tokens.test.ts` fails on a
+new colour literal or Tailwind palette class in either edition; its `EXEMPT`
+list names the files that hold colours as data (tag palette, chart and map
+models, the printed export, media backdrops) and why.
+
 ## Responsive view menus
 
 Both editions use a single desktop toolbar row: view, search, custom actions,

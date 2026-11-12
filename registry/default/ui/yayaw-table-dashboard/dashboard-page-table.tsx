@@ -13,6 +13,7 @@ import {
 import { DataTable } from "@/components/ui/yayaw-table/components/data-table";
 import type { TableConfig } from "@/components/ui/yayaw-table/config/helpers";
 import { invalidateTableDataQuery } from "@/components/ui/yayaw-table/hooks/query-cache-utils";
+import type { TableViewRequest } from "@/components/ui/yayaw-table/hooks/use-view-config";
 import type { TableActions } from "@/components/ui/yayaw-table/providers/table-provider";
 import type { DisplayModeRenderers } from "@/components/ui/yayaw-table/types/display-mode-renderer";
 import type { DataTableTranslations } from "@/components/ui/yayaw-table/types/translations";
@@ -59,6 +60,8 @@ export interface DashboardPageTableProps {
    * view the screen default" stores.
    */
   onViewConfigChange?: (config: ViewConfig) => void;
+  /** What a linked number asks the table to show (`kpiLinks`). */
+  viewRequest?: TableViewRequest;
   /** The screen's URL sync: off keeps the table's state out of the URL too. */
   syncUrl: boolean;
   renderers?: DisplayModeRenderers;
@@ -100,6 +103,7 @@ export function DashboardPageTable({
   sourceId,
   syncUrl,
   translations,
+  viewRequest,
   widget,
 }: DashboardPageTableProps) {
   const queryClient = useQueryClient();
@@ -201,6 +205,7 @@ export function DashboardPageTable({
     getTableConfig,
     initialViews,
     onViewConfigChange: reportView,
+    viewRequest: viewRequest ?? hostProps.viewRequest,
   };
   const table: ReactNode = source.renderTable ? (
     source.renderTable(props)
