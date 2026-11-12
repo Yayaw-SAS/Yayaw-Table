@@ -932,8 +932,10 @@
   outline: 2px solid var(--yayaw-primary);
   outline-offset: -2px;
 }
+/* The calculation row reads as part of the table, as in React: one
+   background across every cell, pinned select and action columns included. */
 .yayaw-data-grid tfoot td {
-  background: var(--yayaw-muted);
+  background: var(--yayaw-background);
 }
 .yayaw-header-cell {
   position: relative;
