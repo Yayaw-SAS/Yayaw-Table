@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.35.3
+
+### Patch Changes
+
+- 762d8aa: The Vue calculation row now uses the table background on every cell, pinned select and action columns included, instead of a muted band that stopped at the pinned columns, matching React.
+- 2d22658: Vue server rendering asks the host for its actions (`getTableActions`) once, in setup. The `serverPrefetch` load no longer evaluates them again after its own awaits, where a host getter built on its framework's context (a Nuxt computed reading the session) has lost it. The browser still follows the getter.
+
 ## 3.35.2
 
 ### Patch Changes
