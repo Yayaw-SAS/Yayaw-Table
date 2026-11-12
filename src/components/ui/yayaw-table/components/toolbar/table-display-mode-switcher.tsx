@@ -102,6 +102,76 @@ export function TableDisplayModeSwitcher({
   );
 }
 
+/** Above this many modes the segments keep their icon only; the name stays in a tooltip. */
+const LABELLED_SEGMENTS = 4;
+
+/**
+ * The view's display modes as a segmented control beside the filters: one
+ * click changes the mode, without opening the view settings. Hidden when the
+ * table offers a single mode.
+ */
+export function TableDisplayModeSegments({
+  className,
+  defaultDisplayMode,
+  displayModes = ["table"],
+  tableId,
+}: TableDisplayModeSwitcherProps) {
+  const { t } = useTranslations();
+  const { displayModeParam, setDisplayModeFromUI } = useTableUrlState({
+    defaultDisplayMode,
+    tableId,
+  });
+  const modes = resolveDisplayModes(displayModes);
+  if (modes.length <= 1) {
+    return null;
+  }
+  const activeMode = resolveDisplayMode({
+    allowed: modes,
+    fallback: defaultDisplayMode,
+    requested: displayModeParam,
+  });
+  const labelled = modes.length <= LABELLED_SEGMENTS;
+
+  return (
+    <fieldset
+      className={cn(
+        "m-0 inline-flex min-w-0 shrink-0 items-center gap-0.5 rounded-lg border bg-muted p-0.5",
+        className
+      )}
+      data-display-mode-switch=""
+    >
+      <legend className="sr-only">{t("views.display.title")}</legend>
+      {modes.map((mode) => {
+        const Icon = DISPLAY_MODE_ICONS[mode];
+        const isActive = activeMode === mode;
+        const label = t(`views.display.${mode}`);
+        return (
+          <Button
+            aria-label={labelled ? undefined : label}
+            aria-pressed={isActive}
+            className={cn(
+              "h-7 font-normal text-muted-foreground",
+              labelled ? "px-2" : "w-7 px-0",
+              isActive &&
+                "bg-background font-medium text-foreground shadow-xs hover:bg-background dark:hover:bg-background"
+            )}
+            data-layout={mode}
+            key={mode}
+            onClick={() => setDisplayModeFromUI(mode)}
+            size="sm"
+            title={labelled ? undefined : label}
+            type="button"
+            variant="ghost"
+          >
+            <Icon aria-hidden="true" className="size-4" />
+            {labelled ? <span>{label}</span> : null}
+          </Button>
+        );
+      })}
+    </fieldset>
+  );
+}
+
 /** The row that opens the layout tiles in a screen of their own, as Notion's "Layout" row. */
 export function DisplayModeRow({
   defaultDisplayMode,

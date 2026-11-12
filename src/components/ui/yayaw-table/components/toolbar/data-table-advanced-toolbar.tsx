@@ -6,6 +6,8 @@
  */
 
 import type { TableDisplayMode } from "../../types/display-types";
+import { resolveDisplayModes } from "../../utils/display-modes";
+import { TableDisplayModeSegments } from "./table-display-mode-switcher";
 import type { TableView } from "../../types/view-types";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAtomValue, useSetAtom } from "jotai";
@@ -1051,6 +1053,33 @@ function ToolbarFilterControls({
   );
 }
 
+/**
+ * The row under the toolbar: the filters' chips, and the display mode switch
+ * at its end when the table offers several modes.
+ */
+function ToolbarFilterRow({
+  chips,
+  modeSwitch,
+  modes,
+}: {
+  chips: ReactNode;
+  modeSwitch: ReactNode;
+  modes: TableDisplayMode[] | undefined;
+}) {
+  if (!modeSwitch || resolveDisplayModes(modes ?? []).length <= 1) {
+    return chips;
+  }
+  return (
+    <div
+      className="flex min-w-0 flex-wrap items-start gap-2"
+      data-toolbar-filter-row=""
+    >
+      <div className="min-w-0 flex-1">{chips}</div>
+      <div className="ms-auto">{modeSwitch}</div>
+    </div>
+  );
+}
+
 export function DataTableAdvancedToolbar<TData>({
   viewManagerProps,
   quickFiltersVisible,
@@ -1901,10 +1930,12 @@ export function DataTableAdvancedToolbar<TData>({
     destinations: destinationGroups,
     pendingDestination,
   });
+  // A host's label keeps the button readable; a compact toolbar folds it to its icon.
+  const createLabel = tableConfig.table.createLabel?.trim();
   const createButton = isCreateEnabled ? (
     <ToolbarCreateButton
-      actionsAsIcons={isMobile || actionsAsIcons}
-      label={addItemLabel}
+      actionsAsIcons={isMobile || (actionsAsIcons && !createLabel)}
+      label={createLabel || addItemLabel}
       onClick={handleOpenCreateForm}
     />
   ) : null;
@@ -2205,9 +2236,28 @@ export function DataTableAdvancedToolbar<TData>({
           }
         />
       </div>
-      {isFilterMenuEnabled ? (
-        <FilterChipsBar compact={isMobile} menu={filterMenu} />
-      ) : null}
+      <ToolbarFilterRow
+        chips={
+          isFilterMenuEnabled ? (
+            <FilterChipsBar compact={isMobile} menu={filterMenu} />
+          ) : null
+        }
+        modeSwitch={
+          isMobile || tableConfig.table.displayModeSwitch === false ? null : (
+            <TableDisplayModeSegments
+              defaultDisplayMode={tableConfig.table.defaultDisplayMode}
+              displayModes={
+                viewManagerProps?.displayModes ??
+                tableConfig.table.displayModes
+              }
+              tableId={tableId}
+            />
+          )
+        }
+        modes={
+          viewManagerProps?.displayModes ?? tableConfig.table.displayModes
+        }
+      />
     </TooltipProvider>
   );
 }
