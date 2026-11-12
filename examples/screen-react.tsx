@@ -29,6 +29,7 @@ import {
   type ScreenHost,
   type ScreenShortcut,
   type ScreenSourceSpec,
+  SCREEN_CREATE_LABEL,
   screenAttention,
   screenSectionBlockOptions,
   screenText,
@@ -156,9 +157,18 @@ const screenBlocks = (
 
 /** Each catalogue source as a React table; the Pages list page is wrapped by the host. */
 const buildSource =
-  (locale: string) =>
+  (locale: string, design: boolean) =>
   (spec: ScreenSourceSpec): DashboardTableSource => {
     const name = screenText(spec.name, locale);
+    // `?design`: the Pages toolbar keeps icons, except its labelled create button.
+    const table =
+      design && spec.id === "pages"
+        ? {
+            ...spec.table,
+            actionsAsIcons: true,
+            createLabel: screenText(SCREEN_CREATE_LABEL, locale),
+          }
+        : spec.table;
     return {
       name,
       config: defineTableConfig({
@@ -169,7 +179,7 @@ const buildSource =
           visible: spec.visible,
           mandatory: spec.mandatory,
         },
-        table: spec.table as never,
+        table: table as never,
         translations: { namespace: spec.id, keys: { title: name } },
       }),
       actions: spec.actions as unknown as TableActions,
@@ -190,14 +200,20 @@ const buildSource =
  * "Content admin": a screen whose sources load on demand from the host's
  * catalogue, with host blocks and the Pages list page. `?readonly` shows it
  * without edit rights, `?hide` hides unavailable widgets, `?lang=fr` shows it
- * in French.
+ * in French. `?design` turns on what a host opts into: numbers linked to the
+ * Pages table, the period in the header row, the edit banner's History,
+ * default screen and Publish, and a labelled create button.
  */
 export function ScreenExample() {
   const search = new URLSearchParams(window.location.search);
   const canEdit = !search.has("readonly");
   const french = search.get("lang") === "fr";
   const locale = french ? "fr" : "en";
-  const host = useMemo(() => createScreenHost(buildSource(locale)), [locale]);
+  const design = search.has("design");
+  const host = useMemo(
+    () => createScreenHost(buildSource(locale, design)),
+    [design, locale]
+  );
   const blocks = useMemo(() => screenBlocks(host), [host]);
   const storage = useMemo(() => createScreenStorage(), []);
   const [opened, setOpened] = useState("");
@@ -211,12 +227,17 @@ export function ScreenExample() {
             canEdit={canEdit}
             dashboardId="content-admin"
             getRowId={(row) => String(row.id)}
+            kpiLinks={design}
             locale={locale}
+            onHistory={design ? () => setOpened("history") : undefined}
+            onPublish={design ? () => setOpened("published") : undefined}
+            onResetToDefault={design ? () => setOpened("default") : undefined}
             openView={(tableId, viewId, context) =>
               setOpened(
                 `${tableId} › ${viewId ?? "default"}${context?.view ? " (inline)" : ""}`
               )
             }
+            periodInHeader={design}
             sources={host.sources}
             tableTranslations={french ? frenchTableTranslations : undefined}
             unavailableWidgets={search.has("hide") ? "hide" : "show"}
