@@ -45,7 +45,12 @@ export type DashboardModelApi = Pick<
   | "dashboardFilterTargetsLabel"
   | "dashboardFitPageSize"
   | "dashboardFitsRecords"
+  | "dashboardHeaderFilterId"
   | "dashboardKpiDisplay"
+  | "dashboardKpiLink"
+  | "dashboardKpiLinkRequest"
+  | "dashboardViewFilterKey"
+  | "isDashboardKpiLinkActive"
   | "dashboardKpiPeriods"
   | "dashboardKpiPlan"
   | "dashboardKpiSettings"
@@ -1929,7 +1934,139 @@ function viewerSuite(test: Test, api: DashboardModelApi) {
   });
 }
 
+const DRAFT_RULE = {
+  id: "draft",
+  columnId: "status",
+  operator: "isAnyOf",
+  values: ["draft"],
+};
+const LINK_SCREEN = {
+  sections: [
+    { id: "top", type: "flow" as const, widgetIds: ["drafts", "all", "list"] },
+  ],
+  widgets: [
+    {
+      id: "drafts",
+      type: "kpi" as const,
+      tableId: "pages",
+      view: { advancedFilters: [DRAFT_RULE] },
+      settings: {},
+    },
+    { id: "all", type: "kpi" as const, tableId: "pages", settings: {} },
+    { id: "list", type: "table" as const, tableId: "pages", settings: {} },
+    { id: "other", type: "kpi" as const, tableId: "files", settings: {} },
+  ],
+};
+
+function linkSuite(test: Test, api: DashboardModelApi) {
+  const [drafts, all, , other] = LINK_SCREEN.widgets;
+
+  test("a number links to the full-page table of its source when its view filters records", () => {
+    const link = api.dashboardKpiLink(LINK_SCREEN as never, drafts as never);
+    assert.equal(link?.tableWidgetId, "list");
+    assert.equal(link?.viewId, undefined);
+    // A view that filters nothing, or a source without a table: no link.
+    assert.equal(
+      api.dashboardKpiLink(LINK_SCREEN as never, all as never),
+      undefined
+    );
+    assert.equal(
+      api.dashboardKpiLink(LINK_SCREEN as never, other as never),
+      undefined
+    );
+    // A saved view links by its id.
+    const saved = api.dashboardKpiLink(
+      LINK_SCREEN as never,
+      { ...all, viewId: "drafts" } as never,
+      { config: { advancedFilters: [DRAFT_RULE] } }
+    );
+    assert.equal(saved?.viewId, "drafts");
+    assert.equal(saved?.key, link?.key);
+  });
+
+  test("a linked number is active while the table shows the same filters, whatever the rule ids", () => {
+    const link = api.dashboardKpiLink(LINK_SCREEN as never, drafts as never);
+    assert.ok(link);
+    assert.equal(api.isDashboardKpiLinkActive(link, undefined), false);
+    assert.equal(api.isDashboardKpiLinkActive(link, {}), false);
+    assert.equal(
+      api.isDashboardKpiLinkActive(link, {
+        sorting: [{ id: "title", desc: false }],
+        advancedFilters: [{ ...DRAFT_RULE, id: "another", isActive: true }],
+      }),
+      true
+    );
+    assert.equal(
+      api.isDashboardKpiLinkActive(link, {
+        advancedFilters: [{ ...DRAFT_RULE, values: ["published"] }],
+      }),
+      false
+    );
+    assert.equal(
+      api.dashboardViewFilterKey({
+        advancedFilters: [{ ...DRAFT_RULE, isActive: false }],
+      }),
+      api.dashboardViewFilterKey()
+    );
+  });
+
+  test("a click asks the table for the number's records, a second one clears them", () => {
+    const link = api.dashboardKpiLink(LINK_SCREEN as never, drafts as never);
+    assert.ok(link);
+    const shown = api.dashboardKpiLinkRequest(link, false);
+    assert.equal(shown.replace, undefined);
+    assert.deepEqual(shown.config.advancedFilters, [DRAFT_RULE]);
+    assert.deepEqual(api.dashboardKpiLinkRequest(link, true).config, {
+      columnFilters: [],
+      advancedFilters: [],
+      globalSearch: "",
+    });
+    const saved = api.dashboardKpiLinkRequest(
+      { ...link, viewId: "drafts" },
+      false
+    );
+    assert.equal(saved.viewId, "drafts");
+    assert.equal(saved.replace, true);
+  });
+
+  test("the header row takes the screen's first date range filter", () => {
+    assert.equal(
+      api.dashboardHeaderFilterId({
+        filters: [
+          { id: "status", type: "select", targets: [] },
+          { id: "period", type: "dateRange", targets: [] },
+          { id: "created", type: "dateRange", targets: [] },
+        ],
+      } as never),
+      "period"
+    );
+    assert.equal(api.dashboardHeaderFilterId({ filters: [] }), undefined);
+  });
+
+  test("the edit banner and linked numbers have English and French labels", () => {
+    const translate = api.dashboardTranslate();
+    assert.equal(api.dashboardLabel("draft", "fr", translate), "Brouillon");
+    assert.equal(api.dashboardLabel("publish", "en", translate), "Publish");
+    assert.equal(
+      api.dashboardLabel("sectionLayout", "fr", translate, {
+        number: 2,
+        layout: "Pleine largeur",
+      }),
+      "Section 2 · Pleine largeur"
+    );
+    assert.equal(
+      api.dashboardLabel(
+        "history",
+        "en",
+        api.dashboardTranslate({ "dashboard.history": "Versions" })
+      ),
+      "Versions"
+    );
+  });
+}
+
 export function dashboardModelSuite(test: Test, api: DashboardModelApi): void {
+  linkSuite(test, api);
   layoutSuite(test, api);
   widgetSuite(test, api);
   filterSuite(test, api);

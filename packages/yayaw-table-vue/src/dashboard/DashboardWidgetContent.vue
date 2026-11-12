@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onErrorCaptured, ref, toRaw, type VNodeChild } from "vue";
 import type { DisplayModeRenderers } from "../display-mode-renderer";
-import type { DataTableTranslations, TableRecord } from "../types";
+import type { DataTableTranslations, TableRecord, TableViewRequest } from "../types";
 import type { ViewConfig } from "../view-config";
 import {
   type Dashboard,
@@ -65,6 +65,8 @@ const props = defineProps<{
   tableTranslations?: DataTableTranslations;
   /** The widget's size in the layout. */
   size: { w: number; h: number };
+  /** What a linked number asks this full-page table to show (`kpiLinks`). */
+  viewRequest?: TableViewRequest;
   /** Whether the full view can open ("View all" under fit records). */
   openable?: boolean;
   renderers?: DisplayModeRenderers;
@@ -232,6 +234,7 @@ const instanceId = computed(() =>
     :rules="rules"
     :revision="props.pageRevision"
     :sync-url="props.syncUrl"
+    :view-request="props.viewRequest"
     :renderers="props.renderers"
     :locale="props.locale"
     :translations="props.tableTranslations"

@@ -306,7 +306,7 @@ function OptionValues({
           >
             <input
               checked={checked(option.value)}
-              className="size-4 accent-blue-600"
+              className="size-4 accent-primary"
               disabled={option.disabled}
               onChange={() => toggle(option.value)}
               type="checkbox"

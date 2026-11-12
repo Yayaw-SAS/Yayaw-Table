@@ -116,7 +116,7 @@
 .yayaw-ft-button[data-variant="danger"] {
   border-color: var(--ft-danger);
   background: var(--ft-danger);
-  color: #fff;
+  color: var(--yayaw-danger-foreground, var(--destructive-foreground, #fff));
 }
 .yayaw-ft-button:focus-visible,
 .yayaw-ft-icon-button:focus-visible,
@@ -409,25 +409,25 @@
 }
 .yayaw-ft-icon[data-kind="folder"],
 .yayaw-ft-icon[data-kind="folder-open"] {
-  color: oklch(0.7 0.14 250);
+  color: var(--yayaw-file-folder, var(--chart-1, oklch(0.7 0.14 250)));
 }
 .yayaw-ft-icon[data-kind="image"] {
-  color: oklch(0.65 0.15 155);
+  color: var(--yayaw-file-image, var(--chart-2, oklch(0.65 0.15 155)));
 }
 .yayaw-ft-icon[data-kind="video"] {
-  color: oklch(0.6 0.2 295);
+  color: var(--yayaw-file-video, var(--chart-3, oklch(0.6 0.2 295)));
 }
 .yayaw-ft-icon[data-kind="audio"] {
-  color: oklch(0.65 0.2 350);
+  color: var(--yayaw-file-audio, var(--chart-4, oklch(0.65 0.2 350)));
 }
 .yayaw-ft-icon[data-kind="document"] {
-  color: oklch(0.62 0.2 25);
+  color: var(--yayaw-file-document, var(--chart-5, oklch(0.62 0.2 25)));
 }
 .yayaw-ft-icon[data-kind="archive"] {
-  color: oklch(0.72 0.15 70);
+  color: var(--yayaw-file-archive, var(--chart-4, oklch(0.72 0.15 70)));
 }
 .yayaw-ft-icon[data-kind="code"] {
-  color: oklch(0.65 0.12 210);
+  color: var(--yayaw-file-code, var(--chart-1, oklch(0.65 0.12 210)));
 }
 .yayaw-ft-label {
   min-width: 0;
@@ -439,7 +439,11 @@
 }
 .yayaw-ft-label mark {
   border-radius: 0.2rem;
-  background: color-mix(in oklab, oklch(0.85 0.17 90) 60%, transparent);
+  background: color-mix(
+    in oklab,
+    var(--yayaw-highlight, var(--yayaw-warning, oklch(0.85 0.17 90))) 60%,
+    transparent
+  );
   color: inherit;
 }
 .yayaw-ft-count {
@@ -609,12 +613,12 @@
   color: var(--yayaw-danger, var(--destructive, #dc2626));
 }
 .yayaw-ft-drag-label[data-theme="dark"] {
-  border-color: #ffffff26;
-  background: #262626;
-  color: #fafafa;
+  border-color: var(--yayaw-border, var(--border, #ffffff26));
+  background: var(--yayaw-background, var(--background, #262626));
+  color: var(--yayaw-foreground, var(--foreground, #fafafa));
 }
 .yayaw-ft-drag-label[data-theme="dark"][data-valid="false"] {
-  color: #f87171;
+  color: var(--yayaw-danger, var(--destructive, #f87171));
 }
 html.yayaw-ft-dragging,
 html.yayaw-ft-dragging * {

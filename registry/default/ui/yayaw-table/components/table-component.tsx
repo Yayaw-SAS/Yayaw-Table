@@ -99,6 +99,7 @@ import type {
   DetailRevertHandler,
   RecordDetailsConfig,
 } from "../utils/record-details";
+import { SUCCESS_SURFACE, SUCCESS_TEXT } from "../utils/status-tones";
 import { groupedLeafRows, groupHeadingLabel } from "../utils/table-contracts";
 import { TABLE_DENSITY_CLASSES } from "../utils/table-density";
 import { getPrimaryGrouping } from "../utils/table-view-state";
@@ -2745,13 +2746,10 @@ function ModernDataTable<
             selectedGroupId,
             visibleCells.length,
             level,
-            <ColumnIcon
-              className="text-green-600 dark:text-green-400"
-              columnType="select"
-            />,
+            <ColumnIcon className={SUCCESS_TEXT} columnType="select" />,
             "☑️ Selected",
             selectedRows.length,
-            "rounded-full bg-green-500/10 px-2 py-0.5 text-green-700 text-xs dark:bg-green-500/20 dark:text-green-300"
+            `rounded-full px-2 py-0.5 text-xs ${SUCCESS_SURFACE} ${SUCCESS_TEXT}`
           )
         );
         if (localExpanded[selectedGroupId]) {

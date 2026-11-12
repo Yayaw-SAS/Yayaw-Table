@@ -84,6 +84,7 @@ export {
   YayawTableForm,
   type YayawTableFormProps,
 } from "./form/yayaw-table-form";
+export type { TableViewRequest } from "./hooks/use-view-config";
 export { createMemoryPlanningAdapter } from "./planning/adapter";
 export { calculatePlanning, resolvedPlanningSnapshot } from "./planning/engine";
 export {

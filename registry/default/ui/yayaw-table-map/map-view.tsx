@@ -80,7 +80,8 @@ const FOCUS_ZOOM = 12;
 const MAX_LIST_ITEMS = 300;
 const WORLD_CENTER: [number, number] = [0, 20];
 const WORLD_ZOOM = 1;
-const MARKER_COLOR = "#3b82f6";
+/** Markers without a colour of their own take the theme's primary. */
+const MARKER_COLOR = "var(--primary)";
 
 function useMapRows(
   context: DisplayModeRenderContext,
@@ -190,7 +191,7 @@ function RecordMarkerButton({
           aria-label={label("marker", { title: marker.title })}
           aria-pressed={selected}
           className={cn(
-            "block size-4 rounded-full border-2 border-white bg-[var(--yayaw-map-marker)] shadow-md outline-none transition-transform",
+            "block size-4 rounded-full border-2 border-background bg-[var(--yayaw-map-marker)] shadow-md outline-none transition-transform",
             "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
             (highlighted || selected) &&
               "scale-150 ring-2 ring-[var(--yayaw-map-marker)]/40"
@@ -228,7 +229,7 @@ function ClusterMarkerButton({
         <button
           aria-label={label("cluster", { count: item.count })}
           className={cn(
-            "flex items-center justify-center rounded-full border-2 border-white/80 bg-blue-600/85 font-semibold text-white text-xs shadow-md outline-none",
+            "flex items-center justify-center rounded-full border-2 border-background/80 bg-primary/85 font-semibold text-primary-foreground text-xs shadow-md outline-none",
             "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
             CLUSTER_SIZES[item.size]
           )}

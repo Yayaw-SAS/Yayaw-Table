@@ -4,7 +4,10 @@ import { Provider } from "jotai";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { TableDisplayModeSwitcher } from "../src/components/ui/yayaw-table/components/toolbar/table-display-mode-switcher";
+import {
+  TableDisplayModeSegments,
+  TableDisplayModeSwitcher,
+} from "../src/components/ui/yayaw-table/components/toolbar/table-display-mode-switcher";
 import {
   defaultTranslations,
   TableProvider,
@@ -107,6 +110,67 @@ it("offers display modes as labelled layout tiles on wider screens", async () =>
       "calendar",
     ]);
     expect(tiles[0]?.getAttribute("aria-pressed")).toBe("true");
+  } finally {
+    await act(() => root.unmount());
+    container.remove();
+    queryClient.clear();
+  }
+});
+
+it("shows the display modes as a pressed-state segmented control, and nothing for one mode", async () => {
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  const queryClient = new QueryClient();
+  const render = (displayModes: ("kanban" | "list" | "table")[]) =>
+    act(() =>
+      root.render(
+        <NuqsTestingAdapter hasMemory>
+          <Provider>
+            <TableProvider
+              queryClient={queryClient}
+              tableId="toolbar-segments"
+              translations={defaultTranslations}
+            >
+              <TableDisplayModeSegments
+                displayModes={displayModes}
+                tableId="toolbar-segments"
+              />
+            </TableProvider>
+          </Provider>
+        </NuqsTestingAdapter>
+      )
+    );
+  try {
+    await render(["table"]);
+    expect(container.querySelector("[data-display-mode-switch]")).toBeNull();
+    await render(["table", "list", "kanban"]);
+    const group = container.querySelector("fieldset[data-display-mode-switch]");
+    expect(group?.querySelector("legend")?.textContent).toBe("Display mode");
+    const segments = [
+      ...(group?.querySelectorAll<HTMLButtonElement>("button[data-layout]") ??
+        []),
+    ];
+    expect(segments.map((segment) => segment.dataset.layout)).toEqual([
+      "table",
+      "list",
+      "kanban",
+    ]);
+    expect(segments.map((segment) => segment.textContent?.trim())).toEqual([
+      "Table",
+      "List",
+      "Kanban",
+    ]);
+    expect(segments.at(0)?.getAttribute("aria-pressed")).toBe("true");
+    const kanban = segments.at(2);
+    await act(async () => {
+      kanban?.focus();
+      await Promise.resolve();
+    });
+    expect(document.activeElement).toBe(kanban ?? null);
+    await act(() => kanban?.click());
+    expect(kanban?.getAttribute("aria-pressed")).toBe("true");
+    expect(group?.querySelectorAll('[aria-pressed="true"]')).toHaveLength(1);
   } finally {
     await act(() => root.unmount());
     container.remove();

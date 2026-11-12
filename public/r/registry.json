@@ -1818,6 +1818,11 @@
           "target": "components/ui/yayaw-table/utils/server-kanban.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/status-tones.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/status-tones.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/table-config-utils.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/table-config-utils.ts"
@@ -2006,6 +2011,11 @@
           "path": "registry/default/ui/yayaw-table-dashboard/dashboard-dialogs.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table-dashboard/dashboard-dialogs.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-dashboard/dashboard-edit-banner.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-dashboard/dashboard-edit-banner.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table-dashboard/dashboard-editor-model.ts",

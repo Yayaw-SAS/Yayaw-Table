@@ -715,6 +715,21 @@ export interface TableBehaviorConfig extends GenericModeTableConfigs {
   defaultDisplayMode?: TableDisplayMode;
 
   /**
+   * The segmented control beside the filters that changes the view's display
+   * mode in one click, shown when `displayModes` has more than one mode;
+   * `false` leaves the modes in the view settings only. Default true.
+   */
+  displayModeSwitch?: boolean;
+
+  /**
+   * The create button's label, e.g. "New invoice". With it the button shows
+   * its label even with `actionsAsIcons`, and folds to its icon when the
+   * toolbar is compact. Without it: the `add_an_item` text, as an icon with
+   * `actionsAsIcons`.
+   */
+  createLabel?: string;
+
+  /**
    * The built-in "Default view": settings over the catalogue's defaults, e.g.
    * filters on the signed-in user's records. Choosing it, resetting it and
    * deleting the active view apply them; the table also starts from them when

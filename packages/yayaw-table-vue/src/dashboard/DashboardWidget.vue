@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
-  ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ChevronRight, ExternalLink, FolderInput, GripVertical, MoreHorizontal,
+  ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ChevronRight, ExternalLink, FolderInput, GripVertical, ListFilter,
+  MoreHorizontal,
   MoveDiagonal2, MoveHorizontal, MoveVertical, Shrink, Trash2,
 } from "lucide-vue-next";
 import {
@@ -46,6 +47,8 @@ const props = withDefaults(
     canMove: (direction: DashboardDirection) => boolean;
     canResize: (change: DashboardResize) => boolean;
     openable: boolean;
+    /** A number linked to a full-page table: the card toggles its records there. */
+    link?: { active: boolean; label: string };
     /** The editor's entries at the top of the menu (edit, edit view, copies…). */
     menuActions?: readonly DashboardWidgetMenuAction[];
     /** The other sections that take the widget ("Move to section"). */
@@ -58,6 +61,7 @@ const emit = defineEmits<{
   resize: [change: DashboardResize];
   remove: [];
   open: [];
+  link: [];
   moveToSection: [sectionId: string];
 }>();
 const titleId = useId();
@@ -92,6 +96,7 @@ const resizes: { change: DashboardResize; key: DashboardLabelKey; icon: unknown 
     :data-dashboard-widget="props.widget.id"
     :data-widget-frame="props.frame === 'page' ? 'page' : undefined"
     :data-widget-type="props.widget.type"
+    :data-link-active="props.link?.active ? '' : undefined"
   >
     <header
       v-if="props.frame !== 'page' || props.editing"
@@ -119,6 +124,18 @@ const resizes: { change: DashboardResize; key: DashboardLabelKey; icon: unknown 
           class="yayaw-dashboard-widget-title"
           data-widget-title=""
         >{{ props.title }}</component>
+        <button
+          v-if="props.link"
+          type="button"
+          class="yayaw-dashboard-icon-button yayaw-dashboard-widget-link"
+          data-widget-link=""
+          :aria-pressed="props.link.active"
+          :aria-label="props.link.label"
+          :title="props.link.label"
+          @click="emit('link')"
+        >
+          <ListFilter :size="16" aria-hidden="true" />
+        </button>
         <button
           v-if="props.openable"
           type="button"

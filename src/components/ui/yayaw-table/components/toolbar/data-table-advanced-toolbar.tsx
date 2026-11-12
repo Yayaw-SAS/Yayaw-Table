@@ -531,16 +531,26 @@ function useFinalSetColumnVisibility(
 const EMPTY_DATA: never[] = [];
 const EMPTY_COLUMN_TYPE_MAPPING: Record<string, never> = {};
 
+/**
+ * The create button. A host's label (`createLabel`) keeps it readable among
+ * icon actions; a compact toolbar still folds it to its icon.
+ */
 function ToolbarCreateButton({
   actionsAsIcons,
-  label,
+  compact,
+  defaultLabel,
+  hostLabel,
   onClick,
 }: {
   actionsAsIcons: boolean;
-  label: string;
+  compact: boolean;
+  defaultLabel: string;
+  hostLabel: string | undefined;
   onClick: () => void;
 }) {
-  if (actionsAsIcons) {
+  const named = hostLabel?.trim();
+  const label = named || defaultLabel;
+  if (compact || (actionsAsIcons && !named)) {
     return (
       <Tooltip>
         <TooltipTrigger
@@ -1055,18 +1065,29 @@ function ToolbarFilterControls({
 
 /**
  * The row under the toolbar: the filters' chips, and the display mode switch
- * at its end when the table offers several modes.
+ * at its end when the table offers several modes (not in the compact toolbar,
+ * whose view menu lists them, nor with `displayModeSwitch: false`).
  */
 function ToolbarFilterRow({
   chips,
-  modeSwitch,
-  modes,
+  compact,
+  configuredModes,
+  defaultDisplayMode,
+  enabled,
+  modes: shownModes,
+  tableId,
 }: {
   chips: ReactNode;
-  modeSwitch: ReactNode;
+  /** The config's modes, when the view manager gives none. */
+  configuredModes: TableDisplayMode[] | undefined;
+  compact: boolean;
+  defaultDisplayMode: TableDisplayMode | undefined;
+  enabled: boolean;
   modes: TableDisplayMode[] | undefined;
+  tableId: string;
 }) {
-  if (!modeSwitch || resolveDisplayModes(modes ?? []).length <= 1) {
+  const modes = shownModes ?? configuredModes ?? [];
+  if (compact || !enabled || resolveDisplayModes(modes).length <= 1) {
     return chips;
   }
   return (
@@ -1075,7 +1096,13 @@ function ToolbarFilterRow({
       data-toolbar-filter-row=""
     >
       <div className="min-w-0 flex-1">{chips}</div>
-      <div className="ms-auto">{modeSwitch}</div>
+      <div className="ms-auto">
+        <TableDisplayModeSegments
+          defaultDisplayMode={defaultDisplayMode}
+          displayModes={modes}
+          tableId={tableId}
+        />
+      </div>
     </div>
   );
 }
@@ -1930,12 +1957,12 @@ export function DataTableAdvancedToolbar<TData>({
     destinations: destinationGroups,
     pendingDestination,
   });
-  // A host's label keeps the button readable; a compact toolbar folds it to its icon.
-  const createLabel = tableConfig.table.createLabel?.trim();
   const createButton = isCreateEnabled ? (
     <ToolbarCreateButton
-      actionsAsIcons={isMobile || (actionsAsIcons && !createLabel)}
-      label={createLabel || addItemLabel}
+      actionsAsIcons={actionsAsIcons}
+      compact={isMobile}
+      defaultLabel={addItemLabel}
+      hostLabel={tableConfig.table.createLabel}
       onClick={handleOpenCreateForm}
     />
   ) : null;
@@ -2242,21 +2269,12 @@ export function DataTableAdvancedToolbar<TData>({
             <FilterChipsBar compact={isMobile} menu={filterMenu} />
           ) : null
         }
-        modeSwitch={
-          isMobile || tableConfig.table.displayModeSwitch === false ? null : (
-            <TableDisplayModeSegments
-              defaultDisplayMode={tableConfig.table.defaultDisplayMode}
-              displayModes={
-                viewManagerProps?.displayModes ??
-                tableConfig.table.displayModes
-              }
-              tableId={tableId}
-            />
-          )
-        }
-        modes={
-          viewManagerProps?.displayModes ?? tableConfig.table.displayModes
-        }
+        compact={isMobile}
+        defaultDisplayMode={tableConfig.table.defaultDisplayMode}
+        enabled={tableConfig.table.displayModeSwitch !== false}
+        configuredModes={tableConfig.table.displayModes}
+        modes={viewManagerProps?.displayModes}
+        tableId={tableId}
       />
     </TooltipProvider>
   );

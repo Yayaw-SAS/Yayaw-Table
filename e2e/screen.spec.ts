@@ -103,7 +103,11 @@ const savedDashboards = (page: Page) =>
       >,
     STORAGE_KEY
   );
-const toolbar = (page: Page) => page.locator("[data-dashboard] > header");
+/** The screen's actions: its header row and, in edit mode, the banner above it. */
+const toolbar = (page: Page) =>
+  page.locator(
+    "[data-dashboard] > header, [data-dashboard] > [data-dashboard-edit-banner]"
+  );
 const searchParam = (page: Page, key: string) =>
   new URL(page.url()).searchParams.get(key);
 /** The pages as the page table sorts them: the newest first (ties in the host's order). */
@@ -1256,4 +1260,52 @@ test("unavailable sources are listed in the catalogue, disabled, with the reason
   await invoices.click({ force: true });
   await expect(dialog).toHaveAttribute("data-widget-step", "source");
   expect(await sourceLoads(page)).toEqual(["pages", "media", "audit"]);
+});
+
+test("the host's design options: period in the header, linked numbers, labelled create, the edit banner", async ({
+  page,
+}) => {
+  await page.goto(`${SCREEN}&design`);
+  await ready(page);
+  // The period sits beside "Refresh all"; the other filters keep their bar.
+  const period = page.locator("[data-dashboard-header-filter]");
+  await expect(period.locator("[data-filter-trigger]")).toBeVisible();
+  await expect(
+    page.locator('[data-dashboard-filters] [data-dashboard-filter="period"]')
+  ).toHaveCount(0);
+  // The table's modes as a segmented control; the create button keeps its label.
+  const modes = pageTable(page).locator("[data-display-mode-switch]");
+  await expect(modes.locator('[aria-pressed="true"]')).toHaveAttribute(
+    "data-layout",
+    "table"
+  );
+  await expect(
+    pageTable(page).getByRole("button", { name: "New page" })
+  ).toContainText("New page");
+  // A number shows its records in the table, from the keyboard, and back.
+  const link = widget(page, "drafts").locator("[data-widget-link]");
+  await expect(link).toHaveAttribute("aria-pressed", "false");
+  await link.focus();
+  await page.keyboard.press("Enter");
+  await expect(link).toHaveAttribute("aria-pressed", "true");
+  await expect(pageTable(page).locator("[data-row-id]")).toHaveCount(
+    count("draft")
+  );
+  await page.keyboard.press("Enter");
+  await expect(link).toHaveAttribute("aria-pressed", "false");
+  await expect(pageTable(page).locator("[data-row-id]")).toHaveCount(10);
+  // Edit mode: the banner, the host's actions, numbered sections.
+  await toolbar(page).getByRole("button", { name: "Edit" }).click();
+  const banner = page.locator("[data-dashboard-edit-banner]");
+  await expect(banner.locator("[data-dashboard-draft]")).toHaveText("Draft");
+  await expect(page.locator("[data-section-layout]").first()).toHaveText(
+    "Section 1 · Grid of cards"
+  );
+  await banner.locator("[data-dashboard-history]").click();
+  await expect(page.locator("[data-dashboard-opened]")).toHaveText("history");
+  await banner.locator("[data-dashboard-done]").click();
+  await expect(banner).toBeVisible();
+  await banner.locator("[data-dashboard-publish]").click();
+  await expect(page.locator("[data-dashboard-opened]")).toHaveText("published");
+  await expect(banner).toHaveCount(0);
 });

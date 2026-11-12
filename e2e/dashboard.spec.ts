@@ -204,7 +204,11 @@ const chooseOption = async (page: Page, id: string, option: string) => {
   await page.keyboard.press("Escape");
   await expect(filterPopup(page, id)).toHaveCount(0);
 };
-const toolbar = (page: Page) => page.locator("[data-dashboard] > header");
+/** The screen's actions: its header row and, in edit mode, the banner above it. */
+const toolbar = (page: Page) =>
+  page.locator(
+    "[data-dashboard] > header, [data-dashboard] > [data-dashboard-edit-banner]"
+  );
 const gridReady = (page: Page) =>
   expect(page.locator(".yayaw-dashboard-grid[data-grid-ready]")).toHaveCount(1);
 /** Elements inside the dashboard that scroll (either way), described. */

@@ -390,6 +390,9 @@ same way in both editions:
 | `unavailableWidgets` | `"show"` | `"hide"` leaves unavailable widgets and unknown blocks out of the view |
 | `syncUrl` | `true` | Readers' filter values in the URL; full-page tables keep their own URL sync. `false` keeps both out of the URL |
 | `openView` | none | "Open full view", "View all" and blocks call `openView(tableId, viewId, context?)`: `viewId` is null for inline settings and the default view, `context.view` is a widget's inline view |
+| `kpiLinks` | `false` | Numbers drive the full-page table of their source; see [Numbers linked to a table](#numbers-linked-to-a-table) |
+| `periodInHeader` | `false` | Readers pick the screen's first date range filter in the header row, beside "Refresh all" (`[data-dashboard-header-filter]`, clearing from its popover); the other filters keep their bar. Edit mode shows every filter in the bar |
+| `onHistory`, `onResetToDefault`, `onPublish` | none | The host's actions of [the edit banner](#the-edit-banner); each button shows only with its handler |
 | `renderMarkdown`, `displayModeRenderers`, `locale`, `translations`, `tableTranslations`, `getRowId`, `onChange` (Vue `change`) | | As for dashboards |
 
 Sections render in order. A grid section is its own gridstack grid (stacked
@@ -627,6 +630,28 @@ data: its `message`, else the text of a known code (`forbidden`,
 `dashboardNoticeText(notice, locale)` words it; both editions type it as
 `TableNotice` in the `list` and `aggregate` answers.
 
+### Numbers linked to a table
+
+With `kpiLinks`, a number (`kpi`) whose view filters records is linked to the
+screen's first full-page table (`table`) of the same source. Its card becomes
+a toggle (`[data-widget-link]`, a button with `aria-pressed`, reached with Tab
+and pressed with Enter or Space):
+
+- a click shows the number's records in the table: its saved view when it
+  names one, else its filters over the view the table shows;
+- the number is pressed (`[data-link-active]` on its card) while the table
+  shows the same filters and search, however the reader got there; the
+  table's own filter chips name the filter under its view tabs;
+- a click on the pressed number clears the table's filters.
+
+The table is asked through `DataTable`'s `viewRequest` (Vue `view-request`):
+`{ key, config, viewId?, replace? }`, applied once per new `key` over the
+current view (`replace` for a whole view) and pushed to the browser history.
+Hosts may use it for their own "show these records" links. The rules are pure
+(`dashboardKpiLink`, `isDashboardKpiLinkActive`, `dashboardKpiLinkRequest`,
+`dashboardViewFilterKey`). Numbers without a filter, or without a full-page
+table of their source, stay plain cards; edit mode shows no link.
+
 ### Demo
 
 `?example=screen` ("Content admin", `examples/screen.ts`, identical in both
@@ -660,6 +685,23 @@ readers never download the widget dialog, the source catalogue, the view
 editor or the filter dialog. Its rules are pure functions in
 `dashboard-editor-model.ts` (shared, synced to Vue, server-safe), listed
 [below](#the-editors-pure-rules).
+
+### The edit banner
+
+Edit mode opens with a banner above the screen's name
+(`[data-dashboard-edit-banner]`): a "Draft" badge, what editing changes, and
+every action on the document: "Add widget", "Add section", then the host's
+"History" (`onHistory`), "Back to the default screen" (`onResetToDefault`)
+and "Publish" (`onPublish`), each shown only when the host gives its handler.
+Without `onPublish` the last button is "Done": it validates, saves and leaves
+edit mode, as before. With it, "Save draft" saves and stays in edit mode, and
+"Publish" saves, awaits `onPublish(document)` and leaves edit mode (a
+rejection keeps the editor open with an error toast). In Vue the three are
+function props (`:on-publish="publish"`). The header row keeps the name,
+"Refresh all" and, for readers, "Edit".
+
+Each section's bar starts with its place and layout: "Section 2 · Full width"
+(`[data-section-layout]`, label `dashboard.sectionLayout`).
 
 ### Sections
 

@@ -222,6 +222,7 @@ export type {
   TableViewListResult,
   UpdateTableViewInput,
 } from "./types/view-types";
+export type { TableViewRequest } from "./hooks/use-view-config";
 export type { TableActivityRecord } from "./utils/activity-shortcuts";
 // Generated avatars (initials and a stable color) for records without an image.
 export {
