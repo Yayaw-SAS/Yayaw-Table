@@ -1,9 +1,12 @@
 // @vitest-environment node
 import { dehydrate, QueryClient } from "@tanstack/vue-query";
 import { expect, it, vi } from "vitest";
-import { createSSRApp, h } from "vue";
+import { createSSRApp, getCurrentInstance, h, ref } from "vue";
 import { renderToString } from "vue/server-renderer";
-import { CREATED_AT } from "../../../../tests/fixtures/server-rendering";
+import {
+  CREATED_AT,
+  listServerRenderingRecords,
+} from "../../../../tests/fixtures/server-rendering";
 import { favoriteProps, spiedActions, ssrConfig } from "../../tests/ssr-table";
 import { defineTableConfig } from "../config";
 import { formatDateValue } from "../value-format";
@@ -227,4 +230,33 @@ it("renders the page the initial view names", async () => {
   expect(list.mock.calls[0]?.[0]).toMatchObject({ page: 2, pageSize: 3 });
   expect(html).toContain("Record 6");
   expect(html).not.toContain("Record 12");
+});
+
+it("asks the host for its actions once, in setup, never after the prefetch's awaits", async () => {
+  const { list, actions } = spiedActions();
+  // A host getter that needs its component context (a Nuxt composable) and depends on state the load changes.
+  const revision = ref(0);
+  const outside: number[] = [];
+  const getTableActions = () => {
+    if (!getCurrentInstance()) {
+      outside.push(revision.value);
+      throw new Error("host context lost");
+    }
+    return revision.value >= 0 ? actions : undefined;
+  };
+  list.mockImplementation(async (params) => {
+    revision.value += 1;
+    return await listServerRenderingRecords({ ...params });
+  });
+  const html = await render({
+    tableType: "ssr",
+    config: ssrConfig(),
+    getTableActions,
+    queryClient: new QueryClient(),
+    serverPrefetch: true,
+    ...favoriteProps,
+  });
+  expect(outside).toEqual([]);
+  expect(list).toHaveBeenCalledTimes(1);
+  expect(html).toContain("Record 12");
 });

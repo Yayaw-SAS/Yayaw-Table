@@ -252,7 +252,11 @@ const config = {
   ...normalizedConfig,
   get presentation() { return (props.config ?? props.getTableConfig?.(props.tableType))?.presentation; },
 };
-const rawActions = computed(() => props.getTableActions?.(props.tableType));
+const resolveActions = () => props.getTableActions?.(props.tableType);
+// The server asks the host once, in setup: the prefetch reads the actions after its own awaits, where a host
+// getter built on its framework's context (a Nuxt computed reading the session) would have lost it. A server
+// render is one pass; the browser follows the getter.
+const rawActions = typeof window === "undefined" ? shallowRef(resolveActions()) : computed(resolveActions);
 // A table mapping its own start/end columns gets a Gantt from its existing list/update actions.
 const derivedPlanning = config.table.planning?.enabled && !rawActions.value?.planning && rawActions.value?.list && canDeriveRowsPlanning(config.table.gantt)
   ? createRowsPlanningAdapter({config: config.table.planning, gantt: config.table.gantt, list: rawActions.value.list, update: rawActions.value.update})
