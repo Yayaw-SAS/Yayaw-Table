@@ -263,6 +263,34 @@ const LINKED = {
     { id: "period", type: "dateRange", label: "Period", targets: [] },
   ],
 };
+const OWN = {
+  id: "own",
+  columnId: "title",
+  operator: "contains",
+  values: ["one"],
+};
+/** A screen whose full-page table has a view of its own, shared by "All". */
+const LINKED_OWN_VIEW = {
+  ...LINKED,
+  id: "linked-own-view",
+  sections: [
+    { id: "page", type: "flow", widgetIds: ["all", "drafts", "list"] },
+  ],
+  widgets: [
+    {
+      id: "all",
+      type: "kpi",
+      tableId: "pages",
+      title: "All",
+      view: { advancedFilters: [OWN] },
+      settings: {},
+    },
+    ...LINKED.widgets.map((item) =>
+      item.id === "list" ? { ...item, view: { advancedFilters: [OWN] } } : item
+    ),
+  ],
+};
+
 const linkedTables: Record<string, DashboardTableSource> = {
   pages: {
     config: pagesConfig,
@@ -339,10 +367,38 @@ it("shows the period in the header row and links a number to its table when the 
   expect(
     wrapper.get('[data-dashboard-widget="drafts"]').attributes()
   ).toHaveProperty("data-link-active");
-  // A second click clears the table's filters.
+  // A second click clears the filters: this table has no view of its own.
   await link.trigger("click");
   await later(300);
   expect(link.attributes("aria-pressed")).toBe("false");
+});
+
+it("returns the table to its own view when the pressed number is clicked again", async () => {
+  const wrapper = mount(YayawDashboard, {
+    props: { dashboard: LINKED_OWN_VIEW, tables: linkedTables, kpiLinks: true },
+    attachTo: document.body,
+  });
+  await later(300);
+  const pressed = (id: string) =>
+    wrapper
+      .get(`[data-dashboard-widget="${id}"] [data-widget-link]`)
+      .attributes("aria-pressed");
+  const press = (id: string) =>
+    wrapper
+      .get(`[data-dashboard-widget="${id}"] [data-widget-link]`)
+      .trigger("click");
+  // The table opens with its own filters: the number that shares them is pressed.
+  expect(pressed("all")).toBe("true");
+  expect(pressed("drafts")).toBe("false");
+  await press("drafts");
+  await later(300);
+  expect(pressed("drafts")).toBe("true");
+  expect(pressed("all")).toBe("false");
+  // Off: the table's own filters come back, not an unfiltered table.
+  await press("drafts");
+  await later(300);
+  expect(pressed("drafts")).toBe("false");
+  expect(pressed("all")).toBe("true");
 });
 
 it("edit mode shows the draft banner with the actions the host handles only", async () => {

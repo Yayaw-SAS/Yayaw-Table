@@ -84,6 +84,7 @@ import {
   dashboardFilterValues,
   dashboardHeaderFilterId,
   dashboardKpiLink,
+  dashboardKpiLinkBase,
   dashboardKpiLinkRequest,
   dashboardLabel,
   dashboardNoticeText,
@@ -231,8 +232,8 @@ export interface YayawDashboardProps {
    * Numbers drive the full-page table of their source: a number whose view
    * filters records shows as active while the table shows those records, and
    * a click sets its filters (or its saved view) on the table, where they
-   * read as filter chips; a click on the active number clears them.
-   * Default false.
+   * read as filter chips; a click on the active number returns the table to
+   * its widget's own view (no filter when it has none). Default false.
    */
   kpiLinks?: boolean;
   /**
@@ -768,7 +769,18 @@ function kpiLinkOf(
     active,
     label: screen.label("kpiShow", { title }),
     onSelect: () =>
-      links.request(link.tableWidgetId, dashboardKpiLinkRequest(link, active)),
+      links.request(
+        link.tableWidgetId,
+        dashboardKpiLinkRequest(
+          link,
+          active,
+          dashboardKpiLinkBase(
+            screen.dashboard,
+            link,
+            screen.views[widget.tableId ?? ""]
+          )
+        )
+      ),
   };
 }
 
