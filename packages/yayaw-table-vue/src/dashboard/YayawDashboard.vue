@@ -60,6 +60,7 @@ import {
   dashboardFilterValues,
   dashboardHeaderFilterId,
   dashboardKpiLink,
+  dashboardKpiLinkBase,
   dashboardKpiLinkRequest,
   dashboardLabel,
   dashboardNoticeText,
@@ -181,7 +182,8 @@ const props = withDefaults(
     /**
      * Numbers drive the full-page table of their source: a click shows their
      * records there (their saved view, else their filters), a second one
-     * clears them; the number is pressed while the table shows them. Default false.
+     * returns the table to its widget's own view (no filter when it has none);
+     * the number is pressed while the table shows them. Default false.
      */
     kpiLinks?: boolean;
     /**
@@ -529,7 +531,11 @@ const linkOf = (widget: DashboardWidget) => {
 const followLink = (widget: DashboardWidget) => {
   const found = linkOf(widget);
   if (!found) return;
-  const asked = dashboardKpiLinkRequest(found.link, found.active);
+  const current = dashboard.value;
+  const base = current
+    ? dashboardKpiLinkBase(current, found.link, views.value[widget.tableId ?? ""])
+    : undefined;
+  const asked = dashboardKpiLinkRequest(found.link, found.active, base);
   requestCount += 1;
   viewRequests.value = {
     ...viewRequests.value,

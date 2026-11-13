@@ -270,6 +270,34 @@ const LINKED = {
     { id: "period", type: "dateRange", label: "Period", targets: [] },
   ],
 };
+const OWN = {
+  id: "own",
+  columnId: "title",
+  operator: "contains",
+  values: ["one"],
+};
+/** A screen whose full-page table has a view of its own, shared by "All". */
+const LINKED_OWN_VIEW = {
+  ...LINKED,
+  id: "linked-own-view",
+  sections: [
+    { id: "page", type: "flow", widgetIds: ["all", "drafts", "list"] },
+  ],
+  widgets: [
+    {
+      id: "all",
+      type: "kpi",
+      tableId: "pages",
+      title: "All",
+      view: { advancedFilters: [OWN] },
+      settings: {},
+    },
+    ...LINKED.widgets.map((item) =>
+      item.id === "list" ? { ...item, view: { advancedFilters: [OWN] } } : item
+    ),
+  ],
+};
+
 const linkedTables: Record<string, DashboardTableSource> = {
   pages: {
     config: {
@@ -371,10 +399,42 @@ it("shows the period in the header row and links a number to its table when the 
   );
   // The host's create label stays readable among icon actions.
   expect(buttonNamed(container, "New page")).toBeDefined();
-  // A second click clears the table's filters.
+  // A second click clears the filters: this table has no view of its own.
   await act(() => link?.click());
   await settle(300);
   expect(link?.getAttribute("aria-pressed")).toBe("false");
+});
+
+it("returns the table to its own view when the pressed number is clicked again", async () => {
+  const { container, root } = mount();
+  await act(() =>
+    root.render(
+      <Host>
+        <YayawDashboard
+          dashboard={LINKED_OWN_VIEW}
+          kpiLinks
+          tables={linkedTables}
+        />
+      </Host>
+    )
+  );
+  await settle(300);
+  const linkOf = (id: string) =>
+    widget(container, id)?.querySelector<HTMLButtonElement>(
+      "[data-widget-link]"
+    );
+  // The table opens with its own filters: the number that shares them is pressed.
+  expect(linkOf("all")?.getAttribute("aria-pressed")).toBe("true");
+  expect(linkOf("drafts")?.getAttribute("aria-pressed")).toBe("false");
+  await act(() => linkOf("drafts")?.click());
+  await settle(300);
+  expect(linkOf("drafts")?.getAttribute("aria-pressed")).toBe("true");
+  expect(linkOf("all")?.getAttribute("aria-pressed")).toBe("false");
+  // Off: the table's own filters come back, not an unfiltered table.
+  await act(() => linkOf("drafts")?.click());
+  await settle(300);
+  expect(linkOf("drafts")?.getAttribute("aria-pressed")).toBe("false");
+  expect(linkOf("all")?.getAttribute("aria-pressed")).toBe("true");
 });
 
 it("edit mode shows the draft banner with the actions the host handles only", async () => {

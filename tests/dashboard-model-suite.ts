@@ -48,6 +48,7 @@ export type DashboardModelApi = Pick<
   | "dashboardHeaderFilterId"
   | "dashboardKpiDisplay"
   | "dashboardKpiLink"
+  | "dashboardKpiLinkBase"
   | "dashboardKpiLinkRequest"
   | "dashboardViewFilterKey"
   | "isDashboardKpiLinkActive"
@@ -1958,6 +1959,22 @@ const LINK_SCREEN = {
   ],
 };
 
+const LIVE_RULE = {
+  id: "live",
+  columnId: "archived",
+  operator: "is",
+  values: [false],
+};
+const NO_FILTERS = { columnFilters: [], advancedFilters: [], globalSearch: "" };
+/** The screen "home" whose full-page table has a view of its own. */
+const linkScreenWith = (table: Record<string, unknown>) => ({
+  ...LINK_SCREEN,
+  id: "home",
+  widgets: LINK_SCREEN.widgets.map((widget) =>
+    widget.id === "list" ? { ...widget, ...table } : widget
+  ),
+});
+
 function linkSuite(test: Test, api: DashboardModelApi) {
   const [drafts, all, , other] = LINK_SCREEN.widgets;
 
@@ -2010,23 +2027,148 @@ function linkSuite(test: Test, api: DashboardModelApi) {
     );
   });
 
-  test("a click asks the table for the number's records, a second one clears them", () => {
+  test("a click asks the table for the number's records, a second one clears them when the table has no view of its own", () => {
     const link = api.dashboardKpiLink(LINK_SCREEN as never, drafts as never);
     assert.ok(link);
     const shown = api.dashboardKpiLinkRequest(link, false);
     assert.equal(shown.replace, undefined);
     assert.deepEqual(shown.config.advancedFilters, [DRAFT_RULE]);
-    assert.deepEqual(api.dashboardKpiLinkRequest(link, true).config, {
-      columnFilters: [],
-      advancedFilters: [],
-      globalSearch: "",
-    });
+    assert.equal(
+      api.dashboardKpiLinkBase(LINK_SCREEN as never, link),
+      undefined
+    );
+    assert.deepEqual(
+      api.dashboardKpiLinkRequest(link, true).config,
+      NO_FILTERS
+    );
+    // A table view that filters nothing clears them as well.
+    assert.deepEqual(
+      api.dashboardKpiLinkRequest(link, true, {
+        viewId: "screen:home:list",
+        config: { sorting: [{ id: "title", desc: false }] },
+      }),
+      { config: NO_FILTERS }
+    );
     const saved = api.dashboardKpiLinkRequest(
       { ...link, viewId: "drafts" },
       false
     );
     assert.equal(saved.viewId, "drafts");
     assert.equal(saved.replace, true);
+  });
+
+  test("a click on the active number restores the filters of the table widget's own view", () => {
+    const screen = linkScreenWith({
+      view: { advancedFilters: [LIVE_RULE], sorting: [{ id: "title" }] },
+    });
+    const link = api.dashboardKpiLink(screen as never, drafts as never);
+    assert.ok(link);
+    const base = api.dashboardKpiLinkBase(screen as never, link);
+    assert.equal(base?.viewId, api.dashboardScreenViewId("home", "list"));
+    // The filters only: the table keeps the columns, sort and view it shows.
+    assert.deepEqual(api.dashboardKpiLinkRequest(link, true, base), {
+      config: {
+        columnFilters: [],
+        advancedFilters: [LIVE_RULE],
+        globalSearch: "",
+      },
+    });
+    // A number with the table's own filters is the one pressed afterwards.
+    const all = api.dashboardKpiLink(
+      screen as never,
+      { ...drafts, id: "all", view: { advancedFilters: [LIVE_RULE] } } as never
+    );
+    assert.ok(all);
+    assert.equal(
+      api.isDashboardKpiLinkActive(
+        all,
+        api.dashboardKpiLinkRequest(link, true, base).config
+      ),
+      true
+    );
+    // A table widget that names a saved view returns to that view's filters.
+    const named = linkScreenWith({ viewId: "live" });
+    const views = [{ id: "live", config: { advancedFilters: [LIVE_RULE] } }];
+    const savedBase = api.dashboardKpiLinkBase(named as never, link, views);
+    assert.equal(savedBase?.viewId, "live");
+    assert.deepEqual(
+      api.dashboardKpiLinkRequest(link, true, savedBase).config.advancedFilters,
+      [LIVE_RULE]
+    );
+    // Its saved views not loaded (or the view gone): no view to return to.
+    assert.equal(api.dashboardKpiLinkBase(named as never, link), undefined);
+    assert.equal(api.dashboardKpiLinkBase(named as never, link, []), undefined);
+  });
+
+  test("a second number replaces the first one's filters, whatever their columns", () => {
+    const first = api.dashboardKpiLink(LINK_SCREEN as never, drafts as never);
+    const second = api.dashboardKpiLink(
+      LINK_SCREEN as never,
+      {
+        ...drafts,
+        id: "mine",
+        view: { columnFilters: [{ id: "owner", value: "me" }] },
+      } as never
+    );
+    assert.ok(first);
+    assert.ok(second);
+    // `viewRequest` lays a request's settings over the view the table shows.
+    const sorting = [{ id: "title", desc: false }];
+    const afterFirst = {
+      sorting,
+      ...api.dashboardKpiLinkRequest(first, false).config,
+    };
+    assert.equal(api.isDashboardKpiLinkActive(first, afterFirst), true);
+    const afterSecond = {
+      ...afterFirst,
+      ...api.dashboardKpiLinkRequest(second, false).config,
+    };
+    assert.deepEqual(afterSecond, {
+      sorting,
+      columnFilters: [{ id: "owner", value: "me" }],
+      advancedFilters: [],
+      globalSearch: "",
+    });
+    assert.equal(api.isDashboardKpiLinkActive(second, afterSecond), true);
+    assert.equal(api.isDashboardKpiLinkActive(first, afterSecond), false);
+  });
+
+  test("a click on the active number linked by a saved view returns to the table widget's own view", () => {
+    const screen = linkScreenWith({
+      view: { advancedFilters: [LIVE_RULE], sorting: [{ id: "title" }] },
+    });
+    const link = api.dashboardKpiLink(
+      screen as never,
+      { ...all, viewId: "drafts" } as never,
+      { config: { advancedFilters: [DRAFT_RULE], displayMode: "gallery" } }
+    );
+    assert.ok(link);
+    assert.equal(link.viewId, "drafts");
+    const base = api.dashboardKpiLinkBase(screen as never, link);
+    // The whole view: the saved view replaced the table's columns and sort too.
+    assert.deepEqual(api.dashboardKpiLinkRequest(link, true, base), {
+      viewId: "screen:home:list",
+      replace: true,
+      config: { advancedFilters: [LIVE_RULE], sorting: [{ id: "title" }] },
+    });
+    const named = linkScreenWith({ viewId: "live" });
+    const views = [{ id: "live", config: { advancedFilters: [LIVE_RULE] } }];
+    assert.deepEqual(
+      api.dashboardKpiLinkRequest(
+        link,
+        true,
+        api.dashboardKpiLinkBase(named as never, link, views)
+      ),
+      {
+        viewId: "live",
+        replace: true,
+        config: { advancedFilters: [LIVE_RULE] },
+      }
+    );
+    // No view of its own: the filters clear, as for an inline number.
+    assert.deepEqual(api.dashboardKpiLinkRequest(link, true), {
+      config: NO_FILTERS,
+    });
   });
 
   test("the header row takes the screen's first date range filter", () => {

@@ -631,18 +631,57 @@ export interface DashboardKpiLinkRequest {
   config: Record<string, unknown>;
 }
 
+/** The view a linked number's table returns to: its widget's own. */
+export interface DashboardKpiLinkBase {
+  /** The view to mark active: the screen's view of the table, or its saved view. */
+  viewId: string;
+  /** The table widget's view (inline, or its saved view's settings). */
+  config: Record<string, unknown>;
+}
+
 /**
- * A click on a linked number: its saved view, else its filters over the view
- * the table shows; a click on the active number clears those filters.
+ * The view of the `table` widget a number drives, as the table opened with
+ * it: its inline view (the screen's view), else the saved view it names among
+ * `views`; none for a table widget without a view of its own.
+ */
+export function dashboardKpiLinkBase(
+  dashboard: Pick<Dashboard, "id" | "widgets">,
+  link: Pick<DashboardKpiLink, "tableWidgetId">,
+  views?: readonly Pick<DashboardView, "config" | "id">[]
+): DashboardKpiLinkBase | undefined {
+  const table = dashboard.widgets.find(
+    (item) => item.id === link.tableWidgetId
+  );
+  if (!table) {
+    return;
+  }
+  if (table.view) {
+    return {
+      viewId: dashboardScreenViewId(dashboard.id, table.id),
+      config: { ...table.view },
+    };
+  }
+  const saved = views?.find((view) => view.id === table.viewId);
+  return saved && isRecord(saved.config)
+    ? { viewId: saved.id, config: saved.config }
+    : undefined;
+}
+
+/**
+ * A click on a linked number: its saved view, else its filters in place of
+ * those the table shows. A click on the active number returns to the table
+ * widget's own view (`base`): its filters, or the whole view after a saved
+ * view; without `base` the table has no filter of its own and they clear.
  */
 export function dashboardKpiLinkRequest(
   link: DashboardKpiLink,
-  active: boolean
+  active: boolean,
+  base?: DashboardKpiLinkBase
 ): DashboardKpiLinkRequest {
   if (active) {
-    return {
-      config: { columnFilters: [], advancedFilters: [], globalSearch: "" },
-    };
+    return link.viewId && base
+      ? { viewId: base.viewId, replace: true, config: { ...base.config } }
+      : { config: { ...dashboardViewFilters(base?.config) } };
   }
   if (link.viewId) {
     return { viewId: link.viewId, replace: true, config: link.config };

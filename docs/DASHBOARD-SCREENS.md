@@ -638,18 +638,27 @@ a toggle (`[data-widget-link]`, a button with `aria-pressed`, reached with Tab
 and pressed with Enter or Space):
 
 - a click shows the number's records in the table: its saved view when it
-  names one, else its filters over the view the table shows;
+  names one, else its filters and search in place of those the table shows
+  (the columns, sort and display mode stay), so a second number replaces the
+  first one's filters, whatever their columns;
 - the number is pressed (`[data-link-active]` on its card) while the table
   shows the same filters and search, however the reader got there; the
   table's own filter chips name the filter under its view tabs;
-- a click on the pressed number clears the table's filters.
+- a click on the pressed number returns the table to its widget's own view
+  (its inline `view`, else the saved view it names), as the screen opened:
+  that view's filters after a number's filters, the whole view after a
+  number's saved view. A table widget without a view of its own, or whose
+  view filters nothing, shows no filter.
+
+A number that shares the filters of the table widget's view is therefore the
+one pressed when the screen opens and when another number is turned off.
 
 The table is asked through `DataTable`'s `viewRequest` (Vue `view-request`):
 `{ key, config, viewId?, replace? }`, applied once per new `key` over the
 current view (`replace` for a whole view) and pushed to the browser history.
 Hosts may use it for their own "show these records" links. The rules are pure
-(`dashboardKpiLink`, `isDashboardKpiLinkActive`, `dashboardKpiLinkRequest`,
-`dashboardViewFilterKey`). Numbers without a filter, or without a full-page
+(`dashboardKpiLink`, `isDashboardKpiLinkActive`, `dashboardKpiLinkBase`,
+`dashboardKpiLinkRequest(link, active, base?)`, `dashboardViewFilterKey`). Numbers without a filter, or without a full-page
 table of their source, stay plain cards; edit mode shows no link.
 
 ### Demo

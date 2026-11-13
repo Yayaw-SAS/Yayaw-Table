@@ -239,7 +239,8 @@ import YayawDashboard from "@/components/ui/yayaw-table-vue/dashboard/YayawDashb
   Vue has French built in); `onChange` (Vue `change`); opt-in:
   `periodInHeader` (the first date range filter beside "Refresh all"),
   `kpiLinks` (a filtered number toggles its records in the source's full-page
-  table, `aria-pressed` while shown), and `onHistory`, `onResetToDefault`,
+  table, `aria-pressed` while shown; off returns to the table widget's own
+  view), and `onHistory`, `onResetToDefault`,
   `onPublish(document)` for the edit banner's host actions (with `onPublish`,
   "Done" becomes "Save draft" and stays in edit mode).
 - Unavailable sources (forbidden, not configured, not found) show a muted
