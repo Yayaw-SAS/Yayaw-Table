@@ -758,7 +758,8 @@ show a view: applied once per new `key`, over the current view unless
 `replace`, pushed to the history. A request present at mount is ignored.
 
 Dashboards: the edit banner, `periodInHeader`, `kpiLinks` and the section
-bars' "Section n · layout" behave the same in both (see
+bars' "Section n · layout" behave the same in both; a linked number turned
+off returns the table to its widget's own view, not to an unfiltered table (see
 `docs/DASHBOARD-SCREENS.md`). Covered by `tests/dashboard-model-suite.ts`
 (both editions), `tests/dashboard-screen.test.tsx`,
 `tests/toolbar-display-mode.test.tsx`,
