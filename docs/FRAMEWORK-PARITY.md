@@ -548,7 +548,7 @@ Verification: `tests/inline-edit-affordance.test.tsx` and the Vue `components/ta
 
 ## Tag items
 
-Tag columns (`type: "tag"`, or `select`/`multiSelect` shown as tags) take `tagItem(value, row)` and `onTagClick(value, row)`, so a tag can follow its row's data instead of a fixed option: a deal's activations named after each activation, green once published. `tagItem` returns `{ label?, tone?, icon?, title? }` for each value; every field falls back to the option's label and color. Both editions resolve colors with the shared `tag-items.ts` (`tagItemAppearance`): a tone (`neutral`, `success`, `warning`, `danger`) wins over the option's `color`, `tagColorMap` and the automatic hue, and shows even with `coloredTags: false` since it carries meaning. `success`, `warning` and `danger` tint the tag like a catalog color, from `--yayaw-success`, `--yayaw-warning` and `--yayaw-danger` (falling back to green, amber and red), so they read in light and dark themes; `neutral` is the muted tag. Values may be records: keys use their position, and `tagItem` gives their label.
+Tag columns (`type: "tag"`, or `select`/`multiSelect` shown as tags) take `tagItem(value, row)` and `onTagClick(value, row)`, so a tag can follow its row's data instead of a fixed option: a deal's activations named after each activation, green once published. `tagItem` returns `{ label?, tone?, icon?, title? }` for each value; every field falls back to the option's label and color. Both editions resolve colors with the shared `tag-items.ts` (`tagItemAppearance`): a tone (`neutral`, `success`, `warning`, `danger`, `info`) wins over the option's `color`, `tagColorMap` and the automatic hue, and shows even with `coloredTags: false` since it carries meaning. `success`, `warning`, `danger` and `info` tint the tag like a catalog color, from `--yayaw-success`, `--yayaw-warning`, `--yayaw-danger` and `--yayaw-info` (falling back to green, amber, the theme's `--destructive` and the theme's `--primary`), with text mixed to a 4.5:1 contrast on the tint in light and dark themes; `neutral` is the muted tag. Values may be records: keys use their position, and `tagItem` gives their label.
 
 With `onTagClick`, each tag is a `<button type="button">` marked `[data-tag-button]`. Clicks, double-clicks, pointer-downs and keys on a tag stay on it, as with cell actions: no row click, no inline editing, no drag. `title` is the tag's tooltip; the icon (a React node, a Vue component) is drawn before the label at 12 px. A "+" next to the tags is a `cellActions` entry.
 
@@ -771,8 +771,15 @@ off returns the table to its widget's own view, not to an unfiltered table (see
 Neither edition writes a colour of its own in components: states read the
 theme's tokens (`primary`, `destructive`, `muted`, `chart-1`…`chart-5`), and
 the few states no token names read a variable with a fallback a host may set:
-`--yayaw-success`, `--yayaw-warning`, `--yayaw-highlight` and
-`--yayaw-file-*` (file tree icons). `tests/theme-tokens.test.ts` fails on a
+`--yayaw-success`, `--yayaw-warning`, `--yayaw-info`, `--yayaw-highlight` and
+`--yayaw-file-*` (file tree icons). Selected things share one surface, the
+theme's `accent` with `accent-foreground`: the selected view tab, a linked
+number that is pressed (inside a `primary` outline) and, softened, selected
+rows. The bulk action bar is the theme's strong surface: `primary` with
+`primary-foreground`, as a floating pill; its destructive action mixes
+`destructive` toward `primary-foreground` to stay readable. Tags take their
+shape from `--yayaw-tag-radius` (default `0.35rem`; `9999px` draws pills) and
+`--yayaw-tag-font-weight` (default `400`). `tests/theme-tokens.test.ts` fails on a
 new colour literal or Tailwind palette class in either edition; its `EXEMPT`
 list names the files that hold colours as data (tag palette, chart and map
 models, the printed export, media backdrops) and why.

@@ -1,7 +1,8 @@
+/* A theme shapes every tag: `--yayaw-tag-radius: 9999px` draws pills. */
 .yayaw-tag {
   max-width: 100%;
-  border-radius: 0.35rem;
-  font-weight: 400;
+  border-radius: var(--yayaw-tag-radius, 0.35rem);
+  font-weight: var(--yayaw-tag-font-weight, 400);
 }
 .yayaw-tag[data-colored="false"] {
   background: var(--yayaw-muted, var(--muted, #f4f4f5));
@@ -16,10 +17,14 @@
   background: hsl(var(--yayaw-tag-hue) 45% 22%);
   color: hsl(var(--yayaw-tag-hue) 80% 85%);
 }
-/* A tag's own color (catalog tags, options with `color`). */
+/*
+ * A tag's own color (catalog tags, options with `color`) or its tone's theme
+ * color. The text is mixed far enough from the color to keep a 4.5:1 contrast
+ * on the tint, even when a theme gives a pale color.
+ */
 .yayaw-tag.yayaw-tag-tinted {
   background: color-mix(in srgb, var(--yayaw-tag-color) 16%, transparent);
-  color: color-mix(in srgb, var(--yayaw-tag-color) 65%, black);
+  color: color-mix(in srgb, var(--yayaw-tag-color) 50%, black);
 }
 .dark .yayaw-tag.yayaw-tag-tinted,
 [data-theme="dark"] .yayaw-tag.yayaw-tag-tinted {
@@ -52,7 +57,7 @@ button.yayaw-tag:focus-visible {
   display: inline-block;
   width: 3rem;
   height: 1.25rem;
-  border-radius: 0.35rem;
+  border-radius: var(--yayaw-tag-radius, 0.35rem);
   background: var(--yayaw-muted, var(--muted, #f4f4f5));
   animation: yayaw-tag-pulse 1.2s ease-in-out infinite;
 }

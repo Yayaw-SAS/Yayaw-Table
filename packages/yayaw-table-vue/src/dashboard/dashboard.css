@@ -1009,12 +1009,23 @@
 .yayaw-dashboard-widget-link[aria-pressed="true"] {
   color: var(--yayaw-primary);
 }
+/* The active number takes the theme's selected surface (accent) inside a primary outline. */
 .yayaw-dashboard-widget[data-link-active] {
   border-color: var(--yayaw-primary);
-  background: color-mix(in oklab, var(--yayaw-primary) 5%, var(--yayaw-card));
+  background: var(--accent, var(--yayaw-muted));
+  color: var(--accent-foreground, var(--yayaw-foreground));
   box-shadow: 0 0 0 1px var(--yayaw-primary);
 }
+.yayaw-dashboard-widget:has(> header .yayaw-dashboard-widget-link) {
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+.yayaw-dashboard-widget:not([data-link-active]):has(
+    > header .yayaw-dashboard-widget-link
+  ):hover {
+  border-color: color-mix(in srgb, var(--yayaw-primary) 50%, transparent);
+}
 .yayaw-dashboard-widget:has(.yayaw-dashboard-widget-link:focus-visible) {
-  box-shadow: 0 0 0 3px
-    color-mix(in srgb, var(--yayaw-muted-foreground) 50%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--yayaw-ring) 50%, transparent);
 }

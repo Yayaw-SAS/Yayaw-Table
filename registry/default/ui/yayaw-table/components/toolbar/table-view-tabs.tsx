@@ -56,7 +56,10 @@ function ViewTab({
       aria-selected={active}
       className={cn(
         "h-8 min-w-0 max-w-48 shrink-0 gap-1.5 px-2.5 font-normal",
-        !active && "text-muted-foreground"
+        // The selected view takes the theme's selected surface (accent).
+        active
+          ? "bg-accent font-medium text-accent-foreground hover:bg-accent aria-expanded:bg-accent aria-expanded:text-accent-foreground"
+          : "text-muted-foreground"
       )}
       data-view-tab={tab.id ?? ""}
       disabled={disabled}

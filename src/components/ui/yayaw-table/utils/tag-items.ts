@@ -1,18 +1,27 @@
 import { tagAppearance } from "./tag-colors";
 
 /**
- * Semantic tones a tag takes from its data (published, late, failed). Themes
- * set `--yayaw-success`, `--yayaw-warning` and `--yayaw-danger`; "neutral" is
- * the muted tag.
+ * Semantic tones a tag takes from its data (published, late, failed, for
+ * information). Themes set `--yayaw-success`, `--yayaw-warning`,
+ * `--yayaw-danger` and `--yayaw-info`; without them "danger" follows the
+ * theme's `--destructive` and "info" its `--primary`. "neutral" is the muted
+ * tag.
  */
-export const TAG_TONES = ["neutral", "success", "warning", "danger"] as const;
+export const TAG_TONES = [
+  "neutral",
+  "success",
+  "warning",
+  "danger",
+  "info",
+] as const;
 
 export type TagTone = (typeof TAG_TONES)[number];
 
 const TAG_TONE_COLORS: Record<Exclude<TagTone, "neutral">, string> = {
   success: "var(--yayaw-success, #16a34a)",
   warning: "var(--yayaw-warning, #ca8a04)",
-  danger: "var(--yayaw-danger, #dc2626)",
+  danger: "var(--yayaw-danger, var(--destructive, #dc2626))",
+  info: "var(--yayaw-info, var(--primary, #2563eb))",
 };
 
 export const isTagTone = (value: unknown): value is TagTone =>

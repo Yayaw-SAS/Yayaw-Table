@@ -641,7 +641,8 @@ and pressed with Enter or Space):
   names one, else its filters and search in place of those the table shows
   (the columns, sort and display mode stay), so a second number replaces the
   first one's filters, whatever their columns;
-- the number is pressed (`[data-link-active]` on its card) while the table
+- the number is pressed (`[data-link-active]` on its card, drawn on the
+  theme's `accent` surface inside a `primary` outline) while the table
   shows the same filters and search, however the reader got there; the
   table's own filter chips name the filter under its view tabs;
 - a click on the pressed number returns the table to its widget's own view

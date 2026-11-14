@@ -441,10 +441,13 @@ function CardFrame({
       aria-labelledby={titleId}
       className={cn(
         "flex h-full min-h-0 flex-col overflow-hidden rounded-lg border bg-card text-card-foreground",
-        // A linked number: its toggle covers the card, the active one is marked.
+        // A linked number: its toggle covers the card; the active one takes the
+        // theme's selected surface (accent) inside a primary outline.
         link &&
-          "relative transition-colors hover:border-primary/50 has-[[data-widget-link]:focus-visible]:ring-3 has-[[data-widget-link]:focus-visible]:ring-ring/50",
-        link?.active && "border-primary bg-primary/5 ring-1 ring-primary"
+          "relative transition-colors has-[[data-widget-link]:focus-visible]:ring-3 has-[[data-widget-link]:focus-visible]:ring-ring/50",
+        link && !link.active && "hover:border-primary/50",
+        link?.active &&
+          "border-primary bg-accent text-accent-foreground ring-1 ring-primary"
       )}
       data-dashboard-widget={widget.id}
       data-link-active={link ? link.active : undefined}
