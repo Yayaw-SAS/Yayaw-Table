@@ -14,7 +14,11 @@ describe("tagItemAppearance", () => {
     }
     assert.equal(
       tagItemAppearance("42", "danger").style?.["--yayaw-tag-color"],
-      "var(--yayaw-danger, #dc2626)"
+      "var(--yayaw-danger, var(--destructive, #dc2626))"
+    );
+    assert.equal(
+      tagItemAppearance("42", "info").style?.["--yayaw-tag-color"],
+      "var(--yayaw-info, var(--primary, #2563eb))"
     );
   });
 
@@ -37,8 +41,12 @@ describe("tagItemAppearance", () => {
     }
   });
 
-  it("lists the four tones", () => {
-    assert.deepEqual([...TAG_TONES], ["neutral", "success", "warning", "danger"]);
+  it("lists the five tones", () => {
+    assert.deepEqual(
+      [...TAG_TONES],
+      ["neutral", "success", "warning", "danger", "info"]
+    );
+    assert.equal(isTagTone("info"), true);
     assert.equal(isTagTone("warning"), true);
     assert.equal(isTagTone("green"), false);
   });

@@ -1454,7 +1454,7 @@
 .yayaw-tag {
   display: inline-flex;
   border: 1px solid transparent;
-  border-radius: 0.35rem;
+  border-radius: var(--yayaw-tag-radius, 0.35rem);
   background: var(--yayaw-muted);
   padding: 2px 8px;
   font-size: 12px;
