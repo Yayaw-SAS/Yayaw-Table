@@ -10,7 +10,15 @@ import { toast } from "sonner";
 import { tableDataMenuOpenToViewAtom } from "../atoms/table-atoms";
 import type { BulkEditTarget } from "../components/forms/catalogue-bulk-editor";
 import { cloneFormValue } from "../components/forms/form-runtime";
+import { useTranslations } from "../providers/table-provider";
 import type { Row, RowSelectionState, Table } from "../tanstack";
+import {
+  type BulkFeedbackMessages,
+  bulkFeedbackMessages,
+  countedBulkFeedback,
+  formatBulkFeedback,
+  resolveBulkFeedbackMessages,
+} from "../utils/bulk-feedback";
 import { type CsvExportColumn, exportRowsAsCsv } from "../utils/csv-export";
 import type { CsvSeparator } from "../utils/export-model";
 import {
@@ -316,12 +324,8 @@ interface CrossPageSelectionResult<TData> {
   rows: Row<TData>[];
 }
 
-const DEFAULT_BULK_DELETE_ERROR =
-  "Failed to delete selected rows. Please try again.";
-const DEFAULT_BULK_COPY_ERROR = "Failed to copy selected rows.";
-const DEFAULT_NO_VALID_IDS_ERROR =
-  "No valid row IDs were found in the selected rows.";
-const DEFAULT_SELECT_ALL_ERROR = "Failed to select all matching rows.";
+/** English copy, used when a helper is called without the table's messages. */
+const DEFAULT_BULK_FEEDBACK = bulkFeedbackMessages();
 
 function toErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error && error.message.trim().length > 0) {
@@ -333,10 +337,6 @@ function toErrorMessage(error: unknown, fallback: string): string {
   }
 
   return fallback;
-}
-
-function pluralizeRows(count: number): string {
-  return count === 1 ? "row" : "rows";
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -729,14 +729,16 @@ export async function loadAllMatchingRowsForSelection<TData>({
 export async function executeBulkCopyAction({
   bulkCopy,
   ids,
+  messages = DEFAULT_BULK_FEEDBACK,
 }: {
   bulkCopy: BulkCopyAction;
   ids: string[];
+  messages?: BulkFeedbackMessages;
 }): Promise<BulkActionResult> {
   if (ids.length === 0) {
     return {
       ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
-      message: DEFAULT_NO_VALID_IDS_ERROR,
+      message: messages.noValidIds,
     };
   }
 
@@ -746,19 +748,23 @@ export async function executeBulkCopyAction({
       return {
         clearSelection: false,
         closeMenu: true,
-        message: `Copied ${ids.length} ${pluralizeRows(ids.length)}.`,
+        message: countedBulkFeedback(
+          messages.copiedOne,
+          messages.copiedMany,
+          ids.length
+        ),
         success: true,
       };
     }
 
     return {
       ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
-      message: result.error?.trim() || DEFAULT_BULK_COPY_ERROR,
+      message: result.error?.trim() || messages.copyError,
     };
   } catch (error) {
     return {
       ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
-      message: toErrorMessage(error, DEFAULT_BULK_COPY_ERROR),
+      message: toErrorMessage(error, messages.copyError),
     };
   }
 }
@@ -767,16 +773,18 @@ export async function executeBulkDeleteOperation({
   bulkDelete,
   deleteOne,
   ids,
+  messages = DEFAULT_BULK_FEEDBACK,
 }: {
   bulkDelete?: BulkDeleteAction;
   deleteOne?: DeleteAction;
   ids: string[];
+  messages?: BulkFeedbackMessages;
 }): Promise<BulkDeleteExecutionOutcome> {
   const totalCount = ids.length;
 
   if (totalCount === 0) {
     return {
-      errorMessages: [DEFAULT_NO_VALID_IDS_ERROR],
+      errorMessages: [messages.noValidIds],
       failureCount: 0,
       mode: "notConfigured",
       successCount: 0,
@@ -794,7 +802,7 @@ export async function executeBulkDeleteOperation({
 
       const errorMessages = normalizeUniqueMessages([
         result.error ?? "",
-        result.success ? "" : DEFAULT_BULK_DELETE_ERROR,
+        result.success ? "" : messages.deleteError,
       ]);
 
       return {
@@ -806,7 +814,7 @@ export async function executeBulkDeleteOperation({
       };
     } catch (error) {
       return {
-        errorMessages: [toErrorMessage(error, DEFAULT_BULK_DELETE_ERROR)],
+        errorMessages: [toErrorMessage(error, messages.deleteError)],
         failureCount: totalCount,
         mode: "bulkDelete",
         successCount: 0,
@@ -821,7 +829,7 @@ export async function executeBulkDeleteOperation({
         const result = await deleteOne(id);
         if (!result.success) {
           throw new Error(
-            result.error || `Could not delete row with id "${id}".`
+            result.error || formatBulkFeedback(messages.deleteRowError, { id })
           );
         }
       })
@@ -836,9 +844,7 @@ export async function executeBulkDeleteOperation({
         continue;
       }
 
-      errorMessages.push(
-        toErrorMessage(result.reason, DEFAULT_BULK_DELETE_ERROR)
-      );
+      errorMessages.push(toErrorMessage(result.reason, messages.deleteError));
     }
 
     return {
@@ -862,13 +868,18 @@ export async function executeBulkDeleteOperation({
 }
 
 export function buildBulkDeleteFeedback(
-  outcome: BulkDeleteExecutionOutcome
+  outcome: BulkDeleteExecutionOutcome,
+  messages: BulkFeedbackMessages = DEFAULT_BULK_FEEDBACK
 ): BulkDeleteFeedback {
   const { errorMessages, failureCount, successCount, totalCount } = outcome;
 
   if (successCount === totalCount && totalCount > 0) {
     return {
-      message: `Deleted ${successCount} ${pluralizeRows(successCount)} successfully.`,
+      message: countedBulkFeedback(
+        messages.deletedOne,
+        messages.deletedMany,
+        successCount
+      ),
       tone: "success",
     };
   }
@@ -876,7 +887,11 @@ export function buildBulkDeleteFeedback(
   const firstError = errorMessages[0];
 
   if (successCount > 0) {
-    const partialMessage = `Deleted ${successCount} of ${totalCount} rows. ${failureCount} failed.`;
+    const partialMessage = formatBulkFeedback(messages.deletedPartial, {
+      count: successCount,
+      failed: failureCount,
+      total: totalCount,
+    });
     return {
       message: firstError ? `${partialMessage} ${firstError}` : partialMessage,
       tone: "error",
@@ -885,7 +900,11 @@ export function buildBulkDeleteFeedback(
 
   const baseError =
     firstError ||
-    `Failed to delete ${totalCount} ${pluralizeRows(totalCount)}.`;
+    countedBulkFeedback(
+      messages.deleteFailedOne,
+      messages.deleteFailedMany,
+      totalCount
+    );
 
   return {
     message: baseError,
@@ -946,9 +965,10 @@ function resolveBulkDeleteStructuredResult(options: {
   closeOnError: boolean;
   explicitClearSelection?: boolean;
   explicitCloseMenu?: boolean;
+  messages: BulkFeedbackMessages;
   outcome: BulkDeleteExecutionOutcome;
 }): CustomBulkDeleteResultResolution {
-  const feedback = buildBulkDeleteFeedback(options.outcome);
+  const feedback = buildBulkDeleteFeedback(options.outcome, options.messages);
   const isSuccess = feedback.tone === "success";
 
   return {
@@ -965,12 +985,17 @@ function resolveBulkDeleteStructuredResult(options: {
 function resolveBulkDeleteLegacyDefaultResult(options: {
   explicitClearSelection?: boolean;
   explicitCloseMenu?: boolean;
+  messages: BulkFeedbackMessages;
   selectedCount: number;
 }): CustomBulkDeleteResultResolution {
   return {
     closeMenu: options.explicitCloseMenu ?? true,
     feedback: {
-      message: `Deleted ${options.selectedCount} ${pluralizeRows(options.selectedCount)} successfully.`,
+      message: countedBulkFeedback(
+        options.messages.deletedOne,
+        options.messages.deletedMany,
+        options.selectedCount
+      ),
       tone: "success",
     },
     shouldClearSelection: options.explicitClearSelection ?? true,
@@ -1038,11 +1063,13 @@ function resolveBulkDeleteMessageOnlyResult(options: {
 
 export function resolveCustomBulkDeleteHandlerResult({
   closeOnError,
+  messages = DEFAULT_BULK_FEEDBACK,
   result,
   selectedCount,
   showDefaultToastsForCustomHandlers,
 }: {
   closeOnError: boolean;
+  messages?: BulkFeedbackMessages;
   result: BulkDeleteCustomHandlerResult;
   selectedCount: number;
   showDefaultToastsForCustomHandlers: boolean;
@@ -1072,6 +1099,7 @@ export function resolveCustomBulkDeleteHandlerResult({
       closeOnError,
       explicitClearSelection: overrides.explicitClearSelection,
       explicitCloseMenu: overrides.explicitCloseMenu,
+      messages,
       outcome: structuredOutcome,
     });
   }
@@ -1080,6 +1108,7 @@ export function resolveCustomBulkDeleteHandlerResult({
     return resolveBulkDeleteLegacyDefaultResult({
       explicitClearSelection: overrides.explicitClearSelection,
       explicitCloseMenu: overrides.explicitCloseMenu,
+      messages,
       selectedCount,
     });
   }
@@ -1114,6 +1143,7 @@ export function resolveCustomBulkDeleteHandlerResult({
 export async function executeCustomBulkDeleteHandler<TData>({
   clearSelection,
   closeOnError,
+  messages = DEFAULT_BULK_FEEDBACK,
   notify,
   onBulkDelete,
   selectedRows,
@@ -1121,6 +1151,7 @@ export async function executeCustomBulkDeleteHandler<TData>({
 }: {
   clearSelection: () => void;
   closeOnError: boolean;
+  messages?: BulkFeedbackMessages;
   notify?: BulkDeleteNotificationAdapter;
   onBulkDelete: (
     rows: Row<TData>[]
@@ -1134,6 +1165,7 @@ export async function executeCustomBulkDeleteHandler<TData>({
     const rawResult = await Promise.resolve(onBulkDelete(selectedRows));
     const resolution = resolveCustomBulkDeleteHandlerResult({
       closeOnError,
+      messages,
       result: rawResult,
       selectedCount: selectedRows.length,
       showDefaultToastsForCustomHandlers,
@@ -1158,7 +1190,7 @@ export async function executeCustomBulkDeleteHandler<TData>({
       success: resolution.success,
     };
   } catch (error) {
-    const errorMessage = toErrorMessage(error, DEFAULT_BULK_DELETE_ERROR);
+    const errorMessage = toErrorMessage(error, messages.deleteError);
     notifier.error(errorMessage);
     if (closeOnError) {
       clearSelection();
@@ -1233,6 +1265,12 @@ export function useBulkActions<TData>({
 }: BulkActionsConfig<TData>): BulkActionsReturn<TData> {
   // Call hook unconditionally to satisfy Rules of Hooks; use result only when tableType is set
   const queryClient = useQueryClient();
+  const { locale, translations } = useTranslations();
+  const feedbackOverrides = translations.bulk?.feedback;
+  const messages = useMemo(
+    () => resolveBulkFeedbackMessages(locale, feedbackOverrides),
+    [locale, feedbackOverrides]
+  );
   const providerResult = useTableActions<{ id: string }>({
     tableType: tableType ?? "",
     enableLogging: false,
@@ -1432,7 +1470,7 @@ export function useBulkActions<TData>({
         return;
       }
       if (nextSelection.rowIds.length === 0) {
-        toast.error(DEFAULT_NO_VALID_IDS_ERROR);
+        toast.error(messages.noValidIds);
         return;
       }
 
@@ -1447,7 +1485,7 @@ export function useBulkActions<TData>({
         request === selectionRequest.current &&
         latestSelection.current.contextKey === selectionContextKey
       ) {
-        toast.error(toErrorMessage(error, DEFAULT_SELECT_ALL_ERROR));
+        toast.error(toErrorMessage(error, messages.selectAllError));
       }
     } finally {
       setIsSelectingAll(false);
@@ -1455,6 +1493,7 @@ export function useBulkActions<TData>({
   }, [
     advancedFiltersParam,
     isSelectingAll,
+    messages,
     rowCount,
     selectedRows.length,
     currentSelectionIdsKey,
@@ -1487,9 +1526,7 @@ export function useBulkActions<TData>({
     };
 
     if (!bulkEditEnabled) {
-      return buildBlockedBulkActionResult(
-        "Bulk edit is disabled by table configuration."
-      );
+      return buildBlockedBulkActionResult(messages.editDisabled);
     }
 
     if (selectedRows.length === 0) {
@@ -1503,7 +1540,7 @@ export function useBulkActions<TData>({
         showBulkActionMessage(result);
         return result;
       } catch (error) {
-        const errorMessage = toErrorMessage(error, "Bulk edit failed.");
+        const errorMessage = toErrorMessage(error, messages.editError);
         toast.error(errorMessage);
         return {
           ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
@@ -1526,14 +1563,18 @@ export function useBulkActions<TData>({
       ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
       message: resolution.message,
     };
-  }, [bulkEditEnabled, selectedRows, onBulkEdit, provider?.actions.bulkUpdate]);
+  }, [
+    bulkEditEnabled,
+    messages,
+    selectedRows,
+    onBulkEdit,
+    provider?.actions.bulkUpdate,
+  ]);
 
   // Handle bulk delete
   const handleBulkDelete = useCallback(async (): Promise<BulkActionResult> => {
     if (!bulkDeleteEnabled) {
-      return buildBlockedBulkActionResult(
-        "Bulk delete is disabled by table configuration."
-      );
+      return buildBlockedBulkActionResult(messages.deleteDisabled);
     }
 
     if (selectedRows.length === 0) {
@@ -1544,6 +1585,7 @@ export function useBulkActions<TData>({
       const result = await executeCustomBulkDeleteHandler({
         clearSelection,
         closeOnError,
+        messages,
         onBulkDelete,
         selectedRows,
         showDefaultToastsForCustomHandlers,
@@ -1554,14 +1596,14 @@ export function useBulkActions<TData>({
 
     const ids = extractSelectedRowIds(selectedRows);
     if (ids.length === 0) {
-      toast.error(DEFAULT_NO_VALID_IDS_ERROR);
+      toast.error(messages.noValidIds);
       if (closeOnError) {
         clearSelection();
       }
       return {
         clearSelection: closeOnError,
         closeMenu: closeOnError,
-        message: DEFAULT_NO_VALID_IDS_ERROR,
+        message: messages.noValidIds,
         success: false,
       };
     }
@@ -1578,13 +1620,14 @@ export function useBulkActions<TData>({
           }
         : undefined,
       ids,
+      messages,
     });
 
     if (outcome.successCount > 0) {
       await invalidateTableData();
     }
 
-    const feedback = buildBulkDeleteFeedback(outcome);
+    const feedback = buildBulkDeleteFeedback(outcome, messages);
     if (feedback.tone === "success") {
       toast.success(feedback.message);
       clearSelection();
@@ -1614,6 +1657,7 @@ export function useBulkActions<TData>({
     bulkDeleteEnabled,
     closeOnError,
     invalidateTableData,
+    messages,
     showDefaultToastsForCustomHandlers,
   ]);
 
@@ -1636,7 +1680,7 @@ export function useBulkActions<TData>({
         showBulkActionMessage(result);
         return result;
       } catch (error) {
-        const errorMessage = toErrorMessage(error, DEFAULT_BULK_COPY_ERROR);
+        const errorMessage = toErrorMessage(error, messages.copyError);
         toast.error(errorMessage);
         return {
           ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
@@ -1650,6 +1694,7 @@ export function useBulkActions<TData>({
       const result = await executeBulkCopyAction({
         bulkCopy: bulkCopyAction,
         ids: extractSelectedRowIds(selectedRows),
+        messages,
       });
       if (result.success) {
         await invalidateTableData();
@@ -1664,18 +1709,21 @@ export function useBulkActions<TData>({
       const jsonString = JSON.stringify(data, null, 2);
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(jsonString);
-        toast.success(
-          `Copied ${selectedRows.length} ${pluralizeRows(selectedRows.length)} to clipboard.`
+        const copiedMessage = countedBulkFeedback(
+          messages.copiedToClipboardOne,
+          messages.copiedToClipboardMany,
+          selectedRows.length
         );
+        toast.success(copiedMessage);
         return {
           ...successResult,
-          message: `Copied ${selectedRows.length} ${pluralizeRows(selectedRows.length)} to clipboard.`,
+          message: copiedMessage,
         };
       }
 
-      throw new Error("Clipboard API is not available in this environment.");
+      throw new Error(messages.clipboardUnavailable);
     } catch (error) {
-      const errorMessage = toErrorMessage(error, DEFAULT_BULK_COPY_ERROR);
+      const errorMessage = toErrorMessage(error, messages.copyError);
       toast.error(errorMessage);
       return {
         ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
@@ -1684,6 +1732,7 @@ export function useBulkActions<TData>({
     }
   }, [
     selectedRows,
+    messages,
     onBulkCopy,
     provider?.actions.bulkCopy,
     invalidateTableData,
@@ -1708,10 +1757,7 @@ export function useBulkActions<TData>({
         showBulkActionMessage(result);
         return result;
       } catch (error) {
-        const errorMessage = toErrorMessage(
-          error,
-          "Failed to export selected rows."
-        );
+        const errorMessage = toErrorMessage(error, messages.exportError);
         toast.error(errorMessage);
         return {
           ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
@@ -1747,10 +1793,7 @@ export function useBulkActions<TData>({
       });
       return successResult;
     } catch (error) {
-      const errorMessage = toErrorMessage(
-        error,
-        "Failed to export selected rows."
-      );
+      const errorMessage = toErrorMessage(error, messages.exportError);
       toast.error(errorMessage);
       return {
         ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
@@ -1759,6 +1802,7 @@ export function useBulkActions<TData>({
     }
   }, [
     bulkExportEnabled,
+    messages,
     selectedRows,
     onBulkExport,
     csvExportColumns,
