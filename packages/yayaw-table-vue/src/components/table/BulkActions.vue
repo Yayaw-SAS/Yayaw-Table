@@ -19,6 +19,12 @@ import {
   parseBulkEditPatch,
   resolveBulkActionResult,
 } from "../../bulk-actions";
+import {
+  bulkFeedbackMessages,
+  countedBulkFeedback,
+  formatBulkFeedback,
+  resolveBulkFeedbackMessages,
+} from "../../bulk-feedback";
 import { commonBulkValues } from "../../bulk-form";
 import { cloneFormValue } from "../../form-runtime";
 import { useTableContext } from "../../context";
@@ -127,6 +133,13 @@ const closeBulkTags = (): void => {
 };
 const translate = (key: string, fallback: string): string =>
   String(context.translations.value[key] ?? fallback);
+const feedback = computed(() => {
+  const overrides: Record<string, unknown> = {};
+  for (const key of Object.keys(bulkFeedbackMessages())) {
+    overrides[key] = context.translations.value[`bulk.feedback.${key}`];
+  }
+  return resolveBulkFeedbackMessages(context.locale, overrides);
+});
 const customActionDisabled = (action: BulkAction): boolean => {
   const disabled =
     typeof action.disabled === "function"
@@ -146,17 +159,21 @@ const applyResult = (
   result: BulkActionHandlerResult,
   fallback: string,
   selectedIds: string[],
-  defaults = { clearSelection: false, closeMenu: true }
+  defaults = { clearSelection: false, closeMenu: true },
+  successMessage?: string
 ): boolean => {
   const resolved = resolveBulkActionResult(
     result || undefined,
     fallback,
     defaults
   );
-  if (resolved.message) {
+  // Library-run actions say what they did, as React does; host handlers keep their own words.
+  const message =
+    resolved.message ?? (resolved.success ? successMessage : undefined);
+  if (message) {
     context.status.value = {
       type: resolved.success ? "success" : "error",
-      message: resolved.message,
+      message,
     };
   } else if (resolved.success) {
     context.status.value = undefined;
@@ -184,7 +201,11 @@ const executeCustom = async (id: string): Promise<void> => {
   const selectedIds = [...ids.value];
   try {
     const result = await action.handler(actionContext.value);
-    applyResult(result, `${action.label} failed`, selectedIds);
+    applyResult(
+      result,
+      formatBulkFeedback(feedback.value.actionError, { action: action.label }),
+      selectedIds
+    );
   } finally {
     pending.value = undefined;
   }
@@ -216,16 +237,23 @@ const executeBulkDelete = async (
     if (context.onBulkDelete) {
       const result = await context.onBulkDelete(selectedRows);
       shouldRefresh = result !== undefined;
-      applyResult(result, "Bulk delete failed", selectedIds, {
+      applyResult(result, feedback.value.deleteError, selectedIds, {
         clearSelection: Boolean(result),
         closeMenu: Boolean(result),
       });
     } else if (context.actions.value?.bulkDelete) {
       const result = await context.actions.value.bulkDelete(selectedIds);
-      applyResult(result, "Bulk delete failed", selectedIds, {
-        clearSelection: true,
-        closeMenu: true,
-      });
+      applyResult(
+        result,
+        feedback.value.deleteError,
+        selectedIds,
+        { clearSelection: true, closeMenu: true },
+        countedBulkFeedback(
+          feedback.value.deletedOne,
+          feedback.value.deletedMany,
+          selectedIds.length
+        )
+      );
     } else if (context.actions.value?.delete) {
       const deleteRow = context.actions.value.delete;
       // Wait for every request before refreshing; a rejected request must not hide later successes.
@@ -242,9 +270,20 @@ const executeBulkDelete = async (
       const failedCount = selectedIds.length - completedIds.length;
       if (failedCount) {
         throw new Error(
-          `${failedCount} of ${selectedIds.length} rows could not be deleted`
+          formatBulkFeedback(feedback.value.notDeleted, {
+            failed: failedCount,
+            total: selectedIds.length,
+          })
         );
       }
+      context.status.value = {
+        type: "success",
+        message: countedBulkFeedback(
+          feedback.value.deletedOne,
+          feedback.value.deletedMany,
+          selectedIds.length
+        ),
+      };
     }
   } catch (cause) {
     reportError(cause);
@@ -269,8 +308,12 @@ const requestBulkDelete = (): void => {
   const selectedRows = [...context.selectedRows.value];
   typedValue.value = "";
   confirmation.value = {
-    title: `Delete ${selectedIds.length} rows?`,
-    description: "This action cannot be undone.",
+    title: countedBulkFeedback(
+      feedback.value.deleteTitleOne,
+      feedback.value.deleteTitleMany,
+      selectedIds.length
+    ),
+    description: feedback.value.deleteDescription,
     confirmLabel: translate("delete", "Delete"),
     expected: deleteConfirmationValue(context.config.table.deleteConfirmation, { count: selectedIds.length }, typedLabels.value),
     execute: () => executeBulkDelete(selectedIds, selectedRows),
@@ -307,7 +350,7 @@ const bulkCopy = async (): Promise<void> => {
     const result = context.onBulkCopy
       ? await context.onBulkCopy(context.selectedRows.value)
       : await context.actions.value?.bulkCopy?.(selectedIds);
-    applyResult(result, "Bulk copy failed", selectedIds);
+    applyResult(result, feedback.value.copyError, selectedIds);
     if (!context.onBulkCopy) {
       await context.refresh();
     }
@@ -327,7 +370,7 @@ const bulkEdit = async (): Promise<void> => {
     try {
       // The application owns its edit form and any later persistence or refresh.
       const result = await context.onBulkEdit(context.selectedRows.value);
-      applyResult(result, "Bulk update failed", selectedIds);
+      applyResult(result, feedback.value.editError, selectedIds);
     } catch (cause) {
       reportError(cause);
     } finally {
@@ -710,7 +753,7 @@ const bulkExport = async (): Promise<void> => {
       <header class="yayaw-form-header">
         <div>
           <h3>{{ translate("bulkEdit", "Bulk edit") }}</h3>
-          <p>JSON fields to update on {{ ids.length }} rows.</p>
+          <p>{{ formatBulkFeedback(feedback.editJsonHint, { count: ids.length }) }}</p>
         </div>
       </header>
       <div class="yayaw-confirm-body yayaw-bulk-editor">

@@ -272,6 +272,10 @@ Nested collections validate item fields recursively. Errors include the item pat
 
 `table.bulkActionsPosition: "bottom" | "top"` (serializable, default `"bottom"`) places the multi-selection action bar in both editions. The bar always floats over the page and never sits under the table: `"bottom"` fixes it to the bottom of the viewport (above a visible pagination), `"top"` fixes it to the top of the viewport and enters from the top; `table.bulkActionsTopOffset` (px, default 24) moves it below a fixed application header. React applies it through `getBulkActionsMenuPositionMode`, and `getBulkActionsMenuWrapperStyle`; Vue sets `data-position="top"` and an inline `top` on `.yayaw-bulk-menu-wrapper`. Coverage: React `bulk-actions-menu.test.ts` and `table-component.test.ts`, Vue `bulk-actions.test.ts`.
 
+## Bulk action feedback
+
+Bulk delete, copy, edit, export and select-all feedback follows the table locale in both editions. The copy lives in the shared `bulk-feedback.ts` contract (English by default, French for `fr*` locales), with singular and plural forms. Hosts override any key with `translations.bulk.feedback` (React) or `bulk.feedback.<key>` translation keys (Vue); blank overrides are ignored. A library-run delete (`actions.bulkDelete` or the per-row `actions.delete` fallback) reports how many rows were deleted in both editions; a host `onBulkDelete` handler keeps its own message. Coverage: React `bulk-feedback.test.ts`, Vue `bulk-actions.test.ts`.
+
 ## Bulk editing
 
 When `onBulkEdit` is absent, `actions.bulkUpdate(ids, patch)` opens the catalogue bulk editor in both frameworks. A supplied callback keeps precedence. The editor captures the selected IDs, starts with values common to all targets, and applies only added fields. It uses each row's edit permission and conditional field rules. Reserved identity/timestamp fields and fields with `bulkEdit: false` are excluded. Rows resolving to different form types cannot share an editor.

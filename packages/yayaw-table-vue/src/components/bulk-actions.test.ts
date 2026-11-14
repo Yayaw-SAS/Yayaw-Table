@@ -387,13 +387,60 @@ describe("bulk action execution", () => {
     expect(wrapper.get(".yayaw-bulk-bar").text()).toContain("1 selected");
   });
 
+  it("reports a library-run delete in the table locale", async () => {
+    const bulkDelete = vi.fn(async () => ({ success: true }));
+    const wrapper = mountTable({
+      getTableActions: () => ({ bulkDelete }),
+      locale: "fr-FR",
+    });
+    await selectRows(wrapper, 2);
+    await wrapper
+      .get('.yayaw-bulk-bar [aria-label="Supprimer"]')
+      .trigger("click");
+    await wrapper
+      .get('[role="alertdialog"] .yayaw-button-danger')
+      .trigger("click");
+    await flushPromises();
+    expect(bulkDelete).toHaveBeenCalledOnce();
+    expect(toast.getHistory().at(-1)).toMatchObject({
+      title: "2 lignes supprimées.",
+      type: "success",
+    });
+  });
+
+  it("asks and reports a failed delete in the table locale", async () => {
+    const deleteRow = vi.fn(async (id: string) => ({ success: id !== "2" }));
+    const wrapper = mountTable({
+      getTableActions: () => ({ delete: deleteRow }),
+      locale: "fr-FR",
+    });
+    await selectRows(wrapper, 2);
+    await wrapper
+      .get('.yayaw-bulk-bar [aria-label="Supprimer"]')
+      .trigger("click");
+    expect(wrapper.get('[role="alertdialog"]').attributes("aria-label")).toBe(
+      "Supprimer 2 lignes ?"
+    );
+    expect(wrapper.get('[role="alertdialog"]').text()).toContain(
+      "Cette action est irréversible."
+    );
+    await wrapper
+      .get('[role="alertdialog"] .yayaw-button-danger')
+      .trigger("click");
+    await flushPromises();
+    expect(toast.getHistory().at(-1)).toMatchObject({
+      title: "Lignes non supprimées : 1 sur 2.",
+      type: "error",
+    });
+  });
+
   it("deletes only the IDs displayed when confirmation was requested", async () => {
     const bulkDelete = vi.fn(async () => ({ success: true }));
     const wrapper = mountTable({ getTableActions: () => ({ bulkDelete }) });
     await selectRows(wrapper, 1);
     await wrapper.get('.yayaw-bulk-bar [aria-label="Delete"]').trigger("click");
     expect(wrapper.get('[role="alertdialog"]').attributes("aria-label")).toBe(
-      "Delete 1 rows?"
+      "Delete 1 row?"
     );
     await wrapper.findAll('tbody input[type="checkbox"]')[1]?.setValue(true);
     await wrapper

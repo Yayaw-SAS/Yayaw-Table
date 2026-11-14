@@ -22,6 +22,7 @@ export interface DataTableTranslations {
   };
   bulk: {
     editor?: Partial<import("../utils/bulk-editor").BulkEditorMessages>;
+    feedback?: Partial<import("../utils/bulk-feedback").BulkFeedbackMessages>;
     close_menu: string;
     confirm_copy_description: string;
     confirm_delete_description: string;

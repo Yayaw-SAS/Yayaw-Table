@@ -1498,6 +1498,11 @@
           "target": "components/ui/yayaw-table/utils/bulk-editor.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/bulk-feedback.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/bulk-feedback.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/calendar-model.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/calendar-model.ts"

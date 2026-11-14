@@ -156,6 +156,14 @@ await copyFile(
   new URL("../packages/yayaw-table-vue/src/bulk-editor.ts", import.meta.url)
 );
 
+await copyFile(
+  new URL(
+    "../src/components/ui/yayaw-table/utils/bulk-feedback.ts",
+    import.meta.url
+  ),
+  new URL("../packages/yayaw-table-vue/src/bulk-feedback.ts", import.meta.url)
+);
+
 // The optional Excel writer is framework-agnostic: the Vue item ships the same file.
 await mkdir(
   new URL("../packages/yayaw-table-vue/src/excel/", import.meta.url),
