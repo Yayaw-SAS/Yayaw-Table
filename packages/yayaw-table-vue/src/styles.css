@@ -590,10 +590,12 @@
   background: transparent;
   color: var(--yayaw-muted-foreground);
 }
+/* The selected view takes the theme's selected surface (accent). */
 .yayaw-view-tab.yayaw-button-secondary {
   border-color: transparent;
-  background: var(--secondary, var(--yayaw-muted));
-  color: var(--secondary-foreground, var(--yayaw-foreground));
+  background: var(--accent, var(--yayaw-muted));
+  color: var(--accent-foreground, var(--yayaw-foreground));
+  font-weight: 500;
 }
 .yayaw-view-tab svg,
 .yayaw-view-more svg {
@@ -976,9 +978,16 @@
   cursor: pointer;
   user-select: none;
 }
-.yayaw-data-grid tbody tr:hover td,
-.yayaw-data-grid tbody tr.selected td {
+.yayaw-data-grid tbody tr:hover td {
   background: color-mix(in srgb, var(--yayaw-muted) 70%, transparent);
+}
+/* Selected rows take the theme's selected surface (accent), softened. */
+.yayaw-data-grid tbody tr.selected td {
+  background: color-mix(
+    in srgb,
+    var(--accent, var(--yayaw-muted)) 50%,
+    transparent
+  );
 }
 .yayaw-data-grid tbody tr {
   cursor: default;
@@ -1743,15 +1752,15 @@
   max-width: 100%;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  border: 1px solid var(--yayaw-border);
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--yayaw-muted) 95%, transparent);
+  gap: 4px;
+  /* The theme's strong surface: primary, as a floating pill. */
+  border-radius: 9999px;
+  background: var(--yayaw-primary);
+  color: var(--yayaw-primary-foreground);
   box-shadow:
     0 20px 25px -5px rgba(0, 0, 0, 0.1),
     0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  padding: 4px;
-  backdrop-filter: blur(10px);
+  padding: 4px 4px 4px 8px;
   pointer-events: auto;
 }
 .yayaw-bulk-count {
@@ -1760,7 +1769,7 @@
   align-items: center;
   gap: 8px;
   padding-inline: 12px;
-  color: var(--yayaw-foreground);
+  color: inherit;
   font-size: 14px;
   white-space: nowrap;
 }
@@ -1771,7 +1780,7 @@
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: var(--yayaw-primary);
+  background: currentColor;
   animation: yayaw-pulse 2s ease-in-out infinite;
 }
 @keyframes yayaw-pulse {
@@ -1786,9 +1795,9 @@
   justify-content: center;
   gap: 0;
   border: 0;
-  border-radius: 12px;
+  border-radius: 9999px;
   background: transparent;
-  color: var(--yayaw-muted-foreground);
+  color: color-mix(in srgb, var(--yayaw-primary-foreground) 80%, transparent);
   padding: 8px;
   font: inherit;
   font-size: 14px;
@@ -1803,10 +1812,18 @@
 .yayaw-bulk-action-tab:hover,
 .yayaw-bulk-action-tab:focus-visible {
   gap: 8px;
-  background: color-mix(in srgb, var(--yayaw-background) 80%, transparent);
-  color: var(--yayaw-foreground);
+  background: color-mix(
+    in srgb,
+    var(--yayaw-primary-foreground) 15%,
+    transparent
+  );
+  color: var(--yayaw-primary-foreground);
   padding-inline: 16px;
   outline: none;
+}
+.yayaw-bulk-action-tab:focus-visible {
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--yayaw-primary-foreground) 70%, transparent);
 }
 .yayaw-bulk-action-tab:disabled {
   cursor: not-allowed;
@@ -1826,8 +1843,15 @@
   max-width: 160px;
   opacity: 1;
 }
-.yayaw-bulk-action-danger {
-  color: var(--yayaw-danger);
+/* Destructive on the primary surface: mixed toward the bar's text to stay readable. */
+.yayaw-bulk-action-danger,
+.yayaw-bulk-action-danger:hover,
+.yayaw-bulk-action-danger:focus-visible {
+  color: color-mix(
+    in oklab,
+    var(--yayaw-danger) 55%,
+    var(--yayaw-primary-foreground)
+  );
 }
 .yayaw-bulk-action-fallback {
   font-size: 11px;
@@ -1838,7 +1862,11 @@
   height: 24px;
   flex: none;
   margin-inline: 4px;
-  background: var(--yayaw-border);
+  background: color-mix(
+    in srgb,
+    var(--yayaw-primary-foreground) 25%,
+    transparent
+  );
 }
 .yayaw-bulk-divider + .yayaw-bulk-action-tab {
   width: 32px;
@@ -2452,6 +2480,7 @@
   .yayaw-form-grid {
     grid-template-columns: 1fr;
   }
+  /* Wrapped onto several lines, a pill would clip its corners. */
   .yayaw-bulk-bar {
     border-radius: 16px;
   }

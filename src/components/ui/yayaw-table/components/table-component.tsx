@@ -572,7 +572,7 @@ export function getRegularCellClassName<TData>({
       ),
     isActionsColumn &&
       cn(
-        "sticky right-0 z-10 bg-card text-center shadow-[-1px_0_0_0_var(--border)] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
+        "sticky right-0 z-10 bg-card text-center shadow-[-1px_0_0_0_var(--border)] group-hover:bg-muted/50 group-data-[state=selected]:bg-[color-mix(in_oklab,var(--accent)_50%,var(--card))]",
         TABLE_DENSITY_CLASSES[densityMode].cell
       ),
     TABLE_DENSITY_CLASSES[densityMode].cell,
@@ -2452,8 +2452,8 @@ function ModernDataTable<
       return (
         <TableRow
           className={cn(
-            "data-[state=selected]:bg-muted/50",
-            row.getIsSelected() && "bg-muted/50",
+            "data-[state=selected]:bg-accent/50",
+            row.getIsSelected() && "bg-accent/50",
             "border-border border-t bg-muted/20 first:border-t-0"
           )}
           data-state={row.getIsSelected() ? "selected" : ""}
@@ -2653,8 +2653,8 @@ function ModernDataTable<
         <TableRow
           className={cn(
             "group",
-            "data-[state=selected]:bg-muted/50",
-            row.getIsSelected() && "bg-muted/50",
+            "data-[state=selected]:bg-accent/50",
+            row.getIsSelected() && "bg-accent/50",
             isActiveRow &&
               "bg-primary/5 shadow-[inset_2px_0_0_var(--primary)]",
             canClickRow && "cursor-pointer hover:bg-muted/40"
