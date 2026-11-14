@@ -397,6 +397,8 @@ it("shows the period in the header row and links a number to its table when the 
   expect(widget(container, "drafts")?.hasAttribute("data-link-active")).toBe(
     true
   );
+  // The pressed number takes the theme's selected surface, not a tint of primary.
+  expect(widget(container, "drafts")?.className).toContain("bg-accent");
   // The host's create label stays readable among icon actions.
   expect(buttonNamed(container, "New page")).toBeDefined();
   // A second click clears the filters: this table has no view of its own.
