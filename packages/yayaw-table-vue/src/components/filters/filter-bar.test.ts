@@ -311,3 +311,81 @@ it("keeps a date period in the toolbar with its days, and the Filter button open
     vi.useRealTimers();
   }
 });
+
+it("searches a quick filter's options on the server and keeps the selected label", async () => {
+  const optionsLoader = vi.fn(async (query: string) =>
+    [
+      { value: 7, label: "Launch call" },
+      { value: 8, label: "Lunch" },
+    ].filter((option) =>
+      option.label.toLowerCase().includes(query.toLowerCase())
+    )
+  );
+  const list = vi.fn(async () => ({ data: [], meta: { totalCount: 0 } }));
+  const remote = defineTableConfig({
+    ...config,
+    columns: {
+      ...config.columns,
+      definitions: [
+        { id: "name", header: "Name" },
+        {
+          id: "action",
+          header: "Action",
+          type: "multiSelect",
+          options: [],
+          optionsLoader,
+          optionsSearchMinLength: 2,
+          optionsSearchDebounceMs: 0,
+        },
+      ],
+      order: ["name", "action"],
+    },
+    table: { ...config.table, filterBarColumns: ["action"] },
+  });
+  const wrapper = mount(YayawDataTable, {
+    props: {
+      tableType: remote.id,
+      config: remote,
+      getTableActions: () => ({ list }),
+    },
+    attachTo: document.body,
+    global: {
+      stubs: {
+        PopperArrow: true,
+        PopperContent: { template: "<div><slot /></div>" },
+      },
+    },
+  });
+  await flushPromises();
+  expect(optionsLoader).not.toHaveBeenCalled();
+  await wrapper.get('.yayaw-filter-bar [aria-label="Action"]').trigger("click");
+  await flushPromises();
+  expect(document.body.textContent).toContain("Type at least 2 characters");
+  expect(optionsLoader).not.toHaveBeenCalled();
+  const search = document.querySelector<HTMLInputElement>(
+    ".yayaw-filter-picker input[type=search]"
+  );
+  if (!search) {
+    throw new Error("Missing search");
+  }
+  search.value = "lau";
+  search.dispatchEvent(new Event("input"));
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  await flushPromises();
+  expect(optionsLoader).toHaveBeenLastCalledWith(
+    "lau",
+    expect.any(AbortSignal)
+  );
+  checkbox("Launch call").click();
+  await flushPromises();
+  expect(list).toHaveBeenLastCalledWith(
+    expect.objectContaining({ filters: { action: [7] } })
+  );
+  search.value = "lu";
+  search.dispatchEvent(new Event("input"));
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  await flushPromises();
+  // The selection keeps its label beside other results.
+  expect(checkbox("Launch call").checked).toBe(true);
+  expect(checkbox("Lunch").checked).toBe(false);
+});

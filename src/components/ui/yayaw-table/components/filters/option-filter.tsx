@@ -5,20 +5,42 @@ import { useState } from "react";
 import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "@/src/components/ui/popover";
+import { useRememberedFilterOptions } from "../../hooks/use-filter-menu";
+import { useRemoteFilterOptions } from "../../hooks/use-remote-filter-options";
 import { useTranslations } from "../../providers/table-provider";
-import { filterBarOptions, filterValueKey, filterValues, type FilterBarColumn } from "../../utils/filter-bar";
+import { filterBarOptions, filterValueKey, filterValues, type FilterBarColumn, type FilterBarOption } from "../../utils/filter-bar";
+import { filterMenuText, type FilterMenuTextKey } from "../../utils/filter-menu";
 
-export function OptionFilter({ column, value, onChange }: {
-  column: FilterBarColumn; value: unknown; onChange: (values: unknown[]) => void;
+export function OptionFilter({ tableId, column, value, onChange }: {
+  tableId: string; column: FilterBarColumn; value: unknown; onChange: (values: unknown[]) => void;
 }) {
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
   const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+  const query = search.trim();
+  const [resolved, remember] = useRememberedFilterOptions(tableId);
+  const remote = useRemoteFilterOptions(column, query, remember, open);
+  const menuText = (key: FilterMenuTextKey) => filterMenuText(key, locale, (name) => (t(name) === name ? undefined : t(name)));
   const selected = filterValues(value);
-  const options = filterBarOptions(column, value, { yes: t("common.true"), no: t("common.false") });
+  const options = filterBarOptions(
+    { ...column, options: [...(Array.isArray(column.options) ? column.options : []), ...(remote.loaded as FilterBarOption[])] },
+    value,
+    { yes: t("common.true"), no: t("common.false") },
+    resolved[column.id]
+  );
   const checked = (candidate: unknown) => selected.some(item => filterValueKey(item) === filterValueKey(candidate));
-  const visible = options.filter(option => option.label.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()));
+  // The server already searched the loaded options.
+  const visible = column.optionsLoader ? options : options.filter(option => option.label.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+  let status = visible.length ? "" : t("filters.noResults");
+  if (remote.loading) {
+    status = menuText("loadingOptions");
+  } else if (remote.failed) {
+    status = menuText("optionsError");
+  } else if (column.optionsLoader && query.length < remote.minimum) {
+    status = menuText("searchMinimum").replace("{count}", String(remote.minimum));
+  }
   return (
-    <Popover onOpenChange={() => setSearch("")}>
+    <Popover onOpenChange={(next) => { setOpen(next); setSearch(""); }}>
       <PopoverTrigger render={<Button aria-label={column.header} className="h-8 max-w-full gap-2 px-3 font-normal text-xs leading-4" type="button" variant="outline" />}>
         <Filter aria-hidden="true" className="size-4 shrink-0" />
         <span className="truncate">{column.header}</span>
@@ -33,7 +55,7 @@ export function OptionFilter({ column, value, onChange }: {
             <input checked={checked(option.value)} disabled={option.disabled} onChange={() => onChange(checked(option.value) ? selected.filter(item => filterValueKey(item) !== filterValueKey(option.value)) : [...selected, option.value])} type="checkbox" />
             <span>{option.label}</span>
           </label>)}
-          {!visible.length && <output className="block p-2 text-muted-foreground text-sm">{t("filters.noResults")}</output>}
+          {status && <output className="block p-2 text-muted-foreground text-sm">{status}</output>}
         </fieldset>
         <Button disabled={!selected.length} onClick={() => onChange([])} type="button" variant="outline">{t("filters.clear")}</Button>
       </PopoverContent>

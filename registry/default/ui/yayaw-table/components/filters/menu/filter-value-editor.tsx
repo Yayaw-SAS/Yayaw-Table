@@ -6,6 +6,7 @@ import type {
   FilterMenu,
   FilterMenuColumnDef,
 } from "../../../hooks/use-filter-menu";
+import { useRemoteFilterOptions } from "../../../hooks/use-remote-filter-options";
 import type { AdvancedFilterModel } from "../../../types/filter-types";
 import {
   filterOperatorIsMultiple,
@@ -134,63 +135,6 @@ function TypedValues({
   );
 }
 
-function useRemoteOptions(
-  column: FilterMenuColumnDef,
-  query: string,
-  rememberOptions: FilterMenu["rememberOptions"]
-) {
-  const [loaded, setLoaded] = useState<
-    { value: unknown; label: string; disabled?: boolean }[]
-  >([]);
-  const [loading, setLoading] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const minimum = Math.max(0, column.optionsSearchMinLength ?? 0);
-  useEffect(() => {
-    const controller = new AbortController();
-    setFailed(false);
-    if (!column.optionsLoader || query.length < minimum) {
-      setLoaded([]);
-      setLoading(false);
-      return;
-    }
-    setLoaded([]);
-    setLoading(true);
-    const timer = setTimeout(
-      async () => {
-        try {
-          const result = await column.optionsLoader?.(query, controller.signal);
-          if (!controller.signal.aborted) {
-            setLoaded(result ?? []);
-            rememberOptions(column.id, result ?? []);
-          }
-        } catch {
-          if (!controller.signal.aborted) {
-            setLoaded([]);
-            setFailed(true);
-          }
-        } finally {
-          if (!controller.signal.aborted) {
-            setLoading(false);
-          }
-        }
-      },
-      query ? Math.max(0, column.optionsSearchDebounceMs ?? 300) : 0
-    );
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [
-    column.id,
-    column.optionsLoader,
-    column.optionsSearchDebounceMs,
-    minimum,
-    query,
-    rememberOptions,
-  ]);
-  return { loaded, loading, failed, minimum };
-}
-
 function optionStatus(
   menu: FilterMenu,
   state: {
@@ -229,7 +173,7 @@ function OptionValues({
   const [search, setSearch] = useState("");
   const values = ruleValues(rule.values);
   const query = search.trim();
-  const { loaded, loading, failed, minimum } = useRemoteOptions(
+  const { loaded, loading, failed, minimum } = useRemoteFilterOptions(
     column,
     query,
     menu.rememberOptions

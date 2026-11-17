@@ -56,6 +56,7 @@ export function TableFilterBar({
         <OptionFilter
           column={column}
           key={column.id}
+          tableId={tableId}
           onChange={(values) => {
             state.setFiltersParam(
               replaceColumnFilter(state.filtersParam, column.id, values)

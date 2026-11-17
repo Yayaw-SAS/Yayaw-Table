@@ -22,6 +22,13 @@ export interface FilterBarColumn {
   type?: string;
   enableFiltering?: boolean;
   options?: unknown;
+  /** Options searched on the server, as in the filter menu. */
+  optionsLoader?: (
+    query: string,
+    signal?: AbortSignal
+  ) => Promise<FilterBarOption[]>;
+  optionsSearchMinLength?: number;
+  optionsSearchDebounceMs?: number;
 }
 
 export const filterValueKey = (value: unknown): string =>
@@ -37,7 +44,9 @@ export function filterValues(value: unknown): unknown[] {
 export function filterBarOptions(
   column: FilterBarColumn,
   value: unknown,
-  booleanLabels: { yes: string; no: string }
+  booleanLabels: { yes: string; no: string },
+  /** Labels already loaded for this column, shown for its selected values. */
+  known: readonly { value: unknown; label: string }[] = []
 ): FilterBarOption[] {
   const options: FilterBarOption[] = Array.isArray(column.options)
     ? column.options
@@ -61,7 +70,9 @@ export function filterBarOptions(
     if (!result.has(key)) {
       result.set(key, {
         value: selected as FilterBarOption["value"],
-        label: String(selected),
+        label:
+          known.find((option) => Object.is(option.value, selected))?.label ??
+          String(selected),
       });
     }
   }
@@ -77,6 +88,7 @@ export function filterBarColumns<T extends FilterBarColumn>(
     return column &&
       column.enableFiltering !== false &&
       (Array.isArray(column.options) ||
+        column.optionsLoader ||
         column.type === "boolean" ||
         column.type === "date")
       ? [column]
