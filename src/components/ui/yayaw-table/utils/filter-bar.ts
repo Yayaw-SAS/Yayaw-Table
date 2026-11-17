@@ -29,6 +29,8 @@ export interface FilterBarColumn {
   ) => Promise<FilterBarOption[]>;
   optionsSearchMinLength?: number;
   optionsSearchDebounceMs?: number;
+  /** `"single"`: the quick filter holds one value, stored alone rather than in an array; no value means all. */
+  filterSelection?: "single" | "multiple";
 }
 
 export const filterValueKey = (value: unknown): string =>
@@ -99,10 +101,10 @@ export function filterBarColumns<T extends FilterBarColumn>(
 export function replaceColumnFilter<T extends { id: string; value: unknown }>(
   filters: T[],
   id: string,
-  values: unknown[]
+  value: unknown
 ): { id: string; value: unknown }[] {
   const other = filters.filter((filter) => filter.id !== id);
-  return values.length ? [...other, { id, value: values }] : other;
+  return filterValues(value).length ? [...other, { id, value }] : other;
 }
 
 /** The advanced filter rule a date quick filter keeps for its column. */

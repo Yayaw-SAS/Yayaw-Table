@@ -119,7 +119,8 @@ const config = defineTableConfig<Product>({
       },
       { id: "tags", header: "Tags", type: "multiSelect", inlineEdit: true,
         options: ["Featured", "New", "Popular"].map(value => ({ label: value, value })) },
-      { id: "active", header: "Active", type: "boolean", displayVariant: "switch", inlineEdit: true },
+      // One value or All in the filter bar, like a classic select.
+      { id: "active", header: "Active", type: "boolean", displayVariant: "switch", inlineEdit: true, filterSelection: "single" },
       { id: "imageUrl", header: "Image", type: "image", enableSorting: false },
       {
         id: "createdAt",
@@ -147,7 +148,7 @@ const config = defineTableConfig<Product>({
   table: {
     // The facet panel beside the records: categories and tags with their counts.
     facets: { columns: ["category", "tags"] },
-    filterBarColumns: ["category", "status", "tags"],
+    filterBarColumns: ["category", "status", "tags", "active"],
     // The Created period stays in the toolbar, with its days.
     toolbarDateFilter: "createdAt",
     enableAdvancedFilters: true,

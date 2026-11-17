@@ -2647,6 +2647,16 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+.yayaw-filter-trigger[data-active] {
+  background: var(--yayaw-muted);
+}
+.yayaw-filter-current {
+  font-weight: 500;
+}
+.yayaw-filter-all {
+  border-bottom: 1px solid var(--yayaw-border);
+  border-radius: 0.25rem 0.25rem 0 0;
+}
 
 /* The toolbar changes composition when its container cannot keep one readable row. */
 .yayaw-toolbar {

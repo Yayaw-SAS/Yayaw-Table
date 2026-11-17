@@ -389,3 +389,97 @@ it("searches a quick filter's options on the server and keeps the selected label
   expect(checkbox("Launch call").checked).toBe(true);
   expect(checkbox("Lunch").checked).toBe(false);
 });
+
+it("picks one value or All in a single-choice quick filter, stored alone and shown on the trigger", async () => {
+  const single = defineTableConfig({
+    ...config,
+    id: "single-filters",
+    columns: {
+      ...config.columns,
+      definitions: [
+        { id: "name", header: "Name" },
+        {
+          id: "sent",
+          header: "Sent",
+          type: "boolean",
+          filterSelection: "single",
+        },
+        {
+          id: "category",
+          header: "Category",
+          type: "select",
+          filterSelection: "single",
+          options: [
+            { value: 0, label: "Zero" },
+            { value: 2, label: "Two" },
+          ],
+        },
+      ],
+      order: ["name", "sent", "category"],
+    },
+    table: { ...config.table, filterBarColumns: ["sent", "category"] },
+  });
+  const list = vi.fn(async () => ({ data: [], meta: { totalCount: 0 } }));
+  const wrapper = mount(YayawDataTable, {
+    props: {
+      tableType: single.id,
+      config: single,
+      getTableActions: () => ({ list }),
+    },
+    attachTo: document.body,
+    global: {
+      stubs: {
+        PopperArrow: true,
+        PopperContent: { template: "<div><slot /></div>" },
+      },
+    },
+  });
+  const radio = (label: string) => {
+    const element = [...document.querySelectorAll("label")]
+      .find((item) => item.textContent?.trim() === label)
+      ?.querySelector<HTMLInputElement>('input[type="radio"]');
+    if (!element) {
+      throw new Error(`Missing ${label}`);
+    }
+    return element;
+  };
+  await flushPromises();
+  await wrapper
+    .get('.yayaw-filter-bar [aria-label="Category"]')
+    .trigger("click");
+  await flushPromises();
+  // Few choices: no search field, "All" first and checked.
+  expect(
+    document.querySelector(".yayaw-filter-picker input[type=search]")
+  ).toBeNull();
+  expect(radio("All").checked).toBe(true);
+  radio("Zero").click();
+  await flushPromises();
+  expect(list).toHaveBeenLastCalledWith(
+    expect.objectContaining({ filters: { category: 0 } })
+  );
+  expect(
+    wrapper.get('.yayaw-filter-bar [aria-label="Category"]').text()
+  ).toContain("Category: Zero");
+  expect(document.querySelector('input[type="radio"]')).toBeNull();
+  await wrapper.get('.yayaw-filter-bar [aria-label="Sent"]').trigger("click");
+  await flushPromises();
+  radio("False").click();
+  await flushPromises();
+  expect(list).toHaveBeenLastCalledWith(
+    expect.objectContaining({ filters: { category: 0, sent: false } })
+  );
+  await wrapper
+    .get('.yayaw-filter-bar [aria-label="Category"]')
+    .trigger("click");
+  await flushPromises();
+  expect(radio("Zero").checked).toBe(true);
+  radio("All").click();
+  await flushPromises();
+  expect(list).toHaveBeenLastCalledWith(
+    expect.objectContaining({ filters: { sent: false } })
+  );
+  expect(
+    wrapper.get('.yayaw-filter-bar [aria-label="Category"]').text()
+  ).not.toContain(":");
+});
