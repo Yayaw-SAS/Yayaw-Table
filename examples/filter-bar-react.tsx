@@ -40,7 +40,13 @@ const config = defineTableConfig({
           { value: "News", label: "News" },
         ],
       },
-      { id: "active", header: "Active", type: "boolean" },
+      {
+        id: "active",
+        header: "Active",
+        type: "boolean",
+        // One value or All, like a classic select.
+        filterSelection: "single",
+      },
     ],
     mandatory: ["name"],
     visible: ["name", "category", "tags", "active"],

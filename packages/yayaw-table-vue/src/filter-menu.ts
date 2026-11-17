@@ -284,6 +284,7 @@ const TEXT = {
     checked: "Checked",
     unchecked: "Unchecked",
     empty: "Empty",
+    all: "All",
   },
   fr: {
     filter: "Filtre",
@@ -346,6 +347,7 @@ const TEXT = {
     checked: "Cochée",
     unchecked: "Non cochée",
     empty: "Vide",
+    all: "Tous",
   },
 } as const;
 

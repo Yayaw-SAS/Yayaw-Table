@@ -127,6 +127,12 @@ export interface ColumnDefinition<TData extends TableRecord = TableRecord> {
   >;
   optionsSearchMinLength?: number;
   optionsSearchDebounceMs?: number;
+  /**
+   * Quick filter (`table.filterBarColumns`) choice mode. `"single"` picks one
+   * value or "All" and stores the value alone, like a classic select;
+   * `"multiple"` (default) stores an array of checked values.
+   */
+  filterSelection?: "single" | "multiple";
   filterRenderer?: (context: {
     value: unknown;
     onChange: (value: unknown) => void;

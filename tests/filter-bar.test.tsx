@@ -338,3 +338,111 @@ it("searches a quick filter's options on the server and keeps the selected label
     container.remove();
   }
 });
+
+it("picks one value or All in a single-choice quick filter, stored alone and shown on the trigger", async () => {
+  const single = defineTableConfig({
+    ...config,
+    id: "single-filters",
+    columns: {
+      ...config.columns,
+      definitions: [
+        {
+          id: "sent",
+          header: "Sent",
+          type: "boolean",
+          filterSelection: "single",
+        },
+        {
+          id: "category",
+          header: "Category",
+          type: "select",
+          filterSelection: "single",
+          options: [
+            { value: 0, label: "Zero" },
+            { value: 2, label: "Two" },
+          ],
+        },
+      ],
+      order: ["sent", "category"],
+    },
+    table: { syncUrl: false, filterBarColumns: ["sent", "category"] },
+  });
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container),
+    client = new QueryClient(),
+    store = createStore();
+  let current!: ReturnType<typeof useDataTable>;
+  function Probe() {
+    current = useDataTable({ tableId: "single-filters", tableType: "media" });
+    return null;
+  }
+  const trigger = (label: string) =>
+    container.querySelector<HTMLButtonElement>(`[aria-label="${label}"]`);
+  const radio = (label: string) => {
+    const element = [...document.querySelectorAll("label")]
+      .find((item) => item.textContent?.trim() === label)
+      ?.querySelector<HTMLInputElement>('input[type="radio"]');
+    if (!element) {
+      throw new Error(`Missing ${label}`);
+    }
+    return element;
+  };
+  try {
+    await act(() =>
+      root.render(
+        <Provider store={store}>
+          <NuqsTestingAdapter hasMemory>
+            <TableProvider
+              getTableConfig={() => single}
+              queryClient={client}
+              tableId="single-filters"
+              translations={defaultTranslations}
+            >
+              <Probe />
+              <TableFilterBar tableId="single-filters" tableType="media" />
+            </TableProvider>
+          </NuqsTestingAdapter>
+        </Provider>
+      )
+    );
+    await act(() => trigger("Category")?.click());
+    // Few choices: no search field, "All" first and checked.
+    expect(document.querySelector('input[type="search"]')).toBeNull();
+    expect(radio("All").checked).toBe(true);
+    await act(() => radio("Zero").click());
+    expect(current.state.columnFilters).toEqual([{ id: "category", value: 0 }]);
+    expect(trigger("Category")?.textContent).toContain("Category: Zero");
+    expect(document.querySelector('input[type="radio"]')).toBeNull();
+    await act(() => trigger("Sent")?.click());
+    await act(() => radio("False").click());
+    expect(current.state.columnFilters).toEqual([
+      { id: "category", value: 0 },
+      { id: "sent", value: false },
+    ]);
+    await act(() => trigger("Category")?.click());
+    expect(radio("Zero").checked).toBe(true);
+    await act(() => radio("All").click());
+    expect(current.state.columnFilters).toEqual([{ id: "sent", value: false }]);
+    expect(trigger("Category")?.textContent).not.toContain(":");
+  } finally {
+    await act(() => root.unmount());
+    client.clear();
+    container.remove();
+  }
+});
+
+it("stores a single quick-filter value alone and removes the filter for All", () => {
+  expect(
+    replaceColumnFilter([{ id: "other", value: 1 }], "sent", false)
+  ).toEqual([
+    { id: "other", value: 1 },
+    { id: "sent", value: false },
+  ]);
+  expect(replaceColumnFilter([{ id: "sent", value: 0 }], "sent", 0)).toEqual([
+    { id: "sent", value: 0 },
+  ]);
+  expect(
+    replaceColumnFilter([{ id: "sent", value: true }], "sent", [])
+  ).toEqual([]);
+});
