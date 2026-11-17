@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.37.2
+
+### Patch Changes
+
+- 9446883: The table's first download is lighter: the bulk actions menu and bulk editor,
+  the connector, import, export and schedule panels, and the File tree and Form
+  views now load the first time they open. The row actions menu no longer pulls
+  an animation library for its icons.
+- 29cb386: Quick filters in the filter bar now search a column's `optionsLoader` on the
+  server, as the filter menu does: they honour `optionsSearchMinLength` and
+  `optionsSearchDebounceMs`, request nothing while closed, show the loading,
+  error and minimum-length states, and keep the labels of selected choices.
+  Before, such a filter only listed its static options and showed "No results".
+
 ## 3.37.1
 
 ### Patch Changes
