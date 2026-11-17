@@ -143,11 +143,10 @@ import {
   catalogueFormAtom,
   openCreateForm,
 } from "../forms/atoms/catalogue-form-atoms";
-import { ConnectorPanel } from "./connector-panel";
-import { ExportPanel } from "./export-panel";
+import { lazyComponent } from "../lazy-component";
 import { importScreen } from "./import-screen";
 import { useMobileSettingsScreens } from "./mobile-settings-screens";
-import { DestinationScheduleButton, SchedulePanel } from "./schedule-panel";
+import { DestinationScheduleButton } from "./schedule-panel";
 import { SearchBar } from "./sections/search-bar";
 import { TableDataMenu } from "./table-data-menu";
 import { TableDensityMenu } from "./table-density-menu";
@@ -164,6 +163,17 @@ import {
 // Debug flag to help track issues - activated for debugging
 
 // Define DataTableColumnDef type to fix TypeScript errors
+// Panels load when their screen opens, not with the toolbar.
+const ConnectorPanel = lazyComponent(
+  async () => (await import("./connector-panel")).ConnectorPanel
+);
+const ExportPanel = lazyComponent(
+  async () => (await import("./export-panel")).ExportPanel
+);
+const SchedulePanel = lazyComponent(
+  async () => (await import("./schedule-panel")).SchedulePanel
+);
+
 export type DataTableColumnDef<TData> = ColumnDef<TData> & {
   enableHiding?: boolean;
   meta?: {

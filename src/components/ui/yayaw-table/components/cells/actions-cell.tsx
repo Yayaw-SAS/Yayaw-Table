@@ -2,11 +2,10 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSetAtom } from "jotai";
-import { MoreHorizontal } from "lucide-react";
+import { Copy, Info, MoreHorizontal, Pencil, Trash } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Icon } from "@/components/ui/custom/icon";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -484,7 +483,7 @@ export function ActionsCellWithTranslations<
   // Add standard view action if requested
   if (standardActions.includeView && standardActions.onView) {
     allActions.unshift({
-      icon: <Icon name="Info" size="sm" />,
+      icon: <Info aria-hidden="true" className="size-4" strokeWidth={1.5} />,
       label: t("actions.view"),
       onClick: standardActions.onView,
       type: "view",
@@ -583,7 +582,7 @@ export function ActionsCellWithTranslations<
     allActions.unshift({
       disabled: (rowData) =>
         !isStandardActionAllowed(rowData, standardActions.canEditRow),
-      icon: <Icon name="Pencil" size="sm" />,
+      icon: <Pencil aria-hidden="true" className="size-4" strokeWidth={1.5} />,
       label: t("actions.edit"),
       onClick: handleEdit,
       type: "edit",
@@ -595,7 +594,7 @@ export function ActionsCellWithTranslations<
     allActions.push({
       disabled: (rowData) =>
         !isStandardActionAllowed(rowData, standardActions.canDuplicateRow),
-      icon: <Icon name="Copy" size="sm" />,
+      icon: <Copy aria-hidden="true" className="size-4" strokeWidth={1.5} />,
       label: t("actions.duplicate"),
       onClick: (rowData) => {
         if (
@@ -615,7 +614,7 @@ export function ActionsCellWithTranslations<
     builtInDelete = {
       disabled: (rowData) =>
         !isStandardActionAllowed(rowData, standardActions.canDeleteRow),
-      icon: <Icon name="Trash" size="sm" />,
+      icon: <Trash aria-hidden="true" className="size-4" strokeWidth={1.5} />,
       label: t("actions.delete"),
       onClick: (rowData) => {
         if (!isStandardActionAllowed(rowData, standardActions.canDeleteRow)) {

@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useFormConfig } from "../../../providers/table-provider";
 import { formCreateFields } from "../../../utils/form-view";
-import { createFormConfigContext } from "./use-form-catalogue";
+import { createFormConfigContext } from "./form-config-context";
 
 /**
  * The fields of the table's create form (`getFormConfig` for its create form

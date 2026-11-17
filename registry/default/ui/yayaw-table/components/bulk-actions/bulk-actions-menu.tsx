@@ -349,12 +349,6 @@ const BULK_DESTRUCTIVE_TEXT =
   "text-[color-mix(in_oklab,var(--destructive)_55%,var(--primary-foreground))]";
 
 /** The table's bar always floats over the page, at the viewport's bottom or top, never under the table. */
-export function getBulkActionsMenuPositionMode(
-  position: BulkActionsPosition = "bottom"
-): BulkActionsMenuPositionMode {
-  return position === "top" ? "top" : "fixed";
-}
-
 export function getBulkActionsMenuWrapperClassName({
   className,
   positionMode,

@@ -13,12 +13,8 @@ import {
 
 import { formSubmissionValues, initialFormValues } from "../form-runtime";
 import { generateFormConfig } from "../generated-form-config";
-import type {
-  FieldValues,
-  FormConfig,
-  FormConfigContext,
-  FormConfigMode,
-} from "../types";
+import type { FieldValues, FormConfig } from "../types";
+import { createFormConfigContext } from "./form-config-context";
 import { useFormBuilder } from "./use-form-builder";
 
 export interface UseFormCatalogueOptions<TFieldValues extends FieldValues> {
@@ -58,12 +54,6 @@ export interface UseFormCatalogueOptions<TFieldValues extends FieldValues> {
   ) => Promise<void>;
 }
 
-export function resolveFormConfigMode(
-  mode: "create" | "update"
-): FormConfigMode {
-  return mode === "update" ? "edit" : "create";
-}
-
 function areFieldValuesEqual(
   left: Partial<FieldValues> | undefined,
   right: Partial<FieldValues> | undefined
@@ -77,40 +67,6 @@ function areFieldValuesEqual(
   } catch {
     return false;
   }
-}
-
-export function createFormConfigContext<
-  TFieldValues extends FieldValues = FieldValues,
->({
-  formType,
-  initialData,
-  mode,
-  tableId,
-  tableType,
-  values,
-}: {
-  formType: string;
-  initialData?: Partial<TFieldValues>;
-  mode: "create" | "update";
-  tableId?: string;
-  tableType?: string;
-  values?: Partial<TFieldValues>;
-}): FormConfigContext<TFieldValues> {
-  const resolvedTableId = tableId || tableType || formType;
-  const resolvedTableType = tableType || tableId || formType;
-
-  return {
-    formType,
-    initialData,
-    mode: resolveFormConfigMode(mode),
-    row:
-      mode === "update" && initialData
-        ? (initialData as Record<string, unknown>)
-        : undefined,
-    tableId: resolvedTableId,
-    tableType: resolvedTableType,
-    values,
-  };
 }
 
 /**

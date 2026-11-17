@@ -16,6 +16,7 @@ import { normalizeGanttView } from "../planning/engine";
 import { type QueryClient, useQueryClient } from "@tanstack/react-query";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
+  type ComponentProps,
   type CSSProperties,
   memo,
   type ReactNode,
@@ -114,12 +115,13 @@ import {
   formSubmitResultFrom,
 } from "../utils/form-view";
 import { DataTableGanttView } from "./gantt-view";
-import {
-  BulkActionsMenu,
-  type BulkActionsPosition,
-  type CustomBulkActionsInput,
-  getBulkActionsMenuPositionMode,
+import type {
+  BulkActionsMenu as BulkActionsMenuView,
+  BulkActionsPosition,
+  CustomBulkActionsInput,
 } from "./bulk-actions/bulk-actions-menu";
+import { getBulkActionsMenuPositionMode } from "./bulk-actions/bulk-actions-position";
+import { lazyComponent } from "./lazy-component";
 import { CatalogueInlineCell } from "./cells/catalogue-inline-cell";
 import { ColumnDragOverlay } from "./columns/header/column-drag-overlay";
 import { DataTableColumnHeader } from "./columns/header/column-header";
@@ -134,7 +136,6 @@ import {
   openCreateForm,
   openUpdateForm,
 } from "./forms/atoms/catalogue-form-atoms";
-import { CatalogueBulkEditor } from "./forms/catalogue-bulk-editor";
 import {
   type BulkTagsActions,
   BulkTagsLayer,
@@ -160,6 +161,22 @@ import { SafePagination } from "./safe-pagination";
 import { TableEmptyStateContent } from "./table-empty-state";
 import { useOnScreen } from "./utils/use-on-screen";
 import { SUCCESS_SURFACE, SUCCESS_TEXT } from "../utils/status-tones";
+
+// The bulk editor loads with the first bulk edit.
+const CatalogueBulkEditorView = lazyComponent(
+  async () => (await import("./forms/catalogue-bulk-editor")).CatalogueBulkEditor
+);
+
+function CatalogueBulkEditor(
+  props: ComponentProps<typeof CatalogueBulkEditorView>
+) {
+  return props.targets ? <CatalogueBulkEditorView {...props} /> : null;
+}
+
+// The menu (and its animations) loads with the first selection.
+const BulkActionsMenu = lazyComponent(
+  async () => (await import("./bulk-actions/bulk-actions-menu")).BulkActionsMenu
+) as typeof BulkActionsMenuView;
 
 const _DEBUG = false;
 

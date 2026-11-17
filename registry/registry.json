@@ -108,6 +108,11 @@
           "target": "components/ui/yayaw-table/components/bulk-actions/bulk-actions-menu.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/bulk-actions/bulk-actions-position.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/bulk-actions/bulk-actions-position.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/bulk-actions/index.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/bulk-actions/index.ts"
@@ -688,6 +693,11 @@
           "target": "components/ui/yayaw-table/components/forms/helpers.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/forms/hooks/form-config-context.ts",
+          "type": "registry:hook",
+          "target": "components/ui/yayaw-table/components/forms/hooks/form-config-context.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/forms/hooks/use-create-form-fields.ts",
           "type": "registry:hook",
           "target": "components/ui/yayaw-table/components/forms/hooks/use-create-form-fields.ts"
@@ -741,6 +751,11 @@
           "path": "registry/default/ui/yayaw-table/components/kanban-view.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/kanban-view.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/lazy-component.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/lazy-component.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/list-view.tsx",

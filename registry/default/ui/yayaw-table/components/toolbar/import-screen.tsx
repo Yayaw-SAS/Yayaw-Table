@@ -17,7 +17,13 @@ import {
   existingLookupFromRows,
   type ImportAdapters,
 } from "../../utils/import-model";
-import { type ConnectorImportSource, ImportPanel } from "./import-panel";
+import { lazyComponent } from "../lazy-component";
+import type { ConnectorImportSource } from "./import-panel";
+
+// The import screen's code loads when it opens.
+const ImportPanel = lazyComponent(
+  async () => (await import("./import-panel")).ImportPanel
+);
 
 type Row = Record<string, unknown>;
 

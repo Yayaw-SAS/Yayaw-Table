@@ -8,13 +8,13 @@ import {
   createBulkActionContext,
   executeCustomBulkAction,
   executeConfirmableBulkActionWithLock,
-  getBulkActionsMenuPositionMode,
   getBulkActionsMenuWrapperClassName,
   getBulkActionsMenuWrapperStyle,
   getBulkMenuStateAfterOutsideClick,
   shouldRenderBulkActionsMenu,
   type BulkAction,
 } from "./bulk-actions-menu";
+import { getBulkActionsMenuPositionMode } from "./bulk-actions-position";
 
 const FIXED_INSET_PATTERN = /\binset-x-0\b/;
 const FIXED_POSITIONING_PATTERN = /\bfixed\b/;
