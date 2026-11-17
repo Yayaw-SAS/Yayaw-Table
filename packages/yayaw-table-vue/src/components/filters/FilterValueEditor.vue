@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useRemoteFilterOptions } from "../../composables/use-remote-filter-options";
 import { useTableContext } from "../../context";
 import {
   filterMenuText,
@@ -45,32 +46,8 @@ const multiple = computed(() => filterOperatorIsMultiple(type.value, props.rule.
 const set = (next: unknown, operator: string = props.rule.operator): void =>
   emit("update", { ...props.rule, type: type.value, operator: operator as AdvancedFilterOperator, values: next });
 const search = ref("");
-const loadedOptions = ref<SelectOption[]>([]);
-const loadingOptions = ref(false);
-const optionsFailed = ref(false);
-const searchMinimum = computed(() => Math.max(0, props.column?.optionsSearchMinLength ?? 0));
-watch(() => [props.column?.id, props.column?.optionsLoader, search.value.trim()] as const, ([, loader, query], _previous, onCleanup) => {
-  const controller = new AbortController();
-  optionsFailed.value = false;
-  if (!loader || query.length < searchMinimum.value) {
-    loadedOptions.value = [];
-    loadingOptions.value = false;
-    return;
-  }
-  loadedOptions.value = [];
-  loadingOptions.value = true;
-  const timer = setTimeout(async () => {
-    try {
-      const result = await loader(query, controller.signal);
-      if (!controller.signal.aborted) { loadedOptions.value = result; menu.rememberOptions(props.column!.id, result); }
-    } catch {
-      if (!controller.signal.aborted) { loadedOptions.value = []; optionsFailed.value = true; }
-    } finally {
-      if (!controller.signal.aborted) loadingOptions.value = false;
-    }
-  }, query ? Math.max(0, props.column?.optionsSearchDebounceMs ?? 300) : 0);
-  onCleanup(() => { clearTimeout(timer); controller.abort(); });
-}, { immediate: true });
+const { loaded: loadedOptions, loading: loadingOptions, failed: optionsFailed, minimum: searchMinimum } =
+  useRemoteFilterOptions({ column: () => props.column, search, remember: menu.rememberOptions });
 const options = computed(() => {
   const column = props.column;
   const result: SelectOption[] =

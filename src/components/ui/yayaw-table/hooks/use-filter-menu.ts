@@ -101,22 +101,8 @@ const newId = (): string =>
 
 const EXCLUDED = new Set(["actions", "select"]);
 
-export function useFilterMenu({
-  tableId,
-  tableType,
-  columnsConfig,
-}: {
-  tableId: string;
-  tableType: string;
-  /** The toolbar's filter configuration: folder pickers and options. */
-  columnsConfig?: ColumnsFilterConfig;
-}): FilterMenu {
-  const { config } = useTableConfig(tableType);
-  const { t, locale } = useTranslations();
-  const url = useTableUrlState({
-    tableId,
-    enabled: config.table.syncUrl !== false,
-  });
+/** Option labels the table's filters loaded, kept for their selected values. */
+export function useRememberedFilterOptions(tableId: string) {
   const [resolvedOptions, setResolvedOptions] = useAtom(
     filterMenuOptionsAtom(tableId)
   );
@@ -135,6 +121,26 @@ export function useFilterMenu({
     },
     [setResolvedOptions]
   );
+  return [resolvedOptions, rememberOptions] as const;
+}
+
+export function useFilterMenu({
+  tableId,
+  tableType,
+  columnsConfig,
+}: {
+  tableId: string;
+  tableType: string;
+  /** The toolbar's filter configuration: folder pickers and options. */
+  columnsConfig?: ColumnsFilterConfig;
+}): FilterMenu {
+  const { config } = useTableConfig(tableType);
+  const { t, locale } = useTranslations();
+  const url = useTableUrlState({
+    tableId,
+    enabled: config.table.syncUrl !== false,
+  });
+  const [resolvedOptions, rememberOptions] = useRememberedFilterOptions(tableId);
   const [drafts, setDrafts] = useAtom(filterMenuDraftsAtom(tableId));
   const [openId, setOpenId] = useAtom(filterMenuOpenIdAtom(tableId));
   const [advanced, setAdvanced] = useAtom(filterMenuAdvancedAtom(tableId));

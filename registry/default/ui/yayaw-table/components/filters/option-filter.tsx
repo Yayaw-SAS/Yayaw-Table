@@ -10,37 +10,81 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useRememberedFilterOptions } from "../../hooks/use-filter-menu";
+import { useRemoteFilterOptions } from "../../hooks/use-remote-filter-options";
 import { useTranslations } from "../../providers/table-provider";
 import {
   type FilterBarColumn,
+  type FilterBarOption,
   filterBarOptions,
   filterValueKey,
   filterValues,
 } from "../../utils/filter-bar";
+import {
+  type FilterMenuTextKey,
+  filterMenuText,
+} from "../../utils/filter-menu";
 
 export function OptionFilter({
+  tableId,
   column,
   value,
   onChange,
 }: {
+  tableId: string;
   column: FilterBarColumn;
   value: unknown;
   onChange: (values: unknown[]) => void;
 }) {
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
   const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+  const query = search.trim();
+  const [resolved, remember] = useRememberedFilterOptions(tableId);
+  const remote = useRemoteFilterOptions(column, query, remember, open);
+  const menuText = (key: FilterMenuTextKey) =>
+    filterMenuText(key, locale, (name) =>
+      t(name) === name ? undefined : t(name)
+    );
   const selected = filterValues(value);
-  const options = filterBarOptions(column, value, {
-    yes: t("common.true"),
-    no: t("common.false"),
-  });
+  const options = filterBarOptions(
+    {
+      ...column,
+      options: [
+        ...(Array.isArray(column.options) ? column.options : []),
+        ...(remote.loaded as FilterBarOption[]),
+      ],
+    },
+    value,
+    { yes: t("common.true"), no: t("common.false") },
+    resolved[column.id]
+  );
   const checked = (candidate: unknown) =>
     selected.some((item) => filterValueKey(item) === filterValueKey(candidate));
-  const visible = options.filter((option) =>
-    option.label.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())
-  );
+  // The server already searched the loaded options.
+  const visible = column.optionsLoader
+    ? options
+    : options.filter((option) =>
+        option.label.toLocaleLowerCase().includes(query.toLocaleLowerCase())
+      );
+  let status = visible.length ? "" : t("filters.noResults");
+  if (remote.loading) {
+    status = menuText("loadingOptions");
+  } else if (remote.failed) {
+    status = menuText("optionsError");
+  } else if (column.optionsLoader && query.length < remote.minimum) {
+    status = menuText("searchMinimum").replace(
+      "{count}",
+      String(remote.minimum)
+    );
+  }
   return (
-    <Popover onOpenChange={() => setSearch("")}>
+    <Popover
+      onOpenChange={(next) => {
+        setOpen(next);
+        setSearch("");
+      }}
+    >
       <PopoverTrigger
         render={
           <Button
@@ -103,9 +147,9 @@ export function OptionFilter({
               <span>{option.label}</span>
             </label>
           ))}
-          {!visible.length && (
+          {status && (
             <output className="block p-2 text-muted-foreground text-sm">
-              {t("filters.noResults")}
+              {status}
             </output>
           )}
         </fieldset>

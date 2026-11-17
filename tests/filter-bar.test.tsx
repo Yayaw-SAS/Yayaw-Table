@@ -234,3 +234,107 @@ it("keeps a date column's quick period as one advanced rule, beside the other ru
   expect(replaceFilterBarDateRule(range, "due", {})).toEqual([other]);
   expect(filterBarDateValue([other], "due")).toEqual({});
 });
+
+it("searches a quick filter's options on the server and keeps the selected label", async () => {
+  const calls: string[] = [];
+  const remote = defineTableConfig({
+    ...config,
+    id: "remote-quick-filters",
+    columns: {
+      definitions: [
+        {
+          id: "action",
+          header: "Action",
+          type: "multiSelect",
+          options: [],
+          optionsLoader: (query: string) => {
+            calls.push(query);
+            return Promise.resolve(
+              [
+                { value: 7, label: "Launch call" },
+                { value: 8, label: "Lunch" },
+              ].filter((option) =>
+                option.label.toLowerCase().includes(query.toLowerCase())
+              )
+            );
+          },
+          optionsSearchMinLength: 2,
+          optionsSearchDebounceMs: 0,
+        },
+      ],
+      mandatory: [],
+      visible: [],
+      order: ["action"],
+    },
+    table: { syncUrl: false, filterBarColumns: ["action"] },
+  });
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container),
+    client = new QueryClient(),
+    store = createStore();
+  let current!: ReturnType<typeof useDataTable>;
+  function Probe() {
+    current = useDataTable({ tableId: "remote", tableType: "media" });
+    return null;
+  }
+  const checkbox = (label: string) =>
+    [...document.querySelectorAll("label")]
+      .find((item) => item.textContent?.trim() === label)
+      ?.querySelector<HTMLInputElement>("input");
+  const type = async (text: string) => {
+    const input = document.querySelector<HTMLInputElement>(
+      'input[type="search"]'
+    );
+    if (!input) {
+      throw new Error("Missing search");
+    }
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value"
+      )?.set?.call(input, text);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+  };
+  try {
+    await act(() =>
+      root.render(
+        <Provider store={store}>
+          <NuqsTestingAdapter hasMemory>
+            <TableProvider
+              getTableConfig={() => remote}
+              queryClient={client}
+              tableId="remote"
+              translations={defaultTranslations}
+            >
+              <Probe />
+              <TableFilterBar tableId="remote" tableType="media" />
+            </TableProvider>
+          </NuqsTestingAdapter>
+        </Provider>
+      )
+    );
+    expect(calls).toEqual([]);
+    await act(() =>
+      container
+        .querySelector<HTMLButtonElement>('[aria-label="Action"]')
+        ?.click()
+    );
+    expect(document.body.textContent).toContain("Type at least 2 characters");
+    expect(calls).toEqual([]);
+    await type("lau");
+    expect(calls).toEqual(["lau"]);
+    await act(() => checkbox("Launch call")?.click());
+    expect(current.state.columnFilters).toEqual([{ id: "action", value: [7] }]);
+    await type("lu");
+    // The selection keeps its label beside other results.
+    expect(checkbox("Launch call")?.checked).toBe(true);
+    expect(checkbox("Lunch")?.checked).toBe(false);
+  } finally {
+    await act(() => root.unmount());
+    client.clear();
+    container.remove();
+  }
+});

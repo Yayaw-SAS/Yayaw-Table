@@ -62,6 +62,7 @@ export function TableFilterBar({
               );
               state.setPageParam("0");
             }}
+            tableId={tableId}
             value={
               state.filtersParam.find((filter) => filter.id === column.id)
                 ?.value
