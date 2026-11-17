@@ -1,14 +1,17 @@
+import { lazyComponent } from "../components/lazy-component";
 import type {
   DisplayModeRenderer,
   DisplayModeRenderers,
 } from "../types/display-mode-renderer";
-import { FileTreeSettings } from "./filetree-settings";
-import { FileTreeView } from "./filetree-view";
 
 /** The built-in File tree mode: folders and files linked by a parent column. */
 export const fileTreeRenderer: DisplayModeRenderer = {
-  View: FileTreeView,
-  Settings: FileTreeSettings,
+  View: lazyComponent(
+    async () => (await import("./filetree-view")).FileTreeView
+  ),
+  Settings: lazyComponent(
+    async () => (await import("./filetree-settings")).FileTreeSettings
+  ),
 };
 
 /**

@@ -3,7 +3,7 @@ import { describe, it } from "bun:test";
 import {
   createFormConfigContext,
   resolveFormConfigMode,
-} from "./use-form-catalogue";
+} from "./form-config-context";
 
 describe("resolveFormConfigMode", () => {
   it("maps update mode to edit form config mode", () => {

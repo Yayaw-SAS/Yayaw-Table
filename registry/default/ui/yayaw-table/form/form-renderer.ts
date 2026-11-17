@@ -1,14 +1,15 @@
+import { lazyComponent } from "../components/lazy-component";
 import type {
   DisplayModeRenderer,
   DisplayModeRenderers,
 } from "../types/display-mode-renderer";
-import { FormSettings } from "./form-settings";
-import { FormView } from "./form-view";
 
 /** The built-in Form mode: a create form in the view, and its settings panel. */
 export const formRenderer: DisplayModeRenderer = {
-  View: FormView,
-  Settings: FormSettings,
+  View: lazyComponent(async () => (await import("./form-view")).FormView),
+  Settings: lazyComponent(
+    async () => (await import("./form-settings")).FormSettings
+  ),
 };
 
 /**
