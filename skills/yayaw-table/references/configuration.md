@@ -141,7 +141,9 @@ Defaults in brackets. Flags only shape the interface; the server decides.
   it labelled among icon actions), `displayModeSwitch` [true: the segmented
   mode switch beside the filter chips, with two modes or more],
   `showClearFilters` [false; alias
-  `showResetFilters`], `filterBarColumns` and `showFilterBar` [false],
+  `showResetFilters`], `viewResetPlacement` ["menu": the Reset view icon
+  in the View settings header; "toolbar" puts it beside the settings button],
+  `filterBarColumns` and `showFilterBar` [false],
   `export`, `bulkExport` [true], `exportFormats`, `exportCsvSeparator`
   [`","`; `";"` for French Excel, `"\t"`], `excelWriter` (`writeXlsx` from
   the Excel item: Excel without `actions.exportFile`), `import`, `share`,

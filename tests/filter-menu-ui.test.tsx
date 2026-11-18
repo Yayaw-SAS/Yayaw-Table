@@ -651,3 +651,47 @@ it("shows no settings badge on the host's default view, and counts what is added
   ]);
   expect($("[data-settings-badge]")?.textContent).toBe("1");
 });
+
+it("moves Reset view into the toolbar with viewResetPlacement", async () => {
+  const { lastRules } = await render(
+    defineTableConfig({
+      ...config,
+      table: {
+        ...config.table,
+        enableViews: true,
+        viewResetPlacement: "toolbar",
+        defaultView: {
+          advancedFilters: [
+            {
+              id: "amount",
+              columnId: "amount",
+              type: "number",
+              operator: "greaterThan",
+              values: [10],
+              isActive: true,
+              createdAt: new Date(0),
+              updatedAt: new Date(0),
+            },
+          ],
+        },
+      },
+    })
+  );
+  const reset = $("[data-view-reset]") as HTMLButtonElement;
+  expect(reset.getAttribute("aria-label")).toBe("Reset view");
+  expect(reset.disabled).toBe(true);
+  await click($("[data-filter-chips-clear]"));
+  expect(reset.disabled).toBe(false);
+  await click(reset);
+  expect(lastRules().map((rule) => rule.columnId)).toEqual(["amount"]);
+  expect(reset.disabled).toBe(true);
+  await click($('[aria-label="View settings"]'));
+  expect($('[role="dialog"] [aria-label="Reset view"]')).toBeNull();
+});
+
+it("keeps Reset view in the settings menu by default", async () => {
+  await render();
+  expect($("[data-view-reset]")).toBeNull();
+  await click($('[aria-label="View settings"]'));
+  expect($('[role="dialog"] [aria-label="Reset view"]')).not.toBeNull();
+});

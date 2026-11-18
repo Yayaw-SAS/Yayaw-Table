@@ -23,6 +23,7 @@ export const defaultTableBehavior: TableBehaviorConfig = {
   showToolbarHeader: true,
   showClearFilters: false,
   showResetFilters: false,
+  viewResetPlacement: "menu",
   export: true,
   bulkExport: true,
   actionsAsIcons: false,

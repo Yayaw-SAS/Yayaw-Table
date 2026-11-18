@@ -385,6 +385,12 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord>
   showClearFilters?: boolean;
   /** Backwards-compatible alias for `showClearFilters`. */
   showResetFilters?: boolean;
+  /**
+   * Where the "Reset view" icon lives: `"menu"` (default) in the View settings
+   * header, or `"toolbar"` beside the settings button, like the other toolbar
+   * icons. Phones keep it in the menu.
+   */
+  viewResetPlacement?: "menu" | "toolbar";
   export: boolean;
   /** Formats the Export screen offers (default CSV and PDF, Excel with `actions.exportFile` or `excelWriter`). */
   exportFormats?: import("./export-model").ExportFormat[];

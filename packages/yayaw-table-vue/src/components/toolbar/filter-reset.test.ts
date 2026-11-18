@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { h, markRaw } from "vue";
 import {
   inlineTestPortals,
+  openViewMenu,
   openViewScreen,
   openViewsMenu,
 } from "../../../tests/menu-helpers";
@@ -363,6 +364,49 @@ describe("toolbar filter reset", () => {
       .trigger("click");
     expect(wrapper.findAll("tbody tr")[0]?.text()).toContain("Alpha");
     expect(window.location.search).toBe("");
+    wrapper.unmount();
+  });
+
+  it("moves Reset view into the toolbar with viewResetPlacement", async () => {
+    const wrapper = mount(YayawDataTable, {
+      props: {
+        tableType: "reset",
+        config: defineTableConfig({
+          ...config,
+          table: { ...config.table, viewResetPlacement: "toolbar" },
+        }),
+        data,
+        syncUrl: false,
+      },
+    });
+    const reset = wrapper.get("[data-table-toolbar] button[data-view-reset]");
+    expect(reset.attributes("aria-label")).toBe("Reset view");
+    expect(reset.attributes("disabled")).toBeDefined();
+    await wrapper.get("th.sortable").trigger("click");
+    expect(wrapper.findAll("tbody tr")[0]?.text()).toContain("Beta");
+    expect(reset.attributes("disabled")).toBeUndefined();
+    await reset.trigger("click");
+    expect(wrapper.findAll("tbody tr")[0]?.text()).toContain("Alpha");
+    await openViewMenu(wrapper);
+    expect(
+      wrapper
+        .find('.yayaw-toolbar-menu-header button[aria-label="Reset view"]')
+        .exists()
+    ).toBe(false);
+    wrapper.unmount();
+  });
+
+  it("keeps Reset view in the settings menu by default", async () => {
+    const wrapper = mount(YayawDataTable, {
+      props: { tableType: "reset", config, data, syncUrl: false },
+    });
+    expect(wrapper.find("[data-view-reset]").exists()).toBe(false);
+    await openViewMenu(wrapper);
+    expect(
+      wrapper
+        .find('.yayaw-toolbar-menu-header button[aria-label="Reset view"]')
+        .exists()
+    ).toBe(true);
     wrapper.unmount();
   });
 });

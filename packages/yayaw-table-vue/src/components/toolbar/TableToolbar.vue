@@ -779,6 +779,8 @@ const shareLink = async () => {
 };
 watch(optionsOpen, open => { if (!open) optionsView.value = "main"; });
 watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: true });
+// Phones keep the reset in the settings sheet: the toolbar has no room.
+const viewResetInToolbar = computed(() => context.config.table.viewResetPlacement === "toolbar" && !compact.value);
 </script>
 
 <template>
@@ -792,10 +794,13 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
       @action="runAction" @share="shareLink" />
     <FilterBarDate v-if="toolbarDateColumn" :column="toolbarDateColumn" variant="toolbar" :compact="compact" />
     <FacetsToggle :compact="compact" />
+    <TableTooltip v-if="viewResetInToolbar" :label="translate('views.reset', 'Reset view')">
+      <button type="button" class="yayaw-button yayaw-button-outline yayaw-icon-only" data-view-reset :aria-label="translate('views.reset', 'Reset view')" :disabled="savedViews?.resetDisabled ?? true" @click="savedViews?.resetView()"><RotateCcw :size="16" aria-hidden="true" /></button>
+    </TableTooltip>
     <ToolbarMenu v-model:open="optionsOpen" :compact="compact" align="end" @close-auto-focus="keepFilterFocus"
       :title="optionsTitle"
       :back="optionsView !== 'main'" :back-label="translate('back', 'Back')" :close-label="translate('close', 'Close')" @back="optionsView = 'main'">
-      <template #header-actions>
+      <template v-if="!viewResetInToolbar" #header-actions>
         <TableTooltip :label="translate('views.reset', 'Reset view')">
           <button type="button" class="yayaw-icon-button" :aria-label="translate('views.reset', 'Reset view')" :disabled="savedViews?.resetDisabled ?? true" @click="savedViews?.resetView()"><RotateCcw :size="16" /></button>
         </TableTooltip>

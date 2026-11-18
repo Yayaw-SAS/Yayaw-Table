@@ -20,6 +20,7 @@ export const defaultTableConfig = {
   showToolbarHeader: true,
   showClearFilters: false,
   showResetFilters: false,
+  viewResetPlacement: "menu" as const,
   export: true,
   bulkExport: true,
   actionsAsIcons: false,

@@ -663,6 +663,12 @@ export interface TableBehaviorConfig extends GenericModeTableConfigs {
   showClearFilters?: boolean;
   /** Backwards-compatible alias for `showClearFilters`. */
   showResetFilters?: boolean;
+  /**
+   * Where the "Reset view" icon lives: `"menu"` (default) in the View settings
+   * header, or `"toolbar"` beside the settings button, like the other toolbar
+   * icons. Phones keep it in the menu.
+   */
+  viewResetPlacement?: "menu" | "toolbar";
 
   /**
    * Enable toolbar CSV export button

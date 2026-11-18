@@ -134,6 +134,12 @@ export interface TableCatalogueTableConfig extends GenericModeTableConfigs {
   showClearFilters?: boolean;
   /** Backwards-compatible alias for `showClearFilters`. */
   showResetFilters?: boolean;
+  /**
+   * Where the "Reset view" icon lives: `"menu"` (default) in the View settings
+   * header, or `"toolbar"` beside the settings button, like the other toolbar
+   * icons. Phones keep it in the menu.
+   */
+  viewResetPlacement?: "menu" | "toolbar";
   export?: boolean;
   /** Formats the Export screen offers (default CSV and PDF, Excel with `actions.exportFile` or `excelWriter`). */
   exportFormats?: import("../utils/export-model").ExportFormat[];
@@ -270,6 +276,7 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
     showToolbarHeader: true,
     showClearFilters: false,
     showResetFilters: false,
+    viewResetPlacement: "menu",
     export: true,
     bulkExport: true,
     actionsAsIcons: false,
@@ -392,6 +399,13 @@ function resolveTablePermissionConfig(
   };
 }
 
+/** "Reset view" stays in the View settings header unless the toolbar is asked for. */
+function resolveViewResetPlacement(
+  placement: TableCatalogueTableConfig["viewResetPlacement"]
+): "menu" | "toolbar" {
+  return placement === "toolbar" ? "toolbar" : "menu";
+}
+
 function resolveTableBehaviorConfig(
   providerConfig: Partial<TableCatalogueTableConfig>
 ): TableCatalogueTableConfig {
@@ -409,6 +423,7 @@ function resolveTableBehaviorConfig(
     showToolbarHeader: mergedConfig.showToolbarHeader ?? true,
     showClearFilters: mergedConfig.showClearFilters ?? false,
     showResetFilters: mergedConfig.showResetFilters ?? false,
+    viewResetPlacement: resolveViewResetPlacement(mergedConfig.viewResetPlacement),
     export: mergedConfig.export ?? true,
     share: mergedConfig.share,
     schedule: mergedConfig.schedule,
