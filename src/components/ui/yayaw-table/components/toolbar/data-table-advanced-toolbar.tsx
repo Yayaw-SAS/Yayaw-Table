@@ -19,6 +19,7 @@ import {
   Link2,
   Plug,
   PlusIcon,
+  RotateCcw,
   Send,
   Share2,
   Upload,
@@ -612,6 +613,49 @@ function createPageShareHandler(
 }
 
 /** Search, application actions (wide screens), settings and create, on the right. */
+/** Phones keep "Reset view" in the settings sheet: the toolbar has no room. */
+function isViewResetInToolbar(
+  placement: "menu" | "toolbar" | undefined,
+  isMobile: boolean
+): boolean {
+  return placement === "toolbar" && !isMobile;
+}
+
+/** "Reset view" as a toolbar icon (`viewResetPlacement: "toolbar"`). */
+function ToolbarViewResetButton({
+  disabled,
+  label,
+  onReset,
+  visible,
+}: {
+  disabled: boolean;
+  label: string;
+  onReset: () => unknown;
+  visible: boolean;
+}) {
+  if (!visible) {
+    return null;
+  }
+  return (
+    <TableTooltip label={label}>
+      <Button
+        aria-label={label}
+        className="h-8 w-8"
+        data-view-reset
+        disabled={disabled}
+        onClick={() => {
+          onReset();
+        }}
+        size="icon-sm"
+        type="button"
+        variant="outline"
+      >
+        <RotateCcw className="size-4" />
+      </Button>
+    </TableTooltip>
+  );
+}
+
 function ToolbarEnd({
   applicationActions,
   createButton,
@@ -623,6 +667,7 @@ function ToolbarEnd({
   renderToolbarAction,
   search,
   settingsMenu,
+  viewResetButton,
 }: {
   /** The toolbar's date period. */
   filterControls?: ReactNode;
@@ -648,6 +693,8 @@ function ToolbarEnd({
     tableId: string;
   };
   settingsMenu: ReactNode;
+  /** "Reset view" beside the settings button (`viewResetPlacement: "toolbar"`). */
+  viewResetButton?: ReactNode;
 }) {
   return (
     <div
@@ -674,6 +721,7 @@ function ToolbarEnd({
           ].map(renderToolbarAction)}
       {filterControls}
       {facetsToggle}
+      {viewResetButton}
       {settingsMenu}
       {dataMenu}
       {newFolderButton}
@@ -2075,18 +2123,26 @@ export function DataTableAdvancedToolbar<TData>({
   const resolveView = (config: typeof defaultView = defaultView) =>
     resolveTableViewConfig(config, viewDefaults);
   const resetViewConfig = resolveView(activeView?.config);
+  const viewResetInToolbar = isViewResetInToolbar(
+    tableConfig.table.viewResetPlacement,
+    isMobile
+  );
+  const isViewResetDisabled = areTableViewConfigsEqual(
+    resolveView(getCurrentViewConfig()),
+    resetViewConfig
+  );
+  const runViewReset = () =>
+    applyViewConfig(resetViewConfig, {
+      viewId: activeView?.id,
+      history: "push",
+    });
   // A render function keeps the menu's option conditions out of the toolbar body.
   const renderSettingsMenu = () => (
     <TableMenu
       viewReset={{
-        disabled: areTableViewConfigsEqual(
-          resolveView(getCurrentViewConfig()),
-          resetViewConfig
-        ),
-        run: () => applyViewConfig(resetViewConfig, {
-          viewId: activeView?.id,
-          history: "push",
-        }),
+        disabled: isViewResetDisabled,
+        inToolbar: viewResetInToolbar,
+        run: runViewReset,
       }}
       defaultView={defaultView}
       advancedFiltersConfig={
@@ -2262,6 +2318,14 @@ export function DataTableAdvancedToolbar<TData>({
             tableId,
           }}
           settingsMenu={renderSettingsMenu()}
+          viewResetButton={
+            <ToolbarViewResetButton
+              disabled={isViewResetDisabled}
+              label={t("views.reset")}
+              onReset={runViewReset}
+              visible={viewResetInToolbar}
+            />
+          }
           dataMenu={
             <TableDataMenu
               compact={isMobile}

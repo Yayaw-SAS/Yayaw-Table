@@ -111,6 +111,12 @@ export interface DataTableConfig extends Omit<GenericModeTableConfigs, "form"> {
   showClearFilters?: boolean;
   /** Backwards-compatible alias for `showClearFilters`. */
   showResetFilters?: boolean;
+  /**
+   * Where the "Reset view" icon lives: `"menu"` (default) in the View settings
+   * header, or `"toolbar"` beside the settings button, like the other toolbar
+   * icons. Phones keep it in the menu.
+   */
+  viewResetPlacement?: "menu" | "toolbar";
 
   /**
    * Enable toolbar CSV export button
@@ -310,6 +316,7 @@ const defaultTableConfig: DataTableConfig = {
   showToolbar: true,
   showToolbarHeader: true,
   showClearFilters: false,
+  viewResetPlacement: "menu",
   export: true,
   bulkExport: true,
   actionsAsIcons: false,

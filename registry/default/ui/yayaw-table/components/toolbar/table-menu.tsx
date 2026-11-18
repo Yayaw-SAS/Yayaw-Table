@@ -117,7 +117,12 @@ export interface TableMenuProps {
   /** The default view's settings: the badge counts only filters and sorts it does not apply. */
   defaultView?: TableViewConfig;
   /** Restore the active saved view, or the configured default view. */
-  viewReset?: { disabled: boolean; run: () => void };
+  viewReset?: {
+    disabled: boolean;
+    run: () => void;
+    /** The toolbar shows the reset icon itself (`viewResetPlacement: "toolbar"`). */
+    inToolbar?: boolean;
+  };
 }
 
 /**
@@ -550,6 +555,17 @@ const settingsBadgeCount = ({
   );
 };
 
+/** The header's reset icon, unless the toolbar shows "Reset view" itself. */
+function showsHeaderReset(
+  hasViewMenu: boolean,
+  viewReset: TableMenuProps["viewReset"]
+): boolean {
+  if (viewReset?.inToolbar === true) {
+    return false;
+  }
+  return !hasViewMenu || viewReset !== undefined;
+}
+
 export function TableMenu({
   compact = false,
   viewMenu,
@@ -779,7 +795,11 @@ export function TableMenu({
       asDropdown
       compact={compact}
       defaultView="main"
-      headerEndContent={!viewMenu || viewReset ? resetAllButton : undefined}
+      headerEndContent={
+        showsHeaderReset(Boolean(viewMenu), viewReset)
+          ? resetAllButton
+          : undefined
+      }
       onOpenChange={(isOpen) => {
         setOpen(isOpen);
         viewMenu?.onOpenChange(isOpen);
