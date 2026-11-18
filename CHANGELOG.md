@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.39.0
+
+### Minor Changes
+
+- f34f127: Add `table.viewResetPlacement` (React and Vue). The default `"menu"` keeps the Reset view icon in the View settings header; `"toolbar"` shows it as an outline icon button beside the View settings button, at the same level as the other toolbar icons. Phones keep it in the settings sheet.
+
 ## 3.38.0
 
 ### Minor Changes
