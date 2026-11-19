@@ -517,6 +517,12 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord>
    * but disabled and asks to narrow the filters. Unset: no limit.
    */
   selectAllMaxRows?: number;
+
+  /**
+   * Records the Export screen may export at most (all matching or selected).
+   * Past it, the export stops and asks to narrow the filters. Unset: no limit.
+   */
+  exportMaxRows?: number;
 }
 
 export interface TableTranslationsConfig {
