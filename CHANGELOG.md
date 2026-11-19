@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.42.0
+
+### Minor Changes
+
+- dd34ac0: Add `exportMaxRows` to cap the Export screen in both editions. An export of more matching or selected records stops before any file is written and asks to narrow the filters.
+
 ## 3.41.0
 
 ### Minor Changes
