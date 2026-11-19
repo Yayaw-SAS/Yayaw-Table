@@ -263,6 +263,12 @@ export interface DataTableConfig extends Omit<GenericModeTableConfigs, "form"> {
   /** Keep selection when the active query changes. */
   preserveSelectionOnQuery?: boolean;
 
+  /**
+   * Rows that "Select all" may load at most. Past it, the action stays visible
+   * but disabled and asks to narrow the filters. Unset: no limit.
+   */
+  selectAllMaxRows?: number;
+
   /** Delay before applying global search, in milliseconds. */
   searchDebounceMs?: number;
 

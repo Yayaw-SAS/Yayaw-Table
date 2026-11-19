@@ -1060,6 +1060,7 @@ function DataTableContent({
             enableSorting: config.table.enableSorting,
             enableViews: config.table.enableViews,
             preserveSelectionOnQuery: config.table.preserveSelectionOnQuery,
+            selectAllMaxRows: config.table.selectAllMaxRows,
             searchDebounceMs: resolvedSearchDebounceMs,
             syncUrl: config.table.syncUrl,
             inlineEdit: config.table.inlineEdit,

@@ -346,6 +346,7 @@ export const defaultTranslations: Required<
   all: "All",
   none: "None",
   selectAll: "Select all",
+  selectAllLimit: "Narrow the filters to select all ({max} rows at most)",
   selectRow: "Select",
   bulkEdit: "Bulk edit",
   bulkApplyField: "Apply",
@@ -660,6 +661,8 @@ export const frenchTranslations: DataTableTranslations = {
   all: "Tous",
   none: "Aucun",
   selectAll: "Tout sélectionner",
+  selectAllLimit:
+    "Affinez les filtres pour tout sélectionner ({max} lignes au maximum)",
   selectRow: "Sélectionner",
   bulkEdit: "Modification groupée",
   bulkApplyField: "Appliquer",

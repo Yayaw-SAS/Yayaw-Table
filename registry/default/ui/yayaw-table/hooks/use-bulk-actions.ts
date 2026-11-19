@@ -29,7 +29,7 @@ import {
   toOrderByParam,
   toPageSize,
 } from "../utils/filtered-rows";
-import { recordValue } from "../utils/table-contracts";
+import { isSelectAllLimited, recordValue } from "../utils/table-contracts";
 import { invalidateTableDataQuery } from "./query-cache-utils";
 import { useTableActions } from "./use-table-actions";
 import { useTableUrlState } from "./use-table-url-state";
@@ -193,6 +193,9 @@ interface BulkActionsConfig<TData> {
 
   /** Keep selected rows when search, filters, sorting, or grouping changes. */
   preserveSelectionOnQuery?: boolean;
+
+  /** Rows that Select all may load at most; past it, Select all is disabled. */
+  selectAllMaxRows?: number;
 }
 
 /**
@@ -271,6 +274,11 @@ interface BulkActionsReturn<TData> {
    * Whether the user can extend the selection to all matching rows.
    */
   canSelectAll: boolean;
+
+  /**
+   * Whether the matching rows exceed `selectAllMaxRows` (Select all is then disabled).
+   */
+  selectAllLimited: boolean;
 
   /**
    * Select all matching rows across pages.
@@ -688,6 +696,7 @@ export async function loadAllMatchingRowsForSelection<TData>({
   filtersParam,
   globalSearchParam,
   listAction,
+  maxRows,
   pageSizeParam,
   sortParam,
   getRowId,
@@ -697,6 +706,7 @@ export async function loadAllMatchingRowsForSelection<TData>({
   filtersParam: unknown;
   globalSearchParam: string;
   listAction: TableListAction;
+  maxRows?: number;
   pageSizeParam: string;
   sortParam: unknown;
   getRowId?: (row: TData, index: number) => string;
@@ -709,6 +719,7 @@ export async function loadAllMatchingRowsForSelection<TData>({
     orderBy: toOrderByParam(sortParam),
     pageSize: toPageSize(pageSizeParam),
     search: globalSearchParam.trim(),
+    maxRows,
   });
 
   const selectedRows = createSyntheticSelectedRows<TData>(
@@ -1260,6 +1271,7 @@ export function useBulkActions<TData>({
   minimumSelection = 1,
   showDefaultToastsForCustomHandlers = false,
   preserveSelectionOnQuery = false,
+  selectAllMaxRows,
   tableId,
   tableType,
 }: BulkActionsConfig<TData>): BulkActionsReturn<TData> {
@@ -1431,10 +1443,12 @@ export function useBulkActions<TData>({
     selectedCount: selectedRows.length,
   });
 
+  const selectAllLimited = isSelectAllLimited(rowCount, selectAllMaxRows);
+
   const handleSelectAll = useCallback(async (): Promise<void> => {
     const listAction = provider?.actions.list as TableListAction | undefined;
 
-    if (!canStartSelectAll(table, isSelectingAll)) {
+    if (!canStartSelectAll(table, isSelectingAll) || selectAllLimited) {
       return;
     }
 
@@ -1456,6 +1470,7 @@ export function useBulkActions<TData>({
         filtersParam,
         globalSearchParam,
         listAction,
+        maxRows: selectAllMaxRows,
         pageSizeParam,
         sortParam,
         getRowId: selectionRowId(table),
@@ -1491,6 +1506,8 @@ export function useBulkActions<TData>({
       setIsSelectingAll(false);
     }
   }, [
+    selectAllLimited,
+    selectAllMaxRows,
     advancedFiltersParam,
     isSelectingAll,
     messages,
@@ -1874,6 +1891,7 @@ export function useBulkActions<TData>({
     clearSelection,
     closeBulkActions,
     canSelectAll,
+    selectAllLimited,
     handleSelectAll,
     isSelectingAll,
   };

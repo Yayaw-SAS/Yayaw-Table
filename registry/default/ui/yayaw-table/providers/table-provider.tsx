@@ -632,6 +632,7 @@ export const defaultTranslations: DataTableTranslations = {
     confirm_title:
       "{action} {count} {count, plural, one {item} other {items}}?",
     select_all: "Select all {count} rows",
+    select_all_limit: "Narrow the filters to select all ({max} rows at most)",
   },
   columns: {
     title: "Columns",

@@ -1767,6 +1767,7 @@ function ModernDataTable<
     showDefaultToastsForCustomHandlers,
     preserveSelectionOnQuery:
       tableConfig.table.preserveSelectionOnQuery === true,
+    selectAllMaxRows: tableConfig.table.selectAllMaxRows,
   });
 
   useEffect(() => {
@@ -3282,6 +3283,11 @@ function ModernDataTable<
                 tableConfig.table.bulkActionsPosition
               )}
               selectAllCount={rowCount}
+              selectAllLimit={
+                bulkActions.selectAllLimited
+                  ? tableConfig.table.selectAllMaxRows
+                  : undefined
+              }
               selectedRows={bulkActions.selectedRows}
               showBulkDelete={bulkActions.isBulkDeleteEnabled}
               showBulkEdit={bulkActions.isBulkEditEnabled}
