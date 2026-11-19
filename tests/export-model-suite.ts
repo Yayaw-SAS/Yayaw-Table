@@ -480,4 +480,57 @@ export function exportModelSuite(
       EXCEL_NEEDS_A_WRITER
     );
   });
+
+  test("stops an export past exportMaxRows and asks to narrow the filters", async () => {
+    const two = [{ name: "A" }, { name: "B" }];
+    const requested: unknown[] = [];
+    const files: unknown[] = [];
+    const base = {
+      settings,
+      viewId: null,
+      query,
+      allColumns: columns,
+      visibleColumns: columns.slice(0, 1),
+      selectedRowIds: ["1", "2"],
+      selectedRows: two,
+      loadRows: (options?: { maxRows?: number }) => {
+        requested.push(options);
+        return Promise.resolve(two);
+      },
+      title: "Projects",
+      locale: "fr",
+      download: (file: unknown) => files.push(file),
+      print: () => undefined,
+    };
+    const message =
+      "Trop d’enregistrements à exporter : affinez les filtres (1 au maximum).";
+    await assert.rejects(model.runExport({ ...base, maxRows: 1 }), { message });
+    await assert.rejects(
+      model.runExport({
+        ...base,
+        maxRows: 1,
+        settings: { ...settings, scope: "selection" },
+      }),
+      { message }
+    );
+    // A server refusing past the limit gets the same message
+    await assert.rejects(
+      model.runExport({
+        ...base,
+        maxRows: 1,
+        loadRows: () =>
+          Promise.reject(
+            new Error(
+              "Too many matching rows to load them all. Narrow the filters and try again."
+            )
+          ),
+      }),
+      { message }
+    );
+    assert.deepEqual(requested, [{ maxRows: 1 }]);
+    assert.equal(files.length, 0);
+
+    await model.runExport({ ...base, maxRows: 2 });
+    assert.equal(files.length, 1);
+  });
 }

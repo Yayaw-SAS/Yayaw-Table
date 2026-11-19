@@ -4,7 +4,11 @@
  * page built from them. Excel files come from an optional registry item.
  */
 import { locationToText } from "./location-model";
-import { fieldText, resolveDataType } from "./table-contracts";
+import {
+  fieldText,
+  resolveDataType,
+  TOO_MANY_ROWS_MESSAGE,
+} from "./table-contracts";
 import type { ColumnDateFormat, NumberFormatConfig } from "./value-format";
 
 export type ExportFormat = "csv" | "xlsx" | "pdf";
@@ -89,6 +93,8 @@ export function isExportableColumn(column: {
 }
 
 const ENGLISH_LABELS = {
+  tooManyRows:
+    "Too many records to export: narrow the filters ({max} at most).",
   format: "Format",
   pdf: "PDF (print)",
   scope: "Records",
@@ -116,6 +122,8 @@ const ENGLISH_LABELS = {
 export type ExportLabelKey = keyof typeof ENGLISH_LABELS;
 
 const FRENCH_LABELS: Record<ExportLabelKey, string> = {
+  tooManyRows:
+    "Trop d’enregistrements à exporter : affinez les filtres ({max} au maximum).",
   format: "Format",
   pdf: "PDF (impression)",
   scope: "Enregistrements",
@@ -513,7 +521,14 @@ export interface ExportRuntime {
   visibleColumns: ExportColumn[];
   selectedRowIds: string[];
   selectedRows: Record<string, unknown>[];
-  loadRows: () => Promise<Record<string, unknown>[]>;
+  loadRows: (options?: {
+    maxRows?: number;
+  }) => Promise<Record<string, unknown>[]>;
+  /**
+   * `table.exportMaxRows`: records the export may hold at most. Past it, the
+   * export stops with `tooManyRows` instead of loading everything.
+   */
+  maxRows?: number;
   locale?: string;
   /** Labels with the host's overrides (`exportLabels`); built-in by default. */
   labels?: ExportT;
@@ -563,6 +578,42 @@ export function exportedColumns(
  * Run an export: the server builds the file when it can, otherwise the
  * browser writes the CSV or opens a printable page for PDF.
  */
+function tooManyRows(runtime: ExportRuntime, labels: ExportT): Error {
+  return new Error(labels("tooManyRows", { max: runtime.maxRows ?? 0 }));
+}
+
+function limitedSelection(
+  runtime: ExportRuntime,
+  labels: ExportT
+): Record<string, unknown>[] {
+  if (runtime.maxRows && runtime.selectedRows.length > runtime.maxRows) {
+    throw tooManyRows(runtime, labels);
+  }
+  return runtime.selectedRows;
+}
+
+async function loadLimitedRows(
+  runtime: ExportRuntime,
+  labels: ExportT
+): Promise<Record<string, unknown>[]> {
+  if (!runtime.maxRows) {
+    return await runtime.loadRows();
+  }
+  try {
+    // In-memory tables load without a server count: check the rows themselves.
+    const rows = await runtime.loadRows({ maxRows: runtime.maxRows });
+    if (rows.length > runtime.maxRows) {
+      throw tooManyRows(runtime, labels);
+    }
+    return rows;
+  } catch (cause) {
+    if (cause instanceof Error && cause.message === TOO_MANY_ROWS_MESSAGE) {
+      throw tooManyRows(runtime, labels);
+    }
+    throw cause;
+  }
+}
+
 export async function runExport(runtime: ExportRuntime): Promise<void> {
   const { settings } = runtime;
   const columns = exportedColumns(settings, runtime);
@@ -590,8 +641,8 @@ export async function runExport(runtime: ExportRuntime): Promise<void> {
   }
   const rows =
     settings.scope === "selection"
-      ? runtime.selectedRows
-      : await runtime.loadRows();
+      ? limitedSelection(runtime, labels)
+      : await loadLimitedRows(runtime, labels);
   if (settings.format === "csv" && runtime.onRows) {
     await runtime.onRows(rows);
     return;

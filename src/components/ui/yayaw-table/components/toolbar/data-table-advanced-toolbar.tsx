@@ -1527,7 +1527,7 @@ export function DataTableAdvancedToolbar<TData>({
 
   const [pendingDestination, setPendingDestination] = useState<string>();
   // Every record matching the view's query, for destinations that need rows.
-  const loadMatchingRows = useCallback(async () => {
+  const loadMatchingRows = useCallback(async (options?: { maxRows?: number }) => {
     if (!hasListAction) {
       return data ?? [];
     }
@@ -1543,6 +1543,7 @@ export function DataTableAdvancedToolbar<TData>({
       orderBy: toOrderByParam(sortParam),
       pageSize: toPageSize(pageSizeParam || "100"),
       search: globalSearchParam?.trim() || "",
+      maxRows: options?.maxRows,
     });
   }, [
     tableConfig.table,
@@ -1922,6 +1923,7 @@ export function DataTableAdvancedToolbar<TData>({
           selectedRowIds: toolbarActionContext.selectedRowIds,
           selectedRows: toolbarActionContext.selectedOriginalRows,
           loadRows: loadMatchingRows,
+          maxRows: tableConfig.table.exportMaxRows,
           locale,
           labels: exportT,
           csvSeparator: tableConfig.table.exportCsvSeparator,
@@ -1956,6 +1958,7 @@ export function DataTableAdvancedToolbar<TData>({
       tableConfig.columns.definitions,
       tableConfig.table.excelWriter,
       tableConfig.table.exportCsvSeparator,
+      tableConfig.table.exportMaxRows,
       tableTitle,
       toolbarActionContext.selectedOriginalRows,
       toolbarActionContext.selectedRowIds,

@@ -924,6 +924,12 @@ export interface TableBehaviorConfig extends GenericModeTableConfigs {
   selectAllMaxRows?: number;
 
   /**
+   * Records the Export screen may export at most (all matching or selected).
+   * Past it, the export stops and asks to narrow the filters. Unset: no limit.
+   */
+  exportMaxRows?: number;
+
+  /**
    * Delay before applying global search, in milliseconds.
    */
   searchDebounceMs?: number;

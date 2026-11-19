@@ -533,6 +533,10 @@ const exceedsMaxRows = (
  * Collect every result using the server's pagination metadata, including capped page sizes.
  * `maxRows` stops after the first page when the server announces more matching rows.
  */
+/** `fetchAllContractRows`' error past `maxRows`, which callers may translate. */
+export const TOO_MANY_ROWS_MESSAGE =
+  "Too many matching rows to load them all. Narrow the filters and try again.";
+
 export async function fetchAllContractRows<T>({
   list,
   params,
@@ -561,9 +565,7 @@ export async function fetchAllContractRows<T>({
     const hasTotalCount =
       Number.isFinite(totalCount) && (totalCount ?? -1) >= 0;
     if (exceedsMaxRows(result.meta, Number(request.pageSize), maxRows)) {
-      throw new Error(
-        "Too many matching rows to load them all. Narrow the filters and try again."
-      );
+      throw new Error(TOO_MANY_ROWS_MESSAGE);
     }
     if (
       (hasPageCount && page >= (pageCount ?? 0)) ||
