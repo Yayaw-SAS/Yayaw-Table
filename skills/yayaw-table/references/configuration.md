@@ -155,7 +155,9 @@ Defaults in brackets. Flags only shape the interface; the server decides.
   `enableAdvancedFilters` [true; the Notion-style Filter screen, chips and
   And / Or filter], `toolbarDateFilter` [none; a date column whose period
   stays in the toolbar], `searchDebounceMs` [300], `manualOrder`
-  (with `actions.reorder`), `preserveSelectionOnQuery` [false].
+  (with `actions.reorder`), `preserveSelectionOnQuery` [false],
+  `selectAllMaxRows` [none; past it, Select all is disabled and asks to
+  narrow the filters].
 - Layout: `density` [`"medium"`; `extra-extra-small`, `extra-small`,
   `small`, `large`, `extra-large`, `extra-extra-large`], `defaultPageSize` [10],
   `pageSizeOptions` [10…500], `enablePagination` [true],

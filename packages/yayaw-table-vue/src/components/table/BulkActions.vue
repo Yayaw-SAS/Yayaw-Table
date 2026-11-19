@@ -28,6 +28,7 @@ import {
 import { commonBulkValues } from "../../bulk-form";
 import { cloneFormValue } from "../../form-runtime";
 import { useTableContext } from "../../context";
+import { isSelectAllLimited } from "../../table-contracts";
 import { downloadCsv, exportColumns } from "../../core";
 import type {
   BulkAction,
@@ -133,6 +134,16 @@ const closeBulkTags = (): void => {
 };
 const translate = (key: string, fallback: string): string =>
   String(context.translations.value[key] ?? fallback);
+// Past `selectAllMaxRows`, Select all stays visible, disabled, and asks to narrow the filters.
+const selectAllLimited = computed(() =>
+  isSelectAllLimited(context.matchingRowCount.value, context.config.table.selectAllMaxRows)
+);
+const selectAllLimitLabel = computed(() =>
+  translate("selectAllLimit", "Narrow the filters to select all ({max} rows at most)").replace(
+    "{max}",
+    String(context.config.table.selectAllMaxRows)
+  )
+);
 const feedback = computed(() => {
   const overrides: Record<string, unknown> = {};
   for (const key of Object.keys(bulkFeedbackMessages())) {
@@ -521,7 +532,7 @@ const bulkExport = async (): Promise<void> => {
       </div>
 
       <TableTooltip
-        :label="`${translate('selectAll', 'Select all')} ${
+        :label="selectAllLimited ? selectAllLimitLabel : `${translate('selectAll', 'Select all')} ${
           context.matchingRowCount.value
         }`"
       >
@@ -532,8 +543,8 @@ const bulkExport = async (): Promise<void> => {
           "
           type="button"
           class="yayaw-bulk-action-tab"
-          :disabled="isBusy"
-          :aria-label="`${translate('selectAll', 'Select all')} ${
+          :disabled="isBusy || selectAllLimited"
+          :aria-label="selectAllLimited ? selectAllLimitLabel : `${translate('selectAll', 'Select all')} ${
             context.matchingRowCount.value
           }`"
           @click="selectAllMatching"

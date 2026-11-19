@@ -311,3 +311,30 @@ describe("custom bulk actions", () => {
     assert.equal(dismissMenuCount, 1);
   });
 });
+
+describe("select all limit", () => {
+  const selectAllTab = (selectAllLimit?: number) =>
+    buildBulkActionsMenuActionTabs({
+      canSelectAll: true,
+      isSelectingAll: false,
+      selectAllCount: 3,
+      selectAllLimit,
+      selectedRows: createSelectedRows(["row-1"]),
+      showBulkDelete: false,
+      showBulkEdit: false,
+      showBulkExport: false,
+    }).find((tab) => tab.id === "selectAll");
+
+  it("disables Select all and asks to narrow the filters past selectAllMaxRows", () => {
+    const tab = selectAllTab(2);
+    assert.equal(tab?.disabled, true);
+    assert.equal(tab?.kind === "built-in" ? tab.translationKey : undefined, "bulk.select_all_limit");
+    assert.equal(tab?.kind === "built-in" ? tab.translationParams?.max : undefined, 2);
+  });
+
+  it("keeps Select all within the limit", () => {
+    const tab = selectAllTab();
+    assert.equal(tab?.disabled, false);
+    assert.equal(tab?.kind === "built-in" ? tab.translationKey : undefined, "bulk.select_all");
+  });
+});

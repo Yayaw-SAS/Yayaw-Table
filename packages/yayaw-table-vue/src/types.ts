@@ -512,6 +512,11 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord>
   groupingMaxRows?: number;
   /** Keep selected row IDs when search, filters, sorting, or grouping changes. */
   preserveSelectionOnQuery?: boolean;
+  /**
+   * Rows that "Select all" may load at most. Past it, the action stays visible
+   * but disabled and asks to narrow the filters. Unset: no limit.
+   */
+  selectAllMaxRows?: number;
 }
 
 export interface TableTranslationsConfig {

@@ -28,6 +28,7 @@ export interface DataTableTranslations {
     confirm_delete_description: string;
     confirm_title: string;
     select_all: string;
+    select_all_limit: string;
   };
   columns: {
     title: string;

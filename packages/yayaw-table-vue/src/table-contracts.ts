@@ -584,6 +584,22 @@ export async function fetchAllContractRows<T>({
   );
 }
 
+/**
+ * Whether "Select all" exceeds `selectAllMaxRows`: the action is then disabled
+ * and asks to narrow the filters. No limit when unset or not a positive number.
+ */
+export function isSelectAllLimited(
+  matchingCount: number | undefined,
+  maxRows: number | undefined
+): boolean {
+  return (
+    typeof maxRows === "number" &&
+    maxRows > 0 &&
+    typeof matchingCount === "number" &&
+    matchingCount > maxRows
+  );
+}
+
 /** Canonical saved-view names are React's; legacy Vue names remain readable. */
 export function normalizeViewAliases(value: unknown): ContractRecord {
   const view = recordValue(value);

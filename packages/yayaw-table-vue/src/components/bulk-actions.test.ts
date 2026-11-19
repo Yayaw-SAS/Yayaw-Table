@@ -495,3 +495,38 @@ describe("bulk action execution", () => {
     expect(wrapper.find('[role="status"]').exists()).toBe(false);
   });
 });
+
+describe("select all limit", () => {
+  const selectAllButton = (wrapper: TableWrapper) =>
+    wrapper.find<HTMLButtonElement>(
+      'button[aria-label^="Select all"], button[aria-label^="Narrow"]'
+    );
+
+  it("disables Select all past selectAllMaxRows and loads nothing", async () => {
+    const wrapper = mountTable({
+      config: { ...config, table: { ...config.table, selectAllMaxRows: 2 } },
+    });
+    await selectRows(wrapper, 1);
+
+    const button = selectAllButton(wrapper);
+    expect(button.attributes("aria-label")).toBe(
+      "Narrow the filters to select all (2 rows at most)"
+    );
+    expect(button.element.disabled).toBe(true);
+    await button.trigger("click");
+    expect(selectedCount(wrapper)).toBe(1);
+  });
+
+  it("selects every matching row within the limit", async () => {
+    const wrapper = mountTable({
+      config: { ...config, table: { ...config.table, selectAllMaxRows: 3 } },
+    });
+    await selectRows(wrapper, 1);
+
+    const button = selectAllButton(wrapper);
+    expect(button.element.disabled).toBe(false);
+    await button.trigger("click");
+    await flushPromises();
+    expect(selectedCount(wrapper)).toBe(3);
+  });
+});

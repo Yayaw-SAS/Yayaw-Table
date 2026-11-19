@@ -212,6 +212,7 @@ export interface TableCatalogueTableConfig extends GenericModeTableConfigs {
   lockCalculations?: boolean;
   enableAdvancedFilters?: boolean;
   preserveSelectionOnQuery?: boolean;
+  selectAllMaxRows?: number;
   searchDebounceMs?: number;
   syncUrl?: boolean;
 }
@@ -492,6 +493,7 @@ function resolveTableBehaviorConfig(
     enableCalculations: mergedConfig.enableCalculations ?? false,
     lockCalculations: mergedConfig.lockCalculations === true,
     preserveSelectionOnQuery: mergedConfig.preserveSelectionOnQuery ?? false,
+    selectAllMaxRows: mergedConfig.selectAllMaxRows,
     searchDebounceMs: mergedConfig.searchDebounceMs ?? 300,
     syncUrl: mergedConfig.syncUrl ?? true,
   };

@@ -179,6 +179,12 @@ export interface BulkActionsMenuProps<TData> {
   selectAllCount?: number;
 
   /**
+   * The table's `selectAllMaxRows` when the matching rows exceed it: Select all
+   * is then disabled and asks to narrow the filters.
+   */
+  selectAllLimit?: number;
+
+  /**
    * Callback to select all matching rows across pages.
    */
   onSelectAll?: () => Promise<void> | void;
@@ -244,6 +250,7 @@ interface BulkActionsMenuActionTabsOptions<TData> {
   customBulkActions?: CustomBulkActionsInput<TData>;
   isSelectingAll: boolean;
   selectAllCount?: number;
+  selectAllLimit?: number;
   selectedRows: Row<TData>[];
   showBulkDelete: boolean;
   showBulkEdit: boolean;
@@ -469,6 +476,7 @@ export function buildBulkActionsMenuActionTabs<TData>({
   customBulkActions,
   isSelectingAll,
   selectAllCount,
+  selectAllLimit,
   selectedRows,
   showBulkDelete,
   showBulkEdit,
@@ -497,12 +505,16 @@ export function buildBulkActionsMenuActionTabs<TData>({
             id: "selectAll" as const,
             icon: isSelectingAll ? Loader2 : CheckCheck,
             kind: "built-in" as const,
-            translationKey: "bulk.select_all",
+            translationKey:
+              selectAllLimit === undefined
+                ? "bulk.select_all"
+                : "bulk.select_all_limit",
             translationParams: {
               count: selectAllCount ?? selectedCount,
+              max: selectAllLimit ?? 0,
             },
             variant: "default" as const,
-            disabled: isSelectingAll,
+            disabled: isSelectingAll || selectAllLimit !== undefined,
           },
         ]
       : []),
@@ -783,6 +795,7 @@ export function BulkActionsMenu<TData>({
   positionMode = "anchored",
   canSelectAll = false,
   selectAllCount,
+  selectAllLimit,
   onSelectAll,
   isSelectingAll = false,
   viewportBottomOffset,
@@ -820,6 +833,7 @@ export function BulkActionsMenu<TData>({
         customBulkActions,
         isSelectingAll,
         selectAllCount,
+        selectAllLimit,
         selectedRows,
         showBulkDelete,
         showBulkEdit,
@@ -827,6 +841,7 @@ export function BulkActionsMenu<TData>({
         tagActions,
       }),
     [
+      selectAllLimit,
       customBulkActions,
       isSelectingAll,
       selectAllCount,

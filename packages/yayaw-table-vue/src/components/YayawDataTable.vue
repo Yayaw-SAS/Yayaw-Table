@@ -45,7 +45,7 @@ import type {
   ToolbarActionsInput,
   ToolbarActionsPlacement,
 } from "../types";
-import { fetchAllContractRows, TABLE_DENSITY_METRICS, tableFilterContext } from "../table-contracts";
+import { fetchAllContractRows, isSelectAllLimited, TABLE_DENSITY_METRICS, tableFilterContext } from "../table-contracts";
 import type { TableListParams } from "../types";
 import CardPagination from "./table/CardPagination.vue";
 import FilterChipsBar from "./filters/FilterChipsBar.vue";
@@ -609,12 +609,13 @@ const selectAllMatching = async (): Promise<number> => {
   if (
     isSelectingAll.value ||
     !config.table.enableRowSelection ||
-    !config.table.enableMultiRowSelection
+    !config.table.enableMultiRowSelection ||
+    isSelectAllLimited(matchingRowCount.value, config.table.selectAllMaxRows)
   ) return 0;
   const version = selectionVersion;
   isSelectingAll.value = true;
   try {
-    const matching = await loadAllMatchingRows();
+    const matching = await loadAllMatchingRows({ maxRows: config.table.selectAllMaxRows });
     // Do not overwrite a newer query or a selection edited while the request was pending.
     if (version !== selectionVersion) return 0;
     const selectable = matching.filter(
