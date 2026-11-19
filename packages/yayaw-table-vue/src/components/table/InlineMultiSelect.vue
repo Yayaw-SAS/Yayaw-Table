@@ -2,10 +2,12 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { Check, X } from "lucide-vue-next";
 import {
-  ComboboxAnchor, ComboboxContent, ComboboxEmpty, ComboboxInput,
+  ComboboxAnchor, ComboboxContent, ComboboxInput,
   ComboboxItem, ComboboxItemIndicator, ComboboxPortal, ComboboxRoot,
 } from "reka-ui";
-import { useTableTranslation } from "../../context";
+import { useTableContext, useTableTranslation } from "../../context";
+import { filterMenuText } from "../../filter-menu";
+import { limitOptions } from "../../table-contracts";
 import type { MaybePromise, SelectOption } from "../../types";
 
 /** Server-side choices of a form field with `searchOptions`, already bound to the cell's form context. */
@@ -54,11 +56,18 @@ const choices = computed(() => {
   return [...result.values()];
 });
 // With a server search, the server decides what matches: its results show even when the label lacks the text.
-const visible = computed(() => {
+// Only the first matches are drawn: a list of thousands stays instant, typing reaches the others.
+const limited = computed(() => {
   const text = query.value.trim().toLocaleLowerCase();
-  if (!(props.search && text)) return choices.value;
-  return choices.value.filter(option => matched.value?.has(option.key) || option.label.toLocaleLowerCase().includes(text));
+  if (!text) return limitOptions(choices.value);
+  return limitOptions(choices.value.filter(option => matched.value?.has(option.key) || option.label.toLocaleLowerCase().includes(text)));
 });
+const visible = computed(() => limited.value.shown);
+const context = useTableContext();
+const moreText = computed(() => filterMenuText("moreOptions", context.locale, (name) => {
+  const value = context.translations.value[name];
+  return typeof value === "string" ? value : undefined;
+}).replace("{count}", String(limited.value.hidden)));
 const selectedKeys = computed(() => selected.value.map(keyFor));
 const selectedOptions = computed(() => selectedKeys.value.map(key => choices.value.find(option => option.key === key)!));
 const remember = (options: SelectOption[]): void => {
@@ -223,12 +232,12 @@ onBeforeUnmount(() => {
 
 <template>
   <div ref="anchor" class="yayaw-inline-multiselect">
-  <ComboboxRoot :multiple="multiple" :open="true" :model-value="multiple ? selectedKeys : selectedKeys[0]" :disabled="disabled" :ignore-filter="Boolean(search)" @update:model-value="update" @update:open="dismiss">
+  <ComboboxRoot :multiple="multiple" :open="true" :model-value="multiple ? selectedKeys : selectedKeys[0]" :disabled="disabled" :ignore-filter="true" @update:model-value="update" @update:open="dismiss">
     <!-- Mount the list before the input so Reka assigns aria-controls on first render. -->
     <ComboboxPortal force-mount>
       <ComboboxContent class="yayaw-inline-options" position="popper" align="start" :side-offset="6" :collision-padding="8" :aria-label="label" :aria-busy="disabled || searching" @escape-key-down.prevent="emit('cancel')">
         <div v-if="search && ((!visible.length && !createsOption) || searchError || createError)" class="yayaw-inline-empty" :role="searchError || createError ? 'alert' : 'status'">{{ emptyText }}</div>
-        <ComboboxEmpty v-else-if="!search" class="yayaw-inline-empty">{{ emptyText }}</ComboboxEmpty>
+        <div v-else-if="!search && !visible.length" class="yayaw-inline-empty" role="status">{{ emptyText }}</div>
         <ComboboxItem v-for="option in visible" :key="option.key" :value="option.key" :text-value="option.label" :disabled="option.disabled" class="yayaw-inline-option">
           {{ option.label }}
           <ComboboxItemIndicator class="yayaw-inline-check"><Check :size="16" aria-hidden="true" /></ComboboxItemIndicator>
@@ -236,6 +245,7 @@ onBeforeUnmount(() => {
         <ComboboxItem v-if="createsOption" :value="CREATE_KEY" :text-value="createLabel" :disabled="creating" class="yayaw-inline-option">
           {{ creating ? translate("loading", "Loading…") : createLabel }}
         </ComboboxItem>
+        <p v-if="limited.hidden" class="yayaw-inline-empty" role="status">{{ moreText }}</p>
       </ComboboxContent>
     </ComboboxPortal>
     <ComboboxAnchor as-child>

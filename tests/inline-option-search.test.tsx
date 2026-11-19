@@ -42,8 +42,9 @@ async function waitFor(check: () => boolean) {
 const known = [{ value: 1, label: "Gaming Mag" }];
 async function setup(
   type: "select" | "multiSelect",
-  optionSearch: InlineOptionSearch,
-  onCommit: ComponentProps<typeof InlineEditableCell>["onCommit"]
+  optionSearch: InlineOptionSearch | undefined,
+  onCommit: ComponentProps<typeof InlineEditableCell>["onCommit"],
+  options: { value: number; label: string }[] = known
 ) {
   client = new QueryClient();
   container = document.createElement("div");
@@ -56,7 +57,7 @@ async function setup(
     column: { id: "media", columnDef: { header: "Media" } },
   } as unknown as ComponentProps<typeof InlineEditableCell>["cell"];
   const config = resolveInlineEditColumnConfig(
-    { id: "media", type, inlineEdit: { enabled: true, options: known } },
+    { id: "media", type, inlineEdit: { enabled: true, options } },
     { enabled: true, debounceMs: 10_000 }
   );
   await act(() =>
@@ -343,4 +344,35 @@ it("offers no creation for an existing label and shows a failed creation", async
   );
   expect(container.querySelector('[role="combobox"]')).not.toBeNull();
   expect(writes).toEqual([]);
+});
+
+it("opens a long inline select as a searchable list that draws its first 100 matches", async () => {
+  const suppliers = Array.from({ length: 250 }, (_, index) => ({
+    value: index + 1,
+    label: `Supplier ${String(index + 1).padStart(3, "0")}`,
+  }));
+  const commits: unknown[] = [];
+  await setup(
+    "select",
+    undefined,
+    (value) => {
+      commits.push(value);
+      return Promise.resolve({ success: true });
+    },
+    suppliers
+  );
+  // More than 200 options: a searchable list rather than a select drawing all of them.
+  await waitFor(() => choices().length > 0);
+  expect(choices()).toHaveLength(100);
+  expect(document.body.textContent).toContain(
+    "150 more: type to narrow the list"
+  );
+  await fill("240");
+  await waitFor(() => choices().length === 1);
+  expect(choices().map((option) => option.textContent)).toEqual([
+    "Supplier 240",
+  ]);
+  await clickOption("Supplier 240");
+  await waitFor(() => commits.length > 0);
+  expect(commits).toEqual([240]);
 });

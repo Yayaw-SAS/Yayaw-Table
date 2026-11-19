@@ -1090,6 +1090,20 @@ export function dataTypeFilter(type?: string, hasOptions = false) {
   return TABLE_DATA_TYPES[resolveDataType(type)].filter;
 }
 
+/** A select with more options than this opens a searchable list instead: a plain select draws every option. */
+export const LONG_OPTION_LIST = 200;
+/** A list of options draws at most this many matches; typing reaches the others. */
+export const OPTION_RENDER_LIMIT = 100;
+/** The options a list draws, and how many matches it leaves for the search to narrow. */
+export function limitOptions<T>(
+  options: readonly T[],
+  limit = OPTION_RENDER_LIMIT
+): { shown: readonly T[]; hidden: number } {
+  return options.length > limit
+    ? { shown: options.slice(0, limit), hidden: options.length - limit }
+    : { shown: options, hidden: 0 };
+}
+
 export const optionControlKey = (value: unknown): string =>
   JSON.stringify([typeof value, value]);
 export function optionControlValue(key: string): unknown {

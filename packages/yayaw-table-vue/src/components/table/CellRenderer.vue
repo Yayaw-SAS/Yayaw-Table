@@ -17,7 +17,7 @@ import {
 } from "vue";
 import { resolveCellActions } from "../../cell-actions";
 import { useTableContext, useTableTranslation } from "../../context";
-import { inlineEditorIcon, type InlineEditorIcon, resolveDataType, resolveDataTypeEditor, TABLE_DATA_TYPES, dataTypeDateInput, dataTypeValueError } from "../../table-contracts";
+import { inlineEditorIcon, type InlineEditorIcon, LONG_OPTION_LIST, resolveDataType, resolveDataTypeEditor, TABLE_DATA_TYPES, dataTypeDateInput, dataTypeValueError } from "../../table-contracts";
 import { AlignLeft, Braces, Calendar, CalendarClock, Check, ChevronDown, Hash, Image as ImageIcon, Link, ListChecks, MapPin, PencilLine, Tag } from "lucide-vue-next";
 import CellActions from "./CellActions.vue";
 import InitialsAvatar from "../controls/InitialsAvatar.vue";
@@ -580,7 +580,7 @@ const tagListeners = (value: unknown) => {
         @change="save()"
       />
       <InlineMultiSelect
-        v-else-if="editor === 'select' && optionSearch"
+        v-else-if="editor === 'select' && (optionSearch || options.length > LONG_OPTION_LIST)"
         v-model="draft"
         :multiple="false"
         :options="options"

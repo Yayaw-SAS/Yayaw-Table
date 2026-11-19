@@ -14,7 +14,8 @@ import {
 import { computed, ref, useTemplateRef } from "vue";
 import { useOverlayTheme } from "../../composables/use-overlay-theme";
 import { formLabel } from "../../form-view";
-import { optionControlKey, optionControlValue } from "../../table-contracts";
+import { filterMenuText } from "../../filter-menu";
+import { limitOptions, optionControlKey, optionControlValue } from "../../table-contracts";
 import type { SelectOption } from "../../types";
 
 /**
@@ -52,6 +53,15 @@ const items = computed<SelectOption[]>(() => [
     .filter((value) => !props.options.some((option) => Object.is(option.value, value)))
     .map((value) => ({ label: String(value), value: value as SelectOption["value"] })),
 ]);
+const folded = (text: string) => text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+// The label contains the search, ignoring case and accents; only the first matches are drawn.
+const shown = computed(() => {
+  const text = folded(query.value.trim());
+  return limitOptions(text ? items.value.filter((option) => folded(option.label).includes(text)) : items.value);
+});
+const moreText = computed(() =>
+  filterMenuText("moreOptions", props.locale).replace("{count}", String(shown.value.hidden))
+);
 const labelOf = (value: unknown) =>
   items.value.find((option) => Object.is(option.value, value))?.label ?? String(value);
 const keys = computed(() => selected.value.map(optionControlKey));
@@ -86,6 +96,7 @@ const onOpen = (open: boolean): void => {
         :model-value="multiple ? keys : keys[0]"
         :multiple="multiple"
         :disabled="disabled"
+        :ignore-filter="true"
         @update:model-value="update"
         @update:open="onOpen"
       >
@@ -126,7 +137,7 @@ const onOpen = (open: boolean): void => {
             />
             <ComboboxEmpty class="yayaw-inline-empty">{{ text("noMatchingOption") }}</ComboboxEmpty>
             <ComboboxItem
-              v-for="option in items"
+              v-for="option in shown.shown"
               :key="optionControlKey(option.value)"
               :value="optionControlKey(option.value)"
               :text-value="option.label"
@@ -136,6 +147,7 @@ const onOpen = (open: boolean): void => {
               {{ option.label }}
               <ComboboxItemIndicator class="yayaw-inline-check"><Check :size="16" aria-hidden="true" /></ComboboxItemIndicator>
             </ComboboxItem>
+            <p v-if="shown.hidden" class="yayaw-inline-empty" role="status">{{ moreText }}</p>
           </ComboboxContent>
         </ComboboxPortal>
       </ComboboxRoot>

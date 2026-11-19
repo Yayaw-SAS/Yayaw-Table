@@ -17,8 +17,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useTranslations } from "../../../providers/table-provider";
+import { filterMenuText } from "../../../utils/filter-menu";
 import { formLabel } from "../../../utils/form-view";
-import { optionControlKey } from "../../../utils/table-contracts";
+import { limitOptions, optionControlKey } from "../../../utils/table-contracts";
 import type { FormSelectOption } from "../types";
 
 type OptionValue = FormSelectOption["value"];
@@ -28,11 +29,6 @@ const folded = (text: string) =>
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
     .toLowerCase();
-/** The label contains the search, ignoring case and accents, as in Vue (not cmdk's fuzzy match). */
-const containsLabel = (_value: string, search: string, keywords?: string[]) =>
-  keywords?.some((keyword) => folded(keyword).includes(folded(search.trim())))
-    ? 1
-    : 0;
 
 /**
  * A `searchable` select or multiSelect field: a button opening a list that
@@ -88,6 +84,14 @@ export function OptionCombobox({
     );
   };
   const choose = placeholder ?? formLabel("choose", locale);
+  // The label contains the search, ignoring case and accents, as in Vue (not cmdk's fuzzy match).
+  // Only the first matches are drawn: a list of thousands stays instant.
+  const text = folded(search.trim());
+  const { shown, hidden } = limitOptions(
+    text
+      ? options.filter((option) => folded(option.label).includes(text))
+      : options
+  );
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-1">
@@ -131,7 +135,7 @@ export function OptionCombobox({
             align="start"
             className="w-(--anchor-width) min-w-[min(18rem,calc(100vw-2rem))] gap-0 p-0"
           >
-            <Command filter={containsLabel}>
+            <Command shouldFilter={false}>
               <CommandInput
                 aria-label={`${label} ${formLabel("searchOptions", locale)}`}
                 onValueChange={setSearch}
@@ -142,7 +146,7 @@ export function OptionCombobox({
                 <CommandEmpty>
                   {formLabel("noMatchingOption", locale)}
                 </CommandEmpty>
-                {options.map((option) => (
+                {shown.map((option) => (
                   <CommandItem
                     className="min-h-11 md:min-h-8"
                     data-checked={isSelected(option.value)}
@@ -155,6 +159,14 @@ export function OptionCombobox({
                     {option.label}
                   </CommandItem>
                 ))}
+                {hidden > 0 && (
+                  <output className="block px-2 py-1.5 text-muted-foreground text-xs">
+                    {filterMenuText("moreOptions", locale).replace(
+                      "{count}",
+                      String(hidden)
+                    )}
+                  </output>
+                )}
               </CommandList>
             </Command>
           </PopoverContent>

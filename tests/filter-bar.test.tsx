@@ -446,3 +446,80 @@ it("stores a single quick-filter value alone and removes the filter for All", ()
     replaceColumnFilter([{ id: "sent", value: true }], "sent", [])
   ).toEqual([]);
 });
+
+it("draws the first 100 choices of a long quick filter and says how to reach the others", async () => {
+  const long = defineTableConfig({
+    ...config,
+    id: "long-filter",
+    columns: {
+      ...config.columns,
+      definitions: [
+        {
+          id: "supplier",
+          header: "Supplier",
+          type: "select",
+          options: Array.from({ length: 250 }, (_, index) => ({
+            value: index + 1,
+            label: `Supplier ${String(index + 1).padStart(3, "0")}`,
+          })),
+        },
+      ],
+      order: ["supplier"],
+    },
+    table: { syncUrl: false, filterBarColumns: ["supplier"] },
+  });
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container),
+    client = new QueryClient(),
+    store = createStore();
+  const choices = () =>
+    [...document.querySelectorAll('input[type="checkbox"]')].map((input) =>
+      input.closest("label")?.textContent?.trim()
+    );
+  try {
+    await act(() =>
+      root.render(
+        <Provider store={store}>
+          <NuqsTestingAdapter hasMemory>
+            <TableProvider
+              getTableConfig={() => long}
+              queryClient={client}
+              tableId="long-filter"
+              translations={defaultTranslations}
+            >
+              <TableFilterBar tableId="long-filter" tableType="media" />
+            </TableProvider>
+          </NuqsTestingAdapter>
+        </Provider>
+      )
+    );
+    await act(() =>
+      container
+        .querySelector<HTMLButtonElement>('[aria-label="Supplier"]')
+        ?.click()
+    );
+    expect(choices()).toHaveLength(100);
+    expect(document.body.textContent).toContain(
+      "150 more: type to narrow the list"
+    );
+    const search = document.querySelector<HTMLInputElement>(
+      'input[type="search"]'
+    );
+    if (!search) {
+      throw new Error("Missing search");
+    }
+    await act(() => {
+      Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value"
+      )?.set?.call(search, "240");
+      search.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(choices()).toEqual(["Supplier 240"]);
+  } finally {
+    await act(() => root.unmount());
+    client.clear();
+    container.remove();
+  }
+});

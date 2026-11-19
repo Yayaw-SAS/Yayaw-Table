@@ -483,3 +483,65 @@ it("picks one value or All in a single-choice quick filter, stored alone and sho
     wrapper.get('.yayaw-filter-bar [aria-label="Category"]').text()
   ).not.toContain(":");
 });
+
+it("draws the first 100 choices of a long quick filter and says how to reach the others", async () => {
+  const long = defineTableConfig({
+    ...config,
+    id: "long-filter",
+    columns: {
+      ...config.columns,
+      definitions: [
+        { id: "name", header: "Name" },
+        {
+          id: "supplier",
+          header: "Supplier",
+          type: "select",
+          options: Array.from({ length: 250 }, (_, index) => ({
+            value: index + 1,
+            label: `Supplier ${String(index + 1).padStart(3, "0")}`,
+          })),
+        },
+      ],
+      order: ["name", "supplier"],
+    },
+    table: { ...config.table, filterBarColumns: ["supplier"] },
+  });
+  const wrapper = mount(YayawDataTable, {
+    props: {
+      tableType: long.id,
+      config: long,
+      getTableActions: () => ({
+        list: async () => ({ data: [], meta: { totalCount: 0 } }),
+      }),
+    },
+    attachTo: document.body,
+    global: {
+      stubs: {
+        PopperArrow: true,
+        PopperContent: { template: "<div><slot /></div>" },
+      },
+    },
+  });
+  await flushPromises();
+  await wrapper
+    .get('.yayaw-filter-bar [aria-label="Supplier"]')
+    .trigger("click");
+  await flushPromises();
+  const choices = () => document.querySelectorAll(".yayaw-filter-choice");
+  expect(choices()).toHaveLength(100);
+  expect(document.body.textContent).toContain(
+    "150 more: type to narrow the list"
+  );
+  const search = document.querySelector<HTMLInputElement>(
+    ".yayaw-filter-picker input[type=search]"
+  );
+  if (!search) {
+    throw new Error("Missing search");
+  }
+  search.value = "240";
+  search.dispatchEvent(new Event("input"));
+  await flushPromises();
+  expect([...choices()].map((choice) => choice.textContent?.trim())).toEqual([
+    "Supplier 240",
+  ]);
+});

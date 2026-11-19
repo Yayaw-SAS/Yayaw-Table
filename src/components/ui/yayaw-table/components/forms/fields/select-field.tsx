@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/src/components/ui/select";
 import {
+  LONG_OPTION_LIST,
   optionControlKey,
   optionControlValue,
 } from "../../../utils/table-contracts";
@@ -61,7 +62,8 @@ export function SelectField<TFieldValues extends Record<string, unknown>>({
   return (
     <Field data-invalid={!fieldApi.state.meta.isValid}>
       <FieldLabel htmlFor={controlId}>{label}</FieldLabel>
-      {field.searchable ? (
+      {/* A long list is searched rather than drawn whole. */}
+      {field.searchable || options.length > LONG_OPTION_LIST ? (
         <OptionCombobox
           disabled={field.disabled === true}
           id={controlId}

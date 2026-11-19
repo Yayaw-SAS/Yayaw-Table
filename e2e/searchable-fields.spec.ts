@@ -45,3 +45,26 @@ test("a searchable field filters its options as you type", async ({ page }) => {
   ).toBeVisible();
   await expect(markets).toContainText("1");
 });
+
+test("a select of more than 200 options is searched and draws its first matches", async ({
+  page,
+}) => {
+  await page.goto(RECORDS);
+  await page.getByRole("button", { name: "Add item" }).click();
+  const dialog = page.getByRole("dialog", { name: "Create" });
+
+  // 500 suppliers, no `searchable` flag: a searchable list all the same.
+  const supplier = dialog.getByRole("combobox", {
+    name: "Supplier",
+    exact: true,
+  });
+  await supplier.click();
+  await expect(page.getByRole("option")).toHaveCount(100);
+  await expect(
+    page.getByText("400 more: type to narrow the list")
+  ).toBeVisible();
+  await page.keyboard.type("450");
+  await expect(page.getByRole("option")).toHaveText(["Supplier 450"]);
+  await page.keyboard.press("Enter");
+  await expect(supplier).toContainText("Supplier 450");
+});

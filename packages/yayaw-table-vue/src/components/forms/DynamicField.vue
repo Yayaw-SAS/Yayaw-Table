@@ -22,7 +22,7 @@ import {
   SwitchRoot,
   SwitchThumb,
 } from "reka-ui";
-import { jsonFormDraft, jsonFormText, dataTypeDateInput, optionControlKey, optionControlValue } from "../../table-contracts";
+import { jsonFormDraft, jsonFormText, dataTypeDateInput, LONG_OPTION_LIST, optionControlKey, optionControlValue } from "../../table-contracts";
 import FormDateField from "../../form/FormDateField.vue";
 import { formLabel } from "../../form-view";
 import { dateTimeFromInput, dateTimeInputValue } from "../../value-format";
@@ -437,7 +437,7 @@ watch(valueType, (next, previous) => {
       </div>
     </div>
     <FieldCombobox
-      v-else-if="field.searchable && (field.type === 'select' || field.type === 'multiSelect')"
+      v-else-if="(field.searchable || allOptions.length > LONG_OPTION_LIST) && (field.type === 'select' || field.type === 'multiSelect')"
       :id="fieldId"
       v-model="selectionModel"
       :options="allOptions"
