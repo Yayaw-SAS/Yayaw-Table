@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.41.0
+
+### Minor Changes
+
+- 37ef850: Long option lists stay instant in both editions. A `select` or `multiSelect` with more than 200 options opens the searchable list without `searchable: true` (catalogue forms and the inline single-select editor), and every searchable list and quick-filter picker draws its first 100 matches with a line saying how many more typing can reach. New shared exports: `LONG_OPTION_LIST`, `OPTION_RENDER_LIMIT`, `limitOptions()`.
+- 057f20d: Add `selectAllMaxRows` to cap "Select all" in both editions. Past the limit, the action stays visible but disabled and asks to narrow the filters, so a table never loads its whole dataset into the browser.
+
 ## 3.40.0
 
 ### Minor Changes
