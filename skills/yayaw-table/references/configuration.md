@@ -326,7 +326,11 @@ view is `view` (React also writes `historyIndex`); the file tree adds
 - Record view: on by default, fields derived from the columns; `details`
   (`RecordDetailsConfig`: sections, `activity`, `updatedAt`, labels) shapes it,
   `details={false}` removes it, `onOpenDetails(row)` opens your own route
-  instead. Undo of an activity entry calls `onRevertActivity`. See
+  instead. Undo of an activity entry calls `onRevertActivity`.
+- Creation: `onCreate(initial?)` (Vue: `@create`) opens your own create flow
+  from the create button and the views' new-row clicks, instead of the
+  built-in form; the button shows without `actions.create`, and
+  `allowCreate: false` still hides it. See
   [record details](https://github.com/Yayaw-SAS/Yayaw-Table/blob/main/docs/RECORD-DETAILS.md).
 - `presentation`: `"drawer"` (default), `"modal"`, `"inline"`, or
   `{ desktop, mobile? }` for view, create, edit and bulk edit.

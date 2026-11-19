@@ -362,6 +362,7 @@ function DataTableHeaderControls({
   kanbanControlColumns,
   kanbanDefaultGroupBy,
   kanbanGroupingColumns,
+  onCreate,
   onExport,
   shouldShowViewControls: _shouldShowViewControls,
   shouldShowViews,
@@ -402,6 +403,7 @@ function DataTableHeaderControls({
   kanbanControlColumns: KanbanGroupingColumn[];
   kanbanDefaultGroupBy?: string;
   kanbanGroupingColumns: KanbanGroupingColumn[];
+  onCreate?: (initial?: Record<string, unknown>) => void;
   onExport?: (rows: Record<string, unknown>[]) => Promise<void> | void;
   shouldShowViewControls: boolean;
   shouldShowViews: boolean;
@@ -472,6 +474,7 @@ function DataTableHeaderControls({
           tableId={tableId}
         />
       }
+      onCreate={onCreate}
       onExport={onExport}
       quickFiltersVisible={quickFiltersVisible}
       searchDebounceMs={searchDebounceMs}
@@ -650,6 +653,7 @@ function DataTableContent({
   onRowClick,
   onRowActivate,
   showDefaultToastsForCustomHandlers,
+  onCreate,
   onExport,
   toolbarActions,
   toolbarActionsPlacement,
@@ -746,6 +750,13 @@ function DataTableContent({
     event: React.MouseEvent
   ) => void;
   showDefaultToastsForCustomHandlers?: boolean;
+  /**
+   * The host's own create flow (a dialog, a wizard, a page): the toolbar's
+   * create button and the views' new-row clicks call it instead of the
+   * built-in form. The button shows without `actions.create`;
+   * `table.allowCreate: false` still hides it. Import keeps `actions.create`.
+   */
+  onCreate?: (initial?: Record<string, unknown>) => void;
   onExport?: (rows: Record<string, unknown>[]) => void | Promise<void>;
   toolbarActions?: ToolbarActionsInput;
   toolbarActionsPlacement?: ToolbarActionsPlacement;
@@ -1112,6 +1123,7 @@ function DataTableContent({
                     kanbanDefaultGroupBy={config.table.kanban?.groupBy}
                     kanbanGroupingColumns={kanbanGroupingColumns}
                     listConfig={config.table.list}
+                    onCreate={onCreate}
                     onExport={onExport}
                     quickFiltersVisible={isFilterBarVisible(
                       showFilterBar,
@@ -1182,6 +1194,7 @@ function DataTableContent({
                     onBulkDelete={onBulkDelete}
                     onBulkEdit={onBulkEdit}
                     onBulkExport={onBulkExport}
+                    onCreate={onCreate}
                     onOpenDetails={openDetails}
                     onRedoActivity={onRedoActivity}
                     onRevertActivity={onRevertActivity}

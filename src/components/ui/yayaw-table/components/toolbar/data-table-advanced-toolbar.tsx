@@ -331,6 +331,9 @@ interface DataTableAdvancedToolbarProps<_TData = Record<string, unknown>> {
     "text" | "number" | "date" | "select" | "multiSelect"
   >;
 
+  /** The host's create flow (DataTable `onCreate`): the create button calls it instead of the form. */
+  onCreate?: (initial?: Record<string, unknown>) => void;
+
   /**
    * Callback to override default toolbar export behavior
    */
@@ -1165,6 +1168,23 @@ function ToolbarFilterRow({
   );
 }
 
+/**
+ * `canCreateRows`: the table saves rows itself (Import uses it), as in Vue.
+ * `isCreateEnabled`: the create button shows, also for the host's own flow.
+ */
+const createAvailability = (
+  allowCreate: boolean | undefined,
+  create: unknown,
+  onCreate: unknown
+) => {
+  const allowed = allowCreate !== false;
+  const canCreateRows = allowed && typeof create === "function";
+  return {
+    canCreateRows,
+    isCreateEnabled: canCreateRows || (allowed && typeof onCreate === "function"),
+  };
+};
+
 export function DataTableAdvancedToolbar<TData>({
   viewManagerProps,
   quickFiltersVisible,
@@ -1180,6 +1200,7 @@ export function DataTableAdvancedToolbar<TData>({
   enableAdvancedFilters = true,
   data = EMPTY_DATA,
   columnTypeMapping = EMPTY_COLUMN_TYPE_MAPPING,
+  onCreate,
   onExport,
   toolbarActions,
   toolbarActionsPlacement = "between-create-export",
@@ -1452,10 +1473,11 @@ export function DataTableAdvancedToolbar<TData>({
     mobile: nativeMobile,
   } = useToolbarLayout(tableId);
   const actionsAsIcons = tableConfig.table.actionsAsIcons === true && !isMobile;
-  // A create button needs somewhere to save, as in Vue.
-  const isCreateEnabled =
-    tableConfig.table.allowCreate !== false &&
-    typeof tableActions?.create === "function";
+  const { canCreateRows, isCreateEnabled } = createAvailability(
+    tableConfig.table.allowCreate,
+    tableActions?.create,
+    onCreate
+  );
   const isExportEnabled = tableConfig.table.export !== false;
   const isColumnFiltersEnabled =
     tableConfig.table.enableColumnFilters !== false;
@@ -1471,6 +1493,10 @@ export function DataTableAdvancedToolbar<TData>({
   const createFormType = tableConfig.form?.createFormType ?? formType;
   const handleOpenCreateForm = useCallback(() => {
     if (!isCreateEnabled) {
+      return;
+    }
+    if (onCreate) {
+      onCreate();
       return;
     }
 
@@ -1489,6 +1515,7 @@ export function DataTableAdvancedToolbar<TData>({
   }, [
     createFormType,
     isCreateEnabled,
+    onCreate,
     queryClient,
     setFormState,
     tableId,
@@ -1975,7 +2002,7 @@ export function DataTableAdvancedToolbar<TData>({
   const importEntry = importScreen({
     table: tableConfig.table,
     actions: tableActions,
-    canCreate: isCreateEnabled,
+    canCreate: canCreateRows,
     columns: tableConfig.columns.definitions,
     locale,
     t,

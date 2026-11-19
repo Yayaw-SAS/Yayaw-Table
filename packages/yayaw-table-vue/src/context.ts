@@ -90,6 +90,8 @@ export interface TableContextValue<TData extends TableRecord = TableRecord> {
   ) => FormConfig<TData> | undefined;
   refresh: () => Promise<void>;
   openCreate: (initial?: TableRecord) => void;
+  /** The host's create flow (`onCreate` prop): `openCreate` calls it instead of the form. */
+  onCreate?: (initial?: TableRecord) => void;
   /** Views rendered by optional registry items, such as the calendar. */
   displayModeRenderers?: DisplayModeRenderers;
   openEdit: (row: TData) => void;

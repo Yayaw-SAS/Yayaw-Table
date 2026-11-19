@@ -759,6 +759,14 @@ compact toolbar (whose view menu lists the modes) and with
 `actionsAsIcons` folds the other actions to icons; the compact toolbar still
 folds it to its icon, with the label as its accessible name.
 
+`onCreate(initial?)` (a React prop, a Vue prop or `@create` listener) hands
+creation to the host's own flow (a dialog, a wizard, a page): the create
+button calls it instead of the built-in form, and so do the views' new-row
+clicks (with the lane or day as `initial`) and Vue's `openCreate()`. The
+button then shows without `actions.create`; `table.allowCreate: false` still
+hides it, and Import still needs `actions.create`. Covered by
+`tests/host-create.test.tsx` and the Vue `host-create` suite.
+
 `viewRequest` (`{ key, config, viewId?, replace? }`) asks a mounted table to
 show a view: applied once per new `key`, over the current view unless
 `replace`, pushed to the history. A request present at mount is ignored.

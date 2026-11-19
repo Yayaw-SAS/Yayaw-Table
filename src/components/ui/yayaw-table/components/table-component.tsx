@@ -969,6 +969,8 @@ type ModernDataTableProps<
   /** Optional custom overlay to render when loading */
   loadingOverlay?: ReactNode;
   onOpenDetails?: (row: TData) => void;
+  /** The host's create flow (DataTable `onCreate`): the views' new-row clicks call it instead of the form. */
+  onCreate?: (initial?: Record<string, unknown>) => void;
   details?: RecordDetailsConfig;
   onRevertActivity?: DetailRevertHandler;
   onRedoActivity?: DetailRevertHandler;
@@ -1157,6 +1159,7 @@ function ModernDataTable<
   onRowClick,
   onRowActivate,
   onOpenDetails,
+  onCreate,
   details,
   onRevertActivity,
   onRedoActivity,
@@ -2140,6 +2143,10 @@ function ModernDataTable<
       if (!canCreateRows) {
         return;
       }
+      if (onCreate) {
+        onCreate(initial);
+        return;
+      }
       setFormState(
         openCreateForm(
           tableConfig.form?.createFormType ?? defaultFormType,
@@ -2155,6 +2162,7 @@ function ModernDataTable<
     [
       canCreateRows,
       defaultFormType,
+      onCreate,
       queryClient,
       resolvedTableType,
       setFormState,
