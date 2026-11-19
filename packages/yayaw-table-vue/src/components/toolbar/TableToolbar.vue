@@ -231,9 +231,13 @@ const selectedIds = computed(() =>
     (id) => context.selection.value[id]
   )
 );
-const isCreateEnabled = computed(
+// Rows the table can save itself (Import uses it); the button also opens the host's own flow.
+const canCreateRows = computed(
   () =>
     context.config.table.allowCreate && Boolean(context.actions.value?.create)
+);
+const isCreateEnabled = computed(
+  () => canCreateRows.value || (context.config.table.allowCreate && Boolean(context.onCreate))
 );
 const actionContext = computed<ToolbarActionContext>(() => ({
   actionsAsIcons: actionsAsIcons.value,
@@ -654,7 +658,7 @@ const canUpdate = computed(() => context.config.table.allowEdit !== false && Boo
 const importEnabled = computed(() =>
   isImportEnabled({
     flag: context.config.table.import,
-    canCreate: Boolean(isCreateEnabled.value),
+    canCreate: Boolean(canCreateRows.value),
     canUpdate: canUpdate.value,
     hasImportRows: Boolean(importConfig.value?.importRows),
   })
@@ -663,7 +667,7 @@ const importTitle = computed(() => importLabels(context.locale, importTranslate)
 const importAdapters = (): ImportAdapters => {
   const actions = context.actions.value;
   const importRows = importConfig.value?.importRows;
-  const create = isCreateEnabled.value ? actions?.create : undefined;
+  const create = canCreateRows.value ? actions?.create : undefined;
   const update = canUpdate.value ? actions?.update : undefined;
   return {
     ...(importRows ? { importRows: (batch) => importRows(batch, destinationContext()) } : {}),

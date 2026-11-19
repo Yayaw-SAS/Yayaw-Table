@@ -88,6 +88,13 @@ const props = withDefaults(
     /** Built-in record view on row click; fields come from the columns by default, `false` turns it off. */
     details?: RecordDetailsConfig | false;
     onOpenDetails?: (row: TableRecord) => void;
+    /**
+     * The host's own create flow (a dialog, a wizard, a page): the toolbar's
+     * create button, the views' new-row clicks and `openCreate()` call it
+     * instead of the built-in form. The button shows without `actions.create`;
+     * `table.allowCreate: false` still hides it. Import keeps `actions.create`.
+     */
+    onCreate?: (initial?: TableRecord) => void;
     onRevertActivity?: DetailRevertHandler;
     /** Re-applies an undo event (Ctrl/Cmd+Shift+Z, Ctrl+Y) and appends a new event with `redoes: undoEvent.id`. */
     onRedoActivity?: DetailRevertHandler;
@@ -703,6 +710,10 @@ const densityStyle = computed(() => {
 });
 
 const openCreate = (initial?: TableRecord): void => {
+  if (props.onCreate) {
+    props.onCreate(initial);
+    return;
+  }
   detailRow.value = undefined;
   form.value = {
     open: true,
@@ -817,6 +828,7 @@ provide(tableContextKey, {
   getFormConfig: props.getFormConfig,
   refresh,
   openCreate,
+  get onCreate() { return props.onCreate; },
   displayModeRenderers: modeRenderers,
   openEdit,
   get openDetails() { return props.onOpenDetails || recordDetails.value ? openDetails : undefined; },
