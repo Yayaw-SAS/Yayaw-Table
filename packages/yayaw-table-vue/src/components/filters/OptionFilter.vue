@@ -6,6 +6,7 @@ import { useRemoteFilterOptions } from "../../composables/use-remote-filter-opti
 import { useTableContext, useTableTranslation } from "../../context";
 import { filterBarOptions, filterValueKey, filterValues, replaceColumnFilter } from "../../filter-bar";
 import { filterMenuText, type FilterMenuTextKey } from "../../filter-menu";
+import { limitOptions } from "../../table-contracts";
 import type { ColumnDefinition } from "../../types";
 
 /** Up to this many choices, a single-choice filter shows them without a search field. */
@@ -31,16 +32,18 @@ const options = computed(() => filterBarOptions(
   { yes: translate("common.true", "True"), no: translate("common.false", "False") },
   context.filterMenu.resolvedOptions.value[props.column.id],
 ));
-// The server already searched the loaded options.
-const visibleOptions = computed(() => props.column.optionsLoader
+// The server already searched the loaded options. Only the first matches are drawn: a list of thousands stays instant.
+const limited = computed(() => limitOptions(props.column.optionsLoader
   ? options.value
-  : options.value.filter(option => option.label.toLocaleLowerCase().includes(search.value.trim().toLocaleLowerCase())));
+  : options.value.filter(option => option.label.toLocaleLowerCase().includes(search.value.trim().toLocaleLowerCase()))));
+const visibleOptions = computed(() => limited.value.shown);
 const status = computed(() => {
   if (remote.loading.value) return menuText("loadingOptions");
   if (remote.failed.value) return menuText("optionsError");
   if (props.column.optionsLoader && search.value.trim().length < remote.minimum.value) {
     return menuText("searchMinimum").replace("{count}", String(remote.minimum.value));
   }
+  if (limited.value.hidden) return menuText("moreOptions").replace("{count}", String(limited.value.hidden));
   return visibleOptions.value.length ? "" : translate("noResults", "No results");
 });
 const toggleOpen = (next: boolean): void => {

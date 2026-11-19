@@ -24,9 +24,13 @@ import {
   type FilterMenuTextKey,
   filterMenuText,
 } from "../../utils/filter-menu";
+import { limitOptions } from "../../utils/table-contracts";
 
 /** Up to this many choices, a single-choice filter shows them without a search field. */
 const SINGLE_CHOICE_SEARCH_THRESHOLD = 8;
+/** How many more matches the search can reach, once the list stops drawing them. */
+const moreOptionsText = (hidden: number, text: string) =>
+  hidden ? text.replace("{count}", String(hidden)) : "";
 
 export function OptionFilter({
   tableId,
@@ -79,12 +83,16 @@ export function OptionFilter({
     setOpen(false);
   };
   // The server already searched the loaded options.
-  const visible = column.optionsLoader
+  const matching = column.optionsLoader
     ? options
     : options.filter((option) =>
         option.label.toLocaleLowerCase().includes(query.toLocaleLowerCase())
       );
-  let status = visible.length ? "" : t("filters.noResults");
+  // Only the first matches are drawn: a list of thousands stays instant, typing reaches the others.
+  const { shown: visible, hidden } = limitOptions(matching);
+  let status = visible.length
+    ? moreOptionsText(hidden, menuText("moreOptions"))
+    : t("filters.noResults");
   if (remote.loading) {
     status = menuText("loadingOptions");
   } else if (remote.failed) {

@@ -501,6 +501,48 @@ const mediaColumn = (type: "select" | "multiSelect"): ColumnDefinition => ({
   inlineEdit: true,
 });
 
+it("opens a long inline select as a searchable list that draws its first 100 matches", async () => {
+  const options = Array.from({ length: 250 }, (_, index) => ({
+    value: index + 1,
+    label: `Supplier ${String(index + 1).padStart(3, "0")}`,
+  }));
+  const { wrapper, update } = createCell({
+    row: { id: "1", supplier: 1 },
+    column: {
+      id: "supplier",
+      header: "Supplier",
+      type: "select",
+      inlineEdit: true,
+    },
+    form: {
+      id: "suppliers",
+      fields: [
+        { name: "supplier", label: "Supplier", type: "select", options },
+      ],
+    },
+  });
+  await wrapper.trigger("click");
+  await settle();
+  // More than 200 options: no plain select drawing all of them.
+  expect(wrapper.find("select").exists()).toBe(false);
+  expect(popup().findAll('[role="option"]')).toHaveLength(100);
+  expect(popup().text()).toContain("150 more: type to narrow the list");
+  await wrapper.get('input[role="combobox"]').setValue("240");
+  await settle();
+  expect(
+    popup()
+      .findAll('[role="option"]')
+      .map((option) => option.text())
+  ).toEqual(["Supplier 240"]);
+  await popup().get('[role="option"]').trigger("click");
+  await settle();
+  expect(update).toHaveBeenCalledExactlyOnceWith(
+    "1",
+    { supplier: 240 },
+    { row: { id: "1", supplier: 1 } }
+  );
+});
+
 it("searches the server from an inline select and saves the typed choice", async () => {
   const searchOptions = vi.fn(async (query: string) =>
     query === "news" ? [{ value: 42, label: "Strategies Newsletter" }] : []

@@ -12,6 +12,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { useTranslations } from "../../../providers/table-provider";
+import { LONG_OPTION_LIST } from "../../../utils/table-contracts";
 import type { FormFieldApi, MultiSelectFieldDefinition } from "../types";
 import { OptionCombobox } from "./option-combobox";
 
@@ -70,7 +71,8 @@ export function MultiSelectField<TFieldValues extends Record<string, unknown>>({
   const label = field.labelKey ? t(field.labelKey) : field.label;
   const options = Array.isArray(field.options) ? field.options : [];
 
-  if (field.searchable) {
+  // A long list is searched rather than drawn whole.
+  if (field.searchable || options.length > LONG_OPTION_LIST) {
     return (
       <Field data-invalid={!fieldApi.state.meta.isValid}>
         <FieldLabel htmlFor={controlId}>{label}</FieldLabel>

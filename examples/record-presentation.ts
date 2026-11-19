@@ -139,6 +139,16 @@ export const presentationForm = {
       searchable: true,
       options: presentationCountries,
     },
+    // More than 200 options: searched without `searchable`, its first 100 matches drawn.
+    {
+      name: "supplier",
+      label: "Supplier",
+      type: "select" as const,
+      options: Array.from({ length: 500 }, (_, index) => {
+        const label = `Supplier ${String(index + 1).padStart(3, "0")}`;
+        return { label, value: label };
+      }),
+    },
   ],
 };
 

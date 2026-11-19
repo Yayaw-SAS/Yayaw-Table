@@ -61,16 +61,29 @@ import { useTranslations } from "../../providers/table-provider";
 import {
   type InlineEditorIcon,
   inlineEditorIcon,
+  LONG_OPTION_LIST,
+  OPTION_RENDER_LIMIT,
   optionControlKey,
   optionControlValue,
   resolveDataType,
 } from "../../utils/table-contracts";
+import { filterMenuText } from "../../utils/filter-menu";
 import { TableTooltip } from "../../utils/table-tooltip";
 import type { InlineEditOption } from "../../config/helpers";
 import type { AnyFieldDefinition, FormSelectOption } from "../forms/types";
 import { LocationEditor } from "../location/location-editor";
 import { TagPicker } from "../tags/tag-picker";
 import { ImageCellEditingContext } from "./image-cell";
+
+/** A single select with a long list opens the searchable list: a plain select draws every option. */
+const selectOpensSearch = (
+  editor: string,
+  searchesOptions: boolean,
+  optionCount: number
+) => editor === "select" && (searchesOptions || optionCount > LONG_OPTION_LIST);
+/** The list draws its first matches only; this many are reached by typing. */
+const hiddenMatches = <T,>(options: readonly T[], matches: (option: T) => boolean) =>
+  Math.max(0, options.filter(matches).length - OPTION_RENDER_LIMIT);
 
 /** Server-side choices of a form field with `searchOptions`, already bound to the cell's form context. */
 export interface InlineOptionSearch {
@@ -345,7 +358,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
   optionSearch,
   onCommit,
 }: InlineEditableCellProps<TData>) {
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
   const tagCatalog = useTagCatalog();
   const tagColumn = tagCatalog?.column(cell.column.id);
 
@@ -563,9 +576,14 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     });
   }, [editorOptions, editorValue, resolvedEditor]);
 
+  const selectSearches = selectOpensSearch(
+    resolvedEditor,
+    searchesOptions,
+    selectOptions.length
+  );
   const multiSelectAnchorRef = useComboboxAnchor();
   const selectedMultiValues = useMemo(() => {
-    if (resolvedEditor === "select" && searchesOptions) {
+    if (selectSearches) {
       const key = optionControlKey(editorValue);
       return key ? [key] : [];
     }
@@ -574,7 +592,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     }
 
     return editorValue.map(optionControlKey);
-  }, [editorValue, resolvedEditor, searchesOptions]);
+  }, [editorValue, resolvedEditor, selectSearches]);
 
   // With a server search, the server decides what matches: its results show even when the label lacks the text.
   const { matched } = optionSearchState;
@@ -646,6 +664,9 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
       }
     }
   }, [addCreatedOption, createText, creating, optionSearch?.create]);
+  const hiddenOptions = hiddenMatches(selectOptions, (option) =>
+    filterOption(option.value, searchQuery)
+  );
   const searchStatus = (() => {
     if (optionSearchState.error) {
       return optionSearchState.error;
@@ -808,14 +829,12 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
           ...(createsOption ? [CREATE_OPTION_ITEM] : []),
         ]}
         itemToStringLabel={getOptionLabel}
-        {...(searchesOptions
-          ? {
-              filter: (value: string, query: string) =>
-                value === CREATE_OPTION_ITEM || filterOption(value, query),
-              inputValue: searchQuery,
-              onInputValueChange: (value: string) => setSearchQuery(value),
-            }
-          : {})}
+        filter={(value: string, query: string) =>
+          value === CREATE_OPTION_ITEM || filterOption(value, query)
+        }
+        inputValue={searchQuery}
+        limit={OPTION_RENDER_LIMIT}
+        onInputValueChange={(value: string) => setSearchQuery(value)}
         onOpenChange={(open, details) => {
           // A pressed choice keeps the list open; the value change commits a single choice.
           if (details.reason === "item-press") {
@@ -918,10 +937,20 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
               </ComboboxItem>
             )}
           </ComboboxList>
+          {hiddenOptions > 0 && (
+            <output className="block px-2 py-1.5 text-muted-foreground text-xs">
+              {filterMenuText("moreOptions", locale).replace(
+                "{count}",
+                String(hiddenOptions)
+              )}
+            </output>
+          )}
         </ComboboxContent>
       </Combobox>
     );
   }, [
+    hiddenOptions,
+    locale,
     cancelEditing,
     commitAndClose,
     cell.column.columnDef.header,
@@ -938,7 +967,6 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     optionSearchState.error,
     searchQuery,
     searchStatus,
-    searchesOptions,
     selectOptions,
     selectedMultiValues,
     t,
@@ -1069,7 +1097,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     }
 
     if (resolvedEditor === "select") {
-      return searchesOptions
+      return selectSearches
         ? renderMultiSelectEditor()
         : renderSelectEditor();
     }
