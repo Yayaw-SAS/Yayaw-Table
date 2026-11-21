@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.42.1
+
+### Patch Changes
+
+- b67e92b: Vue: searchable select lists (form selects of more than 200 options, server-searched selects) open above record drawers and dialogs instead of underneath them.
+
 ## 3.42.0
 
 ### Minor Changes
