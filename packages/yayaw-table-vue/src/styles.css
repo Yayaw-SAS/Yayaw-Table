@@ -1344,8 +1344,9 @@
   padding: 0;
   font: inherit;
 }
+/* Lists portal to the body: above record drawers and dialogs (.yayaw-dialog-backdrop, 100). */
 .yayaw-inline-options {
-  z-index: 60;
+  z-index: 121;
   box-sizing: border-box;
   width: var(--reka-combobox-trigger-width);
   max-width: calc(100vw - 16px);
@@ -6928,10 +6929,6 @@
 }
 .yayaw-tag-option {
   gap: 8px;
-}
-/* Above record forms and the tags dialogs. */
-.yayaw-inline-options.yayaw-tag-options {
-  z-index: 121;
 }
 .yayaw-tag-chip {
   display: inline-flex;
