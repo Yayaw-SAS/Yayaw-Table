@@ -266,6 +266,19 @@ Select-like fields support:
 - `createOption(label, context, signal)` to add and select an option.
 - `optionDependencies` and `optionsScope` to declare when options should reload. Unrelated edits do not reload the option list. Include tenant or authorization scope in `optionsScope` when applicable.
 
+In both editions, a `select` or `multiSelect` with `searchOptions` automatically
+uses the form combobox, without requiring `searchable: true`. Its search lives
+inside the popup, alongside loading, empty and error states; it does not render
+a separate search input or checkbox list. The shared remote-option hook/composable
+also serves the inline editor. Search respects `searchMinLength` (default 3) and
+`searchDebounceMs` (default 300), cancels stale requests, and preserves server
+matches even when their labels do not contain the query. `resolveOptions`
+hydrates selected labels, and `createOption` offers creation in the list.
+Selection retains the original primitive value. Local searchable fields keep
+their existing client-side filtering. The shared records example's Tag and Media
+fields and `e2e/searchable-fields.spec.ts` verify remote search, creation, errors,
+save and label resolution on reopening in React and Vue.
+
 Nested collections validate item fields recursively. Errors include the item path and block submission. Field schemas run before the optional form schema. The validated result is passed through `transform(values, context)` before the action. In edit mode, `submitMode: "patch"` keeps only changes relative to the loaded initial values. Hidden and disabled fields are omitted. Explicit `false`, `0`, empty strings, empty arrays, and `null` are preserved; the schema can reject them when needed. Action `fieldErrors` remain attached to the form after failure.
 
 ## Long option lists

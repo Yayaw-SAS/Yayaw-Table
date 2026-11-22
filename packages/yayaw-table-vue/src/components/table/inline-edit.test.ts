@@ -578,6 +578,25 @@ it("searches the server from an inline select and saves the typed choice", async
   );
 });
 
+it("keeps known inline label matches alongside server results", async () => {
+  const { wrapper } = createCell({
+    row: { id: "1", media: [1] },
+    column: mediaColumn("multiSelect"),
+    form: mediaForm("multiSelect", async () => [
+      { value: 42, label: "Strategies Newsletter" },
+    ]),
+  });
+  await wrapper.trigger("click");
+  await settle();
+  await wrapper.get('input[role="combobox"]').setValue("gaming");
+  await settle();
+  expect(
+    popup()
+      .findAll('[role="option"]')
+      .map((option) => option.text())
+  ).toEqual(["Gaming Mag", "Strategies Newsletter"]);
+});
+
 it("adds server results to an inline multi-select and keeps their labels", async () => {
   const searchOptions = vi.fn(async () => [
     { value: 42, label: "Strategies Newsletter" },

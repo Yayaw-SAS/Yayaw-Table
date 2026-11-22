@@ -15,6 +15,7 @@ export const useFieldOptions = (input: {
   field: () => FormFieldDefinition;
   context: () => FormFieldContext;
   value: () => unknown;
+  remote?: () => boolean;
 }) => {
   const query = ref("");
   const base = ref<SelectOption[]>([]);
@@ -111,7 +112,7 @@ export const useFieldOptions = (input: {
     const selected = values().filter(
       (value) => !known.some((option) => Object.is(value, option.value))
     );
-    if (selected.length && field.resolveOptions) {
+    if (input.remote?.() !== false && selected.length && field.resolveOptions) {
       const next = await field.resolveOptions(selected, context, signal);
       if (!current()) {
         return;
@@ -119,6 +120,7 @@ export const useFieldOptions = (input: {
       resolved.value = [...resolved.value, ...next];
     }
     if (
+      input.remote?.() !== false &&
       field.searchOptions &&
       text.length >= Math.max(1, field.searchMinLength ?? 3)
     ) {
@@ -210,6 +212,7 @@ export const useFieldOptions = (input: {
     async () => {
       rememberSelection();
       if (
+        input.remote?.() !== false &&
         input.field().resolveOptions &&
         values().some(
           (value) =>

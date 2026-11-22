@@ -1233,6 +1233,11 @@
           "target": "components/ui/yayaw-table/hooks/use-remote-filter-options.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/hooks/use-remote-option-search.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/hooks/use-remote-option-search.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/hooks/use-row-dnd.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/hooks/use-row-dnd.ts"

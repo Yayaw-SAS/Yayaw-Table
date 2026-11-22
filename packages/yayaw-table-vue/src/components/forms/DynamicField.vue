@@ -29,6 +29,7 @@ import { dateTimeFromInput, dateTimeInputValue } from "../../value-format";
 import FieldCombobox from "./FieldCombobox.vue";
 import FieldSelect from "./FieldSelect.vue";
 import { dynamicFieldType, fieldIsHidden, fieldIsRequired } from "../../form-runtime";
+import type { RemoteOptionSearch } from "../../composables/use-remote-option-search";
 import { useFieldOptions } from "../../composables/use-field-options";
 import CollectionField from "./CollectionField.vue";
 import TablePickerField from "./TablePickerField.vue";
@@ -71,6 +72,24 @@ const createTag = computed(() => {
 const errorMessage = computed(
   () => props.error ?? props.errors?.[props.path ?? props.field.name]
 );
+const remoteCombobox = computed(() => Boolean(props.field.searchOptions) && ["select", "multiSelect"].includes(props.field.type));
+const optionSearch = computed<RemoteOptionSearch | undefined>(() => {
+  const field = props.field;
+  if (!(remoteCombobox.value && field.searchOptions)) return undefined;
+  const { searchOptions, resolveOptions, createOption } = field;
+  return {
+    search: (query, signal) => searchOptions(query, props.context, signal),
+    resolve: resolveOptions ? (values, signal) => resolveOptions(values, props.context, signal) : undefined,
+    create: createOption ? (label, signal) => createOption(label, props.context, signal) : undefined,
+    minLength: field.searchMinLength ?? 3,
+    debounceMs: field.searchDebounceMs ?? 300,
+  };
+});
+const optionScope = computed(() => JSON.stringify([
+  props.context.tableId, props.context.formType, props.context.mode, props.context.row?.id ?? props.context.row?._id,
+  props.field.name, props.field.optionsScope,
+  ...(props.field.optionDependencies ?? []).map(name => props.context.values[name]),
+]));
 const {
   query,
   options: allOptions,
@@ -82,6 +101,7 @@ const {
   field: () => props.field,
   context: () => props.context,
   value: () => props.modelValue,
+  remote: () => !remoteCombobox.value,
 });
 const optionPending = ref(false);
 const optionCreateError = ref<string>();
@@ -305,7 +325,7 @@ watch(valueType, (next, previous) => {
     <p v-if="field.description" :id="`${fieldId}-help`" class="yayaw-help">
       {{ field.description }}
     </p>
-    <template v-if="field.searchOptions">
+    <template v-if="field.searchOptions && !remoteCombobox">
       <input
         v-model="query"
         type="search"
@@ -315,8 +335,8 @@ watch(valueType, (next, previous) => {
         autocomplete="off"
       />
     </template>
-    <p v-if="optionsLoading" class="yayaw-help" role="status">{{ label("loading", "Loading…") }}</p>
-    <div v-if="optionsError" class="yayaw-field-error" role="alert">
+    <p v-if="optionsLoading && !remoteCombobox" class="yayaw-help" role="status">{{ label("loading", "Loading…") }}</p>
+    <div v-if="optionsError && !remoteCombobox" class="yayaw-field-error" role="alert">
       {{ optionsError }}
       <button
         type="button"
@@ -359,7 +379,7 @@ watch(valueType, (next, previous) => {
       "
       @input="updateInput"
     />
-    <template v-else-if="tagColumn && tagCatalog">
+    <template v-else-if="tagColumn && tagCatalog && !remoteCombobox">
       <TagPicker
         :id="fieldId"
         :model-value="modelValue"
@@ -437,10 +457,15 @@ watch(valueType, (next, previous) => {
       </div>
     </div>
     <FieldCombobox
-      v-else-if="(field.searchable || allOptions.length > LONG_OPTION_LIST) && (field.type === 'select' || field.type === 'multiSelect')"
+      v-else-if="(remoteCombobox || field.searchable || allOptions.length > LONG_OPTION_LIST) && (field.type === 'select' || field.type === 'multiSelect')"
       :id="fieldId"
       v-model="selectionModel"
       :options="allOptions"
+      :search="optionSearch"
+      :search-scope="optionScope"
+      :loading="remoteCombobox && optionsLoading"
+      :load-error="remoteCombobox ? optionsError : undefined"
+      :retry="reloadOptions"
       :multiple="field.type === 'multiSelect'"
       :label="field.label"
       :placeholder="choosePlaceholder"

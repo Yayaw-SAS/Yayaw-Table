@@ -6401,6 +6401,7 @@
   overflow: visible;
 }
 .yayaw-field-combobox-search {
+  box-sizing: border-box;
   width: 100%;
   margin-bottom: 4px;
 }
