@@ -72,7 +72,11 @@ export function MultiSelectField<TFieldValues extends Record<string, unknown>>({
   const options = Array.isArray(field.options) ? field.options : [];
 
   // A long list is searched rather than drawn whole.
-  if (field.searchable || options.length > LONG_OPTION_LIST) {
+  if (
+    field.searchOptions ||
+    field.searchable ||
+    options.length > LONG_OPTION_LIST
+  ) {
     return (
       <Field data-invalid={!fieldApi.state.meta.isValid}>
         <FieldLabel htmlFor={controlId}>{label}</FieldLabel>

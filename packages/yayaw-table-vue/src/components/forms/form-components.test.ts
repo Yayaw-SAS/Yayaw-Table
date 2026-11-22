@@ -1,4 +1,9 @@
-import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
+import {
+  DOMWrapper,
+  flushPromises,
+  mount,
+  type VueWrapper,
+} from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { computed, defineComponent, h, reactive, ref } from "vue";
 import { z } from "zod";
@@ -17,6 +22,8 @@ import CollectionField from "./CollectionField.vue";
 import DynamicField from "./DynamicField.vue";
 import FieldSelect from "./FieldSelect.vue";
 
+// Popup geometry is browser-tested; jsdom cannot settle Floating UI's positioning loop.
+const comboboxContentStub = { template: '<div role="listbox"><slot /></div>' };
 const mounted: VueWrapper[] = [];
 afterEach(() => {
   for (const wrapper of mounted.splice(0)) {
@@ -76,7 +83,11 @@ const mountForm = (
     mount(CatalogueForm, {
       global: {
         provide: { [tableContextKey as symbol]: context },
-        stubs: { DialogPortal: { template: "<div><slot /></div>" } },
+        stubs: {
+          DialogPortal: { template: "<div><slot /></div>" },
+          ComboboxContent: comboboxContentStub,
+          ComboboxPortal: { template: "<div><slot /></div>" },
+        },
       },
       attachTo: document.body,
     })
@@ -359,6 +370,13 @@ describe("field controls", () => {
     );
     const wrapper = track(
       mount(DynamicField, {
+        attachTo: document.body,
+        global: {
+          stubs: {
+            ComboboxContent: comboboxContentStub,
+            ComboboxPortal: { template: "<div><slot /></div>" },
+          },
+        },
         props: {
           field: {
             name: "relation",
@@ -376,19 +394,17 @@ describe("field controls", () => {
     await flushPromises();
     expect(searchOptions).not.toHaveBeenCalled();
     expect(wrapper.text()).toContain("Selected");
-    await wrapper.get('input[type="search"]').setValue("first");
+    await wrapper.get("[data-searchable-field]").trigger("click");
+    await flushPromises();
+    const list = new DOMWrapper(document.body);
+    await list.get(".yayaw-field-combobox-search").setValue("first");
     await vi.advanceTimersByTimeAsync(10);
-    await wrapper.get('input[type="search"]').setValue("second");
+    await list.get(".yayaw-field-combobox-search").setValue("second");
     await vi.advanceTimersByTimeAsync(10);
     first.resolve([{ value: 1, label: "Stale" }]);
     await flushPromises();
-    // Options live in the dropdown; the closed trigger shows the selection.
-    const labels = wrapper
-      .getComponent(FieldSelect)
-      .props("options")
-      .map((option) => option.label);
-    expect(labels).toContain("Second");
-    expect(labels).not.toContain("Stale");
+    expect(list.text()).toContain("Second");
+    expect(list.text()).not.toContain("Stale");
     expect(wrapper.text()).toContain("Selected");
   });
 
@@ -396,6 +412,13 @@ describe("field controls", () => {
     vi.useFakeTimers();
     const wrapper = track(
       mount(DynamicField, {
+        attachTo: document.body,
+        global: {
+          stubs: {
+            ComboboxContent: comboboxContentStub,
+            ComboboxPortal: { template: "<div><slot /></div>" },
+          },
+        },
         props: {
           field: {
             name: "relation",
@@ -410,14 +433,23 @@ describe("field controls", () => {
       })
     );
     await flushPromises();
-    await wrapper.get('input[type="search"]').setValue("selected");
+    await wrapper.get("[data-searchable-field]").trigger("click");
+    await flushPromises();
+    const list = new DOMWrapper(document.body);
+    await list.get(".yayaw-field-combobox-search").setValue("selected");
     await vi.advanceTimersByTimeAsync(10);
     await wrapper.setProps({ modelValue: 7 });
-    await wrapper.get('input[type="search"]').setValue("");
-    expect(wrapper.get('[data-slot="select-trigger"]').text()).toContain(
+    await list.get(".yayaw-field-combobox-search").setValue("");
+    expect(wrapper.get("[data-searchable-field]").text()).toContain(
       "Selected result"
     );
     expect(wrapper.text()).toContain("Selected result");
+    await wrapper.setProps({
+      field: { ...wrapper.props("field"), disabled: true },
+    });
+    expect(wrapper.get("[data-searchable-field]").text()).toContain(
+      "Selected result"
+    );
   });
 
   it("does not fetch hidden options and reports loader errors", async () => {
@@ -949,4 +981,126 @@ describe("searchable option fields", () => {
     await wrapper.get('button[aria-label="Remove Belgique"]').trigger("click");
     expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual([null]);
   });
+});
+
+it.each([
+  "select",
+  "multiSelect",
+] as const)("searches and saves a remote %s option through the form", async (type) => {
+  vi.useFakeTimers();
+  const response = deferred<SelectOption[]>();
+  const searchOptions = vi.fn(() => response.promise);
+  const resolveOptions = vi.fn(async () => [
+    { value: 42, label: "Existing selection" },
+  ]);
+  const initialValue = type === "multiSelect" ? [42] : 42;
+  const { wrapper, update } = mountForm(
+    {
+      id: "remote-options",
+      fields: [
+        {
+          name: "relation",
+          label: "Relation",
+          type,
+          searchOptions,
+          resolveOptions,
+          searchMinLength: 3,
+          searchDebounceMs: 25,
+        },
+      ],
+    },
+    { relation: initialValue }
+  );
+  await flushPromises();
+  expect(wrapper.text()).toContain("Existing selection");
+  expect(wrapper.find('input[type="search"]').exists()).toBe(false);
+  expect(wrapper.find('[role="checkbox"]').exists()).toBe(false);
+  await wrapper.get("[data-searchable-field]").trigger("click");
+  const list = new DOMWrapper(document.body);
+  const search = list.get(".yayaw-field-combobox-search");
+  await search.setValue("ab");
+  await vi.advanceTimersByTimeAsync(30);
+  expect(searchOptions).not.toHaveBeenCalled();
+  await search.setValue("lookup-key");
+  await vi.advanceTimersByTimeAsync(24);
+  expect(searchOptions).not.toHaveBeenCalled();
+  expect(list.text()).toContain("Chargement…");
+  await vi.advanceTimersByTimeAsync(1);
+  expect(searchOptions).toHaveBeenCalledWith(
+    "lookup-key",
+    expect.objectContaining({ values: { relation: initialValue } }),
+    expect.any(AbortSignal)
+  );
+  response.resolve([{ value: 7, label: "Server result" }]);
+  await flushPromises();
+  const option = list
+    .findAll('[role="option"]')
+    .find((option) => option.text().includes("Server result"));
+  expect(option).toBeDefined();
+  if (option) {
+    option.element.scrollIntoView = vi.fn();
+  }
+  await option?.trigger("click");
+  await wrapper.get("form").trigger("submit");
+  await flushPromises();
+  expect(update).toHaveBeenCalledWith(
+    "1",
+    { relation: type === "multiSelect" ? [42, 7] : 7 },
+    { row: { relation: initialValue } }
+  );
+});
+
+it("shows search and creation failures inside the remote list and retries without storing fake IDs", async () => {
+  vi.useFakeTimers();
+  const searchOptions = vi
+    .fn()
+    .mockRejectedValueOnce(new Error("Search unavailable"))
+    .mockResolvedValue([]);
+  const createOption = vi
+    .fn()
+    .mockRejectedValueOnce(new Error("Creation unavailable"))
+    .mockResolvedValueOnce({ value: 9, label: "New tag" });
+  const wrapper = track(
+    mount(DynamicField, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          ComboboxContent: comboboxContentStub,
+          ComboboxPortal: { template: "<div><slot /></div>" },
+        },
+      },
+      props: {
+        field: {
+          name: "tag",
+          label: "Tag",
+          type: "select",
+          searchOptions,
+          createOption,
+          searchDebounceMs: 10,
+        },
+        context: fieldContext(),
+        modelValue: null,
+      },
+    })
+  );
+  await flushPromises();
+  await wrapper.get("[data-searchable-field]").trigger("click");
+  const list = new DOMWrapper(document.body);
+  await list.get(".yayaw-field-combobox-search").setValue("New tag");
+  await vi.advanceTimersByTimeAsync(10);
+  expect(list.get('[role="alert"]').text()).toContain("Search unavailable");
+  expect(list.findAll('[role="option"]')).toHaveLength(0);
+  await list.get('[role="alert"] button').trigger("click");
+  await vi.advanceTimersByTimeAsync(10);
+  const create = () =>
+    list
+      .findAll('[role="option"]')
+      .find((option) => option.text().includes('Create "New tag"'));
+  await create()?.trigger("click");
+  await flushPromises();
+  expect(list.get('[role="alert"]').text()).toContain("Creation unavailable");
+  expect(wrapper.emitted("update:modelValue")).toBeUndefined();
+  await create()?.trigger("click");
+  await flushPromises();
+  expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual([9]);
 });

@@ -17,13 +17,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/src/components/ui/select";
+import { useTranslations } from "../../../providers/table-provider";
+import { formLabel } from "../../../utils/form-view";
 import {
   LONG_OPTION_LIST,
   optionControlKey,
   optionControlValue,
 } from "../../../utils/table-contracts";
-import { useTranslations } from "../../../providers/table-provider";
-import { formLabel } from "../../../utils/form-view";
 import type { FormFieldApi, SelectFieldDefinition } from "../types";
 import { FormSelectContent } from "./form-select-content";
 import { OptionCombobox } from "./option-combobox";
@@ -63,7 +63,9 @@ export function SelectField<TFieldValues extends Record<string, unknown>>({
     <Field data-invalid={!fieldApi.state.meta.isValid}>
       <FieldLabel htmlFor={controlId}>{label}</FieldLabel>
       {/* A long list is searched rather than drawn whole. */}
-      {field.searchable || options.length > LONG_OPTION_LIST ? (
+      {field.searchOptions ||
+      field.searchable ||
+      options.length > LONG_OPTION_LIST ? (
         <OptionCombobox
           disabled={field.disabled === true}
           id={controlId}
@@ -86,48 +88,48 @@ export function SelectField<TFieldValues extends Record<string, unknown>>({
           value={value}
         />
       ) : (
-      <Select
-        items={options.map((option) => ({
-          label: option.label,
-          value: optionControlKey(option.value),
-        }))}
-        disabled={field.disabled === true}
-        onValueChange={(val) =>
-          fieldApi.handleChange(
-            val == null
-              ? null
-              : (optionControlValue(val) as string | number | boolean)
-          )
-        }
-        value={selectValue}
-      >
-        <SelectTrigger
-          id={controlId}
-          aria-label={field.labelKey ? t(field.labelKey) : field.label}
-          onBlur={fieldApi.handleBlur}
+        <Select
+          disabled={field.disabled === true}
+          items={options.map((option) => ({
+            label: option.label,
+            value: optionControlKey(option.value),
+          }))}
+          onValueChange={(val) =>
+            fieldApi.handleChange(
+              val == null
+                ? null
+                : (optionControlValue(val) as string | number | boolean)
+            )
+          }
+          value={selectValue}
         >
-          <SelectValue
-            placeholder={
-              (field.placeholderKey
-                ? t(field.placeholderKey)
-                : field.placeholder) ?? formLabel("choose", locale ?? "en")
-            }
-          />
-        </SelectTrigger>
-        <FormSelectContent>
-          {options.map((option, index) => (
-            <SelectItem
-              disabled={option.disabled}
-              key={optionControlKey(option.value)}
-              value={optionControlKey(option.value)}
-            >
-              {field.optionKeys?.[index]
-                ? t(field.optionKeys[index])
-                : option.label}
-            </SelectItem>
-          ))}
-        </FormSelectContent>
-      </Select>
+          <SelectTrigger
+            aria-label={field.labelKey ? t(field.labelKey) : field.label}
+            id={controlId}
+            onBlur={fieldApi.handleBlur}
+          >
+            <SelectValue
+              placeholder={
+                (field.placeholderKey
+                  ? t(field.placeholderKey)
+                  : field.placeholder) ?? formLabel("choose", locale ?? "en")
+              }
+            />
+          </SelectTrigger>
+          <FormSelectContent>
+            {options.map((option, index) => (
+              <SelectItem
+                disabled={option.disabled}
+                key={optionControlKey(option.value)}
+                value={optionControlKey(option.value)}
+              >
+                {field.optionKeys?.[index]
+                  ? t(field.optionKeys[index])
+                  : option.label}
+              </SelectItem>
+            ))}
+          </FormSelectContent>
+        </Select>
       )}
       {field.description != null && (
         <FieldDescription>

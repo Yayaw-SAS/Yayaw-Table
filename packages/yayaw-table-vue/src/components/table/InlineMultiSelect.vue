@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, ref } from "vue";
 import { Check, X } from "lucide-vue-next";
 import {
   ComboboxAnchor, ComboboxContent, ComboboxInput,
@@ -7,18 +7,11 @@ import {
 } from "reka-ui";
 import { useTableContext, useTableTranslation } from "../../context";
 import { filterMenuText } from "../../filter-menu";
-import { limitOptions } from "../../table-contracts";
-import type { MaybePromise, SelectOption } from "../../types";
+import { limitOptions, optionControlKey as keyFor } from "../../table-contracts";
+import { useRemoteOptionSearch, type RemoteOptionSearch } from "../../composables/use-remote-option-search";
+import type { SelectOption } from "../../types";
 
-/** Server-side choices of a form field with `searchOptions`, already bound to the cell's form context. */
-export interface InlineOptionSearch {
-  search: (query: string, signal: AbortSignal) => MaybePromise<SelectOption[]>;
-  resolve?: (values: unknown[], signal: AbortSignal) => MaybePromise<SelectOption[]>;
-  /** The field's `createOption`: offered as "Create …" when the search names no existing option. */
-  create?: (label: string, signal: AbortSignal) => MaybePromise<SelectOption>;
-  minLength: number;
-  debounceMs: number;
-}
+export type InlineOptionSearch = RemoteOptionSearch;
 
 const props = withDefaults(defineProps<{
   modelValue: unknown;
@@ -34,33 +27,26 @@ const emit = defineEmits<{
   cancel: [];
 }>();
 const translate = useTableTranslation();
-const query = ref("");
 const anchor = ref<HTMLElement>();
 const selected = computed<unknown[]>(() => {
   if (props.multiple) return Array.isArray(props.modelValue) ? props.modelValue : [];
   return props.modelValue == null || props.modelValue === "" ? [] : [props.modelValue];
 });
-// Typed keys keep numeric, boolean and string catalogue IDs distinct.
-const keyFor = (value: unknown): string => `${typeof value}:${String(value)}`;
-// Searched and resolved options stay known, so a choice keeps its label after the next search.
-const remote = ref<SelectOption[]>([]);
-const matched = ref<Set<string>>();
-const searching = ref(false);
-const searchError = ref<string>();
-const choices = computed(() => {
-  const result = new Map([...props.options, ...remote.value].map(option => [keyFor(option.value), { ...option, key: keyFor(option.value) }]));
-  for (const value of selected.value) {
-    const key = keyFor(value);
-    if (!result.has(key)) result.set(key, { label: String(value), value: value as SelectOption["value"], key });
-  }
-  return [...result.values()];
+const {
+  query, choices: remoteChoices, matches, searching, resolving, searchError, resolveError,
+  creating, createError, createText, canCreate: createsOption, createOption: persistOption,
+} = useRemoteOptionSearch({
+  options: () => props.options,
+  selected: () => selected.value,
+  search: () => props.search,
+  enabled: () => !props.disabled,
 });
-// With a server search, the server decides what matches: its results show even when the label lacks the text.
-// Only the first matches are drawn: a list of thousands stays instant, typing reaches the others.
+const choices = computed(() => remoteChoices.value.map(option => ({ ...option, key: keyFor(option.value) })));
+// Inline editing retains known label matches alongside the server's matches.
 const limited = computed(() => {
   const text = query.value.trim().toLocaleLowerCase();
-  if (!text) return limitOptions(choices.value);
-  return limitOptions(choices.value.filter(option => matched.value?.has(option.key) || option.label.toLocaleLowerCase().includes(text)));
+  const matched = new Set(matches.value.map(option => keyFor(option.value)));
+  return limitOptions(text ? choices.value.filter(option => matched.has(option.key) || option.label.toLocaleLowerCase().includes(text)) : choices.value);
 });
 const visible = computed(() => limited.value.shown);
 const context = useTableContext();
@@ -70,52 +56,6 @@ const moreText = computed(() => filterMenuText("moreOptions", context.locale, (n
 }).replace("{count}", String(limited.value.hidden)));
 const selectedKeys = computed(() => selected.value.map(keyFor));
 const selectedOptions = computed(() => selectedKeys.value.map(key => choices.value.find(option => option.key === key)!));
-const remember = (options: SelectOption[]): void => {
-  const known = new Set(remote.value.map(option => keyFor(option.value)));
-  remote.value = [...remote.value, ...options.filter(option => !known.has(keyFor(option.value)))];
-};
-let request: AbortController | undefined;
-let timer: ReturnType<typeof setTimeout> | undefined;
-const stopSearch = (): void => {
-  request?.abort();
-  if (timer) clearTimeout(timer);
-  searching.value = false;
-};
-const runSearch = async (text: string): Promise<void> => {
-  const current = new AbortController();
-  request = current;
-  searching.value = true;
-  searchError.value = undefined;
-  try {
-    const found = await props.search!.search(text, current.signal);
-    if (current.signal.aborted) return;
-    remember(found);
-    matched.value = new Set(found.map(option => keyFor(option.value)));
-  } catch (cause) {
-    if (!current.signal.aborted) searchError.value = cause instanceof Error ? cause.message : String(cause);
-  } finally {
-    if (!current.signal.aborted) searching.value = false;
-  }
-};
-watch(query, (value) => {
-  if (!props.search) return;
-  stopSearch();
-  matched.value = undefined;
-  searchError.value = undefined;
-  const text = value.trim();
-  if (text.length < Math.max(1, props.search.minLength)) return;
-  searching.value = true;
-  timer = setTimeout(() => void runSearch(text), Math.max(0, props.search.debounceMs));
-});
-const resolveSelection = async (): Promise<void> => {
-  const missing = selected.value.filter(value => !props.options.some(option => keyFor(option.value) === keyFor(value)));
-  if (!(missing.length && props.search?.resolve)) return;
-  try {
-    remember(await props.search.resolve(missing, new AbortController().signal));
-  } catch {
-    // The raw value stays shown; saving does not depend on its label.
-  }
-};
 const update = (value: string | string[] | null | undefined): void => {
   const keys = Array.isArray(value) ? value : value == null ? [] : [value];
   if (keys.includes(CREATE_KEY)) {
@@ -157,54 +97,25 @@ const onKeydown = (event: KeyboardEvent): void => {
 };
 // The list entry that creates an option from the search text.
 const CREATE_KEY = "__yayaw-create-option__";
-const creating = ref(false);
-const createError = ref<string>();
-let createRequest: AbortController | undefined;
-const createText = computed(() => query.value.trim());
-const createsOption = computed(() =>
-  Boolean(props.search?.create) &&
-  createText.value.length > 0 &&
-  !searching.value &&
-  !choices.value.some(option => option.label.trim().toLocaleLowerCase() === createText.value.toLocaleLowerCase())
-);
 const createLabel = computed(() =>
   translate("inline.create_option", 'Create "{label}"').replace("{label}", createText.value)
 );
 const createOption = async (): Promise<void> => {
-  const create = props.search?.create;
-  const label = createText.value;
-  if (!(create && label) || creating.value) return;
-  createRequest?.abort();
-  const current = new AbortController();
-  createRequest = current;
-  creating.value = true;
-  createError.value = undefined;
-  try {
-    const option = await create(label, current.signal);
-    if (current.signal.aborted) return;
-    if (!option || option.value === undefined || option.value === null || option.value === "")
-      throw new Error("The new option must have a persisted value");
-    remember([{ label: option.label, value: option.value }]);
-    query.value = "";
-    if (props.multiple) {
-      emit("update:modelValue", [...selected.value.filter(value => keyFor(value) !== keyFor(option.value)), option.value]);
-      // Back from the app's own form: the editor goes on with the new option chosen.
-      anchor.value?.querySelector("input")?.focus();
-      return;
-    }
-    emit("update:modelValue", option.value);
-    // A single choice is the whole edit, as with a select.
-    emit("commit");
-  } catch (cause) {
-    if (!current.signal.aborted) createError.value = cause instanceof Error ? cause.message : String(cause);
-  } finally {
-    if (!current.signal.aborted) creating.value = false;
+  const option = await persistOption();
+  if (!option) return;
+  if (props.multiple) {
+    emit("update:modelValue", [...selected.value.filter(value => keyFor(value) !== keyFor(option.value)), option.value]);
+    anchor.value?.querySelector("input")?.focus();
+    return;
   }
+  emit("update:modelValue", option.value);
+  emit("commit");
 };
 const emptyText = computed(() => {
   if (createError.value) return createError.value;
   if (searchError.value) return searchError.value;
-  if (searching.value) return translate("loading", "Loading…");
+  if (resolveError.value) return resolveError.value;
+  if (searching.value || resolving.value) return translate("loading", "Loading…");
   return translate("filters.noResults", "No results");
 });
 // Keep the editor open until the parent acknowledges dismissal and saves its draft.
@@ -220,13 +131,8 @@ const dismiss = (open: boolean): void => {
   void nextTick(() => { if (!creating.value) emit("commit"); });
 };
 onMounted(async () => {
-  void resolveSelection();
   await nextTick();
   anchor.value?.querySelector("input")?.focus();
-});
-onBeforeUnmount(() => {
-  stopSearch();
-  createRequest?.abort();
 });
 </script>
 
@@ -235,14 +141,14 @@ onBeforeUnmount(() => {
   <ComboboxRoot :multiple="multiple" :open="true" :model-value="multiple ? selectedKeys : selectedKeys[0]" :disabled="disabled" :ignore-filter="true" @update:model-value="update" @update:open="dismiss">
     <!-- Mount the list before the input so Reka assigns aria-controls on first render. -->
     <ComboboxPortal force-mount>
-      <ComboboxContent class="yayaw-inline-options" position="popper" align="start" :side-offset="6" :collision-padding="8" :aria-label="label" :aria-busy="disabled || searching" @escape-key-down.prevent="emit('cancel')">
-        <div v-if="search && ((!visible.length && !createsOption) || searchError || createError)" class="yayaw-inline-empty" :role="searchError || createError ? 'alert' : 'status'">{{ emptyText }}</div>
+      <ComboboxContent class="yayaw-inline-options" position="popper" align="start" :side-offset="6" :collision-padding="8" :aria-label="label" :aria-busy="disabled || searching || resolving" @escape-key-down.prevent="emit('cancel')">
+        <div v-if="search && ((!visible.length && !createsOption) || searchError || createError || resolveError || searching || resolving)" class="yayaw-inline-empty" :role="searchError || createError || resolveError ? 'alert' : 'status'">{{ emptyText }}</div>
         <div v-else-if="!search && !visible.length" class="yayaw-inline-empty" role="status">{{ emptyText }}</div>
         <ComboboxItem v-for="option in visible" :key="option.key" :value="option.key" :text-value="option.label" :disabled="option.disabled" class="yayaw-inline-option">
           {{ option.label }}
           <ComboboxItemIndicator class="yayaw-inline-check"><Check :size="16" aria-hidden="true" /></ComboboxItemIndicator>
         </ComboboxItem>
-        <ComboboxItem v-if="createsOption" :value="CREATE_KEY" :text-value="createLabel" :disabled="creating" class="yayaw-inline-option">
+        <ComboboxItem v-if="createsOption" :value="CREATE_KEY" :text-value="createLabel" :disabled="creating" class="yayaw-inline-option" @select.prevent="createOption">
           {{ creating ? translate("loading", "Loading…") : createLabel }}
         </ComboboxItem>
         <p v-if="limited.hidden" class="yayaw-inline-empty" role="status">{{ moreText }}</p>

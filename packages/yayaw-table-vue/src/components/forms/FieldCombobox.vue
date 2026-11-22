@@ -3,7 +3,6 @@ import { Check, ChevronDown, X } from "lucide-vue-next";
 import {
   ComboboxAnchor,
   ComboboxContent,
-  ComboboxEmpty,
   ComboboxInput,
   ComboboxItem,
   ComboboxItemIndicator,
@@ -12,6 +11,9 @@ import {
   ComboboxTrigger,
 } from "reka-ui";
 import { computed, ref, useTemplateRef } from "vue";
+import { useRemoteOptionSearch, type RemoteOptionSearch } from "../../composables/use-remote-option-search";
+import { useTableTranslation } from "../../context";
+import { createTranslations } from "../../translations";
 import { useOverlayTheme } from "../../composables/use-overlay-theme";
 import { formLabel } from "../../form-view";
 import { filterMenuText } from "../../filter-menu";
@@ -35,28 +37,46 @@ const props = defineProps<{
   invalid?: boolean;
   labelledBy?: string;
   describedBy?: string;
+  search?: RemoteOptionSearch;
+  searchScope?: string;
+  loading?: boolean;
+  loadError?: string;
+  retry?: () => unknown;
 }>();
 const emit = defineEmits<{ "update:modelValue": [value: unknown] }>();
 const anchor = useTemplateRef<HTMLElement>("anchor");
 const { overlayStyle, updateOpen } = useOverlayTheme(anchor);
-const query = ref("");
+const opened = ref(false);
 const empty = (value: unknown) => value === undefined || value === null || value === "";
 const selected = computed<unknown[]>(() =>
   (props.multiple && Array.isArray(props.modelValue) ? props.modelValue : [props.modelValue]).filter(
     (value) => !empty(value)
   )
 );
-/** Existing values missing from the options still show, as in the plain select. */
-const items = computed<SelectOption[]>(() => [
-  ...props.options,
-  ...selected.value
-    .filter((value) => !props.options.some((option) => Object.is(option.value, value)))
-    .map((value) => ({ label: String(value), value: value as SelectOption["value"] })),
-]);
+const {
+  query, choices: items, matches, searching, resolving, creating, searchError, resolveError, createError,
+  canCreate, createText, createOption, retry: retryRemote,
+} = useRemoteOptionSearch({
+  options: () => props.options,
+  selected: () => selected.value,
+  search: () => props.search,
+  enabled: () => !props.disabled,
+  scope: () => props.searchScope,
+});
+const translate = useTableTranslation();
+const CREATE_KEY = "__yayaw-create-option__";
+const createLabel = computed(() => translate("inline.create_option", String(createTranslations(props.locale)["inline.create_option"])).replace("{label}", createText.value));
+const pending = computed(() => props.loading || searching.value || resolving.value || creating.value);
+const optionError = computed(() => props.loadError || searchError.value || resolveError.value || createError.value);
+const retry = (): void => {
+  if (props.loadError) props.retry?.();
+  retryRemote();
+};
 const folded = (text: string) => text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 // The label contains the search, ignoring case and accents; only the first matches are drawn.
 const shown = computed(() => {
   const text = folded(query.value.trim());
+  if (props.search && text.length >= Math.max(1, props.search.minLength)) return limitOptions(matches.value);
   return limitOptions(text ? items.value.filter((option) => folded(option.label).includes(text)) : items.value);
 });
 const moreText = computed(() =>
@@ -68,7 +88,20 @@ const keys = computed(() => selected.value.map(optionControlKey));
 const text = (key: "noMatchingOption" | "searchOptions") => formLabel(key, props.locale);
 const removeLabel = (value: unknown) =>
   formLabel("removeOption", props.locale, undefined, { label: labelOf(value) });
+const chooseCreated = async (): Promise<void> => {
+  const option = await createOption();
+  if (!option) return;
+  emit("update:modelValue", props.multiple
+    ? [...selected.value.filter(value => !Object.is(value, option.value)), option.value]
+    : option.value);
+  if (!props.multiple) onOpen(false);
+};
 const update = (value: unknown): void => {
+  if (props.disabled) return;
+  if (value === CREATE_KEY || (Array.isArray(value) && value.includes(CREATE_KEY))) {
+    void chooseCreated();
+    return;
+  }
   if (props.multiple) {
     emit("update:modelValue", (Array.isArray(value) ? value : []).map((key) => optionControlValue(String(key))));
   } else {
@@ -84,6 +117,8 @@ const remove = (value: unknown): void => {
   );
 };
 const onOpen = (open: boolean): void => {
+  if (!open && creating.value) return;
+  opened.value = open;
   updateOpen(open);
   if (!open) query.value = "";
 };
@@ -93,6 +128,7 @@ const onOpen = (open: boolean): void => {
   <div ref="anchor" class="yayaw-field-select yayaw-field-combobox">
     <div class="yayaw-field-combobox-row">
       <ComboboxRoot
+        :open="opened"
         :model-value="multiple ? keys : keys[0]"
         :multiple="multiple"
         :disabled="disabled"
@@ -126,16 +162,24 @@ const onOpen = (open: boolean): void => {
             align="start"
             :side-offset="4"
             :collision-padding="8"
+            :aria-busy="pending || undefined"
+            :aria-label="label"
           >
             <ComboboxInput
               v-model="query"
+              :display-value="() => ''"
               class="yayaw-input yayaw-field-combobox-search"
               :aria-label="`${label} ${text('searchOptions')}`"
               :placeholder="text('searchOptions')"
               :auto-focus="true"
               autocomplete="off"
             />
-            <ComboboxEmpty class="yayaw-inline-empty">{{ text("noMatchingOption") }}</ComboboxEmpty>
+            <div v-if="optionError" class="yayaw-inline-empty" role="alert">
+              {{ optionError }}
+              <button type="button" class="yayaw-button yayaw-button-outline" @click="retry">{{ translate("retry", locale.startsWith("fr") ? "Réessayer" : "Retry") }}</button>
+            </div>
+            <div v-else-if="pending" class="yayaw-inline-empty" role="status">{{ translate("loading", formLabel("loading", locale)) }}</div>
+            <div v-else-if="!shown.shown.length && !canCreate" class="yayaw-inline-empty" role="status">{{ text("noMatchingOption") }}</div>
             <ComboboxItem
               v-for="option in shown.shown"
               :key="optionControlKey(option.value)"
@@ -146,6 +190,9 @@ const onOpen = (open: boolean): void => {
             >
               {{ option.label }}
               <ComboboxItemIndicator class="yayaw-inline-check"><Check :size="16" aria-hidden="true" /></ComboboxItemIndicator>
+            </ComboboxItem>
+            <ComboboxItem v-if="canCreate" :value="CREATE_KEY" :text-value="createLabel" :disabled="creating" class="yayaw-inline-option" @select.prevent="chooseCreated">
+              {{ creating ? translate("loading", formLabel("loading", locale)) : createLabel }}
             </ComboboxItem>
             <p v-if="shown.hidden" class="yayaw-inline-empty" role="status">{{ moreText }}</p>
           </ComboboxContent>

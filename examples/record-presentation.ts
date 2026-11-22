@@ -1,4 +1,5 @@
 import type { FormRule } from "../src/components/ui/yayaw-table/utils/form-conditions";
+import { recordMediaSearch, recordTagSearch } from "./record-option-search";
 
 /** Shared records and column contracts keep the two interactive examples comparable. */
 export const presentationRows = [
@@ -15,6 +16,8 @@ export const presentationRows = [
     active: true,
     createdAt: "2026-09-01",
     description: "A shared workspace for product teams.",
+    tags: ["featured"],
+    media: 102,
     video:
       "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
   },
@@ -148,6 +151,19 @@ export const presentationForm = {
         const label = `Supplier ${String(index + 1).padStart(3, "0")}`;
         return { label, value: label };
       }),
+    },
+    // Remote catalogues use the same list without needing `searchable`.
+    {
+      name: "tags",
+      label: "Tag",
+      type: "multiSelect" as const,
+      ...recordTagSearch,
+    },
+    {
+      name: "media",
+      label: "Media",
+      type: "select" as const,
+      ...recordMediaSearch,
     },
   ],
 };

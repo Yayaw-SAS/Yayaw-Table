@@ -191,7 +191,7 @@ function FormBuilderField<TFieldValues extends FieldValues>({
     field.type === "multiSelect" || field.type === "select"
       ? tagCatalog?.columnForField(String(field.name))
       : undefined;
-  if (tagCatalog && tagColumn) {
+  if (tagCatalog && tagColumn && !field.searchOptions) {
     return (
       <form.Field key={field.name} name={field.name as Path<TFieldValues>}>
         {(f) => (

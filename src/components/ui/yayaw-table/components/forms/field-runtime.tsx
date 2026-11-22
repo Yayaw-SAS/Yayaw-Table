@@ -2,6 +2,10 @@
 
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import {
+  type RemoteOptionSearch,
+  RemoteOptionSearchContext,
+} from "../../hooks/use-remote-option-search";
+import {
   fieldIsDisabled,
   fieldIsHidden,
   fieldIsRequired,
@@ -20,8 +24,13 @@ const uniqueOptions = (options: FormSelectOption[]) =>
       ) === index
   );
 
-function configuredOptions(field: AnyFieldDefinition, context: FormConfigContext) {
-  return typeof field.options === "function" ? field.options(context) : field.options ?? [];
+function configuredOptions(
+  field: AnyFieldDefinition,
+  context: FormConfigContext
+) {
+  return typeof field.options === "function"
+    ? field.options(context)
+    : (field.options ?? []);
 }
 
 async function resolveRemoteOptions(
@@ -49,6 +58,29 @@ async function resolveRemoteOptions(
   return { selected, options: [...configured, ...resolved, ...searched] };
 }
 
+function bindOptionSearch(
+  field: AnyFieldDefinition,
+  context: FormConfigContext
+): RemoteOptionSearch | undefined {
+  const { searchOptions, resolveOptions, createOption, options } = field;
+  if (!searchOptions || !["select", "multiSelect"].includes(field.type)) {
+    return undefined;
+  }
+  return {
+    search: (query, signal) => searchOptions(query, context, signal),
+    resolve: resolveOptions
+      ? (values, signal) => resolveOptions(values, context, signal)
+      : undefined,
+    create: createOption
+      ? (label, signal) => createOption(label, context, signal)
+      : undefined,
+    load: () =>
+      typeof options === "function" ? options(context) : (options ?? []),
+    minLength: field.searchMinLength ?? 3,
+    debounceMs: field.searchDebounceMs ?? 300,
+  };
+}
+
 /** Resolve dynamic fields before handing them to the existing field components. */
 export function RuntimeField({
   field,
@@ -62,9 +94,14 @@ export function RuntimeField({
   children: (field: AnyFieldDefinition) => ReactNode;
 }) {
   const id = useId();
+  const optionSearch = bindOptionSearch(field, context);
+  const remoteCombobox = Boolean(optionSearch);
   const hasRemoteOptions =
-    typeof field.options === "function" ||
-    Boolean(field.searchOptions || field.resolveOptions || field.createOption);
+    !remoteCombobox &&
+    (typeof field.options === "function" ||
+      Boolean(
+        field.searchOptions || field.resolveOptions || field.createOption
+      ));
   const baseOptions = useRef<{
     key: string;
     promise: Promise<FormSelectOption[]>;
@@ -119,7 +156,9 @@ export function RuntimeField({
         if (baseOptions.current?.key !== key) {
           baseOptions.current = {
             key,
-            promise: Promise.resolve(configuredOptions(input.field, input.context)),
+            promise: Promise.resolve(
+              configuredOptions(input.field, input.context)
+            ),
           };
         }
         const configured = await baseOptions.current.promise;
@@ -232,6 +271,16 @@ export function RuntimeField({
       ? { type: "select" }
       : {}),
   } as AnyFieldDefinition;
+  if (remoteCombobox) {
+    return (
+      <RemoteOptionSearchContext
+        key={scope}
+        value={optionSearch}
+      >
+        {children(resolved)}
+      </RemoteOptionSearchContext>
+    );
+  }
   return (
     <div className="space-y-2">
       {field.searchOptions && (

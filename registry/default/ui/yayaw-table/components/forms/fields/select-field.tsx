@@ -63,7 +63,9 @@ export function SelectField<TFieldValues extends Record<string, unknown>>({
     <Field data-invalid={!fieldApi.state.meta.isValid}>
       <FieldLabel htmlFor={controlId}>{label}</FieldLabel>
       {/* A long list is searched rather than drawn whole. */}
-      {field.searchable || options.length > LONG_OPTION_LIST ? (
+      {field.searchOptions ||
+      field.searchable ||
+      options.length > LONG_OPTION_LIST ? (
         <OptionCombobox
           disabled={field.disabled === true}
           id={controlId}

@@ -7,6 +7,7 @@ import { test } from "./fixtures/test";
  * (one) or as removable chips (several).
  */
 const RECORDS = "/?example=records";
+const CREATE_CAMPAIGN = /Create.*Campaign/;
 
 test("a searchable field filters its options as you type", async ({ page }) => {
   await page.goto(RECORDS);
@@ -67,4 +68,63 @@ test("a select of more than 200 options is searched and draws its first matches"
   await expect(page.getByRole("option")).toHaveText(["Supplier 450"]);
   await page.keyboard.press("Enter");
   await expect(supplier).toContainText("Supplier 450");
+});
+
+test("remote Tag and Media lists save choices and resolve their labels on reopen", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") {
+      errors.push(message.text());
+    }
+  });
+  await page.goto(RECORDS);
+  await page.getByRole("button", { name: "Add item" }).click();
+  const dialog = page.getByRole("dialog", { name: "Create" });
+  await dialog.getByRole("textbox", { name: "Name" }).fill("Remote record");
+
+  await dialog.getByRole("combobox", { name: "Tag", exact: true }).click();
+  const tagSearch = page.getByRole("combobox", { name: "Tag Search…" });
+  await expect(tagSearch).toBeFocused();
+  await tagSearch.fill("lau");
+  await page.getByRole("option", { name: "Launch", exact: true }).click();
+  await expect(
+    dialog.getByRole("button", { name: "Remove Launch" })
+  ).toBeVisible();
+  await tagSearch.fill("Campaign");
+  await page.getByRole("option", { name: CREATE_CAMPAIGN }).click();
+  await expect(
+    dialog.getByRole("button", { name: "Remove Campaign" })
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  const media = dialog.getByRole("combobox", { name: "Media", exact: true });
+  await media.click();
+  const mediaSearch = page.getByRole("combobox", { name: "Media Search…" });
+  await mediaSearch.fill("error");
+  await expect(
+    page.getByText("The catalogue is unavailable. Try another search.")
+  ).toBeVisible();
+  // The server's alias matches a result whose label does not include the query.
+  await mediaSearch.fill("hero");
+  await page.getByRole("option", { name: "Launch image", exact: true }).click();
+  await expect(media).toContainText("Launch image");
+
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(dialog).toBeHidden();
+  await page.getByText("Remote record", { exact: true }).first().click();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  const edit = page.getByRole("dialog", { name: "Remote record", exact: true });
+  await expect(
+    edit.getByRole("button", { name: "Remove Launch", exact: true })
+  ).toBeVisible();
+  await expect(
+    edit.getByRole("button", { name: "Remove Campaign" })
+  ).toBeVisible();
+  await expect(
+    edit.getByRole("combobox", { name: "Media", exact: true })
+  ).toContainText("Launch image");
+  expect(errors).toEqual([]);
 });
