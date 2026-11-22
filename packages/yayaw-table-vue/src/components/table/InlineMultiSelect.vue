@@ -138,7 +138,8 @@ onMounted(async () => {
 
 <template>
   <div ref="anchor" class="yayaw-inline-multiselect">
-  <ComboboxRoot :multiple="multiple" :open="true" :model-value="multiple ? selectedKeys : selectedKeys[0]" :disabled="disabled" :ignore-filter="true" @update:model-value="update" @update:open="dismiss">
+  <!-- A single list with nothing chosen gets null, never undefined: Reka then stays controlled and reports the first pick. -->
+  <ComboboxRoot :multiple="multiple" :open="true" :model-value="multiple ? selectedKeys : (selectedKeys[0] ?? null)" :disabled="disabled" :ignore-filter="true" @update:model-value="update" @update:open="dismiss">
     <!-- Mount the list before the input so Reka assigns aria-controls on first render. -->
     <ComboboxPortal force-mount>
       <ComboboxContent class="yayaw-inline-options" position="popper" align="start" :side-offset="6" :collision-padding="8" :aria-label="label" :aria-busy="disabled || searching || resolving" @escape-key-down.prevent="emit('cancel')">
