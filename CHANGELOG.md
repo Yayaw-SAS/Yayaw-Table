@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.43.0
+
+### Minor Changes
+
+- 440a4f9: Show select and multiSelect form fields with searchOptions in a server-backed combobox in React and Vue. Share remote option search with inline editors, respect searchMinLength and searchDebounceMs, resolve selected labels, support option creation, and show loading, empty and error states inside the list.
+
 ## 3.42.1
 
 ### Patch Changes
