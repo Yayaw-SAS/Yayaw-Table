@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.43.1
+
+### Patch Changes
+
+- 50c8c65: Vue: an inline select with nothing chosen (an empty cell) now saves its first pick, server-searched or not. It closed on the pick without saving it. The React edition already did; both editions now test it.
+
 ## 3.43.0
 
 ### Minor Changes
