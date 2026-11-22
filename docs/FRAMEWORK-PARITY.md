@@ -337,6 +337,11 @@ and keeps the editor and draft. React `tests/inline-option-search.test.tsx` and
 Vue `inline-edit.test.ts` cover search, typed saves, label retention, failures
 and the inline eligibility rule.
 
+An empty inline single select saves its first choice in both editions. Vue passes
+`null` rather than `undefined` to keep Reka's combobox controlled when no value is
+selected. The React and Vue inline search suites cover selecting and saving a
+server result from an initially empty cell.
+
 The same searched editor offers the field's `createOption(label, context,
 signal)` in both editions: when the typed text matches no known option label
 (ignoring case) and no search is running, the list ends with a "Create

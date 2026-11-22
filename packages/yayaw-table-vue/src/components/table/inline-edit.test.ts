@@ -578,6 +578,31 @@ it("searches the server from an inline select and saves the typed choice", async
   );
 });
 
+it("saves a server-searched choice into an empty inline select", async () => {
+  const searchOptions = vi.fn(async (query: string) =>
+    query === "news" ? [{ value: 42, label: "Strategies Newsletter" }] : []
+  );
+  const { wrapper, update } = createCell({
+    row: { id: "1", media: null },
+    column: mediaColumn("select"),
+    form: mediaForm("select", searchOptions),
+  });
+  await wrapper.trigger("click");
+  await settle();
+  const input = wrapper.get('input[role="combobox"]');
+  expect(wrapper.find(".yayaw-inline-chip").exists()).toBe(false);
+  await input.setValue("news");
+  await settle();
+  // Nothing chosen yet: the list must still report the pick instead of closing on it.
+  await popup().get('[role="option"]').trigger("click");
+  await settle();
+  expect(update).toHaveBeenCalledExactlyOnceWith(
+    "1",
+    { media: 42 },
+    { row: { id: "1", media: null } }
+  );
+});
+
 it("keeps known inline label matches alongside server results", async () => {
   const { wrapper } = createCell({
     row: { id: "1", media: [1] },

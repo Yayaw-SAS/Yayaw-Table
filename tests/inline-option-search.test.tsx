@@ -44,13 +44,15 @@ async function setup(
   type: "select" | "multiSelect",
   optionSearch: InlineOptionSearch | undefined,
   onCommit: ComponentProps<typeof InlineEditableCell>["onCommit"],
-  options: { value: number; label: string }[] = known
+  options: { value: number; label: string }[] = known,
+  initial?: unknown
 ) {
   client = new QueryClient();
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
-  const row = { id: "1", media: type === "select" ? 1 : [1] };
+  const preset = type === "select" ? 1 : [1];
+  const row = { id: "1", media: initial === undefined ? preset : initial };
   const cell = {
     getValue: () => row.media,
     row: { original: row },
@@ -139,6 +141,28 @@ it("searches the server from an inline select and saves the typed choice", async
   await fill("news");
   expect(calls).toEqual(["news"]);
   // The server's match shows even though its label lacks the typed text.
+  await clickOption("Strategies Newsletter");
+  expect(writes).toEqual([42]);
+});
+
+it("saves a server-searched choice into an empty inline select", async () => {
+  const writes: unknown[] = [];
+  await setup(
+    "select",
+    {
+      search: searchFor([], [{ value: 42, label: "Strategies Newsletter" }]),
+      minLength: 2,
+      debounceMs: 0,
+    },
+    (value) => {
+      writes.push(value);
+      return Promise.resolve({ success: true });
+    },
+    known,
+    null
+  );
+  await fill("news");
+  // Nothing chosen yet: the first pick is reported, as in the Vue edition.
   await clickOption("Strategies Newsletter");
   expect(writes).toEqual([42]);
 });
