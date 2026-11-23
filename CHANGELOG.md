@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.44.1
+
+### Patch Changes
+
+- 72d96c6: Filter static option labels locally when a column also has an optionsLoader, in quick filters and advanced filters in React and Vue. Keep server results unchanged so searches on other fields still work, and preserve selected values and their labels.
+
 ## 3.44.0
 
 ### Minor Changes
