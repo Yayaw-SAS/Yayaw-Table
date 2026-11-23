@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.44.0
+
+### Minor Changes
+
+- c376d83: Add per-tag action menus in React and Vue through `tagActions`. Tags support click, context menu, keyboard and touch activation, with conditional visibility, disabled actions and destructive actions grouped last. Existing `onTagClick` callbacks keep their primary-click behavior when a menu is also configured.
+
 ## 3.43.1
 
 ### Patch Changes
