@@ -350,6 +350,12 @@ export interface ColumnDefinition {
   /** Tag columns: each tag becomes a button calling this with its value and row. */
   onTagClick?: (value: unknown, row: Record<string, unknown>) => unknown;
 
+  /** Contextual actions for each tag, beside an optional primary onTagClick. */
+  tagActions?: import("../utils/tag-items").TagActionDefinition<
+    Record<string, unknown>,
+    React.ReactNode
+  >[];
+
   /**
    * Whether the column can be filtered
    */

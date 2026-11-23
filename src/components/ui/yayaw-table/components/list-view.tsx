@@ -249,7 +249,8 @@ function DataTableListItem<TData extends Record<string, unknown>>({
     isSelectionModifiedClick(event) &&
     !(
       event.target instanceof Element &&
-      event.target.closest('[data-column-id="select"]')
+      (!event.currentTarget.contains(event.target) ||
+        event.target.closest('[data-column-id="select"], [data-tag-button]'))
     );
   const handleSelectionClick = (event: MouseEvent<HTMLElement>) => {
     if (!shouldSelect(event)) {

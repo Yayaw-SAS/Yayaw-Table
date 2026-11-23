@@ -8,9 +8,14 @@ import type { ReactNode, SyntheticEvent } from "react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import "../../utils/tag-colors.css";
-import { tagItemAppearance } from "../../utils/tag-items";
+import {
+  type ResolvedTagAction,
+  tagItemAppearance,
+} from "../../utils/tag-items";
+import { TagActionMenu, tagInteractionProps } from "./tag-action-menu";
 
 const stop = (event: SyntheticEvent) => event.stopPropagation();
+const EMPTY_ACTIONS: ResolvedTagAction<ReactNode>[] = [];
 
 function unwrapTagValue(value: unknown): unknown {
   if (value && typeof value === "object" && "set" in value) {
@@ -74,6 +79,7 @@ export interface TagCellProps {
   title?: string;
   /** Draws each tag as a button; its clicks never reach the row or inline editing. */
   onClick?: () => void;
+  actions?: ResolvedTagAction<ReactNode>[];
 
   /**
    * The tag value to display
@@ -96,6 +102,7 @@ export function TagCell({
   icon,
   title,
   onClick,
+  actions = EMPTY_ACTIONS,
 }: TagCellProps) {
   const tagValues = toTagValues(value);
 
@@ -113,7 +120,7 @@ export function TagCell({
           tagColorMap,
           color
         );
-        return (
+        const badge = (
           <Badge
             className={cn(
               "yayaw-tag inline-flex items-center rounded-md px-2 py-0.5 text-xs",
@@ -122,26 +129,36 @@ export function TagCell({
             )}
             data-colored={appearance.colored}
             data-custom-color={appearance.className ? "" : undefined}
-            data-tag-button={onClick ? "" : undefined}
+            data-tag-button={onClick || actions.length > 0 ? "" : undefined}
             key={tagValue}
             style={appearance.style}
             title={title}
-            {...(onClick
+            {...(actions.length > 0 || onClick
+              ? { render: <button type="button" /> }
+              : {})}
+            {...(onClick && actions.length === 0
               ? {
+                  ...tagInteractionProps,
                   onClick: (event: SyntheticEvent) => {
                     stop(event);
                     onClick();
                   },
-                  onDoubleClick: stop,
-                  onKeyDown: stop,
-                  onPointerDown: stop,
-                  render: <button type="button" />,
                 }
               : {})}
           >
             {icon}
             {tagValue}
           </Badge>
+        );
+        return actions.length > 0 ? (
+          <TagActionMenu
+            actions={actions}
+            badge={badge}
+            key={tagValue}
+            onClick={onClick}
+          />
+        ) : (
+          badge
         );
       })}
     </div>

@@ -1,7 +1,29 @@
-import assert from "node:assert/strict";
 import { describe, it } from "bun:test";
+import assert from "node:assert/strict";
 import { tagAppearance } from "./tag-colors";
-import { isTagTone, TAG_TONES, tagItemAppearance } from "./tag-items";
+import {
+  isTagTone,
+  TAG_TONES,
+  tagActionMenuZIndex,
+  tagItemAppearance,
+} from "./tag-items";
+
+it("keeps the tag menu above a hosting dialog's final layer during a z-index transition", () => {
+  const surface = document.createElement("div");
+  const tag = document.createElement("button");
+  surface.append(tag);
+  surface.style.zIndex = "50";
+  Object.defineProperty(surface, "getAnimations", {
+    value: () => [
+      {
+        effect: { getKeyframes: () => [{ zIndex: "50" }, { zIndex: "4700" }] },
+      },
+    ],
+  });
+  assert.equal(tagActionMenuZIndex(tag, 50), 4701);
+  surface.style.zIndex = "6000";
+  assert.equal(tagActionMenuZIndex(tag, 50), 6001);
+});
 
 describe("tagItemAppearance", () => {
   it("tints a tag with its tone's theme color, even with coloredTags off", () => {
@@ -23,9 +45,12 @@ describe("tagItemAppearance", () => {
   });
 
   it("draws a neutral tone muted, over the option's color", () => {
-    assert.deepEqual(tagItemAppearance("42", "neutral", true, undefined, "red"), {
-      colored: false,
-    });
+    assert.deepEqual(
+      tagItemAppearance("42", "neutral", true, undefined, "red"),
+      {
+        colored: false,
+      }
+    );
   });
 
   it("keeps the option color, the map and the hue without a known tone", () => {

@@ -41,11 +41,87 @@ export interface TagItem<TIcon = unknown> {
   title?: string;
 }
 
+/** An action for one tag, receiving its raw value and complete record. */
+export interface TagActionDefinition<
+  TRow = Record<string, unknown>,
+  TIcon = unknown,
+> {
+  id: string;
+  label: string;
+  icon?: TIcon;
+  onSelect: (value: unknown, row: TRow) => unknown;
+  /** Default true. */
+  visible?: (value: unknown, row: TRow) => boolean;
+  disabled?: (value: unknown, row: TRow) => boolean;
+  /** Red actions, grouped last after a separator. */
+  destructive?: boolean;
+}
+
+export interface ResolvedTagAction<TIcon = unknown> {
+  id: string;
+  label: string;
+  icon?: TIcon;
+  disabled: boolean;
+  destructive?: boolean;
+  run: () => unknown;
+}
+
+/** Keep visible actions in declaration order within normal/destructive groups. */
+export function resolveTagActions<TRow, TIcon>(
+  actions: readonly TagActionDefinition<TRow, TIcon>[] | undefined,
+  value: unknown,
+  row: TRow
+): ResolvedTagAction<TIcon>[] {
+  const visible = (actions ?? []).filter(
+    (action) => action.visible?.(value, row) !== false
+  );
+  return [
+    ...visible.filter((action) => !action.destructive),
+    ...visible.filter((action) => action.destructive),
+  ].map((action) => ({
+    id: action.id,
+    label: action.label,
+    icon: action.icon,
+    destructive: action.destructive,
+    disabled: action.disabled?.(value, row) === true,
+    run: () => action.onSelect(value, row),
+  }));
+}
+
+/** Keep menus above their ancestor surfaces, including an animating z-index's destination. */
+export function tagActionMenuZIndex(
+  anchor: HTMLElement | null,
+  minimum: number
+): number {
+  let zIndex = minimum;
+  for (let element = anchor; element; element = element.parentElement) {
+    const layers = [
+      getComputedStyle(element).zIndex,
+      element.style.zIndex,
+      ...(element.getAnimations?.() ?? []).flatMap((animation) => {
+        const effect = animation.effect as KeyframeEffect | null;
+        return (
+          effect?.getKeyframes?.().map((frame) => String(frame.zIndex ?? "")) ??
+          []
+        );
+      }),
+    ];
+    for (const candidate of layers) {
+      const layer = Number.parseInt(candidate, 10);
+      if (Number.isFinite(layer)) {
+        zIndex = Math.max(zIndex, layer + 1);
+      }
+    }
+  }
+  return zIndex;
+}
+
 /** Column options that let row data drive each tag. */
 export interface TagItemColumn<TRow, TIcon> {
   tagItem?: (value: unknown, row: TRow) => TagItem<TIcon> | null | undefined;
   /** Makes each tag a button; its click never reaches the row or inline editing. */
   onTagClick?: (value: unknown, row: TRow) => unknown;
+  tagActions?: TagActionDefinition<TRow, TIcon>[];
 }
 
 /**

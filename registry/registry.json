@@ -198,6 +198,11 @@
           "target": "components/ui/yayaw-table/components/cells/string-cell.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/cells/tag-action-menu.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/cells/tag-action-menu.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/cells/tag-cell.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/cells/tag-cell.tsx"

@@ -8,6 +8,7 @@ import {
   resolveDataType,
 } from "../../utils/table-contracts";
 import { rowNumberFormat } from "../../utils/value-format";
+import { resolveTagActions } from "../../utils/tag-items";
 import { BooleanCell } from "./boolean-cell";
 import { CodeCell } from "./code-cell";
 import { DateCell } from "./date-cell";
@@ -260,6 +261,7 @@ function OptionTags({
         }
         return (
           <TagCell
+            actions={resolveTagActions(column.tagActions, item, row)}
             color={typeof option?.color === "string" ? option.color : undefined}
             coloredTags={coloredTags}
             colorValue={String(item)}

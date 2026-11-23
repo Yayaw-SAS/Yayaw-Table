@@ -703,10 +703,11 @@ function DataTableGalleryCard<TData extends Record<string, unknown>>({
     Boolean(selectionCell) &&
     row.getCanSelect() &&
     isSelectionModifiedClick(event) &&
-    // Checkboxes already handle range selection and must not toggle twice.
+    // Tags and portalled menus own their gestures, as do selection checkboxes.
     !(
       event.target instanceof Element &&
-      event.target.closest('[data-column-id="select"]')
+      (!event.currentTarget.contains(event.target) ||
+        event.target.closest('[data-column-id="select"], [data-tag-button]'))
     );
   const handleSelectionClick = (event: MouseEvent<HTMLElement>) => {
     if (!shouldSelectFromCard(event)) {

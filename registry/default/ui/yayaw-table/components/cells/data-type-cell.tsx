@@ -18,6 +18,7 @@ import {
   dataTypeOptionLabel,
   resolveDataType,
 } from "../../utils/table-contracts";
+import { resolveTagActions } from "../../utils/tag-items";
 import { rowNumberFormat } from "../../utils/value-format";
 import { BooleanCell } from "./boolean-cell";
 import { CodeCell } from "./code-cell";
@@ -267,6 +268,7 @@ function OptionTags({
         }
         return (
           <TagCell
+            actions={resolveTagActions(column.tagActions, item, row)}
             color={typeof option?.color === "string" ? option.color : undefined}
             coloredTags={coloredTags}
             colorValue={String(item)}

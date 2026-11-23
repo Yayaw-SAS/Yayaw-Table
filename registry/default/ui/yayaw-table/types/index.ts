@@ -1,3 +1,4 @@
+export type { TagActionDefinition } from "../utils/tag-items";
 export * from "./column-types";
 export * from "./date-types";
 export * from "./filter-types";

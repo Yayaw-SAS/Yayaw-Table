@@ -234,7 +234,7 @@ const captureSelection = (row: TableRecord, event: MouseEvent): void => {
   if (
     !(event.shiftKey || event.metaKey || event.ctrlKey) ||
     !context.config.table.enableRowSelection ||
-    (event.target as Element).closest(".yayaw-list-select")
+    (event.target as Element).closest(".yayaw-list-select,[data-tag-button]")
   ) {
     return;
   }
@@ -291,7 +291,7 @@ const activate = (row: TableRecord, event: MouseEvent | KeyboardEvent): void => 
             tabindex="0"
             role="button"
             @click.capture="captureSelection(row, $event)"
-            @mousedown.capture="(event) => { if (event.shiftKey || event.ctrlKey || event.metaKey) event.preventDefault(); }"
+            @mousedown.capture="(event) => { if ((event.shiftKey || event.ctrlKey || event.metaKey) && !(event.target as Element).closest('[data-tag-button]')) event.preventDefault(); }"
             @click="activate(row, $event)"
             @keydown="onKeydown(row, $event)"
           >

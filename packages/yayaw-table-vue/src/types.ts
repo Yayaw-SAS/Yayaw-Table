@@ -18,6 +18,8 @@ import type {
 import type { RecordPresentationConfig } from "./record-presentation";
 import type { ViewConfig } from "./view-config";
 
+export type { TagActionDefinition } from "./tag-items";
+
 export type TableRecord = Record<string, unknown>;
 export type PrimitiveValue = boolean | number | string;
 export type MaybePromise<T> = Promise<T> | T;
@@ -161,6 +163,8 @@ export interface ColumnDefinition<TData extends TableRecord = TableRecord> {
   tagItem?: import("./tag-items").TagItemColumn<TData, Component>["tagItem"];
   /** Tag columns: each tag becomes a button calling this with its value and row. */
   onTagClick?: (value: unknown, row: TData) => unknown;
+  /** Actions for each tag; onTagClick keeps the primary click when both are set. */
+  tagActions?: import("./tag-items").TagActionDefinition<TData, Component>[];
   enableFiltering?: boolean;
   enableSorting?: boolean;
   enableGrouping?: boolean;
