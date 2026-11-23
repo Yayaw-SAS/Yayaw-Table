@@ -39,8 +39,10 @@ export function OptionFilter({ tableId, column, value, onChange }: {
   const current = single && selected.length ? options.find(option => checked(option.value))?.label ?? String(selected[0]) : undefined;
   const searchable = !single || Boolean(column.optionsLoader) || options.length > SINGLE_CHOICE_SEARCH_THRESHOLD;
   const pick = (candidate: unknown) => { onChange(candidate); setOpen(false); };
-  // The server already searched the loaded options.
-  const matching = column.optionsLoader ? options : options.filter(option => option.label.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+  const remoteValues = new Set(remote.loaded.map(option => filterValueKey(option.value)));
+  // Server results may match other fields; retain those and selections while searching static labels.
+  const matching = options.filter(option => option.label.toLocaleLowerCase().includes(query.toLocaleLowerCase())
+    || (column.optionsLoader && (checked(option.value) || remoteValues.has(filterValueKey(option.value)))));
   // Only the first matches are drawn: a list of thousands stays instant, typing reaches the others.
   const { shown: visible, hidden } = limitOptions(matching);
   let status = visible.length ? moreOptionsText(hidden, menuText("moreOptions")) : t("filters.noResults");

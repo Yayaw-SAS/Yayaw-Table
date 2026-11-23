@@ -235,7 +235,7 @@ it("keeps a date column's quick period as one advanced rule, beside the other ru
   expect(filterBarDateValue([other], "due")).toEqual({});
 });
 
-it("searches a quick filter's options on the server and keeps the selected label", async () => {
+it("filters static quick choices while preserving server matches and selected labels", async () => {
   const calls: string[] = [];
   const remote = defineTableConfig({
     ...config,
@@ -246,20 +246,25 @@ it("searches a quick filter's options on the server and keeps the selected label
           id: "action",
           header: "Action",
           type: "multiSelect",
-          options: [],
+          options: [
+            { value: 0, label: "Pinned action" },
+            { value: 2, label: "Launch locally" },
+            { value: 3, label: "Other action" },
+            { value: 9, label: "Launch cached" },
+          ],
           optionsLoader: (query: string) => {
             calls.push(query);
             return Promise.resolve(
-              [
-                { value: 7, label: "Launch call" },
-                { value: 8, label: "Lunch" },
-              ].filter((option) =>
-                option.label.toLowerCase().includes(query.toLowerCase())
-              )
+              query === "lau"
+                ? [
+                    { value: 7, label: "Server match" },
+                    { value: 9, label: "Server duplicate" },
+                  ]
+                : [{ value: 8, label: "Lunch" }]
             );
           },
           optionsSearchMinLength: 2,
-          optionsSearchDebounceMs: 0,
+          optionsSearchDebounceMs: 80,
         },
       ],
       mandatory: [],
@@ -295,7 +300,7 @@ it("searches a quick filter's options on the server and keeps the selected label
         "value"
       )?.set?.call(input, text);
       input.dispatchEvent(new Event("input", { bubbles: true }));
-      await new Promise((resolve) => setTimeout(resolve, 20));
+      await Promise.resolve();
     });
   };
   try {
@@ -324,14 +329,31 @@ it("searches a quick filter's options on the server and keeps the selected label
     );
     expect(document.body.textContent).toContain("Type at least 2 characters");
     expect(calls).toEqual([]);
+    await act(() => checkbox("Pinned action")?.click());
+    await type("l");
+    expect(calls).toEqual([]);
+    expect(Boolean(checkbox("Other action"))).toBe(false);
+    await type("la");
     await type("lau");
+    expect(calls).toEqual([]);
+    await act(() => new Promise((resolve) => setTimeout(resolve, 100)));
     expect(calls).toEqual(["lau"]);
-    await act(() => checkbox("Launch call")?.click());
-    expect(current.state.columnFilters).toEqual([{ id: "action", value: [7] }]);
+    expect(checkbox("Launch locally")?.checked).toBe(false);
+    expect(Boolean(checkbox("Launch cached"))).toBe(false);
+    expect(checkbox("Server duplicate")?.checked).toBe(false);
+    expect(checkbox("Pinned action")?.checked).toBe(true);
+    await act(() => checkbox("Server match")?.click());
+    expect(current.state.columnFilters).toEqual([
+      { id: "action", value: [0, 7] },
+    ]);
     await type("lu");
+    await act(() => new Promise((resolve) => setTimeout(resolve, 100)));
     // The selection keeps its label beside other results.
-    expect(checkbox("Launch call")?.checked).toBe(true);
+    expect(checkbox("Pinned action")?.checked).toBe(true);
+    expect(checkbox("Server match")?.checked).toBe(true);
     expect(checkbox("Lunch")?.checked).toBe(false);
+    expect(Boolean(checkbox("Launch locally"))).toBe(false);
+    expect(calls).toEqual(["lau", "lu"]);
   } finally {
     await act(() => root.unmount());
     client.clear();

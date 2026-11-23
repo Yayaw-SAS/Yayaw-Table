@@ -173,6 +173,7 @@ function OptionValues({
   const [search, setSearch] = useState("");
   const values = ruleValues(rule.values);
   const query = search.trim();
+  const normalized = query.toLocaleLowerCase();
   const { loaded, loading, failed, minimum } = useRemoteFilterOptions(
     column,
     query,
@@ -184,7 +185,9 @@ function OptionValues({
   const optionsByValue = new Map(
     [
       ...(column.optionsLoader
-        ? (column.staticOptions ?? [])
+        ? (column.staticOptions ?? []).filter((option) =>
+            option.label.toLocaleLowerCase().includes(normalized)
+          )
         : (column.options ?? [])),
       ...loaded,
     ].map((option) => [option.value, option])
@@ -198,7 +201,6 @@ function OptionValues({
     );
   }
   const options = [...optionsByValue.values()];
-  const normalized = query.toLocaleLowerCase();
   const visible =
     normalized && !column.optionsLoader
       ? options.filter((option) =>

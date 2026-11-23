@@ -50,19 +50,22 @@ const { loaded: loadedOptions, loading: loadingOptions, failed: optionsFailed, m
   useRemoteFilterOptions({ column: () => props.column, search, remember: menu.rememberOptions });
 const options = computed(() => {
   const column = props.column;
-  const result: SelectOption[] =
+  const initial: SelectOption[] =
     type.value === "boolean" && !column?.options?.length
       ? [
           { label: text("checked"), value: true },
           { label: text("unchecked"), value: false },
         ]
       : [...(column?.options ?? [])];
-  for (const option of [...loadedOptions.value]) {
-    if (!result.some(item => Object.is(item.value, option.value))) result.push(option);
-  }
+  const query = search.value.trim().toLocaleLowerCase();
+  // Search static choices locally; the server may match fields other than labels.
+  const matching = column?.optionsLoader
+    ? initial.filter(option => option.label.toLocaleLowerCase().includes(query))
+    : initial;
+  const result = [...new Map([...matching, ...loadedOptions.value].map(option => [option.value, option])).values()];
   const add = (value: unknown) => {
     if (!["string", "number", "boolean"].includes(typeof value) || result.some((option) => Object.is(option.value, value))) return;
-    result.push(menu.resolvedOptions.value[props.rule.columnId]?.find(option => Object.is(option.value, value)) ?? { value: value as PrimitiveValue, label: String(value) });
+    result.push(initial.find(option => Object.is(option.value, value)) ?? menu.resolvedOptions.value[props.rule.columnId]?.find(option => Object.is(option.value, value)) ?? { value: value as PrimitiveValue, label: String(value) });
   };
   if (!column?.optionsLoader && !column?.options?.length && type.value !== "boolean") {
     for (const row of context.data.rows.value) {
