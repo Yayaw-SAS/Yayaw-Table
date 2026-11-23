@@ -5,3 +5,4 @@ export * from "./table-types";
 export * from "./toolbar-types";
 export * from "./translations";
 export * from "./view-types";
+export type { TagActionDefinition } from "../utils/tag-items";

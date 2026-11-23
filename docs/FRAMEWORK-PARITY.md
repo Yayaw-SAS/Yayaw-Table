@@ -578,6 +578,29 @@ Tag columns (`type: "tag"`, or `select`/`multiSelect` shown as tags) take `tagIt
 
 With `onTagClick`, each tag is a `<button type="button">` marked `[data-tag-button]`. Clicks, double-clicks, pointer-downs and keys on a tag stay on it, as with cell actions: no row click, no inline editing, no drag. `title` is the tag's tooltip; the icon (a React node, a Vue component) is drawn before the label at 12 px. A "+" next to the tags is a `cellActions` entry.
 
+`tagActions` adds a menu to each tag in both editions. Each action declares
+`id`, `label`, `onSelect(value, row)`, and optional `icon`,
+`visible(value, row)`, `disabled(value, row)` and `destructive`. Visible actions
+keep their declaration order within the normal and destructive groups; the
+destructive group comes last, in red, after a separator when both groups exist.
+Tags with visible actions expose `aria-haspopup="menu"` and `aria-expanded`.
+Click, Enter and Space open their menu; right-click, the Menu key, Shift+F10 and
+touch long press also open it. When `onTagClick` is present, primary activation
+keeps calling it and contextual activation opens the menu. A tag without visible
+actions keeps its previous behavior. Trigger and menu events stay isolated from
+row activation, editing, dragging and the row context menu. Menu positioners
+derive their layer from the trigger's ancestors, including animated target
+z-index values, so nested drawers and dialogs cannot cover them. Ordinary
+surfaces use body portals to escape clipping; native modal dialogs keep the
+menu inside their browser top layer. React also preserves the active Vaul
+drawer's portal container when that container actually contains the trigger.
+
+The shared Products example offers a Category tag menu that copies the product
+name and raw category value. Its Status tags combine a primary copy action with
+the same context menu. React and Vue regression tests cover action selection,
+visibility, disabled and destructive ordering, and click isolation;
+`e2e/tag-actions.spec.ts` exercises both editions in the browser.
+
 They apply wherever the table draws the cell: the grid and the List, Kanban and Gallery cards. Feed cards keep the option labels and colors.
 
 Verification: `utils/tag-items.test.ts` covers tones and fallbacks; `tests/tag-items.test.tsx` and the Vue `components/table/tag-items.test.ts` render the same record-valued column and assert the same labels, buttons, titles, colors, icons and click isolation. The shared Products example gives its Status tags a tone (active green, draft amber, archived muted).

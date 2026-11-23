@@ -229,6 +229,7 @@ export {
 export {
   isTagTone,
   TAG_TONES,
+  type TagActionDefinition,
   type TagItem,
   type TagTone,
   tagItemAppearance,

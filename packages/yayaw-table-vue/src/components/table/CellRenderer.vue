@@ -20,6 +20,7 @@ import { useTableContext, useTableTranslation } from "../../context";
 import { inlineEditorIcon, type InlineEditorIcon, LONG_OPTION_LIST, resolveDataType, resolveDataTypeEditor, TABLE_DATA_TYPES, dataTypeDateInput, dataTypeValueError } from "../../table-contracts";
 import { AlignLeft, Braces, Calendar, CalendarClock, Check, ChevronDown, Hash, Image as ImageIcon, Link, ListChecks, MapPin, PencilLine, Tag } from "lucide-vue-next";
 import CellActions from "./CellActions.vue";
+import TagButton from "./TagButton.vue";
 import InitialsAvatar from "../controls/InitialsAvatar.vue";
 import ImageCell from "./ImageCell.vue";
 import TableTooltip from "../toolbar/TableTooltip.vue";
@@ -513,20 +514,6 @@ const tagChip = (value: unknown) => {
     style: appearance.style,
   };
 };
-const stopEvent = (event: Event) => event.stopPropagation();
-const tagListeners = (value: unknown) => {
-  const onTagClick = props.column.onTagClick;
-  if (!onTagClick) return {};
-  return {
-    click: (event: Event) => {
-      stopEvent(event);
-      onTagClick(value, props.row);
-    },
-    dblclick: stopEvent,
-    pointerdown: stopEvent,
-    keydown: stopEvent,
-  };
-};
 </script>
 
 <template>
@@ -770,21 +757,14 @@ const tagListeners = (value: unknown) => {
         <span v-if="tagChip(tag).pending" class="yayaw-tag-pending"
           ><span class="yayaw-sr-only">{{ context.tags?.labels.value.loading }}</span></span
         >
-        <!-- A clickable tag keeps its clicks: no row click, no inline edit, no drag. -->
-        <component
-          :is="column.onTagClick ? 'button' : 'span'"
+        <TagButton
           v-else
-          :type="column.onTagClick ? 'button' : undefined"
-          class="yayaw-tag"
-          :class="tagChip(tag).className"
-          :style="tagChip(tag).style"
-          :title="tagChip(tag).title"
-          :data-colored="tagChip(tag).colored"
-          :data-custom-color="tagChip(tag).className ? '' : undefined"
-          :data-tag-button="column.onTagClick ? '' : undefined"
-          v-on="tagListeners(tag)"
-          ><component :is="tagChip(tag).icon" v-if="tagChip(tag).icon" aria-hidden="true" />{{ tagChip(tag).label }}</component
-        >
+          :value="tag"
+          :row="row"
+          :appearance="tagChip(tag)"
+          :actions="column.tagActions"
+          :on-tag-click="column.onTagClick"
+        />
       </template>
     </span>
     <pre v-else-if="effectiveColumn.type === 'json'" class="yayaw-json">{{

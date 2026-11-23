@@ -83,6 +83,14 @@ const STATUS_TONES: Record<string, "success" | "warning"> = {
 const options = (values: [string, string][]) =>
   values.map(([value, label]) => ({ value, label }));
 
+const copyProductTag = (value: unknown, row: Record<string, unknown>) =>
+  navigator.clipboard.writeText(`${row.name}: ${String(value)}`);
+
+// The host owns each tag action, including any confirmation or persistence.
+const productTagActions = [
+  { id: "copy", label: "Copy tag", onSelect: copyProductTag },
+];
+
 export const productColumns = [
   {
     id: "name",
@@ -105,6 +113,7 @@ export const productColumns = [
     header: "Category",
     type: "select" as const,
     displayVariant: "tag" as const,
+    tagActions: productTagActions,
     options: options([
       ["software", "Software"],
       ["hardware", "Hardware"],
@@ -136,6 +145,9 @@ export const productColumns = [
     tagItem: (value: unknown) => ({
       tone: STATUS_TONES[String(value)] ?? ("neutral" as const),
     }),
+    // Keep the primary click; the context menu exposes the tag actions.
+    onTagClick: copyProductTag,
+    tagActions: productTagActions,
   },
   {
     id: "price",
