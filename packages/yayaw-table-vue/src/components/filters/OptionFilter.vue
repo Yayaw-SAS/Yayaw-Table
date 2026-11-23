@@ -26,16 +26,20 @@ const remote = useRemoteFilterOptions({
 });
 const value = computed(() => context.state.filters.value.find(filter => filter.id === props.column.id)?.value);
 const selected = computed(() => filterValues(value.value));
+const checked = (candidate: unknown): boolean => selected.value.some(item => filterValueKey(item) === filterValueKey(candidate));
 const options = computed(() => filterBarOptions(
   { ...props.column, options: [...(props.column.options ?? []), ...remote.loaded.value] },
   value.value,
   { yes: translate("common.true", "True"), no: translate("common.false", "False") },
   context.filterMenu.resolvedOptions.value[props.column.id],
 ));
-// The server already searched the loaded options. Only the first matches are drawn: a list of thousands stays instant.
-const limited = computed(() => limitOptions(props.column.optionsLoader
-  ? options.value
-  : options.value.filter(option => option.label.toLocaleLowerCase().includes(search.value.trim().toLocaleLowerCase()))));
+const limited = computed(() => {
+  const query = search.value.trim().toLocaleLowerCase();
+  const remoteValues = new Set(remote.loaded.value.map(option => filterValueKey(option.value)));
+  // Server results may match other fields; retain those and selections while searching static labels.
+  return limitOptions(options.value.filter(option => option.label.toLocaleLowerCase().includes(query)
+    || (props.column.optionsLoader && (checked(option.value) || remoteValues.has(filterValueKey(option.value))))));
+});
 const visibleOptions = computed(() => limited.value.shown);
 const status = computed(() => {
   if (remote.loading.value) return menuText("loadingOptions");
@@ -53,7 +57,6 @@ const toggleOpen = (next: boolean): void => {
 const update = (next: unknown): void => {
   context.state.filters.value = replaceColumnFilter(context.state.filters.value, props.column.id, next);
 };
-const checked = (candidate: unknown): boolean => selected.value.some(item => filterValueKey(item) === filterValueKey(candidate));
 const single = computed(() => props.column.filterSelection === "single");
 const current = computed(() => single.value && selected.value.length
   ? options.value.find(option => checked(option.value))?.label ?? String(selected.value[0])

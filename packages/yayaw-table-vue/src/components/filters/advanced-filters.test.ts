@@ -493,10 +493,14 @@ it("opens the requested column's filter from its header without filtering", asyn
   expect(list).toHaveBeenCalledTimes(requests);
 });
 
-it("searches remote choices only after the minimum and keeps the selected label", async () => {
+it("filters static advanced choices while preserving server matches and selected labels", async () => {
   const search = vi.fn(async (query: string) =>
     query === "re"
-      ? [{ value: "remote", label: "Remote option" }]
+      ? [
+          { value: "remote", label: "Remote option" },
+          { value: "duplicate", label: "Remote server" },
+          { value: "metadata", label: "Matched by description" },
+        ]
       : [{ value: "other", label: "Other option" }]
   );
   const remote = {
@@ -509,7 +513,13 @@ it("searches remote choices only after the minimum and keeps the selected label"
               ...column,
               type: "text" as const,
               filterType: "select" as const,
-              options: [],
+              options: [
+                { value: 0, label: "Zero" },
+                { value: 1, label: "Unused" },
+                { value: "static", label: "Remote static" },
+                { value: "remote", label: "Alice" },
+                { value: "duplicate", label: "Remote local" },
+              ],
               optionsLoader: search,
               optionsSearchMinLength: 2,
               optionsSearchDebounceMs: 0,
@@ -520,27 +530,60 @@ it("searches remote choices only after the minimum and keeps the selected label"
   };
   const wrapper = mountTable({ config: remote });
   await pick(wrapper, "status");
+  const choices = () =>
+    wrapper.findAll('[data-filter-rule="status"] .yayaw-filter-choice');
+  const labels = () =>
+    choices()
+      .map((choice) => choice.text())
+      .sort();
+  const choice = (label: string) => {
+    const option = choices().find((item) => item.text() === label);
+    if (!option) {
+      throw new Error(`Missing ${label}`);
+    }
+    return option.get<HTMLInputElement>("input");
+  };
   expect(search).not.toHaveBeenCalled();
+  await choice("Zero").setValue(true);
   await wrapper.get('[aria-label="Search for an option…"]').setValue("re");
   await new Promise((resolve) => setTimeout(resolve, 5));
   await flushPromises();
   expect(search).toHaveBeenCalledOnce();
-  await wrapper.get('[aria-label="Search for an option…"]').setValue("ot");
+  expect(labels()).toEqual([
+    "Matched by description",
+    "Remote option",
+    "Remote server",
+    "Remote static",
+    "Zero",
+  ]);
+  expect(choice("Zero").element.checked).toBe(true);
+  await wrapper.get('[aria-label="Search for an option…"]').setValue("other");
   await new Promise((resolve) => setTimeout(resolve, 5));
   await flushPromises();
   expect(wrapper.get('[data-filter-rule="status"]').text()).not.toContain(
     "Remote option"
   );
+  expect(labels()).toEqual(["Other option", "Zero"]);
   await wrapper.get('[aria-label="Search for an option…"]').setValue("re");
   await new Promise((resolve) => setTimeout(resolve, 5));
   await flushPromises();
-  await wrapper
-    .get('[data-filter-rule="status"] .yayaw-filter-choice input')
-    .setValue(true);
+  await choice("Remote option").setValue(true);
   await flushPromises();
-  expect(wrapper.get('[data-filter-chip="status"]').text()).toContain(
-    "Remote option"
-  );
+  expect(choice("Remote option").element.checked).toBe(true);
+  expect(labels()).not.toContain("Alice");
+  expect(wrapper.get('[data-filter-chip="status"]').text()).toContain("Alice");
+  await choice("Matched by description").setValue(true);
+  await wrapper.get('[aria-label="Search for an option…"]').setValue("other");
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  await flushPromises();
+  expect(labels()).toEqual([
+    "Alice",
+    "Matched by description",
+    "Other option",
+    "Zero",
+  ]);
+  expect(choice("Alice").element.checked).toBe(true);
+  expect(choice("Matched by description").element.checked).toBe(true);
 });
 
 it("shows no settings badge on the host's default view, and counts what is added", async () => {

@@ -562,7 +562,7 @@ it("joins rules with or in the advanced filter", async () => {
   expect($("[data-filter-chip-advanced]")?.textContent).toContain("2 rules");
 });
 
-it("searches remote filter choices, keeps their labels and honors the minimum", async () => {
+it("filters static menu choices while preserving server matches and selected labels", async () => {
   const searches: string[] = [];
   const remote = {
     ...config,
@@ -574,14 +574,22 @@ it("searches remote filter choices, keeps their labels and honors the minimum", 
               ...column,
               type: "text" as const,
               filterType: "select" as const,
-              options: [],
+              options: [
+                { value: "open", label: "Open" },
+                { value: "lost", label: "Lost" },
+                { value: "local", label: "Won locally" },
+                { value: "cached", label: "Won cached" },
+              ],
               optionsSearchMinLength: 2,
-              optionsSearchDebounceMs: 0,
+              optionsSearchDebounceMs: 80,
               optionsLoader: (query: string) => {
                 searches.push(query);
                 return Promise.resolve(
                   query === "wo"
-                    ? [{ value: "won", label: "Won remotely" }]
+                    ? [
+                        { value: "won", label: "Qualified opportunity" },
+                        { value: "cached", label: "Server duplicate" },
+                      ]
                     : [{ value: "other", label: "Other remote" }]
                 );
               },
@@ -593,26 +601,45 @@ it("searches remote filter choices, keeps their labels and honors the minimum", 
   const { lastRules } = await render(remote);
   await openFilterScreen();
   await click($('[data-filter-property="status"]'));
+  const checkbox = (label: string) =>
+    [...document.querySelectorAll('[data-filter-rule="status"] label')]
+      .find((item) => item.textContent?.trim() === label)
+      ?.querySelector<HTMLInputElement>("input");
   expect(searches).toEqual([]);
+  await click(checkbox("Open"));
+  await type($('input[aria-label="Search for an option…"]'), "w");
+  expect(searches).toEqual([]);
+  expect(Boolean(checkbox("Lost"))).toBe(false);
   await type($('input[aria-label="Search for an option…"]'), "wo");
+  expect(searches).toEqual([]);
   await settle();
   expect(searches).toEqual(["wo"]);
+  expect(checkbox("Won locally")?.checked).toBe(false);
+  expect(checkbox("Qualified opportunity")?.checked).toBe(false);
+  expect(Boolean(checkbox("Won cached"))).toBe(false);
+  expect(checkbox("Server duplicate")?.checked).toBe(false);
+  expect(checkbox("Open")?.checked).toBe(true);
   await type($('input[aria-label="Search for an option…"]'), "ot");
   await settle();
   expect($('[data-filter-rule="status"]')?.textContent).not.toContain(
-    "Won remotely"
+    "Qualified opportunity"
   );
   await type($('input[aria-label="Search for an option…"]'), "wo");
   await settle();
-  await click($('[data-filter-rule="status"] input[type="checkbox"]'));
+  await click(checkbox("Qualified opportunity"));
   await type($('input[aria-label="Search for an option…"]'), "ot");
   await settle();
   expect(lastRules()).toEqual([
-    expect.objectContaining({ columnId: "status", values: ["won"] }),
+    expect.objectContaining({ columnId: "status", values: ["open", "won"] }),
   ]);
+  expect(checkbox("Open")?.checked).toBe(true);
+  expect(checkbox("Qualified opportunity")?.checked).toBe(true);
+  expect(checkbox("Other remote")?.checked).toBe(false);
+  expect(Boolean(checkbox("Won locally"))).toBe(false);
   expect($('[data-filter-chip="status"]')?.textContent).toContain(
-    "Won remotely"
+    "Qualified opportunity"
   );
+  expect(searches).toEqual(["wo", "ot", "wo", "ot"]);
 });
 
 it("shows no settings badge on the host's default view, and counts what is added", async () => {

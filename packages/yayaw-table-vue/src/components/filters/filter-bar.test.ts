@@ -312,15 +312,18 @@ it("keeps a date period in the toolbar with its days, and the Filter button open
   }
 });
 
-it("searches a quick filter's options on the server and keeps the selected label", async () => {
-  const optionsLoader = vi.fn(async (query: string) =>
-    [
-      { value: 7, label: "Launch call" },
-      { value: 8, label: "Lunch" },
-    ].filter((option) =>
-      option.label.toLowerCase().includes(query.toLowerCase())
-    )
-  );
+it("filters static quick-filter choices while preserving server matches and selected labels", async () => {
+  const optionsLoader = vi.fn((query: string) => {
+    if (query.toLowerCase() === "lau") {
+      return Promise.resolve([
+        { value: 7, label: "Launch call" },
+        { value: 9, label: "Matched by description" },
+      ]);
+    }
+    return Promise.resolve(
+      query === "lu" ? [{ value: 8, label: "Lunch" }] : []
+    );
+  });
   const list = vi.fn(async () => ({ data: [], meta: { totalCount: 0 } }));
   const remote = defineTableConfig({
     ...config,
@@ -332,7 +335,12 @@ it("searches a quick filter's options on the server and keeps the selected label
           id: "action",
           header: "Action",
           type: "multiSelect",
-          options: [],
+          options: [
+            { value: 0, label: "Zero" },
+            { value: 2, label: "Unrelated" },
+            { value: 3, label: "Launch static" },
+            { value: 7, label: "Launch call" },
+          ],
           optionsLoader,
           optionsSearchMinLength: 2,
           optionsSearchDebounceMs: 0,
@@ -362,24 +370,39 @@ it("searches a quick filter's options on the server and keeps the selected label
   await flushPromises();
   expect(document.body.textContent).toContain("Type at least 2 characters");
   expect(optionsLoader).not.toHaveBeenCalled();
+  checkbox("Zero").click();
+  await flushPromises();
   const search = document.querySelector<HTMLInputElement>(
     ".yayaw-filter-picker input[type=search]"
   );
   if (!search) {
     throw new Error("Missing search");
   }
-  search.value = "lau";
+  const labels = () =>
+    [...document.querySelectorAll(".yayaw-filter-picker .yayaw-filter-choice")]
+      .map((choice) => choice.textContent?.trim())
+      .sort();
+  search.value = " LAU ";
   search.dispatchEvent(new Event("input"));
   await new Promise((resolve) => setTimeout(resolve, 10));
   await flushPromises();
   expect(optionsLoader).toHaveBeenLastCalledWith(
-    "lau",
+    "LAU",
     expect.any(AbortSignal)
   );
+  expect(labels()).toEqual([
+    "Launch call",
+    "Launch static",
+    "Matched by description",
+    "Zero",
+  ]);
+  expect(checkbox("Zero").checked).toBe(true);
   checkbox("Launch call").click();
   await flushPromises();
+  checkbox("Matched by description").click();
+  await flushPromises();
   expect(list).toHaveBeenLastCalledWith(
-    expect.objectContaining({ filters: { action: [7] } })
+    expect.objectContaining({ filters: { action: [0, 7, 9] } })
   );
   search.value = "lu";
   search.dispatchEvent(new Event("input"));
@@ -388,6 +411,24 @@ it("searches a quick filter's options on the server and keeps the selected label
   // The selection keeps its label beside other results.
   expect(checkbox("Launch call").checked).toBe(true);
   expect(checkbox("Lunch").checked).toBe(false);
+  expect(labels()).toEqual([
+    "Launch call",
+    "Lunch",
+    "Matched by description",
+    "Zero",
+  ]);
+  expect(checkbox("Matched by description").checked).toBe(true);
+  search.value = "missing";
+  search.dispatchEvent(new Event("input"));
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  await flushPromises();
+  expect(labels()).toEqual(["Launch call", "Matched by description", "Zero"]);
+  checkbox("Zero").click();
+  checkbox("Launch call").click();
+  checkbox("Matched by description").click();
+  await flushPromises();
+  expect(labels()).toEqual([]);
+  expect(document.body.textContent).toContain("No results");
 });
 
 it("picks one value or All in a single-choice quick filter, stored alone and shown on the trigger", async () => {
@@ -484,7 +525,49 @@ it("picks one value or All in a single-choice quick filter, stored alone and sho
   ).not.toContain(":");
 });
 
-it("draws the first 100 choices of a long quick filter and says how to reach the others", async () => {
+it("does not restore boolean defaults when a remote search has no match", async () => {
+  const optionsLoader = vi.fn(async () => []);
+  const remote = defineTableConfig({
+    ...config,
+    columns: {
+      ...config.columns,
+      definitions: config.columns.definitions.map((column) =>
+        column.id === "active"
+          ? { ...column, optionsLoader, optionsSearchDebounceMs: 0 }
+          : column
+      ),
+    },
+  });
+  const wrapper = mount(YayawDataTable, {
+    props: { tableType: remote.id, config: remote, data: [] },
+    attachTo: document.body,
+    global: {
+      stubs: {
+        PopperArrow: true,
+        PopperContent: { template: "<div><slot /></div>" },
+      },
+    },
+  });
+  await flushPromises();
+  await wrapper.get('.yayaw-filter-bar [aria-label="Active"]').trigger("click");
+  await flushPromises();
+  await wrapper
+    .get('.yayaw-filter-picker input[type="search"]')
+    .setValue("missing");
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  await flushPromises();
+  expect(optionsLoader).toHaveBeenLastCalledWith(
+    "missing",
+    expect.any(AbortSignal)
+  );
+  expect(wrapper.findAll(".yayaw-filter-choice")).toHaveLength(0);
+  expect(wrapper.get(".yayaw-filter-picker").text()).toContain("No results");
+});
+
+it.each([
+  "single",
+  "multiple",
+] as const)("keeps search mounted while narrowing a long %s quick filter", async (filterSelection) => {
   const long = defineTableConfig({
     ...config,
     id: "long-filter",
@@ -496,6 +579,7 @@ it("draws the first 100 choices of a long quick filter and says how to reach the
           id: "supplier",
           header: "Supplier",
           type: "select",
+          filterSelection,
           options: Array.from({ length: 250 }, (_, index) => ({
             value: index + 1,
             label: `Supplier ${String(index + 1).padStart(3, "0")}`,
@@ -528,7 +612,7 @@ it("draws the first 100 choices of a long quick filter and says how to reach the
     .trigger("click");
   await flushPromises();
   const choices = () => document.querySelectorAll(".yayaw-filter-choice");
-  expect(choices()).toHaveLength(100);
+  expect(choices()).toHaveLength(filterSelection === "single" ? 101 : 100);
   expect(document.body.textContent).toContain(
     "150 more: type to narrow the list"
   );
@@ -541,7 +625,10 @@ it("draws the first 100 choices of a long quick filter and says how to reach the
   search.value = "240";
   search.dispatchEvent(new Event("input"));
   await flushPromises();
-  expect([...choices()].map((choice) => choice.textContent?.trim())).toEqual([
-    "Supplier 240",
-  ]);
+  expect([...choices()].map((choice) => choice.textContent?.trim())).toEqual(
+    filterSelection === "single" ? ["All", "Supplier 240"] : ["Supplier 240"]
+  );
+  expect(
+    document.querySelector(".yayaw-filter-picker input[type=search]")
+  ).toBe(search);
 });
