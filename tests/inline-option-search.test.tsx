@@ -105,6 +105,27 @@ async function fill(value: string) {
     await settle();
   });
 }
+async function pressKey(key: string) {
+  await act(async () => {
+    search().dispatchEvent(
+      new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true })
+    );
+    await settle();
+  });
+}
+async function confirmHighlightedOption(label: string) {
+  await waitFor(() => choices().some((option) => option.textContent === label));
+  await pressKey("ArrowDown");
+  const highlighted = required(
+    document.getElementById(
+      search().getAttribute("aria-activedescendant") ?? ""
+    )
+  );
+  const text = highlighted.textContent;
+  await pressKey("Enter");
+  return text;
+}
+
 async function clickOption(label: string) {
   await waitFor(() => choices().some((option) => option.textContent === label));
   await act(async () => {
@@ -184,6 +205,7 @@ it("adds server results to an inline multi-select and keeps their labels", async
   await fill("strat");
   await clickOption("Strategies Newsletter");
   expect(container.textContent).toContain("Strategies Newsletter");
+  expect(writes).toEqual([]);
   await act(async () => {
     const outside = required(
       container.querySelector<HTMLButtonElement>("[data-outside]")
@@ -194,6 +216,28 @@ it("adds server results to an inline multi-select and keeps their labels", async
     await settle();
   });
   expect(writes).toEqual([[1, 42]]);
+});
+
+it("adds the highlighted result with Enter and saves the inline multi-select", async () => {
+  const writes: unknown[] = [];
+  await setup(
+    "multiSelect",
+    {
+      search: searchFor([], [{ value: 42, label: "Strategies Newsletter" }]),
+      minLength: 2,
+      debounceMs: 0,
+    },
+    (value) => {
+      writes.push(value);
+      return Promise.resolve({ success: true });
+    }
+  );
+  await fill("strat");
+  expect(await confirmHighlightedOption("Strategies Newsletter")).toBe(
+    "Strategies Newsletter"
+  );
+  expect(writes).toEqual([[1, 42]]);
+  expect(container.querySelector('[role="combobox"]')).toBeNull();
 });
 
 it("shows a failed server search in the list and keeps the editor open", async () => {
@@ -282,6 +326,40 @@ it("creates an option from an inline multi-select search and adds it to the sele
   expect(container.textContent).toContain("Rumble Weekly");
   await leaveEditor();
   expect(writes).toEqual([[1, 77]]);
+});
+
+it("waits for a highlighted creation before saving the inline multi-select", async () => {
+  let finish: (option: { value: number; label: string }) => void = () =>
+    undefined;
+  const promise = new Promise<{ value: number; label: string }>((resolve) => {
+    finish = resolve;
+  });
+  const writes: unknown[] = [];
+  await setup(
+    "multiSelect",
+    {
+      search: () => Promise.resolve([]),
+      create: () => promise,
+      minLength: 2,
+      debounceMs: 0,
+    },
+    (value) => {
+      writes.push(value);
+      return Promise.resolve({ success: true });
+    }
+  );
+  await fill("Rumble");
+  expect(await confirmHighlightedOption('Create "Rumble"')).toBe(
+    'Create "Rumble"'
+  );
+  await leaveEditor();
+  expect(writes).toEqual([]);
+  await act(async () => {
+    finish({ value: 77, label: "Rumble Weekly" });
+    await settle();
+  });
+  expect(writes).toEqual([[1, 77]]);
+  expect(container.querySelector('[role="combobox"]')).toBeNull();
 });
 
 it("keeps the multi-select editor while an option is created outside it", async () => {

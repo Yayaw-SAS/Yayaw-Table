@@ -57,15 +57,20 @@ const moreText = computed(() => filterMenuText("moreOptions", context.locale, (n
 }).replace("{count}", String(limited.value.hidden)));
 const selectedKeys = computed(() => selected.value.map(keyFor));
 const selectedOptions = computed(() => selectedKeys.value.map(key => choices.value.find(option => option.key === key)!));
+let confirmSelection = false;
 const update = (value: string | string[] | null | undefined): void => {
   const keys = Array.isArray(value) ? value : value == null ? [] : [value];
   if (keys.includes(CREATE_KEY)) {
     void createOption();
     return;
   }
-  const values = keys.map(key => choices.value.find(option => option.key === key)!.value);
+  const confirm = confirmSelection;
+  confirmSelection = false;
+  const nextKeys = confirm ? [...new Set([...selectedKeys.value, ...keys])] : keys;
+  const values = nextKeys.map(key => choices.value.find(option => option.key === key)!.value);
   if (props.multiple) {
     emit("update:modelValue", values);
+    if (confirm) emit("commit");
     return;
   }
   emit("update:modelValue", values[0] ?? null);
@@ -76,6 +81,19 @@ const remove = (key: string): void => {
   if (props.disabled || choices.value.find(option => option.key === key)?.disabled) return;
   update(props.multiple ? selectedKeys.value.filter(value => value !== key) : []);
   void nextTick(() => anchor.value?.querySelector("input")?.focus());
+};
+const onKeydownCapture = (event: KeyboardEvent): void => {
+  if (event.key !== "Enter" || event.isComposing || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+  if (creating.value) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    return;
+  }
+  if (!props.multiple || !(event.target as HTMLElement).getAttribute("aria-activedescendant")) return;
+  // Reka picks the option by issuing a click from this key event.
+  // Keep the intent through the browser's microtask checkpoint between listeners.
+  confirmSelection = true;
+  setTimeout(() => { confirmSelection = false; }, 0);
 };
 const onKeydown = (event: KeyboardEvent): void => {
   if (event.isComposing) return;
@@ -88,7 +106,7 @@ const onKeydown = (event: KeyboardEvent): void => {
     event.stopPropagation();
     if (!(event.target as HTMLElement).getAttribute("aria-activedescendant")) {
       event.preventDefault();
-      emit("commit");
+      if (!creating.value) emit("commit");
     }
   } else if (event.key === "Backspace" && props.multiple && !query.value && selectedOptions.value.length) {
     event.preventDefault();
@@ -102,11 +120,14 @@ const createLabel = computed(() =>
   translate("inline.create_option", 'Create "{label}"').replace("{label}", createText.value)
 );
 const createOption = async (): Promise<void> => {
+  const confirm = confirmSelection;
+  confirmSelection = false;
   const option = await persistOption();
   if (!option) return;
   if (props.multiple) {
     emit("update:modelValue", [...selected.value.filter(value => keyFor(value) !== keyFor(option.value)), option.value]);
-    anchor.value?.querySelector("input")?.focus();
+    if (confirm) emit("commit");
+    else anchor.value?.querySelector("input")?.focus();
     return;
   }
   emit("update:modelValue", option.value);
@@ -166,7 +187,7 @@ onMounted(async () => {
           <button v-if="!option.disabled" type="button" :aria-label="`${translate('remove', 'Remove')} ${option.label}`" :disabled="disabled || option.disabled" @click.stop="remove(option.key)"><X :size="12" aria-hidden="true" /></button>
         </span>
         </div>
-        <ComboboxInput v-model="query" :display-value="() => ''" class="yayaw-inline-search" :aria-label="label" :placeholder="selected.length ? undefined : translate('inline.select_no_options', 'Select an option')" autocomplete="off" @keydown="onKeydown" />
+        <ComboboxInput v-model="query" :display-value="() => ''" class="yayaw-inline-search" :aria-label="label" :placeholder="selected.length ? undefined : translate('inline.select_no_options', 'Select an option')" autocomplete="off" @keydown.capture="onKeydownCapture" @keydown="onKeydown" />
       </div>
     </ComboboxAnchor>
 

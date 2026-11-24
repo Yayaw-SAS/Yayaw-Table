@@ -327,8 +327,10 @@ retry. Escape cancels changes that have not been submitted. An in-flight write
 cannot be undone by Escape. Unchanged dismissal does not issue an update.
 `showDelayIndicator` displays the same thin debounce progress bar in both editions
 and keeps it visible while saving, with reduced-motion support. Arrow keys
-highlight options, Enter toggles the highlighted option or commits when none is
-highlighted, and Backspace removes the last enabled chip when search is empty.
+highlight options. Enter adds the highlighted option and saves, or saves the
+current selection when nothing is highlighted. Clicks still allow multiple
+changes in one edit. Enter on **Create…** waits for the saved option before
+committing the cell. Backspace removes the last enabled chip when search is empty.
 
 A `select` or `multiSelect` form field with `searchOptions` edits inline in
 both editions (other field types with `searchOptions` still open the full

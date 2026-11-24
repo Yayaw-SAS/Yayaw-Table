@@ -404,8 +404,16 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     setCreatedOptions([]);
     setCreateError(undefined);
     createRequest.current?.abort();
+    createRequest.current = undefined;
+    setCreating(false);
   }, [isEditing]);
-  useEffect(() => () => createRequest.current?.abort(), []);
+  useEffect(
+    () => () => {
+      createRequest.current?.abort();
+      createRequest.current = undefined;
+    },
+    []
+  );
   const openedValues = useMemo(
     () =>
       getEditorCurrentValues(resolvedEditor, cell.getValue())
@@ -481,54 +489,62 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
         createText.toLocaleLowerCase()
     );
   const addCreatedOption = useCallback(
-    (created: InlineEditOption) => {
+    (created: InlineEditOption, confirm: boolean) => {
       // The commit parses against these options before the next render.
       searchedOptions.current = rememberOptions(searchedOptions.current, [
         created,
       ]);
       setCreatedOptions((previous) => rememberOptions(previous, [created]));
       setSearchQuery("");
-      if (resolvedEditor === "select") {
-        updateDraftValue(created.value, { disableAutoSave: true });
+      const single = resolvedEditor === "select";
+      const current = Array.isArray(editorValue) ? editorValue : [];
+      const nextValue = single
+        ? created.value
+        : [
+            ...current.filter((value) => !Object.is(value, created.value)),
+            created.value,
+          ];
+      updateDraftValue(nextValue, { disableAutoSave: single || confirm });
+      if (single || confirm) {
         commitAndClose().catch(() => undefined);
         return;
       }
-      const current = Array.isArray(editorValue) ? editorValue : [];
-      updateDraftValue([
-        ...current.filter((value) => !Object.is(value, created.value)),
-        created.value,
-      ]);
       // Back from the app's own form: the editor goes on with the new option chosen.
       searchInput.current?.focus();
     },
     [commitAndClose, editorValue, resolvedEditor, updateDraftValue]
   );
-  const createOption = useCallback(async () => {
-    const create = optionSearch?.create;
-    if (!(create && createText) || creating) {
-      return;
-    }
-    createRequest.current?.abort();
-    const request = new AbortController();
-    createRequest.current = request;
-    setCreating(true);
-    setCreateError(undefined);
-    try {
-      const option = await create(createText, request.signal);
-      if (request.signal.aborted) {
+  const createOption = useCallback(
+    async (confirm: boolean) => {
+      const create = optionSearch?.create;
+      if (!(create && createText) || createRequest.current) {
         return;
       }
-      addCreatedOption(persistedOption(option));
-    } catch (cause) {
-      if (!request.signal.aborted) {
-        setCreateError(cause instanceof Error ? cause.message : String(cause));
+      const request = new AbortController();
+      createRequest.current = request;
+      setCreating(true);
+      setCreateError(undefined);
+      try {
+        const option = await create(createText, request.signal);
+        if (request.signal.aborted) {
+          return;
+        }
+        addCreatedOption(persistedOption(option), confirm);
+      } catch (cause) {
+        if (!request.signal.aborted) {
+          setCreateError(
+            cause instanceof Error ? cause.message : String(cause)
+          );
+        }
+      } finally {
+        if (createRequest.current === request) {
+          createRequest.current = undefined;
+          setCreating(false);
+        }
       }
-    } finally {
-      if (!request.signal.aborted) {
-        setCreating(false);
-      }
-    }
-  }, [addCreatedOption, createText, creating, optionSearch?.create]);
+    },
+    [addCreatedOption, createText, optionSearch?.create]
+  );
   const hiddenOptions = hiddenMatches(selectOptions, (option) =>
     filterOption(option.value, searchQuery)
   );
@@ -652,7 +668,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
 
   /** The chips list's new selection, a searched single select committing its one choice. */
   const chooseValues = useCallback(
-    (values: unknown) => {
+    (values: unknown, confirm: boolean) => {
       const nextValues = Array.isArray(values)
         ? values.map((value) => String(value))
         : [];
@@ -665,6 +681,15 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
           { disableAutoSave: true }
         );
         // A single choice is the whole edit, as with a select.
+        commitAndClose().catch(() => undefined);
+        return;
+      }
+      if (confirm) {
+        // A confirmed option stays selected even if the list proposed toggling it off.
+        const keys = [...new Set([...selectedMultiValues, ...nextValues])];
+        updateDraftValue(keys.map(optionControlValue), {
+          disableAutoSave: true,
+        });
         commitAndClose().catch(() => undefined);
         return;
       }
@@ -712,16 +737,24 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
             return;
           }
           // A creation in progress keeps the editor, so the app can show its own form over it.
-          if (!(open || creating)) {
+          if (!(open || createRequest.current)) {
             commitAndClose().catch(() => undefined);
           }
         }}
-        onValueChange={(values) => {
+        onValueChange={(values, details) => {
+          const event = details.event;
+          // Base UI forwards the original key event for a highlighted choice.
+          const confirm =
+            event?.type === "keydown" &&
+            "key" in event &&
+            event.key === "Enter";
           if (Array.isArray(values) && values.includes(CREATE_OPTION_ITEM)) {
-            createOption().catch(() => undefined);
+            createOption(confirm).catch(() => undefined);
             return;
           }
-          chooseValues(values);
+          if (!(confirm && createRequest.current)) {
+            chooseValues(values, confirm);
+          }
         }}
         open
         value={selectedMultiValues}
@@ -771,7 +804,9 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
                   !event.currentTarget.getAttribute("aria-activedescendant")
                 ) {
                   event.preventDefault();
-                  commitAndClose().catch(() => undefined);
+                  if (!createRequest.current) {
+                    commitAndClose().catch(() => undefined);
+                  }
                 }
               }
             }}

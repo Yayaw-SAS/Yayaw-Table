@@ -639,6 +639,7 @@ it("adds server results to an inline multi-select and keeps their labels", async
   await popup().get('[role="option"]').trigger("click");
   await settle();
   expect(wrapper.text()).toContain("Strategies Newsletter");
+  expect(update).not.toHaveBeenCalled();
   const outside = document.createElement("button");
   document.body.append(outside);
   outside.focus();
@@ -701,6 +702,72 @@ it("creates an option from an inline multi-select search and adds it to the sele
     { media: [1, 77] },
     { row: { id: "1", media: [1] } }
   );
+});
+
+it("adds the highlighted result with Enter and saves an inline multi-select", async () => {
+  const { wrapper, update } = createCell({
+    row: { id: "1", media: [1] },
+    column: mediaColumn("multiSelect"),
+    form: mediaForm("multiSelect", async () => [
+      { value: 42, label: "Strategies Newsletter" },
+    ]),
+  });
+  await wrapper.trigger("click");
+  await settle();
+  const input = wrapper.get('input[role="combobox"]');
+  await input.setValue("strat");
+  await settle();
+  await input.trigger("keydown", { key: "ArrowDown" });
+  expect(input.attributes("aria-activedescendant")).toBe(
+    popup().get('[role="option"]').attributes("id")
+  );
+  await input.trigger("keydown", { key: "Enter" });
+  await settle();
+  expect(update).toHaveBeenCalledExactlyOnceWith(
+    "1",
+    { media: [1, 42] },
+    {
+      row: { id: "1", media: [1] },
+    }
+  );
+  expect(wrapper.find('input[role="combobox"]').exists()).toBe(false);
+});
+
+it("waits for a highlighted creation before saving an inline multi-select", async () => {
+  let finish: (option: { value: number; label: string }) => void = () =>
+    undefined;
+  const promise = new Promise<{ value: number; label: string }>((resolve) => {
+    finish = resolve;
+  });
+  const createOption = vi.fn(() => promise);
+  const { wrapper, update } = createCell({
+    row: { id: "1", media: [1] },
+    column: mediaColumn("multiSelect"),
+    form: mediaForm("multiSelect", async () => [], createOption),
+  });
+  await wrapper.trigger("click");
+  await settle();
+  const input = wrapper.get('input[role="combobox"]');
+  await input.setValue("Rumble");
+  await settle();
+  await input.trigger("keydown", { key: "ArrowDown" });
+  expect(input.attributes("aria-activedescendant")).toBe(
+    popup().get('[role="option"]').attributes("id")
+  );
+  await input.trigger("keydown", { key: "Enter" });
+  await settle();
+  expect(createOption).toHaveBeenCalledTimes(1);
+  expect(update).not.toHaveBeenCalled();
+  finish({ value: 77, label: "Rumble Weekly" });
+  await settle();
+  expect(update).toHaveBeenCalledExactlyOnceWith(
+    "1",
+    { media: [1, 77] },
+    {
+      row: { id: "1", media: [1] },
+    }
+  );
+  expect(wrapper.find('input[role="combobox"]').exists()).toBe(false);
 });
 
 it("keeps the multi-select editor while an option is created outside it", async () => {
