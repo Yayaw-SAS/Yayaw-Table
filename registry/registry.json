@@ -778,6 +778,11 @@
           "target": "components/ui/yayaw-table/components/location/location-editor.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/option-icon.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/option-icon.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/records/record-surface.css",
           "type": "registry:style",
           "target": "components/ui/yayaw-table/components/records/record-surface.css"
@@ -1801,6 +1806,11 @@
           "path": "registry/default/ui/yayaw-table/utils/number-format.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/number-format.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/option-icon.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/option-icon.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/record-details.ts",

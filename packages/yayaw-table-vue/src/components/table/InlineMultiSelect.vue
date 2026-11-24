@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import OptionIcon from "../OptionIcon.vue";
 import { computed, nextTick, onMounted, ref } from "vue";
 import { Check, X } from "lucide-vue-next";
 import {
@@ -146,6 +147,7 @@ onMounted(async () => {
         <div v-if="search && ((!visible.length && !createsOption) || searchError || createError || resolveError || searching || resolving)" class="yayaw-inline-empty" :role="searchError || createError || resolveError ? 'alert' : 'status'">{{ emptyText }}</div>
         <div v-else-if="!search && !visible.length" class="yayaw-inline-empty" role="status">{{ emptyText }}</div>
         <ComboboxItem v-for="option in visible" :key="option.key" :value="option.key" :text-value="option.label" :disabled="option.disabled" class="yayaw-inline-option">
+          <OptionIcon :option="option" />
           {{ option.label }}
           <ComboboxItemIndicator class="yayaw-inline-check"><Check :size="16" aria-hidden="true" /></ComboboxItemIndicator>
         </ComboboxItem>
@@ -159,6 +161,7 @@ onMounted(async () => {
       <div class="yayaw-inline-editor yayaw-inline-selection">
         <div class="yayaw-inline-chips">
         <span v-for="option in selectedOptions" :key="option.key" class="yayaw-inline-chip">
+          <OptionIcon :option="option" />
           {{ option.label }}
           <button v-if="!option.disabled" type="button" :aria-label="`${translate('remove', 'Remove')} ${option.label}`" :disabled="disabled || option.disabled" @click.stop="remove(option.key)"><X :size="12" aria-hidden="true" /></button>
         </span>

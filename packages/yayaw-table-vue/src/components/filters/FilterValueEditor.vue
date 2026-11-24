@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import OptionIcon from "../OptionIcon.vue";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRemoteFilterOptions } from "../../composables/use-remote-filter-options";
 import { useTableContext } from "../../context";
@@ -195,6 +196,7 @@ onMounted(() => {
           <label v-for="option in visibleOptions" :key="`${typeof option.value}:${option.value}`" class="yayaw-filter-choice">
             <input type="checkbox" :checked="checked(option)" :disabled="option.disabled" @change="toggle(option)" />
             <span v-if="tagSwatch(option)" class="yayaw-tag-swatch" :style="tagSwatch(option)" aria-hidden="true" />
+            <OptionIcon :option="option" />
             <span>{{ option.label }}</span>
           </label>
           <p v-if="loadingOptions || optionsFailed || search.trim().length < searchMinimum" class="yayaw-help" role="status">{{ loadingOptions ? text('loadingOptions') : optionsFailed ? text('optionsError') : text('searchMinimum').replace('{count}', String(searchMinimum)) }}</p>

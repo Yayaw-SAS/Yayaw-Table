@@ -8,7 +8,12 @@ interface RemoteColumn {
     query: string,
     signal?: AbortSignal
   ) => Promise<
-    { value: string | number | boolean; label: string; disabled?: boolean }[]
+    {
+      value: string | number | boolean;
+      label: string;
+      disabled?: boolean;
+      iconUrl?: string;
+    }[]
   >;
   optionsSearchMinLength?: number;
   optionsSearchDebounceMs?: number;
@@ -29,7 +34,7 @@ export function useRemoteFilterOptions(
   enabled = true
 ) {
   const [loaded, setLoaded] = useState<
-    { value: unknown; label: string; disabled?: boolean }[]
+    { value: unknown; label: string; disabled?: boolean; iconUrl?: string }[]
   >([]);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);

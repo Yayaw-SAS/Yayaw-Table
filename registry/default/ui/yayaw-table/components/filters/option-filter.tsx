@@ -25,6 +25,7 @@ import {
   filterMenuText,
 } from "../../utils/filter-menu";
 import { limitOptions } from "../../utils/table-contracts";
+import { OptionIcon } from "../option-icon";
 
 /** Up to this many choices, a single-choice filter shows them without a search field. */
 const SINGLE_CHOICE_SEARCH_THRESHOLD = 8;
@@ -69,10 +70,13 @@ export function OptionFilter({
   const checked = (candidate: unknown) =>
     selected.some((item) => filterValueKey(item) === filterValueKey(candidate));
   const single = column.filterSelection === "single";
+  const selectedOption =
+    single && selected.length
+      ? options.find((option) => checked(option.value))
+      : undefined;
   const current =
     single && selected.length
-      ? (options.find((option) => checked(option.value))?.label ??
-        String(selected[0]))
+      ? (selectedOption?.label ?? String(selected[0]))
       : undefined;
   const searchable =
     !single ||
@@ -132,7 +136,11 @@ export function OptionFilter({
           {column.header}
           {current !== undefined && (
             <>
-              : <span className="font-medium">{current}</span>
+              :{" "}
+              <span className="font-medium">
+                <OptionIcon className="me-1.5" option={selectedOption} />
+                {current}
+              </span>
             </>
           )}
         </span>
@@ -188,6 +196,7 @@ export function OptionFilter({
                     }
                     type="radio"
                   />
+                  <OptionIcon option={option} />
                   <span>{option.label}</span>
                 </label>
               )
@@ -224,6 +233,7 @@ export function OptionFilter({
                   }
                   type="checkbox"
                 />
+                <OptionIcon option={option} />
                 <span>{option.label}</span>
               </label>
             ))}

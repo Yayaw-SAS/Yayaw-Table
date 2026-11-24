@@ -4,7 +4,6 @@
 "use client";
 
 import { useId } from "react";
-
 import {
   Field,
   FieldDescription,
@@ -24,6 +23,7 @@ import {
   optionControlKey,
   optionControlValue,
 } from "../../../utils/table-contracts";
+import { OptionIcon } from "../../option-icon";
 import type { FormFieldApi, SelectFieldDefinition } from "../types";
 import { FormSelectContent } from "./form-select-content";
 import { OptionCombobox } from "./option-combobox";
@@ -58,6 +58,7 @@ export function SelectField<TFieldValues extends Record<string, unknown>>({
       ? null
       : optionControlKey(value);
 
+  const selected = options.find((option) => Object.is(option.value, value));
   const label = field.labelKey ? t(field.labelKey) : field.label;
   return (
     <Field data-invalid={!fieldApi.state.meta.isValid}>
@@ -108,6 +109,7 @@ export function SelectField<TFieldValues extends Record<string, unknown>>({
             id={controlId}
             onBlur={fieldApi.handleBlur}
           >
+            <OptionIcon option={selected} />
             <SelectValue
               placeholder={
                 (field.placeholderKey
@@ -123,6 +125,7 @@ export function SelectField<TFieldValues extends Record<string, unknown>>({
                 key={optionControlKey(option.value)}
                 value={optionControlKey(option.value)}
               >
+                <OptionIcon option={option} />
                 {field.optionKeys?.[index]
                   ? t(field.optionKeys[index])
                   : option.label}

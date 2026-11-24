@@ -47,6 +47,7 @@ for (const file of [
   "metric-format.ts",
   "date-filter-days.ts",
   "filter-menu.ts",
+  "option-icon.ts",
   "filetree-model.ts",
   "filetree-controller.ts",
   "folder-directory.ts",

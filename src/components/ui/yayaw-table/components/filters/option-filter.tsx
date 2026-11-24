@@ -1,5 +1,6 @@
 "use client";
 
+import { OptionIcon } from "../option-icon";
 import { ChevronDown, Filter } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/src/components/ui/button";
@@ -36,7 +37,8 @@ export function OptionFilter({ tableId, column, value, onChange }: {
   );
   const checked = (candidate: unknown) => selected.some(item => filterValueKey(item) === filterValueKey(candidate));
   const single = column.filterSelection === "single";
-  const current = single && selected.length ? options.find(option => checked(option.value))?.label ?? String(selected[0]) : undefined;
+  const selectedOption = single && selected.length ? options.find(option => checked(option.value)) : undefined;
+  const current = single && selected.length ? selectedOption?.label ?? String(selected[0]) : undefined;
   const searchable = !single || Boolean(column.optionsLoader) || options.length > SINGLE_CHOICE_SEARCH_THRESHOLD;
   const pick = (candidate: unknown) => { onChange(candidate); setOpen(false); };
   const remoteValues = new Set(remote.loaded.map(option => filterValueKey(option.value)));
@@ -57,7 +59,7 @@ export function OptionFilter({ tableId, column, value, onChange }: {
     <Popover onOpenChange={(next) => { setOpen(next); setSearch(""); }} open={open}>
       <PopoverTrigger render={<Button aria-label={column.header} className="h-8 max-w-full gap-2 px-3 font-normal text-xs leading-4 data-[active]:bg-accent" data-active={selected.length > 0 || undefined} type="button" variant="outline" />}>
         <Filter aria-hidden="true" className="size-4 shrink-0" />
-        <span className="truncate">{column.header}{current !== undefined && <>: <span className="font-medium">{current}</span></>}</span>
+        <span className="truncate">{column.header}{current !== undefined && <>: <span className="font-medium"><OptionIcon className="me-1.5" option={selectedOption} />{current}</span></>}</span>
         {!single && selected.length > 0 && <span className="rounded-sm bg-muted px-1.5 text-xs">{selected.length}</span>}
         <ChevronDown aria-hidden="true" className="size-3 shrink-0" />
       </PopoverTrigger>
@@ -67,12 +69,14 @@ export function OptionFilter({ tableId, column, value, onChange }: {
         {single ? <fieldset aria-label={column.header} className="m-0 grid max-h-60 min-w-0 gap-0.5 overflow-auto border-0 p-0">
           {[{ value: undefined, label: menuText("all") }, ...visible].map((option, index) => <label className={`flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent ${index === 0 ? "border-b" : ""}`} key={option.value === undefined ? "all" : filterValueKey(option.value)}>
             <input checked={option.value === undefined ? !selected.length : checked(option.value)} disabled={"disabled" in option && option.disabled} name={`${tableId}-${column.id}-quick-filter`} onChange={() => pick(option.value === undefined ? [] : option.value)} type="radio" />
+            <OptionIcon option={option} />
             <span>{option.label}</span>
           </label>)}
           {status && <output className="block p-2 text-muted-foreground text-sm">{status}</output>}
         </fieldset> : <fieldset aria-label={column.header} className="m-0 max-h-60 min-w-0 overflow-auto border-0 p-0">
           {visible.map(option => <label className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent" key={filterValueKey(option.value)}>
             <input checked={checked(option.value)} disabled={option.disabled} onChange={() => onChange(checked(option.value) ? selected.filter(item => filterValueKey(item) !== filterValueKey(option.value)) : [...selected, option.value])} type="checkbox" />
+            <OptionIcon option={option} />
             <span>{option.label}</span>
           </label>)}
           {status && <output className="block p-2 text-muted-foreground text-sm">{status}</output>}

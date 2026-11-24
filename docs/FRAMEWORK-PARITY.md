@@ -221,6 +221,14 @@ Equivalent regression tests exercise saved density, legacy defaults, block field
 
 `searchable: true` on a `select` or `multiSelect` field replaces the dropdown or checkbox list with a button opening a list that filters as you type, for long option lists (countries, organisations). The search takes the focus when the list opens; it keeps options whose label contains the text, ignoring case and accents (React passes its own filter to cmdk instead of the fuzzy match). One pick shows on the button with a Remove button; several show as removable chips with their count on the button, and the search empties after each pick so several can be typed in a row. Values stay typed (`optionControlKey`), and a stored value missing from the options still shows. Labels come from `form-view` (`searchOptions`, `noMatchingOption`, `removeOption`, in English and French). React renders `fields/option-combobox.tsx` (Popover and Command), Vue `FieldCombobox.vue` (Reka Combobox). Tag fields keep the tag picker, and `searchOptions` keeps its own search input for now. The records example (`examples/record-presentation.ts`) declares Origin and Markets; `e2e/searchable-fields.spec.ts` runs the same steps in both editions, with unit coverage in `multi-select-field.test.tsx` and `form-components.test.ts`.
 
+In both editions, a select option can declare `iconUrl` for a monochrome image,
+such as an SVG logo. Inline select lists and chips, form selects and comboboxes,
+and quick and advanced filter choices show the image before the label. A 1rem
+CSS mask follows the label's color in light and dark themes and is hidden from
+assistive technology. Missing and empty URLs leave the label as before. React's
+existing `ColumnOption.icon` component API remains available. Both editions test
+the URL handling and icon rendering in `option-icon.test.ts`.
+
 Both editions also support the declarative `tablePicker` field. It embeds a read-only table with local or server data, search, filters, sorting, pagination, saved views, and controlled single or multiple selection. Selection survives query changes, `parseValue` preserves typed IDs, and the nested table keeps its state out of the page URL unless `syncUrl: true` is explicit.
 
 The following React configuration illustrates the shared form features:

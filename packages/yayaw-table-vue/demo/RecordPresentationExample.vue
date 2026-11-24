@@ -10,7 +10,7 @@ const rows = ref<TableRecord[]>(structuredClone(presentationRows));
 const config = computed(() => defineTableConfig({
   id: "record-presentation", presentation: { desktop: desktop.value, mobile: mobile.value },
   columns: { definitions: presentationColumns, order: presentationColumns.map(column => column.id), visible: ["name", "category", "status", "price", "active"], mandatory: [] },
-  table: { syncUrl: false, gallery: presentationGallery, coloredTags: false, defaultDisplayMode: "gallery", rowClickMode: "activate", displayModes: ["table", "gallery", "kanban"], kanban: { groupBy: "status" } },
+  table: { syncUrl: false, gallery: presentationGallery, coloredTags: false, filterBarColumns: ["category"], showFilterBar: true, defaultDisplayMode: "gallery", rowClickMode: "activate", displayModes: ["table", "gallery", "kanban"], kanban: { groupBy: "status" } },
   translations: { namespace: "records", keys: { title: "Products" } },
 }));
 const activity = createRecordActivity(presentationRows, next => { rows.value = next; });

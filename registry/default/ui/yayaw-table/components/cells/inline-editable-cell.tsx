@@ -72,6 +72,7 @@ import {
 import { TableTooltip } from "../../utils/table-tooltip";
 import type { AnyFieldDefinition } from "../forms/types";
 import { LocationEditor } from "../location/location-editor";
+import { OptionIcon } from "../option-icon";
 import { TagPicker } from "../tags/tag-picker";
 import { ImageCellEditingContext } from "./image-cell";
 
@@ -148,6 +149,7 @@ function InlineEditorIconChip({
 }
 
 interface NormalizedSelectOption {
+  iconUrl?: string;
   disabled?: boolean;
   label: string;
   value: string;
@@ -192,6 +194,7 @@ function normalizeSelectOptions({
       label: option.label,
       value: normalizedValue,
       disabled: option.disabled,
+      iconUrl: option.iconUrl,
     });
   }
 
@@ -594,6 +597,8 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
   }, [editorValue, handleEditorBlur, t, updateDraftValue]);
 
   const renderSelectEditor = useCallback(() => {
+    const value = optionControlKey(editorValue);
+    const selected = selectOptions.find((option) => option.value === value);
     return (
       <Select
         items={selectOptions}
@@ -610,9 +615,10 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
           updateDraftValue(value == null ? "" : optionControlValue(value));
         }}
         open
-        value={optionControlKey(editorValue)}
+        value={value}
       >
         <SelectTrigger className="h-8 w-full">
+          <OptionIcon option={selected} />
           <SelectValue placeholder={t("inline.select_no_options")} />
         </SelectTrigger>
         <SelectContent>
@@ -627,6 +633,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
                 key={option.value}
                 value={option.value}
               >
+                <OptionIcon option={option} />
                 {option.label}
               </SelectItem>
             ))
@@ -734,6 +741,11 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
                   )?.disabled
                 }
               >
+                <OptionIcon
+                  option={selectOptions.find(
+                    (option) => option.value === selectedValue
+                  )}
+                />
                 {getOptionLabel(selectedValue)}
               </ComboboxChip>
             ))}
@@ -794,6 +806,11 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
                 key={value}
                 value={value}
               >
+                <OptionIcon
+                  option={selectOptions.find(
+                    (option) => option.value === value
+                  )}
+                />
                 {getOptionLabel(value)}
               </ComboboxItem>
             )}

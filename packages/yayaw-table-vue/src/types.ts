@@ -60,6 +60,8 @@ export type InlineEditEditor =
   | "url";
 
 export interface SelectOption {
+  /** URL of a monochrome icon that follows the option label color. */
+  iconUrl?: string;
   label: string;
   value: PrimitiveValue;
   color?: string;
@@ -125,7 +127,12 @@ export interface ColumnDefinition<TData extends TableRecord = TableRecord> {
     query: string,
     signal?: AbortSignal
   ) => Promise<
-    { value: string | number | boolean; label: string; disabled?: boolean }[]
+    {
+      value: string | number | boolean;
+      label: string;
+      disabled?: boolean;
+      iconUrl?: string;
+    }[]
   >;
   optionsSearchMinLength?: number;
   optionsSearchDebounceMs?: number;

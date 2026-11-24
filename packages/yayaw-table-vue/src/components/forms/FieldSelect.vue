@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import OptionIcon from "../OptionIcon.vue";
 import { Check, ChevronDown, ChevronUp } from "lucide-vue-next";
 import {
   SelectContent,
@@ -81,6 +82,7 @@ const selected = computed(() =>
         :aria-required="required || undefined"
       >
         <span class="yayaw-form-select-value" :data-placeholder="selected ? undefined : ''">
+          <OptionIcon class="yayaw-option-icon-spaced" :option="selected" />
           {{ selected?.label ?? placeholder }}
         </span>
         <SelectIcon as-child>
@@ -109,7 +111,7 @@ const selected = computed(() =>
               class="yayaw-column-menu-item yayaw-select-item"
               data-slot="select-item"
             >
-              <SelectItemText>{{ option.label }}</SelectItemText>
+              <SelectItemText><OptionIcon class="yayaw-option-icon-spaced" :option="option" />{{ option.label }}</SelectItemText>
               <SelectItemIndicator class="yayaw-control-indicator">
                 <Check :size="16" aria-hidden="true" />
               </SelectItemIndicator>
