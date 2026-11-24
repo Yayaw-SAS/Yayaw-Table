@@ -619,6 +619,9 @@ to avoid oscillating page-size requests. The layout identity uses the container
 width, since an intrinsic table width can shrink on a later page without any
 viewport change. Header wrapping and footer dimensions affect the measured fit
 but do not invalidate that capacity ceiling when navigating between pages.
+Once a scroll container overflows, it remains the height reference while it
+contains the table and permits scrolling, even when a smaller page fits inside
+it. Both editions cover this in `auto-page-size.test.ts`.
 Resize, density, column width
 and asynchronous content changes trigger recalculation; the table scroll area
 is bounded for unusually tall rows or expanded groups. Page sizes stay positive
