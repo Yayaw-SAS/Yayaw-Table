@@ -124,6 +124,7 @@ export const productColumns = [
     id: "tags",
     header: "Tags",
     type: "multiSelect" as const,
+    inlineEdit: true,
     options: options([
       ["new", "New"],
       ["popular", "Popular"],
