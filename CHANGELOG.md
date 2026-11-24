@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.45.0
+
+### Minor Changes
+
+- d5445f8: Add optional monochrome `iconUrl` icons to select options in inline editors, forms, and filters in React and Vue.
+
+### Patch Changes
+
+- f32d2d3: Keep automatic page size stable in scrolling dialogs in React and Vue.
+
 ## 3.44.1
 
 ### Patch Changes
