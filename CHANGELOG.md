@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.45.1
+
+### Patch Changes
+
+- ad7b37b: Save inline multi-select edits when Enter confirms a highlighted option in React and Vue. If Enter creates an option, wait for creation before saving the cell.
+
 ## 3.45.0
 
 ### Minor Changes
