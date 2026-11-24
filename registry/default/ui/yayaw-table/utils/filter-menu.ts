@@ -836,12 +836,22 @@ export interface FilterMenuColumn {
   id: string;
   header: string;
   type: FilterMenuType;
-  options?: readonly { value: unknown; label: string; disabled?: boolean }[];
+  options?: readonly {
+    value: unknown;
+    label: string;
+    disabled?: boolean;
+    iconUrl?: string;
+  }[];
   optionsLoader?: (
     query: string,
     signal?: AbortSignal
   ) => Promise<
-    { value: string | number | boolean; label: string; disabled?: boolean }[]
+    {
+      value: string | number | boolean;
+      label: string;
+      disabled?: boolean;
+      iconUrl?: string;
+    }[]
   >;
   filterOperators?: string[];
   optionsSearchMinLength?: number;

@@ -1,5 +1,6 @@
 "use client";
 
+import { OptionIcon } from "../../option-icon";
 import { ChevronsUpDown, X } from "lucide-react";
 import {
   useContext,
@@ -157,9 +158,9 @@ export function OptionCombobox({
   );
   const isSelected = (option: OptionValue) =>
     selected.some((item) => Object.is(item, option));
-  const labelOf = (option: OptionValue) =>
-    known.find((item) => Object.is(item.value, option))?.label ??
-    String(option);
+  const optionOf = (value: OptionValue) =>
+    known.find((item) => Object.is(item.value, value));
+  const labelOf = (value: OptionValue) => optionOf(value)?.label ?? String(value);
   const pick = (option: OptionValue) => {
     // The next search starts empty, so several picks can be typed in a row.
     setSearch("");
@@ -268,6 +269,7 @@ export function OptionCombobox({
                 variant="outline"
               >
                 <span className="truncate">
+                  {!multiple && selected.length > 0 && <OptionIcon className="me-1.5" option={optionOf(selected[0])} />}
                   {multiple || !selected.length ? choose : labelOf(selected[0])}
                 </span>
                 {multiple && selected.length > 0 && (
@@ -314,6 +316,7 @@ export function OptionCombobox({
                     onSelect={() => pick(option.value)}
                     value={optionControlKey(option.value)}
                   >
+                    <OptionIcon option={option} />
                     {option.label}
                   </CommandItem>
                 ))}
@@ -362,6 +365,7 @@ export function OptionCombobox({
           {selected.map((option) => (
             <li key={optionControlKey(option)}>
               <Badge className="gap-1" variant="secondary">
+                <OptionIcon option={optionOf(option)} />
                 {labelOf(option)}
                 <button
                   aria-label={formLabel("removeOption", locale, undefined, {

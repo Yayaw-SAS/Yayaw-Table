@@ -12,6 +12,7 @@ import {
   filterOperatorIsMultiple,
   filterOperatorNeedsValue,
 } from "../../../utils/filter-menu";
+import { OptionIcon } from "../../option-icon";
 import { FolderFilterInput } from "../folder-filter";
 import { LocationFilter } from "../location-filter";
 import { DateValueEditor } from "./date-value-editor";
@@ -257,6 +258,7 @@ function OptionValues({
               onChange={() => toggle(option.value)}
               type="checkbox"
             />
+            <OptionIcon option={option} />
             <span className="truncate">{option.label}</span>
           </label>
         ))}

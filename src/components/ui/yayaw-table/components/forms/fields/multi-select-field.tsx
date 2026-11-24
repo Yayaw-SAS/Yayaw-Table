@@ -3,6 +3,7 @@
  */
 "use client";
 
+import { OptionIcon } from "../../option-icon";
 import { useId } from "react";
 import { Checkbox } from "@/src/components/ui/checkbox";
 import {
@@ -147,6 +148,7 @@ export function MultiSelectField<TFieldValues extends Record<string, unknown>>({
                   }
                 />
                 <FieldLabel className="font-normal" htmlFor={optionId}>
+                  <OptionIcon option={option} />
                   {field.optionKeys?.[index]
                     ? t(field.optionKeys[index])
                     : option.label}

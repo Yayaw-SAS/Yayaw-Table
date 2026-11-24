@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/field";
 import { useTranslations } from "../../../providers/table-provider";
 import { LONG_OPTION_LIST } from "../../../utils/table-contracts";
+import { OptionIcon } from "../../option-icon";
 import type { FormFieldApi, MultiSelectFieldDefinition } from "../types";
 import { OptionCombobox } from "./option-combobox";
 
@@ -147,6 +148,7 @@ export function MultiSelectField<TFieldValues extends Record<string, unknown>>({
                   }
                 />
                 <FieldLabel className="font-normal" htmlFor={optionId}>
+                  <OptionIcon option={option} />
                   {field.optionKeys?.[index]
                     ? t(field.optionKeys[index])
                     : option.label}

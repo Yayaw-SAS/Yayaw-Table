@@ -3,6 +3,7 @@
  */
 "use client";
 
+import { OptionIcon } from "../../option-icon";
 import { useId } from "react";
 
 import {
@@ -58,6 +59,7 @@ export function SelectField<TFieldValues extends Record<string, unknown>>({
       ? null
       : optionControlKey(value);
 
+  const selected = options.find((option) => Object.is(option.value, value));
   const label = field.labelKey ? t(field.labelKey) : field.label;
   return (
     <Field data-invalid={!fieldApi.state.meta.isValid}>
@@ -108,6 +110,7 @@ export function SelectField<TFieldValues extends Record<string, unknown>>({
             id={controlId}
             onBlur={fieldApi.handleBlur}
           >
+            <OptionIcon option={selected} />
             <SelectValue
               placeholder={
                 (field.placeholderKey
@@ -123,7 +126,8 @@ export function SelectField<TFieldValues extends Record<string, unknown>>({
                 key={optionControlKey(option.value)}
                 value={optionControlKey(option.value)}
               >
-                {field.optionKeys?.[index]
+                <OptionIcon option={option} />
+{field.optionKeys?.[index]
                   ? t(field.optionKeys[index])
                   : option.label}
               </SelectItem>

@@ -68,6 +68,7 @@ export function observeAutoPageSize(
   }
   let disposed = false;
   let frame = 0;
+  let scroller: HTMLElement | undefined;
   const ancestors: HTMLElement[] = [];
   for (
     let element = root.parentElement;
@@ -97,13 +98,18 @@ export function observeAutoPageSize(
     if (!heights.length) {
       return;
     }
-    const scroller = ancestors.find((element) => {
-      const style = win.getComputedStyle(element);
-      return (
-        SCROLLABLE_OVERFLOW.test(style.overflowY) &&
-        element.clientHeight < element.scrollHeight
-      );
-    });
+    // A page that now fits must keep the same height reference.
+    const canScroll = (element: HTMLElement) =>
+      element.isConnected &&
+      element.contains(root) &&
+      SCROLLABLE_OVERFLOW.test(win.getComputedStyle(element).overflowY);
+    if (scroller && !canScroll(scroller)) {
+      scroller = undefined;
+    }
+    scroller ??= ancestors.find(
+      (element) =>
+        canScroll(element) && element.clientHeight < element.scrollHeight
+    );
     const viewportHeight =
       scroller?.clientHeight ?? win.visualViewport?.height ?? win.innerHeight;
     const origin = scroller

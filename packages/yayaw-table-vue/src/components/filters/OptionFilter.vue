@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import OptionIcon from "../OptionIcon.vue";
 import { computed, ref } from "vue";
 import { ChevronDown, Filter } from "lucide-vue-next";
 import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from "reka-ui";
@@ -58,8 +59,9 @@ const update = (next: unknown): void => {
   context.state.filters.value = replaceColumnFilter(context.state.filters.value, props.column.id, next);
 };
 const single = computed(() => props.column.filterSelection === "single");
+const selectedOption = computed(() => single.value ? options.value.find(option => checked(option.value)) : undefined);
 const current = computed(() => single.value && selected.value.length
-  ? options.value.find(option => checked(option.value))?.label ?? String(selected.value[0])
+  ? selectedOption.value?.label ?? String(selected.value[0])
   : undefined);
 const searchable = computed(() => !single.value || Boolean(props.column.optionsLoader) || options.value.length > SINGLE_CHOICE_SEARCH_THRESHOLD);
 const radioName = computed(() => `${context.config.id}-${props.column.id}-quick-filter`);
@@ -77,7 +79,7 @@ const toggle = (candidate: unknown): void => update(checked(candidate)
     <PopoverTrigger as-child>
       <button type="button" class="yayaw-button yayaw-button-outline yayaw-filter-trigger" :aria-label="column.header" :data-active="selected.length ? '' : undefined">
         <Filter :size="16" aria-hidden="true" />
-        <span>{{ column.header }}<template v-if="current !== undefined">: <span class="yayaw-filter-current">{{ current }}</span></template></span>
+        <span>{{ column.header }}<template v-if="current !== undefined">: <span class="yayaw-filter-current"><OptionIcon class="yayaw-option-icon-spaced" :option="selectedOption" />{{ current }}</span></template></span>
         <span v-if="!single && selected.length" class="yayaw-filter-count">{{ selected.length }}</span>
         <ChevronDown :size="12" aria-hidden="true" />
       </button>
@@ -93,6 +95,7 @@ const toggle = (candidate: unknown): void => update(checked(candidate)
           </label>
           <label v-for="option in visibleOptions" :key="filterValueKey(option.value)" class="yayaw-filter-choice">
             <input type="radio" :name="radioName" :checked="checked(option.value)" :disabled="option.disabled" @change="pick(option.value)" />
+            <OptionIcon :option="option" />
             <span>{{ option.label }}</span>
           </label>
           <p v-if="status" class="yayaw-help" role="status">{{ status }}</p>
@@ -100,6 +103,7 @@ const toggle = (candidate: unknown): void => update(checked(candidate)
         <div v-else class="yayaw-filter-choices" role="group" :aria-label="column.header">
           <label v-for="option in visibleOptions" :key="filterValueKey(option.value)" class="yayaw-filter-choice">
             <input type="checkbox" :checked="checked(option.value)" :disabled="option.disabled" @change="toggle(option.value)" />
+            <OptionIcon :option="option" />
             <span>{{ option.label }}</span>
           </label>
           <p v-if="status" class="yayaw-help" role="status">{{ status }}</p>

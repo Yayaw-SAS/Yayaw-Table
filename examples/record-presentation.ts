@@ -48,6 +48,9 @@ export const presentationRows = [
     description: "Dedicated support for your team.",
   },
 ];
+const softwareIcon =
+  "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'%3E%3Cpath%20d='M6%204L2%208l4%204%201-1-3-3%203-3zm4%200L9%205l3%203-3%203%201%201%204-4z'/%3E%3C/svg%3E";
+
 export const presentationColumns = [
   { id: "name", header: "Name", type: "text" as const },
   {
@@ -55,9 +58,11 @@ export const presentationColumns = [
     header: "Category",
     type: "select" as const,
     displayVariant: "tag" as const,
+    inlineEdit: true,
     options: ["Software", "Hardware", "Service"].map((value) => ({
       value,
       label: value,
+      iconUrl: value === "Software" ? softwareIcon : undefined,
     })),
   },
   {

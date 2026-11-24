@@ -43,6 +43,8 @@ export type InlineEditEditor =
  * Option used by inline edit select editors.
  */
 export interface InlineEditOption {
+  /** URL of a monochrome icon that follows the option label color. */
+  iconUrl?: string;
   disabled?: boolean;
   label: string;
   value: boolean | number | string;
@@ -293,7 +295,12 @@ export interface ColumnDefinition {
     query: string,
     signal?: AbortSignal
   ) => Promise<
-    { value: string | number | boolean; label: string; disabled?: boolean }[]
+    {
+      value: string | number | boolean;
+      label: string;
+      disabled?: boolean;
+      iconUrl?: string;
+    }[]
   >;
   optionsSearchMinLength?: number;
   optionsSearchDebounceMs?: number;

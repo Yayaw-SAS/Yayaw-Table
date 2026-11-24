@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import OptionIcon from "../OptionIcon.vue";
 import { Check, ChevronDown, X } from "lucide-vue-next";
 import {
   ComboboxAnchor,
@@ -82,8 +83,8 @@ const shown = computed(() => {
 const moreText = computed(() =>
   filterMenuText("moreOptions", props.locale).replace("{count}", String(shown.value.hidden))
 );
-const labelOf = (value: unknown) =>
-  items.value.find((option) => Object.is(option.value, value))?.label ?? String(value);
+const optionOf = (value: unknown) => items.value.find((option) => Object.is(option.value, value));
+const labelOf = (value: unknown) => optionOf(value)?.label ?? String(value);
 const keys = computed(() => selected.value.map(optionControlKey));
 const text = (key: "noMatchingOption" | "searchOptions") => formLabel(key, props.locale);
 const removeLabel = (value: unknown) =>
@@ -148,6 +149,7 @@ const onOpen = (open: boolean): void => {
             :aria-required="required || undefined"
           >
             <span class="yayaw-form-select-value" :data-placeholder="multiple || !selected.length ? '' : undefined">
+              <OptionIcon v-if="!multiple && selected.length" class="yayaw-option-icon-spaced" :option="optionOf(selected[0])" />
               {{ multiple || !selected.length ? placeholder : labelOf(selected[0]) }}
             </span>
             <span v-if="multiple && selected.length" class="yayaw-inline-chip yayaw-field-combobox-count">{{ selected.length }}</span>
@@ -188,6 +190,7 @@ const onOpen = (open: boolean): void => {
               :disabled="option.disabled"
               class="yayaw-inline-option"
             >
+              <OptionIcon :option="option" />
               {{ option.label }}
               <ComboboxItemIndicator class="yayaw-inline-check"><Check :size="16" aria-hidden="true" /></ComboboxItemIndicator>
             </ComboboxItem>
@@ -211,6 +214,7 @@ const onOpen = (open: boolean): void => {
     </div>
     <ul v-if="multiple && selected.length" class="yayaw-inline-chips yayaw-field-combobox-chips">
       <li v-for="value in selected" :key="optionControlKey(value)" class="yayaw-inline-chip">
+        <OptionIcon :option="optionOf(value)" />
         {{ labelOf(value) }}
         <button type="button" :aria-label="removeLabel(value)" :disabled="disabled" @click="remove(value)">
           <X :size="12" aria-hidden="true" />

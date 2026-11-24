@@ -43,6 +43,8 @@ export function RecordPresentationExample() {
           syncUrl: false,
           gallery: presentationGallery,
           coloredTags: false,
+          filterBarColumns: ["category"],
+          showFilterBar: true,
           defaultDisplayMode: "gallery",
           rowClickMode: "activate",
           displayModes: ["table", "gallery", "kanban"],

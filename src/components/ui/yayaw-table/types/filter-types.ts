@@ -123,6 +123,8 @@ export type AdvancedFiltersState = AdvancedFilterModel[];
  * Column option for select-based filters
  */
 export interface ColumnOption {
+  /** URL of a monochrome icon that follows the option label color. */
+  iconUrl?: string;
   /** Display label */
   label: string;
   /** Internal value */

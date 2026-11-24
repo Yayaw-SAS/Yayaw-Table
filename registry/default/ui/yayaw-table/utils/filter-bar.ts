@@ -14,6 +14,7 @@ export interface FilterBarOption {
   value: string | number | boolean;
   label: string;
   disabled?: boolean;
+  iconUrl?: string;
 }
 
 export interface FilterBarColumn {
@@ -48,7 +49,7 @@ export function filterBarOptions(
   value: unknown,
   booleanLabels: { yes: string; no: string },
   /** Labels already loaded for this column, shown for its selected values. */
-  known: readonly { value: unknown; label: string }[] = []
+  known: readonly { value: unknown; label: string; iconUrl?: string }[] = []
 ): FilterBarOption[] {
   const options: FilterBarOption[] = Array.isArray(column.options)
     ? column.options
@@ -70,11 +71,13 @@ export function filterBarOptions(
     }
     const key = filterValueKey(selected);
     if (!result.has(key)) {
+      const remembered = known.find((option) =>
+        Object.is(option.value, selected)
+      );
       result.set(key, {
         value: selected as FilterBarOption["value"],
-        label:
-          known.find((option) => Object.is(option.value, selected))?.label ??
-          String(selected),
+        label: remembered?.label ?? String(selected),
+        ...(remembered?.iconUrl && { iconUrl: remembered.iconUrl }),
       });
     }
   }

@@ -122,6 +122,8 @@ export type AnyFieldDefinition<TFieldValues extends FieldValues = FieldValues> =
   | ValueTypeFieldDefinition<TFieldValues>;
 
 export interface FormSelectOption {
+  /** URL of a monochrome icon that follows the option label color. */
+  iconUrl?: string;
   label: string;
   value: boolean | number | string;
   disabled?: boolean;

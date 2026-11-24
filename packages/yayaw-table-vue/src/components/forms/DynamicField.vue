@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import OptionIcon from "../OptionIcon.vue";
 import { tableContextKey, useTableTranslation } from "../../context";
 import {
   computed,
@@ -512,7 +513,7 @@ watch(valueType, (next, previous) => {
             <Check :size="14" aria-hidden="true" />
           </CheckboxIndicator>
         </CheckboxRoot>
-        <label class="yayaw-form-choice-label" :for="index === 0 ? fieldId : `${fieldId}-${index}`">{{ option.label }}</label>
+        <label class="yayaw-form-choice-label" :for="index === 0 ? fieldId : `${fieldId}-${index}`"><OptionIcon class="yayaw-option-icon-spaced" :option="option" />{{ option.label }}</label>
       </div>
     </div>
     <RadioGroupRoot

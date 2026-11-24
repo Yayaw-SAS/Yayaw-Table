@@ -7671,3 +7671,19 @@
   padding-top: 6px;
   border-top: 1px solid var(--yayaw-border);
 }
+
+.yayaw-option-icon {
+  display: inline-block;
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  vertical-align: middle;
+  background-color: currentColor;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+}
+
+.yayaw-option-icon-spaced {
+  margin-inline-end: 0.375rem;
+}

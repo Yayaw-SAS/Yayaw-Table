@@ -1,5 +1,6 @@
 "use client";
 
+import { OptionIcon } from "../../option-icon";
 import { useEffect, useRef, useState } from "react";
 import { Input } from "@/src/components/ui/input";
 import type {
@@ -257,6 +258,7 @@ function OptionValues({
               onChange={() => toggle(option.value)}
               type="checkbox"
             />
+            <OptionIcon option={option} />
             <span className="truncate">{option.label}</span>
           </label>
         ))}
