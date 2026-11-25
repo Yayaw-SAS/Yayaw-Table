@@ -11,7 +11,7 @@ import {
   ComboboxRoot,
   ComboboxTrigger,
 } from "reka-ui";
-import { computed, ref, useTemplateRef } from "vue";
+import { computed, nextTick, ref, useTemplateRef } from "vue";
 import { useRemoteOptionSearch, type RemoteOptionSearch } from "../../composables/use-remote-option-search";
 import { useTableTranslation } from "../../context";
 import { createTranslations } from "../../translations";
@@ -123,6 +123,39 @@ const onOpen = (open: boolean): void => {
   updateOpen(open);
   if (!open) query.value = "";
 };
+const TABBABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+/**
+ * The search and options are portaled to the end of the page: the browser's Tab would leave the form (in a dialog,
+ * for its first element, the close button). Tab goes on to the field after this one, Shift+Tab back to this one.
+ */
+const onSearchTab = async (event: KeyboardEvent): Promise<void> => {
+  if (event.ctrlKey || event.metaKey || event.altKey) return;
+  event.preventDefault();
+  const trigger = document.getElementById(props.id);
+  onOpen(false);
+  await nextTick();
+  if (!trigger) return;
+  if (event.shiftKey) { trigger.focus(); return; }
+  const scope = trigger.closest('form, [role="dialog"], [role="alertdialog"]') ?? document.body;
+  // checkVisibility leaves out hidden fields; where it is missing (older browsers, test DOMs) every field counts.
+  const list = [...scope.querySelectorAll<HTMLElement>(TABBABLE)].filter((element) => element.checkVisibility?.() ?? true);
+  // The field's own buttons (clear, remove a chip) are skipped: Tab goes to the next field.
+  const field = trigger.closest(".yayaw-field-combobox") ?? trigger;
+  const next = list.slice(list.indexOf(trigger) + 1).find((element) => !field.contains(element));
+  (next ?? trigger).focus();
+};
+/**
+ * Cmd/Ctrl+Enter in the search (portaled, outside the form) closes the list and hands the shortcut to the field,
+ * inside the form: the form saves as it does from any field (CatalogueForm).
+ */
+const onSearchSubmit = (event: KeyboardEvent): void => {
+  if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey || event.isComposing) return;
+  const trigger = document.getElementById(props.id);
+  if (!trigger) return;
+  event.preventDefault();
+  onOpen(false);
+  trigger.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", ctrlKey: event.ctrlKey, metaKey: event.metaKey, bubbles: true, cancelable: true }));
+};
 </script>
 
 <template>
@@ -175,6 +208,8 @@ const onOpen = (open: boolean): void => {
               :placeholder="text('searchOptions')"
               :auto-focus="true"
               autocomplete="off"
+              @keydown.tab="onSearchTab"
+              @keydown.enter="onSearchSubmit"
             />
             <div v-if="optionError" class="yayaw-inline-empty" role="alert">
               {{ optionError }}

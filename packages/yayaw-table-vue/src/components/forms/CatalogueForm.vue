@@ -275,6 +275,14 @@ onBeforeUnmount(() => {
   validationVersion += 1;
 });
 
+/** Cmd+Enter on macOS, Ctrl+Enter elsewhere: saves from any field, as the save button does. */
+const submitShortcut = (event: KeyboardEvent): void => {
+  if (event.key !== "Enter" || !(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return;
+  if (event.defaultPrevented || event.isComposing || event.keyCode === 229) return;
+  event.preventDefault();
+  if (!event.repeat) void submit();
+};
+
 const submit = async (): Promise<void> => {
   if (submitting.value || loading.value || loadError.value) return;
   submitting.value = true;
@@ -429,7 +437,7 @@ const blockContext = computed<FormBlockContext>(() => ({
   >
     <FormActivityTabs :enabled="Boolean(activityConfig)" :row="context.form.value.row" :activity="activity" :fields="activityFields" :labels="activityLabels" :locale="context.locale"
       :disabled="submitting" :on-revert-activity="context.onRevertActivity" :can-revert="activityConfig?.canRevert" @pending="activityPending = $event" @reverted="reverted">
-    <form ref="formElement" class="yayaw-form yayaw-record-content" novalidate :class="{ 'yayaw-bulk-form': isBulk }" @submit.prevent="submit">
+    <form ref="formElement" class="yayaw-form yayaw-record-content" novalidate :class="{ 'yayaw-bulk-form': isBulk }" @submit.prevent="submit" @keydown="submitShortcut">
       <div class="yayaw-record-body">
       <p v-if="loading" role="status">{{ label("loading", "Loading…") }}</p>
       <p v-if="loadError || errors.form" class="yayaw-error" role="alert">

@@ -682,6 +682,31 @@ function CatalogueFormBody<TFieldValues extends FieldValues>({
     retryInitial,
   } = builder;
   const disabled = loading || loadingInitial || Boolean(loadError);
+  // Cmd+Enter on macOS, Ctrl+Enter elsewhere: saves from any field, as the save button does.
+  useEffect(() => {
+    const surface = drawerContentRef.current;
+    if (!surface) {
+      return;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key !== "Enter" ||
+        !(event.metaKey || event.ctrlKey) ||
+        event.altKey ||
+        event.shiftKey ||
+        event.defaultPrevented ||
+        event.isComposing
+      ) {
+        return;
+      }
+      event.preventDefault();
+      if (!(event.repeat || disabled)) {
+        form.handleSubmit();
+      }
+    };
+    surface.addEventListener("keydown", onKeyDown);
+    return () => surface.removeEventListener("keydown", onKeyDown);
+  }, [disabled, drawerContentRef, form]);
   return (
     <DrawerFormPortalContainerContext.Provider value={drawerContentRef}>
       <div className="yayaw-record-content" ref={drawerContentRef}>

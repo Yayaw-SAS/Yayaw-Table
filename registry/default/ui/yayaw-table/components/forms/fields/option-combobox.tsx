@@ -294,6 +294,36 @@ export function OptionCombobox({
             <Command shouldFilter={false}>
               <CommandInput
                 aria-label={`${label} ${formLabel("searchOptions", locale)}`}
+                onKeyDown={(event) => {
+                  // Cmd/Ctrl+Enter in the search (portaled, outside the form) closes the list and hands the
+                  // shortcut to the field, inside the form: the form saves as it does from any field.
+                  const { nativeEvent } = event;
+                  if (
+                    event.key !== "Enter" ||
+                    !(event.metaKey || event.ctrlKey) ||
+                    event.altKey ||
+                    event.shiftKey ||
+                    nativeEvent.isComposing
+                  ) {
+                    return;
+                  }
+                  const trigger = document.getElementById(id);
+                  if (!trigger) {
+                    return;
+                  }
+                  event.preventDefault();
+                  setOpen(false);
+                  setSearch("");
+                  trigger.dispatchEvent(
+                    new KeyboardEvent("keydown", {
+                      bubbles: true,
+                      cancelable: true,
+                      ctrlKey: event.ctrlKey,
+                      key: "Enter",
+                      metaKey: event.metaKey,
+                    })
+                  );
+                }}
                 onValueChange={(value) => {
                   setSearch(value);
                   setCreateError(undefined);
