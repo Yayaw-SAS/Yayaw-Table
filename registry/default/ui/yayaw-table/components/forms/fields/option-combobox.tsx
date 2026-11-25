@@ -2,6 +2,7 @@
 
 import { ChevronsUpDown, X } from "lucide-react";
 import {
+  type KeyboardEvent,
   useContext,
   useEffect,
   useLayoutEffect,
@@ -132,6 +133,8 @@ export function OptionCombobox({
   const [createError, setCreateError] = useState<string>();
   const createRequest = useRef<AbortController | undefined>(undefined);
   const input = useRef<HTMLInputElement | null>(null);
+  // Set when a typed character opens the list: the search then takes the focus with the caret after it.
+  const typedOpen = useRef(false);
   useEffect(() => {
     if (disabled) {
       createRequest.current?.abort();
@@ -237,6 +240,38 @@ export function OptionCombobox({
       }
     }
   };
+  /**
+   * Type to search: a printable key on the closed button (reached with Tab) opens the list and starts its search with
+   * that character, as in Vue. Space, Enter and the arrows keep their behavior; shortcuts and IME composition too.
+   */
+  const typeToSearch = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (
+      open ||
+      disabled ||
+      event.nativeEvent.isComposing ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.altKey ||
+      event.key.length !== 1 ||
+      event.key === " "
+    ) {
+      return;
+    }
+    event.preventDefault();
+    typedOpen.current = true;
+    setSearch(event.key);
+    setCreateError(undefined);
+    setOpen(true);
+  };
+  const focusTypedSearch = (element: HTMLInputElement | null) => {
+    input.current = element;
+    if (!(element && typedOpen.current)) {
+      return;
+    }
+    typedOpen.current = false;
+    element.focus();
+    element.setSelectionRange(element.value.length, element.value.length);
+  };
   const error = createError ?? remoteState.error;
   const loading = remoteState.loading || remoteState.searching || creating;
   return (
@@ -265,6 +300,7 @@ export function OptionCombobox({
                 data-searchable-field=""
                 disabled={disabled}
                 id={id}
+                onKeyDown={typeToSearch}
                 role="combobox"
                 type="button"
                 variant="outline"
@@ -329,7 +365,7 @@ export function OptionCombobox({
                   setCreateError(undefined);
                 }}
                 placeholder={formLabel("searchOptions", locale)}
-                ref={input}
+                ref={focusTypedSearch}
                 value={search}
               />
               <CommandList className="max-h-[min(16rem,40dvh)]">

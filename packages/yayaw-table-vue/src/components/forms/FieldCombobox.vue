@@ -48,6 +48,7 @@ const emit = defineEmits<{ "update:modelValue": [value: unknown] }>();
 const anchor = useTemplateRef<HTMLElement>("anchor");
 const { overlayStyle, updateOpen } = useOverlayTheme(anchor);
 const opened = ref(false);
+const searchInput = useTemplateRef<{ $el: unknown }>("searchInput");
 const empty = (value: unknown) => value === undefined || value === null || value === "";
 const selected = computed<unknown[]>(() =>
   (props.multiple && Array.isArray(props.modelValue) ? props.modelValue : [props.modelValue]).filter(
@@ -123,6 +124,23 @@ const onOpen = (open: boolean): void => {
   updateOpen(open);
   if (!open) query.value = "";
 };
+/**
+ * Type to search: a printable key on the closed button (reached with Tab) opens the list and starts its search with
+ * that character, the search focused with the caret after it, so typing goes on there. Space, Enter and the arrows
+ * keep their behavior; shortcuts (Ctrl, Cmd, Alt) and IME composition are left alone.
+ */
+const typeToSearch = async (event: KeyboardEvent): Promise<void> => {
+  if (opened.value || props.disabled || event.isComposing || event.ctrlKey || event.metaKey || event.altKey) return;
+  if (event.key.length !== 1 || event.key === " ") return;
+  event.preventDefault();
+  query.value = event.key;
+  onOpen(true);
+  await nextTick();
+  const search: unknown = searchInput.value?.$el;
+  if (!(search instanceof HTMLInputElement)) return;
+  search.focus();
+  search.setSelectionRange(search.value.length, search.value.length);
+};
 const TABBABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 /**
  * The search and options are portaled to the end of the page: the browser's Tab would leave the form (in a dialog,
@@ -176,10 +194,12 @@ const onSearchSubmit = (event: KeyboardEvent): void => {
             class="yayaw-select-trigger yayaw-form-select"
             role="combobox"
             data-searchable-field=""
+            tabindex="0"
             :aria-labelledby="labelledBy"
             :aria-describedby="describedBy"
             :aria-invalid="invalid || undefined"
             :aria-required="required || undefined"
+            @keydown="typeToSearch"
           >
             <span class="yayaw-form-select-value" :data-placeholder="multiple || !selected.length ? '' : undefined">
               <OptionIcon v-if="!multiple && selected.length" class="yayaw-option-icon-spaced" :option="optionOf(selected[0])" />
@@ -200,9 +220,11 @@ const onSearchSubmit = (event: KeyboardEvent): void => {
             :aria-busy="pending || undefined"
             :aria-label="label"
           >
+            <!-- Reka resets the search to display-value as it appears: returning the search keeps a typed first character. -->
             <ComboboxInput
+              ref="searchInput"
               v-model="query"
-              :display-value="() => ''"
+              :display-value="() => query"
               class="yayaw-input yayaw-field-combobox-search"
               :aria-label="`${label} ${text('searchOptions')}`"
               :placeholder="text('searchOptions')"
