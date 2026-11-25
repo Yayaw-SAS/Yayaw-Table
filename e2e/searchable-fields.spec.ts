@@ -47,6 +47,28 @@ test("a searchable field filters its options as you type", async ({ page }) => {
   await expect(markets).toContainText("1");
 });
 
+test("a letter typed on a searchable field reached with Tab starts its search", async ({
+  page,
+}) => {
+  await page.goto(RECORDS);
+  await page.getByRole("button", { name: "Add item" }).click();
+  const dialog = page.getByRole("dialog", { name: "Create" });
+
+  const origin = dialog.getByRole("combobox", { name: "Origin", exact: true });
+  await origin.focus();
+  // Reached with Tab from the field before it.
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Tab");
+  await expect(origin).toBeFocused();
+  await page.keyboard.type("swe");
+  const search = page.getByRole("combobox", { name: "Origin Search…" });
+  await expect(search).toBeFocused();
+  await expect(search).toHaveValue("swe");
+  await expect(page.getByRole("option")).toHaveText(["Sweden"]);
+  await page.keyboard.press("Enter");
+  await expect(origin).toContainText("Sweden");
+});
+
 test("a select of more than 200 options is searched and draws its first matches", async ({
   page,
 }) => {
