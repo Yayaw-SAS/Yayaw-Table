@@ -8,6 +8,10 @@ const STATUS = /^Status/;
 const TEAM_TRACKER = /^Team tracker/;
 const RECORD_ID = /^ID/;
 const NEW_DUE = /New field “Due”/;
+const NEW_DUE_FR = /New field “Échéance”/;
+const DUE_FR = /^Échéance/;
+const FRENCH = /^Français/;
+const ENGLISH = /^English/;
 const DONT_SEND = /Don’t send/;
 const SELECTED_TWO = /Selected \(2\)/;
 const SHARE_WITH =
@@ -79,6 +83,39 @@ test("a connector maps the view's columns to a target, sends and sends again", a
   await expect(
     panel.getByRole("combobox", { name: "Price", exact: true })
   ).toHaveText(DONT_SEND);
+});
+
+test("a connector proposes new sheet columns in the language it writes in", async ({
+  page,
+}) => {
+  let panel = await openConnector(page);
+  await choose(panel, "Spreadsheet", "Team tracker");
+  await expect(
+    panel.getByRole("combobox", { name: "Language", exact: true })
+  ).toHaveText(ENGLISH);
+  await expect(
+    panel.getByRole("combobox", { name: "Due", exact: true })
+  ).toHaveText(NEW_DUE);
+  await choose(panel, "Language", "Français");
+  // New columns follow the language; the sheet's own columns stay.
+  await expect(
+    panel.getByRole("combobox", { name: "Due", exact: true })
+  ).toHaveText(NEW_DUE_FR);
+  await expect(
+    panel.getByRole("combobox", { name: "Name", exact: true })
+  ).toHaveText(NAME);
+  await expect(await send(panel)).toHaveText("6 created");
+  await panel.getByRole("button", { name: "Done", exact: true }).click();
+
+  // The view remembers the language with the mapping.
+  await page.keyboard.press("Escape");
+  panel = await openConnector(page);
+  await expect(
+    panel.getByRole("combobox", { name: "Language", exact: true })
+  ).toHaveText(FRENCH);
+  await expect(
+    panel.getByRole("combobox", { name: "Due", exact: true })
+  ).toHaveText(DUE_FR);
 });
 
 test("a connector never maps `enableExport: false` columns", async ({

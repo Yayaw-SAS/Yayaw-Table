@@ -725,6 +725,51 @@ Labels are English and French and overridable with `connector.<key>`
 `noConflicts`, `resolvingConflicts`, `backToSettings`, `valueYes`,
 `valueNo`).
 
+## Language of a sync
+
+A connector that writes in a language other than the table's interface
+declares `languages`. With two or more options the connector screen shows a
+"Language" select ("Langue" in French) next to the columns choice, before the
+mapping; with one option no select appears but the settings still carry it.
+Without `languages` nothing changes and the settings have no `locale`.
+
+```ts
+const connector: DataDestinationConnector<Context, PushContext> = {
+  // targets, describe, load, save, push…
+  languages: {
+    options: [
+      { value: "en", label: "English" },
+      { value: "fr", label: "Français" },
+    ],
+    default: "fr", // optional; else the first option
+    // Names proposed for new sheet columns, by column id; missing ids keep the header.
+    headers: (locale) => (locale === "fr" ? { name: "Nom", dueDate: "Échéance" } : undefined),
+  },
+};
+```
+
+- The selected language is the saved `settings.locale` when it is still
+  offered, else `languages.default`, else the first option. It is sent as
+  `settings.locale` to `save`, `push`, `preview`, `sync`, `checkSchema`,
+  `listConflicts` and the other functions that receive the settings: the
+  host writes values (dates, numbers, option labels) in that language.
+- A column with no field of its name in the target is proposed as a new field
+  named `languages.headers?.(locale)?.[column.id] ?? column.header`, in the
+  mapping choices ("New field “Échéance”"), the default mapping and the
+  columns sent to `createTarget.create` ("Create one from this table’s
+  columns…", which uses the language chosen before the target). The
+  translated name also matches an existing field of that name.
+- Changing the language renames only mapped fields that are still the name
+  proposed in the previous language and that the target does not have yet.
+  The target's own fields and names chosen otherwise stay. Duplicate and
+  unknown fields are validated on the names as they are.
+
+The flow exposes the choice as `state.locale` (set before a target is chosen)
+and `flow.setLocale(locale)`; the screen field id is `language`. Helpers:
+`connectorLocale(languages, preferred?)`, `connectorFieldNames(languages,
+locale)` and `connectorNewFieldName(column, fieldNames?)`. The label is
+overridable with `connector.language`.
+
 ## Keeping the target healthy
 
 Syncs break when the target drifts: a property renamed, deleted or given

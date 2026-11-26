@@ -2727,6 +2727,38 @@ Send is disabled with the reason until Progress is not sent, disabled
 choices say why, Update mapping and Prepare clear their issues, and "New
 database from this table’s columns…" creates a clean one.
 
+## Connector languages
+
+`DataDestinationConnector.languages` (`ConnectorLanguages`: `options`,
+optional `default` and `headers(locale)`) and `ConnectorSettings.locale` are
+declared once in the shared `connector-flow.ts` (synced to Vue), so both
+editions get the same behaviour without framework code. With two or more
+options, `connectorScreenFields` adds a `language` select ("Language" /
+"Langue", label key `language`) after `columns` (after the target and child
+before a target is described), in the `before` section of
+`connectorMappingSections`; React `connector-panel.tsx` and Vue
+`ConnectorPanel.vue` render it like the other settings, and
+`applyConnectorField` calls the new `flow.setLocale`. The flow state gains
+`locale` (initial `connectorLocale(languages)`, then the loaded
+`settings.locale` when offered, else `default`, else the first option);
+`resolveConnectorSettings` takes `languages` and `locale` and sets
+`settings.locale`, so `save`, `push`, `preview` and `sync` receive it. The
+name proposed for a new field (`connectorFieldOptions` `newName`,
+`defaultConnectorMapping` `fieldNames`, `connectorNewTargetColumns`
+`fieldNames` for "Create one from this table’s columns…") is
+`headers(locale)[column.id] ?? column.header`. `setLocale` renames only
+mapping entries still named as proposed in the previous language and absent
+from the target schema. Without `languages` the screen and the settings are
+unchanged (no select, no `locale`).
+
+Coverage: `tests/connector-flow-suite.ts` (both editions: no select and no
+locale without languages, translated proposals, a language change that keeps
+existing and typed names, locale in `save` and `push`, saved/default/first
+precedence, a single language, a created target's headers, duplicate
+validation) and `e2e/connectors.spec.ts` on both demos (the demo
+"Spreadsheet" connector offers English and Français: "Due" becomes
+"New field “Échéance”", is sent, and the language is remembered).
+
 ## Form view
 
 The Form display mode ships in the core items of both registries: it needs no
