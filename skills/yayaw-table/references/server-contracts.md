@@ -392,7 +392,7 @@ function runs host code; do the work on the server.
 | `connector.allowTargetInput` | `{ label, placeholder?, resolve(input, context) }` for a pasted link. |
 | `connector.describe` | `({ targetId, childId? }, context)` → `{ provider?, fields: [{ name, id?, type?, options?, index? }], keyFields?, allowNewFields? }`. |
 | `connector.modes` | `"upsert"` (default) and/or `"replace"`. |
-| `connector.load`, `connector.save` | The view's settings: target, mapping (`{ columnId, field, fieldId?, fieldIndex? }`), key field, mode, direction, rules. |
+| `connector.load`, `connector.save` | The view's settings: target, mapping (`{ columnId, field, fieldId?, fieldIndex? }`), key field, mode, direction, rules, `locale` with `languages`. |
 | `connector.push` | `(settings, context)` → push result or `{ error: { code, details } }`; the context adds `scope`, the sent `columns` and, for a selection, `selectedRowIds` and `loadRows`. |
 | `connector.directions` | Subset of `push` (default), `pull`, `two-way`; pull and two-way need `sync`. |
 | `connector.conflictRules` | Subset of `table-wins`, `target-wins`, `latest-wins` (drop the last for targets without edit times). |
@@ -405,6 +405,7 @@ function runs host code; do the work on the server.
 | `connector.createTarget` | `{ label?, parents?, create }`: "Create one from this table's columns…". |
 | `connector.account` | `{ status(context), connect(context), disconnect?(context), connectLabel? }`: the person's own account (e.g. Google OAuth), connected from the screen before targets are listed; an `unauthorized` or `invalid_credentials` failure offers "Connect your account" again. |
 | `connector.pickTarget` | `{ label?, pick(context) }`: "Browse…" opens the provider's picker (e.g. Google Picker) and returns the chosen target, or `null`. |
+| `connector.languages` | `{ options: [{ value, label }], default?, headers?(locale) }`: the language the connector writes in. Two or more options show a "Language" select; the choice is `settings.locale` (saved, else `default`, else the first option), and new fields are proposed as `headers(locale)[column.id] ?? column.header`. |
 | `connector.labels` | `{ target?, child? }` names, such as "Spreadsheet" and "Tab". |
 | `connector.help` | `{ notShared?, missingTarget? }` messages. |
 

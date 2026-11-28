@@ -38,6 +38,35 @@ const PRIVATE_SHEET = "private-sheet";
 const LIVE_SHEET = "live-projects/projects";
 const KEY_FIELD = "ID";
 
+/**
+ * "Language": the names proposed for new sheet columns in French. A real host
+ * also writes values (dates, numbers, options) in `settings.locale`.
+ */
+const FRENCH_HEADERS: Record<string, string> = {
+  name: "Nom",
+  category: "Catégorie",
+  status: "Statut",
+  price: "Prix",
+  progress: "Avancement",
+  dueDate: "Échéance",
+  site: "Site",
+  details: "Détails",
+  update: "Mise à jour",
+  author: "Auteur",
+  postedAt: "Publié le",
+  margin: "Marge",
+  invoiced: "Facturé",
+};
+
+const DEMO_LANGUAGES = {
+  options: [
+    { value: "en", label: "English" },
+    { value: "fr", label: "Français" },
+  ],
+  default: "en",
+  headers: (locale: string) => (locale === "fr" ? FRENCH_HEADERS : undefined),
+};
+
 /** A tab: its header row and its rows, cells by header. */
 export interface Sheet {
   headers: string[];
@@ -445,6 +474,7 @@ export function createSpreadsheetConnector(table: DemoTable) {
     },
     connector: {
       labels: { target: "Spreadsheet", child: "Tab" },
+      languages: DEMO_LANGUAGES,
       directions: ["push", "pull", "two-way"] as SyncDirection[],
       // Sheet rows have no edit time: "Latest edit wins" would act as "Table wins".
       conflictRules: ["table-wins", "target-wins"] as ConflictRule[],

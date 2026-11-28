@@ -231,6 +231,20 @@ export interface ConnectorSettings {
   conflictRule?: ConflictRule;
   /** Pull and two-way; default "flag". The screen always sets it. */
   deletePolicy?: DeletePolicy;
+  /**
+   * The language the connector writes in (`connector.languages`). Set by the
+   * screen when the connector declares languages, absent otherwise.
+   */
+  locale?: string;
+}
+
+/** Languages a connector writes in: its values and the names proposed for new target fields. */
+export interface ConnectorLanguages {
+  options: { value: string; label: string }[];
+  /** Selected for a sync with no saved `locale`. Default: the first option. */
+  default?: string;
+  /** Column headers in a language, by column id: the names proposed for new target fields. Missing ids keep the table header. */
+  headers?: (locale: string) => Record<string, string> | undefined;
 }
 
 /** Who owns a column: its value always comes from that side. */
@@ -586,6 +600,11 @@ export interface DataDestinationConnector<
   /** Names for the target and its children, e.g. "Spreadsheet" and "Tab". */
   labels?: { target?: string; child?: string };
   help?: ConnectorHelp;
+  /**
+   * Languages the connector writes in. With two or more, the screen offers a
+   * "Language" select; the choice is sent as `settings.locale`.
+   */
+  languages?: ConnectorLanguages;
 }
 
 // Labels -------------------------------------------------------------------------
@@ -607,6 +626,7 @@ export type ConnectorLabelKey =
   | "sending"
   | "keyField"
   | "mode"
+  | "language"
   | "upsert"
   | "replace"
   | "upsertHint"
@@ -837,6 +857,7 @@ const ENGLISH_LABELS: Record<ConnectorLabelKey, string> = {
   sending: "Sending…",
   keyField: "Match records by",
   mode: "Mode",
+  language: "Language",
   upsert: "Update and add",
   replace: "Replace everything",
   upsertHint: "Updates the rows with the same key and adds the others.",
@@ -1109,6 +1130,7 @@ const FRENCH_LABELS: Record<ConnectorLabelKey, string> = {
   sending: "Envoi…",
   keyField: "Identifier les lignes par",
   mode: "Mode",
+  language: "Langue",
   upsert: "Mettre à jour et ajouter",
   replace: "Tout remplacer",
   upsertHint: "Met à jour les lignes de même clé et ajoute les autres.",
@@ -1441,9 +1463,56 @@ export function isConnectorFieldUsable(
 }
 
 /**
+ * The language a connector writes in: `preferred` when it is offered, else
+ * `languages.default` when offered, else the first option; `undefined`
+ * without languages.
+ */
+export function connectorLocale(
+  languages: ConnectorLanguages | undefined,
+  preferred?: string
+): string | undefined {
+  const values = (languages?.options ?? []).map((option) => option.value);
+  for (const candidate of [preferred, languages?.default]) {
+    if (candidate && values.includes(candidate)) {
+      return candidate;
+    }
+  }
+  return values[0];
+}
+
+/**
+ * The names proposed for new target fields in a language, by column id
+ * (`languages.headers`); empty without languages or a locale.
+ */
+export function connectorFieldNames(
+  languages: ConnectorLanguages | undefined,
+  locale: string | undefined
+): Record<string, string> {
+  if (!(languages?.headers && locale)) {
+    return {};
+  }
+  const names: Record<string, string> = {};
+  for (const [id, name] of Object.entries(languages.headers(locale) ?? {})) {
+    if (typeof name === "string" && name.trim()) {
+      names[id] = name;
+    }
+  }
+  return names;
+}
+
+/** The name proposed for a new target field: the header in the connector's language, else the table header. */
+export function connectorNewFieldName(
+  column: Pick<ConnectorColumn, "id" | "header">,
+  fieldNames?: Readonly<Record<string, string>>
+): string {
+  return fieldNames?.[column.id] ?? column.header;
+}
+
+/**
  * Each column to the field with the same name (accents, case and separators
  * ignored), type-compatible fields first, each field used once. Unmatched
- * columns get a new field of their own name when the target allows it.
+ * columns get a new field of their own name when the target allows it: its
+ * name in the connector's language with `fieldNames`, which also match.
  * A field the column cannot fill (a formula, a person, a select for a
  * number) is never chosen; entries carry the field's id and position.
  */
@@ -1454,14 +1523,22 @@ export function defaultConnectorMapping(
     allowNewFields?: boolean;
     keyField?: string;
     direction?: SyncDirection;
+    /** Names proposed for new fields, by column id (`connectorFieldNames`). */
+    fieldNames?: Readonly<Record<string, string>>;
   } = {}
 ): ConnectorMappingEntry[] {
   const matches = matchFieldsByName(
-    columns.map((column) => ({
-      key: column.id,
-      names: [column.header],
-      type: column.type,
-    })),
+    columns.map((column) => {
+      const proposed = connectorNewFieldName(column, options.fieldNames);
+      return {
+        key: column.id,
+        names:
+          proposed === column.header
+            ? [column.header]
+            : [proposed, column.header],
+        type: column.type,
+      };
+    }),
     fields.map((field) => ({
       key: field.name,
       names: [field.name],
@@ -1728,6 +1805,8 @@ export function resolveConnectorSettings({
   directions,
   conflictRules,
   preset,
+  languages,
+  locale: preferredLocale,
 }: {
   columns: readonly ConnectorViewColumn[];
   modes?: readonly ConnectorMode[];
@@ -1738,7 +1817,12 @@ export function resolveConnectorSettings({
   directions?: readonly SyncDirection[];
   conflictRules?: readonly ConflictRule[];
   preset?: SyncDirection;
+  /** The connector's languages: sets `locale` and the names of new fields. */
+  languages?: ConnectorLanguages;
+  /** The chosen language; default the saved one, else `languages.default`. */
+  locale?: string;
 }): ConnectorSettings {
+  const locale = connectorLocale(languages, preferredLocale ?? saved?.locale);
   const offered = connectorModes(modes);
   const keys = connectorKeyFields(schema);
   const savedKey = rememberedKey(saved, schema);
@@ -1760,6 +1844,7 @@ export function resolveConnectorSettings({
     allowNewFields: schema.allowNewFields,
     keyField,
     direction: direction.direction,
+    fieldNames: connectorFieldNames(languages, locale),
   });
   const remembered = new Map(
     (saved?.mapping ?? []).map((entry) => [entry.columnId, entry])
@@ -1796,6 +1881,7 @@ export function resolveConnectorSettings({
     mapping,
     columns: scope,
     ...direction,
+    ...(locale ? { locale } : {}),
   };
 }
 
@@ -1945,6 +2031,8 @@ export function connectorFieldOptions(
     mapping?: readonly ConnectorMappingEntry[];
     columns?: readonly ConnectorColumn[];
     direction?: SyncDirection;
+    /** The name proposed for a new field; default the column header. */
+    newName?: string;
   } = {}
 ): ConnectorChoice[] {
   const names = new Set(schema.fields.map((field) => field.name));
@@ -1965,7 +2053,7 @@ export function connectorFieldOptions(
   );
   const newNames = [
     current,
-    schema.allowNewFields ? column.header : null,
+    schema.allowNewFields ? (context.newName ?? column.header) : null,
   ].filter(
     (name, index, list): name is string =>
       Boolean(name) &&
@@ -3251,9 +3339,13 @@ export function describeSchemaFixes(
   };
 }
 
-/** Columns sent to `createTarget.create`: the visible ones, options with Notion colors. */
+/**
+ * Columns sent to `createTarget.create`: the visible ones, options with
+ * Notion colors, headers in the connector's language with `fieldNames`.
+ */
 export function connectorNewTargetColumns(
-  columns: readonly ConnectorViewColumn[]
+  columns: readonly ConnectorViewColumn[],
+  fieldNames?: Readonly<Record<string, string>>
 ): ConnectorNewTargetColumn[] {
   return columns
     .filter((column) => column.visible)
@@ -3268,7 +3360,7 @@ export function connectorNewTargetColumns(
       });
       return {
         id: column.id,
-        header: column.header,
+        header: connectorNewFieldName(column, fieldNames),
         ...(column.type ? { type: column.type } : {}),
         ...(options.length > 0 ? { options } : {}),
       };
@@ -3345,6 +3437,11 @@ export interface ConnectorFlowState {
   account: ConnectorAccountStatus | null;
   /** `account.connect` or `account.disconnect` is running. */
   connecting: boolean;
+  /**
+   * The language the connector writes in (`connector.languages`), also
+   * before a target is chosen; `undefined` without languages.
+   */
+  locale?: string;
 }
 
 export interface ConnectorFlowOptions<TContext, TPushContext> {
@@ -3425,6 +3522,12 @@ export interface ConnectorFlow {
   disconnectAccount: () => Promise<void>;
   /** Opens the connector's picker and selects the chosen target. */
   pickTarget: () => Promise<void>;
+  /**
+   * Chooses the language the connector writes in. Mapped fields still named
+   * as proposed in the previous language, and not in the target yet, take
+   * their name in the new one.
+   */
+  setLocale: (locale: string) => void;
   dispose: () => void;
 }
 
@@ -3531,9 +3634,12 @@ export function createConnectorFlow<TContext, TPushContext>(
 ): ConnectorFlow {
   const { connector, context, columns, t } = options;
   const directions = connectorDirections(connector, options.syncEnabled);
+  const { languages } = connector;
+  const initialLocale = connectorLocale(languages);
   let state: ConnectorFlowState = {
     ...INITIAL_STATE,
     scope: options.selectedCount > 0 ? "selection" : "view",
+    ...(initialLocale ? { locale: initialLocale } : {}),
   };
   let notify = options.onChange;
   let draft: Partial<ConnectorSettings> | null = null;
@@ -3615,6 +3721,8 @@ export function createConnectorFlow<TContext, TPushContext>(
         directions,
         conflictRules: connector.conflictRules,
         preset,
+        languages,
+        locale: state.locale,
       });
       preset = undefined;
       const renames =
@@ -3673,6 +3781,7 @@ export function createConnectorFlow<TContext, TPushContext>(
       ]);
       draft = saved ?? null;
       stored = saved ?? null;
+      const locale = connectorLocale(languages, saved?.locale);
       const known =
         !saved?.targetId ||
         targets.some((target) => target.id === saved.targetId);
@@ -3680,7 +3789,7 @@ export function createConnectorFlow<TContext, TPushContext>(
         known || !saved
           ? targets
           : [...targets, { id: saved.targetId, label: saved.targetId }];
-      set({ phase: "form", targets: list });
+      set({ phase: "form", targets: list, ...(locale ? { locale } : {}) });
       if (saved?.targetId) {
         const target = list.find((item) => item.id === saved.targetId);
         await describe(saved.targetId, childFor(target, saved.childId));
@@ -3845,6 +3954,42 @@ export function createConnectorFlow<TContext, TPushContext>(
     setSettings(
       { ...state.settings, ...patch },
       policyChanged ? { confirmDeletes: false } : {}
+    );
+  };
+
+  const setLocale = (value: string) => {
+    const locale = connectorLocale(languages, value);
+    if (locale !== value || locale === state.locale) {
+      return;
+    }
+    if (!state.settings) {
+      set({ locale });
+      return;
+    }
+    const before = connectorFieldNames(languages, state.locale);
+    const after = connectorFieldNames(languages, locale);
+    const existing = new Set(
+      (state.schema?.fields ?? []).map((field) => field.name)
+    );
+    // Only names the screen proposed follow the language: the target's own
+    // fields and names typed by hand stay.
+    const mapping = state.settings.mapping.map((entry) => {
+      const column = columns.find((item) => item.id === entry.columnId);
+      if (
+        !(column && entry.field) ||
+        existing.has(entry.field) ||
+        entry.field !== connectorNewFieldName(column, before)
+      ) {
+        return entry;
+      }
+      return {
+        columnId: entry.columnId,
+        field: connectorNewFieldName(column, after),
+      };
+    });
+    setSettings(
+      { ...state.settings, locale, mapping: withFieldIds(mapping) },
+      { locale }
     );
   };
 
@@ -4194,7 +4339,10 @@ export function createConnectorFlow<TContext, TPushContext>(
         {
           ...(input.parentId ? { parentId: input.parentId } : {}),
           title,
-          columns: connectorNewTargetColumns(columns),
+          columns: connectorNewTargetColumns(
+            columns,
+            connectorFieldNames(languages, state.locale)
+          ),
         },
         context
       );
@@ -4246,6 +4394,7 @@ export function createConnectorFlow<TContext, TPushContext>(
         phase: "form",
         scope: state.scope,
         account: { connected: false },
+        ...(state.locale ? { locale: state.locale } : {}),
       });
     } catch (error) {
       set({ connecting: false, error: failureText(error) });
@@ -4307,6 +4456,7 @@ export function createConnectorFlow<TContext, TPushContext>(
     connectAccount,
     disconnectAccount,
     pickTarget,
+    setLocale,
     dispose: () => {
       notify = () => undefined;
       request += 1;
@@ -4327,8 +4477,8 @@ export const CONNECTOR_NEW_TARGET = "__yayaw_new_target__";
 export interface ConnectorScreenField {
   /**
    * "target", "child", "direction", "columns", "map:<columnId>" (push),
-   * "field:<name>" (pull and two-way), "keyField", "mode", "scope",
-   * "conflictRule" or "deletePolicy".
+   * "field:<name>" (pull and two-way), "language", "keyField", "mode",
+   * "scope", "conflictRule" or "deletePolicy".
    */
   id: string;
   label: string;
@@ -4350,7 +4500,12 @@ const FIELD_PREFIX = "field:";
 export interface ConnectorScreenOptions {
   connector: Pick<
     DataDestinationConnector,
-    "labels" | "modes" | "directions" | "conflictRules" | "conflicts"
+    | "labels"
+    | "modes"
+    | "directions"
+    | "conflictRules"
+    | "conflicts"
+    | "languages"
   > & { sync?: unknown; createTarget?: { label?: string } };
   columns: readonly ConnectorViewColumn[];
   selectedCount: number;
@@ -4513,12 +4668,36 @@ const titleRow = (
   };
 };
 
+/** "Language": the language the connector writes in, when it offers two or more. */
+const languageFields = (
+  state: ConnectorFlowState,
+  { connector, t }: ConnectorScreenOptions
+): ConnectorScreenField[] => {
+  const languages = connector.languages?.options ?? [];
+  const locale = state.settings?.locale ?? state.locale;
+  if (languages.length < 2 || !locale) {
+    return [];
+  }
+  return [
+    {
+      id: "language",
+      label: t("language"),
+      value: locale,
+      options: languages.map((option) => ({
+        value: option.value,
+        label: option.label,
+      })),
+    },
+  ];
+};
+
 const pushMappingRows = (
   schema: ConnectorSchema,
   settings: ConnectorSettings,
-  { columns, t }: ConnectorScreenOptions
+  { columns, connector, t }: ConnectorScreenOptions
 ): ConnectorScreenField[] => {
   const mappedColumns = connectorMappedColumns(columns, settings.columns);
+  const fieldNames = connectorFieldNames(connector.languages, settings.locale);
   const title = titleField(schema, settings);
   const rows = mappedColumns.map((column, index) => {
     const field =
@@ -4534,6 +4713,7 @@ const pushMappingRows = (
         mapping: settings.mapping,
         columns: mappedColumns,
         direction: "push",
+        newName: connectorNewFieldName(column, fieldNames),
       }),
     };
   });
@@ -4768,9 +4948,10 @@ const sendingFields = (
 
 /**
  * The screen's selects in order: target and child, then, once the target is
- * described, direction, columns, one mapping row per column (push) or per
- * target field (pull and two-way), key field, mode and records (push), the
- * conflict rule (two-way) and the delete policy (pull and two-way).
+ * described, direction, columns, the language (before a target too), one
+ * mapping row per column (push) or per target field (pull and two-way), key
+ * field, mode and records (push), the conflict rule (two-way) and the delete
+ * policy (pull and two-way).
  */
 export function connectorScreenFields(
   state: ConnectorFlowState,
@@ -4778,16 +4959,20 @@ export function connectorScreenFields(
 ): ConnectorScreenField[] {
   const { schema, settings } = state;
   const fields = targetFields(state, options);
-  if (schema && settings) {
-    fields.push(
-      ...directionFields(settings, options),
-      columnsField(settings, options),
-      ...(isSyncDirection(settings.direction)
-        ? syncMappingRows(schema, settings, options)
-        : pushMappingRows(schema, settings, options)),
-      ...sendingFields(state, schema, settings, options)
-    );
+  if (!(schema && settings)) {
+    // Chosen before a target too: "Create one from this table’s columns…" uses it.
+    fields.push(...languageFields(state, options));
+    return fields;
   }
+  fields.push(
+    ...directionFields(settings, options),
+    columnsField(settings, options),
+    ...languageFields(state, options),
+    ...(isSyncDirection(settings.direction)
+      ? syncMappingRows(schema, settings, options)
+      : pushMappingRows(schema, settings, options)),
+    ...sendingFields(state, schema, settings, options)
+  );
   return fields;
 }
 
@@ -4884,6 +5069,9 @@ const applySettingsField = (
     case "mode":
       flow.update({ mode: value === "replace" ? "replace" : "upsert" });
       return true;
+    case "language":
+      flow.setLocale(value);
+      return true;
     case "direction":
       flow.update({ direction: pickValue(SYNC_DIRECTIONS, value, "push") });
       return true;
@@ -4933,7 +5121,13 @@ export function applyConnectorField(
   return Promise.resolve();
 }
 
-const TARGET_FIELD_IDS = new Set(["target", "child", "direction", "columns"]);
+const TARGET_FIELD_IDS = new Set([
+  "target",
+  "child",
+  "direction",
+  "columns",
+  "language",
+]);
 
 const isMappingRow = (field: ConnectorScreenField) =>
   field.id.startsWith(MAP_PREFIX) || field.id.startsWith(FIELD_PREFIX);

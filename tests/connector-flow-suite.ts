@@ -646,4 +646,302 @@ export function connectorFlowSuite(
     );
     assert.equal(flow.state.scope, "view");
   });
+
+  test("a connector without languages shows no Language select and sends no locale", async () => {
+    const saved: Model.ConnectorSettings[] = [];
+    const connector = {
+      labels: { target: "Sheet" },
+      targets: () => [{ id: "sheet", label: "Sheet" }],
+      describe: () => ({ fields: [{ name: "Name" }], allowNewFields: true }),
+      save: (settings: Model.ConnectorSettings) => {
+        saved.push(settings);
+      },
+      push: () => result(),
+    };
+    const flow = model.createConnectorFlow({
+      connector,
+      context: {},
+      columns,
+      selectedCount: 0,
+      t: en,
+      pushContext: (scope) => ({ scope }),
+      onChange: () => undefined,
+    });
+    await flow.start();
+    const options = { connector, columns, selectedCount: 0, t: en };
+    const ids = () =>
+      model.connectorScreenFields(flow.state, options).map((field) => field.id);
+    assert.equal(flow.state.locale, undefined);
+    assert.ok(!ids().includes("language"));
+    await flow.selectTarget("sheet");
+    assert.ok(!ids().includes("language"));
+    assert.equal(
+      flow.state.settings ? "locale" in flow.state.settings : true,
+      false
+    );
+    assert.deepEqual(
+      flow.state.settings?.mapping.map((entry) => entry.field),
+      ["Name", "Échéance", "Status", "Price"]
+    );
+    await flow.send();
+    assert.equal(saved.length, 1);
+    assert.equal("locale" in (saved[0] ?? {}), false);
+  });
+
+  test("languages: new fields are proposed in the chosen language, existing fields and typed names stay", async () => {
+    const languageColumns = [
+      { id: "name", header: "Name", type: "text", visible: true },
+      { id: "status", header: "Status", type: "text", visible: true },
+      { id: "notes", header: "Notes", type: "text", visible: true },
+      { id: "owner", header: "Owner", type: "text", visible: true },
+    ];
+    const french: Record<string, string> = {
+      name: "Nom",
+      status: "Statut",
+      notes: "Remarques",
+      owner: "Responsable",
+    };
+    const saved: Model.ConnectorSettings[] = [];
+    const pushed: Model.ConnectorSettings[] = [];
+    const connector = {
+      languages: {
+        options: [
+          { value: "en", label: "English" },
+          { value: "fr", label: "Français" },
+        ],
+        default: "fr",
+        headers: (locale: string) => (locale === "fr" ? french : undefined),
+      },
+      targets: () => [{ id: "sheet", label: "Sheet" }],
+      describe: () => ({
+        fields: [{ name: "Name" }, { name: "Statut" }],
+        allowNewFields: true,
+      }),
+      save: (settings: Model.ConnectorSettings) => {
+        saved.push(settings);
+      },
+      push: (settings: Model.ConnectorSettings) => {
+        pushed.push(settings);
+        return result({ created: 1 });
+      },
+    };
+    const flow = model.createConnectorFlow({
+      connector,
+      context: {},
+      columns: languageColumns,
+      selectedCount: 0,
+      t: fr,
+      pushContext: (scope) => ({ scope }),
+      onChange: () => undefined,
+    });
+    await flow.start();
+    assert.equal(flow.state.locale, "fr");
+    const options = {
+      connector,
+      columns: languageColumns,
+      selectedCount: 0,
+      t: fr,
+    };
+    const field = (id: string) =>
+      model
+        .connectorScreenFields(flow.state, options)
+        .find((item) => item.id === id);
+    // Chosen before a target too.
+    assert.deepEqual(field("language"), {
+      id: "language",
+      label: "Langue",
+      value: "fr",
+      options: [
+        { value: "en", label: "English" },
+        { value: "fr", label: "Français" },
+      ],
+    });
+    await flow.selectTarget("sheet");
+    const fieldsOf = () =>
+      flow.state.settings?.mapping.map((entry) => entry.field);
+    // "Name" and "Statut" exist in the sheet; the others are new, in French.
+    assert.deepEqual(fieldsOf(), [
+      "Name",
+      "Statut",
+      "Remarques",
+      "Responsable",
+    ]);
+    assert.equal(flow.state.settings?.locale, "fr");
+    assert.deepEqual(
+      model
+        .connectorScreenFields(flow.state, options)
+        .map((item) => item.id)
+        .slice(0, 3),
+      ["target", "columns", "language"]
+    );
+    assert.deepEqual(
+      model
+        .connectorMappingSections(
+          model.connectorScreenFields(flow.state, options)
+        )
+        .before.map((item) => item.id),
+      ["target", "columns", "language"]
+    );
+    assert.ok(
+      field("map:notes")?.options.some(
+        (option) =>
+          option.value === "Remarques" &&
+          option.label === "Nouveau champ « Remarques »"
+      )
+    );
+    assert.equal(en("language"), "Language");
+
+    // A name typed by hand never follows the language.
+    flow.setField("owner", "Chef de projet");
+    await model.applyConnectorField(flow, "language", "en");
+    assert.equal(flow.state.locale, "en");
+    assert.equal(flow.state.settings?.locale, "en");
+    assert.deepEqual(fieldsOf(), ["Name", "Statut", "Notes", "Chef de projet"]);
+    assert.ok(
+      field("map:notes")?.options.some(
+        (option) =>
+          option.value === "Notes" && option.label === "Nouveau champ « Notes »"
+      )
+    );
+    // A language that is not offered changes nothing.
+    flow.setLocale("de");
+    assert.equal(flow.state.settings?.locale, "en");
+
+    await flow.send();
+    assert.equal(flow.state.phase, "result");
+    assert.equal(saved[0]?.locale, "en");
+    assert.equal(pushed[0]?.locale, "en");
+    assert.deepEqual(
+      pushed[0]?.mapping.map((entry) => entry.field),
+      ["Name", "Statut", "Notes", "Chef de projet"]
+    );
+
+    // Back to French: proposed names follow, duplicates are still reported.
+    flow.edit();
+    await model.applyConnectorField(flow, "language", "fr");
+    assert.deepEqual(fieldsOf(), [
+      "Name",
+      "Statut",
+      "Remarques",
+      "Chef de projet",
+    ]);
+    flow.setField("owner", "Remarques");
+    await flow.send();
+    assert.equal(flow.state.error, "« Remarques » reçoit plusieurs colonnes.");
+    assert.equal(pushed.length, 1);
+  });
+
+  test("languages: the saved locale wins, then the default, then the first option", async () => {
+    const languages = {
+      options: [
+        { value: "en", label: "English" },
+        { value: "fr", label: "Français" },
+      ],
+      headers: (locale: string) =>
+        locale === "fr" ? { status: "Statut" } : undefined,
+    };
+    const flowWith = (
+      saved: Partial<Model.ConnectorSettings> | null,
+      extra: Partial<Model.ConnectorLanguages> = {}
+    ) =>
+      model.createConnectorFlow({
+        connector: {
+          languages: { ...languages, ...extra },
+          targets: () => [{ id: "sheet", label: "Sheet" }],
+          describe: () => ({ fields: [], allowNewFields: true }),
+          load: () =>
+            saved
+              ? {
+                  targetId: "sheet",
+                  mode: "upsert",
+                  keyField: "ID",
+                  mapping: [],
+                  ...saved,
+                }
+              : null,
+          push: () => result(),
+        },
+        context: {},
+        columns,
+        selectedCount: 0,
+        t: en,
+        pushContext: (scope) => ({ scope }),
+        onChange: () => undefined,
+      });
+    const remembered = flowWith({ locale: "fr" }, { default: "en" });
+    await remembered.start();
+    assert.equal(remembered.state.settings?.locale, "fr");
+    assert.equal(
+      remembered.state.settings?.mapping.find(
+        (entry) => entry.columnId === "status"
+      )?.field,
+      "Statut"
+    );
+    const byDefault = flowWith({}, { default: "fr" });
+    await byDefault.start();
+    assert.equal(byDefault.state.settings?.locale, "fr");
+    const first = flowWith(null);
+    await first.start();
+    assert.equal(first.state.locale, "en");
+    // One language: sent as the locale, no select.
+    const single = model.resolveConnectorSettings({
+      columns,
+      schema: { fields: [], allowNewFields: true },
+      target: { targetId: "sheet" },
+      languages: {
+        options: [{ value: "fr", label: "Français" }],
+        headers: () => ({ status: "Statut" }),
+      },
+    });
+    assert.equal(single.locale, "fr");
+    assert.equal(
+      single.mapping.find((entry) => entry.columnId === "status")?.field,
+      "Statut"
+    );
+  });
+
+  test("languages: a target created from the table's columns uses the chosen language", async () => {
+    const created: Model.ConnectorNewTargetColumn[][] = [];
+    const flow = model.createConnectorFlow({
+      connector: {
+        languages: {
+          options: [
+            { value: "en", label: "English" },
+            { value: "fr", label: "Français" },
+          ],
+          headers: (locale: string) =>
+            locale === "fr" ? { name: "Nom", due: "Date limite" } : undefined,
+        },
+        targets: () => [],
+        describe: () => ({ fields: [{ name: "Nom" }], allowNewFields: true }),
+        createTarget: {
+          create: (input) => {
+            created.push(input.columns);
+            return { id: "new", label: input.title };
+          },
+        },
+        push: () => result(),
+      },
+      context: {},
+      columns,
+      selectedCount: 0,
+      t: en,
+      pushContext: (scope) => ({ scope }),
+      onChange: () => undefined,
+    });
+    await flow.start();
+    assert.equal(flow.state.locale, "en");
+    await model.applyConnectorField(flow, "language", "fr");
+    assert.equal(flow.state.locale, "fr");
+    await flow.createTarget({ title: "Projets" });
+    assert.deepEqual(
+      created[0]?.map((column) => column.header),
+      ["Nom", "Date limite", "Status"]
+    );
+    assert.equal(flow.state.settings?.locale, "fr");
+    assert.deepEqual(
+      flow.state.settings?.mapping.map((entry) => entry.field),
+      ["Nom", "Date limite", "Status", "Price"]
+    );
+  });
 }
